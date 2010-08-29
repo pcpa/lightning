@@ -136,7 +136,17 @@
 #ifndef jit_retval_d
 #define jit_retval_d(op1)            jit_movr_d((op1), JIT_FPRET)
 #endif
- 
+
+#ifndef jit_prolog_d
+#define jit_prolog_f(numargs)
+#define jit_prolog_d(numargs)
+#endif
+
+#ifndef jit_leaf_d
+#define jit_leaf_f(numargs)		jit_prolog_f(numargs)
+#define jit_leaf_d(numargs)		jit_prolog_d(numargs)
+#endif
+
 #ifndef jit_getarg_f
 #ifndef JIT_AP
 #define jit_getarg_f(reg, ofs)         jit_movr_f    ((reg), (ofs))

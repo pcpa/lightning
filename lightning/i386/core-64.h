@@ -147,18 +147,44 @@ struct jit_local_state {
 #define jit_pushr_i(rs)		PUSHQr(rs)
 #define jit_popr_i(rs)		POPQr(rs)
 
-/* A return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
-#define jit_prolog(n) (_jitl.framesize = ((n) & 1) ? 56 : 48, _jitl.nextarg_getfp = _jitl.nextarg_geti = 0, _jitl.alloca_offset = 0, \
-		       PUSHQr(_EBX), PUSHQr(_R12), PUSHQr(_R13), PUSHQr(_R14), PUSHQr(_EBP), MOVQrr(_ESP, _EBP))
+/* Return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
+#define jit_prolog(n)							\
+     /* Initialize counter of integer arguments */			\
+    (_jitl.nextarg_puti = (n),						\
+     /* Initialize counter of stack arguments */			\
+     _jitl.argssize = (_jitl.nextarg_puti > JIT_ARG_MAX)		\
+	? _jitl.nextarg_puti - JIT_ARG_MAX : 0,				\
+     /* Initialize offset of stack arguments */				\
+     _jitl.framesize = (_jitl.argssize & 1) ? 56 : 48,			\
+     /* Initialize counter of float arguments */			\
+     _jitl.nextarg_putfp = 0,						\
+     /* Initialize offsets of arguments */				\
+     _jitl.nextarg_getfp = _jitl.nextarg_geti = 0,			\
+     /* Initialize alloca information */				\
+     _jitl.alloca_offset = _jitl.alloca_slack = 0,			\
+     /* Build stack frame */						\
+     PUSHQr(_EBX), PUSHQr(_R12), PUSHQr(_R13), PUSHQr(_R14), 		\
+     PUSHQr(_EBP), MOVQrr(_ESP, _EBP))
 
 #define jit_calli(sub)          (MOVQir((long) (sub), JIT_REXTMP), CALLsr(JIT_REXTMP))
 #define jit_callr(reg)		CALLsr((reg))
 
-#define jit_prepare_i(ni)	(_jitl.nextarg_puti = (ni), \
-				 _jitl.argssize = _jitl.nextarg_puti > JIT_ARG_MAX \
-				 ? _jitl.nextarg_puti - JIT_ARG_MAX : 0)
-#define jit_pusharg_i(rs)	(--_jitl.nextarg_puti >= JIT_ARG_MAX \
-				 ? PUSHQr(rs) :	MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
+#define jit_prepare_i(ni)						\
+    /* Initialize offset of right to left integer argument */		\
+    (_jitl.nextarg_puti = (ni),						\
+     /* Initialize float argument offset and register counter */	\
+     _jitl.nextarg_putfp = _jitl.fprssize = 0,				\
+     /* argssize is used to keep track of stack slots used */		\
+     _jitl.argssize = _jitl.nextarg_puti > JIT_ARG_MAX			\
+     ? _jitl.nextarg_puti - JIT_ARG_MAX : 0)
+
+#define jit_pusharg_i(rs)						\
+    /* Need to use stack for argument? */				\
+    (--_jitl.nextarg_puti >= JIT_ARG_MAX				\
+       /* Yes. Push it */						\
+     ? PUSHQr(rs)							\
+       /* No. Use a register */						\
+     : MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
 
 #define jit_finish(sub)		(_jitl.fprssize \
 				 ? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0) \

@@ -290,23 +290,58 @@ union jit_double_imm {
 #define jit_ordr_d(d, s1, s2)           (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNPr (jit_reg8((d))))
 #define jit_unordr_d(d, s1, s2)         (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETPr (jit_reg8((d))))
 
-#define jit_prepare_f(num)		((_jitl.nextarg_putfp + (num) > JIT_FP_ARG_MAX \
-					 ? (_jitl.argssize += _jitl.nextarg_putfp + (num) - JIT_FP_ARG_MAX, \
-					    _jitl.fprssize = JIT_FP_ARG_MAX) \
-					 : (_jitl.fprssize += (num))), \
-					 _jitl.nextarg_putfp += (num))
-#define jit_prepare_d(num)		((_jitl.nextarg_putfp + (num) > JIT_FP_ARG_MAX \
-					 ? (_jitl.argssize += _jitl.nextarg_putfp + (num) - JIT_FP_ARG_MAX, \
-					    _jitl.fprssize = JIT_FP_ARG_MAX) \
-					 : (_jitl.fprssize += (num))), \
-					 _jitl.nextarg_putfp += (num))
+#define jit_prolog_f(num)						\
+    /* Update counter. Have float arguments on stack? */		\
+    (((_jitl.nextarg_putfp += (num)) > JIT_FP_ARG_MAX)			\
+	/* Yes. Stack appears to be padded? */				\
+	? ((_jitl.argssize & 1)						\
+	    /* Yes. Update number of stack arguments */			\
+	    ? (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)	\
+				? _jitl.nextarg_puti - JIT_ARG_MAX	\
+				: 0) + _jitl.nextarg_putfp		\
+				     - JIT_FP_ARG_MAX,			\
+		/* Stack still appears to be padded? */			\
+		((_jitl.argssize & 1)					\
+		    /* Yes. Do nothing */				\
+		    ? 0							\
+		    /* No. Update state for aligned stack */		\
+		    : (_jitl.framesize -= sizeof(double))))		\
+	    /* No. Update number of stack arguments */			\
+	    : (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)	\
+				? _jitl.nextarg_puti - JIT_ARG_MAX	\
+				: 0) + _jitl.nextarg_putfp		\
+				     - JIT_FP_ARG_MAX,			\
+		/* Stack appears to be padded now? */			\
+		((_jitl.argssize & 1)					\
+		    /* Yes. Update state for padded stack */		\
+		    ? (_jitl.framesize += sizeof(double))		\
+		    /* No. Do nothing */				\
+		    : 0)))						\
+	/* No. Do nothing as there are no known floats on stack */	\
+	: 0)
+#define jit_prolog_d(num)		jit_prolog_f(num)
 
-#define jit_arg_f()			(_jitl.nextarg_getfp < JIT_FP_ARG_MAX \
-					 ? _jitl.nextarg_getfp++ \
-					 : ((_jitl.framesize += sizeof(double)) - sizeof(double)))
-#define jit_arg_d()			(_jitl.nextarg_getfp < JIT_FP_ARG_MAX \
-					 ? _jitl.nextarg_getfp++ \
-					 : ((_jitl.framesize += sizeof(double)) - sizeof(double)))
+#define jit_prepare_f(num)						\
+    /* Update counter. Need stack for float arguments? */		\
+    (((_jitl.nextarg_putfp += num) > JIT_FP_ARG_MAX)			\
+	/* Yes. Update counter of stack arguments */			\
+	? (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)		\
+			    ? _jitl.nextarg_puti - JIT_ARG_MAX		\
+			    : 0) + _jitl.nextarg_putfp			\
+				 - JIT_FP_ARG_MAX,			\
+	   /* Update counter of float registers */			\
+	   _jitl.fprssize = JIT_FP_ARG_MAX)				\
+	: (_jitl.fprssize += (num)))
+#define jit_prepare_d(num)		jit_prepare_f(num)
+
+#define jit_arg_f()							\
+     /* There are still free float registers? */			\
+    (_jitl.nextarg_getfp < JIT_FP_ARG_MAX				\
+	  /* Yes. Return the register offset */				\
+	? _jitl.nextarg_getfp++						\
+	  /* No. Return the stack offset */				\
+	: ((_jitl.framesize += sizeof(double)) - sizeof(double)))
+#define jit_arg_d()			jit_arg_f()
 
 #define jit_getarg_f(reg, ofs)		((ofs) < JIT_FP_ARG_MAX \
 					 ? jit_movr_f((reg), _XMM0 + (ofs)) \
