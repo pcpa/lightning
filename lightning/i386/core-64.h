@@ -254,6 +254,16 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_boaddi_ul(label, rs, is)	(ADDQir((is), (rs)), JCm(label), _jit.x.pc)
 #define jit_bosubi_ul(label, rs, is)	(SUBQir((is), (rs)), JCm(label), _jit.x.pc)
 
+/* Alias some jit_xyz_i to the jit_xyz_l couterpart because if using
+ * the 32 bits version, they will zero extend, what is not desirable,
+ * as jit_xyz_i may have been called because it is known the value
+ * only matters in 32 bits representation, or was used to truncate
+ * the immediate value, but not to zero extend */
+#define jit_negr_i(d, rs)	jit_negr_l(d, rs)
+#define jit_movr_i(d, rs)	jit_movr_l(d, rs)
+#define jit_movi_i(d, is)	jit_movi_l(d, (long)(int)is)
+#define jit_movi_ui(d, rs)	jit_movi_l((d), (_ul)(_ui)(rs))
+
 #define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v)))
 #define jit_patch_short_at(jump_pc,v)  (*_PSI((jump_pc) - sizeof(int)) = _jit_SI((jit_insn *)(v) - (jump_pc)))
 #define jit_patch_at(jump_pc,v) (_jitl.long_jumps ? jit_patch_long_at((jump_pc)-3, v) : jit_patch_short_at(jump_pc, v))

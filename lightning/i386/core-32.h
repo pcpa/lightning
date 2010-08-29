@@ -117,6 +117,9 @@ struct jit_local_state {
 #define	jit_arg_ul()		((_jitl.framesize += sizeof(long)) - sizeof(long))
 #define	jit_arg_p()		((_jitl.framesize += sizeof(long)) - sizeof(long))
 
+#define jit_negr_i(d, rs)	jit_opi_((d), (rs), NEGLr(d), (XORLrr((d), (d)), SUBLrr((rs), (d))))
+#define jit_movr_i(d, rs)	((void)((rs) == (d) ? 0 : MOVLrr((rs), (d))))
+#define jit_movi_i(d, is)	((is) ? MOVLir((is), (d)) : XORLrr((d), (d)))
 #define jit_movi_p(d, is)       (MOVLir (((long)(is)), (d)), _jit.x.pc)
 #define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v) - (jump_pc)))
 #define jit_patch_at(jump_pc,v)  jit_patch_long_at(jump_pc, v)

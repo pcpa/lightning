@@ -112,7 +112,9 @@ typedef union jit_code {
 #define jit_andr_ui(d, s1, s2)		jit_andr_i((d), (s1), (s2))
 #define jit_lshi_ui(d, rs, is)		jit_lshi_i((d), (rs), (is))	
 #define jit_lshr_ui(d, s1, s2)		jit_lshr_i((d), (s1), (s2))
-#define jit_movi_ui(d, rs)		jit_movi_i((d), (rs))
+#ifndef jit_movi_ui
+#  define jit_movi_ui(d, rs)		jit_movi_i((d), (rs))
+#endif
 #define jit_movr_ui(d, rs)		jit_movr_i((d), (rs))
 #define jit_ori_ui(d, rs, is)		jit_ori_i((d), (rs), (is))	
 #define jit_orr_ui(d, s1, s2)		jit_orr_i((d), (s1), (s2))
