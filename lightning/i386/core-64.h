@@ -60,6 +60,7 @@ struct jit_local_state {
   int	fprssize;
   int   alloca_offset;
   int   alloca_slack;
+  jit_insn	*label;
 };
 
 /* Whether a register in the "low" bank is used for the user-accessible

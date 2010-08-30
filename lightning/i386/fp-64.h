@@ -262,8 +262,29 @@ union jit_double_imm {
 
 #define jit_ltr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAr (jit_reg8((d))))
 #define jit_ler_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAEr (jit_reg8((d))))
-#define jit_eqr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), _OO(0x7a03), SETEr (jit_reg8((d))))
-#define jit_ner_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), MOVLir (1, (d)), _OO(0x7a03), SETNEr (jit_reg8((d))))
+#define jit_eqr_f(d, s1, s2)						\
+     /* Set register to zero */						\
+    (XORLrr((d), (d)),							\
+     /* Compare operands */						\
+     UCOMISSrr((s1), (s2)),						\
+     /* Jump if even parity (unordered) */				\
+     JPEm(0),								\
+     _jitl.label = jit_get_label(),					\
+     /* Set register if zero flag is set (equal) */			\
+     SETEr(jit_reg8((d))),						\
+     /* Parity was even */						\
+     jit_patch(_jitl.label))
+#define jit_ner_f(d, s1, s2)						\
+     /* Set register to one */						\
+    (MOVLir(1, (d)),							\
+     /* Compare operands */						\
+     UCOMISSrr((s1), (s2)),						\
+     /* Jump if even parity (unordered) */				\
+     JPEm(0),								\
+     _jitl.label = jit_get_label(),					\
+     /* Set register if zero flag is not set (not equal) */		\
+     SETNEr(jit_reg8((d))),						\
+     jit_patch(_jitl.label))
 #define jit_ger_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAEr (jit_reg8((d))))
 #define jit_gtr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAr (jit_reg8((d))))
 #define jit_unltr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAEr (jit_reg8((d))))
@@ -277,8 +298,28 @@ union jit_double_imm {
 
 #define jit_ltr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAr (jit_reg8((d))))
 #define jit_ler_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAEr (jit_reg8((d))))
-#define jit_eqr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), _OO(0x7a03), SETEr (jit_reg8((d))))
-#define jit_ner_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), MOVLir (1, (d)), _OO(0x7a03), SETNEr (jit_reg8((d))))
+#define jit_eqr_d(d, s1, s2)						\
+     /* Set register to zero */						\
+    (XORLrr((d), (d)),							\
+     /* Compare operands */						\
+     UCOMISDrr((s1), (s2)),						\
+     /* Jump if even parity (unordered) */				\
+     JPEm(0),								\
+     _jitl.label = jit_get_label(),					\
+     /* Set register if zero flag is set (equal) */			\
+     SETEr(jit_reg8((d))),						\
+     jit_patch(_jitl.label))
+#define jit_ner_d(d, s1, s2)						\
+     /* Set register to one */						\
+    (MOVLir(1, (d)),							\
+     /* Compare operands */						\
+     UCOMISDrr((s1), (s2)),						\
+     /* Jump if even parity (unordered) */				\
+     JPEm(0),								\
+     _jitl.label = jit_get_label(),					\
+     /* Set register if zero flag is not set (not equal) */		\
+     SETNEr(jit_reg8((d))),						\
+     jit_patch(_jitl.label))
 #define jit_ger_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAEr (jit_reg8((d))))
 #define jit_gtr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAr (jit_reg8((d))))
 #define jit_unltr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAEr (jit_reg8((d))))
