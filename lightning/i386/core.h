@@ -111,63 +111,117 @@
 	(MOVLir(is, rs == _EAX ? _EDX : _EAX),		\
 	 IMULLr(rs == _EAX ? _EDX : rs))
 
-#define jit_divi_i_(result, d, rs, is)			\
-	(jit_might (d,    _EAX, jit_pushr_i(_EAX)),		\
-	jit_might (d,    _ECX, jit_pushr_i(_ECX)),		\
-	jit_might (d,    _EDX, jit_pushr_i(_EDX)),		\
-	jit_might (rs,   _EAX, MOVLrr(rs, _EAX)),	\
-	jit_might (rs,   _EDX, MOVLrr(rs, _EDX)),	\
-	MOVLir(is, _ECX),				\
-	SARLir(31, _EDX),				\
-	IDIVLr(_ECX),					\
-	jit_might(d,    result, MOVLrr(result, d)),	\
-	jit_might(d,     _EDX,  jit_popr_i(_EDX)),		\
-	jit_might(d,     _ECX,  jit_popr_i(_ECX)),		\
-	jit_might(d,     _EAX,  jit_popr_i(_EAX)))
+#define jit_divi_i_(result, d, rs, is)					\
+     /* if (d != eax) *sp++ = eax */					\
+    (jit_might(jit_reg32(d),  _EAX,		jit_pushr_i(_EAX)),	\
+     /* if (d != ecx) *sp++ = ecx */					\
+     jit_might(jit_reg32(d),  _ECX,		jit_pushr_i(_ECX)),	\
+     /* if (d != edx) *sp++ = edx */					\
+     jit_might(jit_reg32(d),  _EDX,		jit_pushr_i(_EDX)),	\
+     /* if (rs != eax) eax = rs */					\
+     jit_might(jit_reg32(rs), _EAX,		MOVLrr(rs, _EAX)),	\
+     /* if (rs != edx) edx = rs */					\
+     jit_might(jit_reg32(rs), _EDX,		MOVLrr(rs, _EDX)),	\
+     /* ecx = is */							\
+     MOVLir(is, _ECX),							\
+     /* edx >>= 31 */							\
+     SARLir(31, _EDX),							\
+     /* edx:eax /= ecx	=> eax = quot, edx = rem */			\
+     IDIVLr(_ECX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg32(d), jit_reg32(result),	MOVLrr(result, d)),	\
+     /* if (d != edx) edx = --*sp  */					\
+     jit_might(jit_reg32(d), _EDX,		jit_popr_i(_EDX)),	\
+     /* if (d != ecx) ecx = --*sp  */					\
+     jit_might(jit_reg32(d), _ECX,		jit_popr_i(_ECX)),	\
+     /* if (d != eax) eax = --*sp  */					\
+     jit_might(jit_reg32(d), _EAX,		jit_popr_i(_EAX)))
 
-#define jit_divr_i_(result, d, s1, s2)			\
-	(jit_might (d,    _EAX, jit_pushr_i(_EAX)),		\
-	jit_might (d,    _ECX, jit_pushr_i(_ECX)),		\
-	jit_might (d,    _EDX, jit_pushr_i(_EDX)),		\
-	((s1 == _ECX) ? jit_pushr_i(_ECX) : 0),		\
-	jit_might (s2,   _ECX, MOVLrr(s2, _ECX)),	\
-	((s1 == _ECX) ? jit_popr_i(_EDX) :			\
-	jit_might (s1,   _EDX, MOVLrr(s1, _EDX))),	\
-	MOVLrr(_EDX, _EAX),				\
-	SARLir(31, _EDX),				\
-	IDIVLr(_ECX),					\
-	jit_might(d,    result, MOVLrr(result, d)),	\
-	jit_might(d,     _EDX,  jit_popr_i(_EDX)),		\
-	jit_might(d,     _ECX,  jit_popr_i(_ECX)),		\
-	jit_might(d,     _EAX,  jit_popr_i(_EAX)))
+#define jit_divr_i_(result, d, s1, s2)					\
+     /* if (d != eax) *sp++ = eax */					\
+    (jit_might(jit_reg32(d),  _EAX,		jit_pushr_i(_EAX)),	\
+     /* if (d != ecx) *sp++ = ecx */					\
+     jit_might(jit_reg32(d),  _ECX,		jit_pushr_i(_ECX)),	\
+     /* if (d != edx) *sp++ = edx */					\
+     jit_might(jit_reg32(d),  _EDX,		jit_pushr_i(_EDX)),	\
+     /* if (s1 == ecx) *sp++ = ecx */					\
+     ((jit_reg32(s1) == _ECX) ?			jit_pushr_i(_ECX) : 0),	\
+     /* if (s1 != ecx) ecx = s2 */					\
+     jit_might(jit_reg32(s2), _ECX,		MOVLrr(s2, _ECX)),	\
+     /* if (s1 == ecx) */						\
+     ((jit_reg32(s1) == _ECX)						\
+	/* edx = *--sp */						\
+	? jit_popr_i(_EDX)						\
+	/* else if (s1 == edx) edx = s1 */				\
+	: jit_might(jit_reg32(s1), _EDX,	MOVLrr(s1, _EDX))),	\
+     /* eax = edx */							\
+     MOVLrr(_EDX, _EAX),						\
+     /* edx >>= 31 */							\
+     SARLir(31, _EDX),							\
+     /* edx:eax /= ecx	=> eax = quot, edx = rem */			\
+     IDIVLr(_ECX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg32(d), jit_reg32(result),	MOVLrr(result, d)),	\
+     /* if (d != edx) edx = --*sp  */					\
+     jit_might(jit_reg32(d), _EDX,		jit_popr_i(_EDX)),	\
+     /* if (d != ecx) ecx = --*sp  */					\
+     jit_might(jit_reg32(d), _ECX,		jit_popr_i(_ECX)),	\
+     /* if (d != eax) eax = --*sp  */					\
+     jit_might(jit_reg32(d), _EAX,		 jit_popr_i(_EAX)))
 
-#define jit_divi_ui_(result, d, rs, is)			\
-	(jit_might (d,    _EAX, jit_pushr_i(_EAX)),		\
-	jit_might (d,    _ECX, jit_pushr_i(_ECX)),		\
-	jit_might (d,    _EDX, jit_pushr_i(_EDX)),		\
-	jit_might (rs,   _EAX, MOVLrr(rs, _EAX)),	\
-	MOVLir(is, _ECX),				\
-	XORLrr(_EDX, _EDX),				\
-	DIVLr(_ECX),					\
-	jit_might(d,    result, MOVLrr(result, d)),	\
-	jit_might(d,     _EDX,  jit_popr_i(_EDX)),		\
-	jit_might(d,     _ECX,  jit_popr_i(_ECX)),		\
-	jit_might(d,     _EAX,  jit_popr_i(_EAX)))
+#define jit_divi_ui_(result, d, rs, is)					\
+     /* if (d != eax) *sp++ = eax */					\
+    (jit_might(jit_reg32(d),  _EAX,		jit_pushr_i(_EAX)),	\
+     /* if (d != ecx) *sp++ = ecx */					\
+     jit_might(jit_reg32(d),  _ECX,		jit_pushr_i(_ECX)),	\
+     /* if (d != edx) *sp++ = edx */					\
+     jit_might(jit_reg32(d),  _EDX,		jit_pushr_i(_EDX)),	\
+     /* if (rs != eax) eax = rs */					\
+     jit_might(jit_reg32(rs), _EAX,		MOVLrr(rs, _EAX)),	\
+     /* ecx = is */							\
+     MOVLir(is, _ECX),							\
+     /* edx ^= edx */							\
+     XORLrr(_EDX, _EDX),						\
+     /* edx:eax /= ecx (unsigned) => eax = quot, edx = rem */		\
+     DIVLr(_ECX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg32(d), jit_reg32(result),	MOVLrr(result, d)),	\
+     /* if (d != edx) edx = --*sp  */					\
+     jit_might(jit_reg32(d), _EDX,		jit_popr_i(_EDX)),	\
+     /* if (d != ecx) ecx = --*sp  */					\
+     jit_might(jit_reg32(d), _ECX,		jit_popr_i(_ECX)),	\
+     /* if (d != eax) eax = --*sp  */					\
+     jit_might(jit_reg32(d), _EAX,		jit_popr_i(_EAX)))
 
-#define jit_divr_ui_(result, d, s1, s2)			\
-	(jit_might (d,    _EAX, jit_pushr_i(_EAX)),		\
-	jit_might (d,    _ECX, jit_pushr_i(_ECX)),		\
-	jit_might (d,    _EDX, jit_pushr_i(_EDX)),		\
-	((s1 == _ECX) ? jit_pushr_i(_ECX) : 0),		\
-	jit_might (s2,   _ECX, MOVLrr(s2, _ECX)),	\
-	((s1 == _ECX) ? jit_popr_i(_EAX) :			\
-	jit_might (s1,   _EAX, MOVLrr(s1, _EAX))),	\
-	XORLrr(_EDX, _EDX),				\
-	DIVLr(_ECX),					\
-	jit_might(d,    result, MOVLrr(result, d)),	\
-	jit_might(d,     _EDX,  jit_popr_i(_EDX)),		\
-	jit_might(d,     _ECX,  jit_popr_i(_ECX)),		\
-	jit_might(d,     _EAX,  jit_popr_i(_EAX)))
+#define jit_divr_ui_(result, d, s1, s2)					\
+     /* if (d != eax) *sp++ = eax */					\
+    (jit_might(jit_reg32(d),  _EAX,		jit_pushr_i(_EAX)),	\
+     /* if (d != ecx) *sp++ = ecx */					\
+     jit_might(jit_reg32(d),  _ECX,		jit_pushr_i(_ECX)),	\
+     /* if (d != edx) *sp++ = edx */					\
+     jit_might(jit_reg32(d),  _EDX,		jit_pushr_i(_EDX)),	\
+     /* if (s1 == ecx) *sp++ = ecx */					\
+     ((jit_reg32(s1) == _ECX) ?			jit_pushr_i(_ECX) : 0),	\
+     /* if (s1 != ecx) ecx = s2 */					\
+     jit_might(jit_reg32(s2), _ECX,		MOVLrr(s2, _ECX)),	\
+     /* if (s1 == ecx) */						\
+     ((jit_reg32(s1) == _ECX)						\
+	/* eax = *--sp */						\
+	? jit_popr_i(_EAX)						\
+	/* else if (s1 == eax) eax = s1 */				\
+	: jit_might(jit_reg32(s1), _EAX,	MOVLrr(s1, _EAX))),	\
+     /* edx ^= edx */							\
+     XORLrr(_EDX, _EDX),						\
+     /* edx:eax /= ecx (unsigned) => eax = quot, edx = rem */		\
+     DIVLr(_ECX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg32(d), jit_reg32(result), MOVLrr(result, d)),	\
+     /* if (d != edx) edx = --*sp  */					\
+     jit_might(jit_reg32(d), _EDX,		jit_popr_i(_EDX)),	\
+     /* if (d != ecx) ecx = --*sp  */					\
+     jit_might(jit_reg32(d), _ECX,		jit_popr_i(_ECX)),	\
+     /* if (d != eax) eax = --*sp  */					\
+     jit_might(jit_reg32(d), _EAX,		jit_popr_i(_EAX)))
 
 
 /* ALU */

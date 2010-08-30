@@ -425,63 +425,117 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
         (MOVQir(is, rs == _RAX ? _RDX : _RAX),          \
          IMULQr(rs == _RAX ? _RDX : rs))
 
-#define jit_divi_l_(result, d, rs, is)                  \
-        (jit_might (d,    _RAX, jit_pushr_l(_RAX)),             \
-        jit_might (d,    _RCX, jit_pushr_l(_RCX)),              \
-        jit_might (d,    _RDX, jit_pushr_l(_RDX)),              \
-        jit_might (rs,   _RAX, MOVQrr(rs, _RAX)),       \
-        jit_might (rs,   _RDX, MOVQrr(rs, _RDX)),       \
-        MOVQir(is, _RCX),                               \
-        SARQir(63, _RDX),                               \
-        IDIVQr(_RCX),                                   \
-        jit_might(d,    result, MOVQrr(result, d)),     \
-        jit_might(d,     _RDX,  jit_popr_l(_RDX)),              \
-        jit_might(d,     _RCX,  jit_popr_l(_RCX)),              \
-        jit_might(d,     _RAX,  jit_popr_l(_RAX)))
+#define jit_divi_l_(result, d, rs, is)					\
+     /* if (d != rax) *sp++ = rax */					\
+    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
+     /* if (d != rcx) *sp++ = rcx */					\
+     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
+     /* if (d != rdx) *sp++ = rdx */					\
+     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
+     /* if (rs != rax) rax = rs */					\
+     jit_might(jit_reg64(rs), _RAX,		MOVQrr(rs, _RAX)),	\
+     /* if (rs != rdx) rdx = rs */					\
+     jit_might(jit_reg64(rs), _RDX,		MOVQrr(rs, _RDX)),	\
+     /* rcx = is */							\
+     MOVQir(is, _RCX),							\
+     /* rdx >>= 63 */							\
+     SARQir(63, _RDX),							\
+     /* rdx:rax /= rcx	=> rax = quot, rdx = rem */			\
+     IDIVQr(_RCX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
+     /* if (d != rdx) rdx = --*sp  */					\
+     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
+     /* if (d != rcx) rcx = --*sp  */					\
+     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
+     /* if (d != rax) rax = --*sp  */					\
+     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
 
-#define jit_divr_l_(result, d, s1, s2)                  \
-        (jit_might (d,    _RAX, jit_pushr_l(_RAX)),             \
-        jit_might (d,    _RCX, jit_pushr_l(_RCX)),              \
-        jit_might (d,    _RDX, jit_pushr_l(_RDX)),              \
-        ((s1 == _RCX) ? jit_pushr_l(_RCX) : 0),         \
-        jit_might (s2,   _RCX, MOVQrr(s2, _RCX)),       \
-        ((s1 == _RCX) ? jit_popr_l(_RDX) :                      \
-        jit_might (s1,   _RDX, MOVQrr(s1, _RDX))),      \
-        MOVQrr(_RDX, _RAX),                             \
-        SARQir(63, _RDX),                               \
-        IDIVQr(_RCX),                                   \
-        jit_might(d,    result, MOVQrr(result, d)),     \
-        jit_might(d,     _RDX,  jit_popr_l(_RDX)),              \
-        jit_might(d,     _RCX,  jit_popr_l(_RCX)),              \
-        jit_might(d,     _RAX,  jit_popr_l(_RAX)))
+#define jit_divr_l_(result, d, s1, s2)					\
+     /* if (d != rax) *sp++ = rax */					\
+    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
+     /* if (d != rcx) *sp++ = rcx */					\
+     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
+     /* if (d != rdx) *sp++ = rdx */					\
+     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
+     /* if (s1 == rcx) *sp++ = rcx */					\
+     ((jit_reg64(s1) == _RCX) ?			jit_pushr_l(_RCX) : 0),	\
+     /* if (s1 != rcx) rcx = s2 */					\
+     jit_might(jit_reg64(s2), _RCX,		MOVQrr(s2, _RCX)),	\
+     /* if (s1 == rcx) */						\
+     ((jit_reg64(s1) == _RCX)						\
+	/* rdx = *--sp */						\
+	? jit_popr_l(_RDX)						\
+	/* else if (s1 == rdx) rdx = s1 */				\
+	: jit_might(jit_reg64(s1), _RDX,	MOVQrr(s1, _RDX))),	\
+     /* rax = rdx */							\
+     MOVQrr(_RDX, _RAX),						\
+     /* rdx >>= 63 */							\
+     SARQir(63, _RDX),							\
+     /* rdx:rax /= rcx	=> rax = quot, rdx = rem */			\
+     IDIVQr(_RCX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
+     /* if (d != edx) edx = --*sp  */					\
+     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
+     /* if (d != rcx) rcx = --*sp  */					\
+     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
+     /* if (d != rax) rax = --*sp  */					\
+     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
 
-#define jit_divi_ul_(result, d, rs, is)                 \
-        (jit_might (d,    _RAX, jit_pushr_l(_RAX)),             \
-        jit_might (d,    _RCX, jit_pushr_l(_RCX)),              \
-        jit_might (d,    _RDX, jit_pushr_l(_RDX)),              \
-        jit_might (rs,   _RAX, MOVQrr(rs, _RAX)),       \
-        MOVQir(is, _RCX),                               \
-        XORQrr(_RDX, _RDX),                             \
-        DIVQr(_RCX),                                    \
-        jit_might(d,    result, MOVQrr(result, d)),     \
-        jit_might(d,     _RDX,  jit_popr_l(_RDX)),              \
-        jit_might(d,     _RCX,  jit_popr_l(_RCX)),              \
-        jit_might(d,     _RAX,  jit_popr_l(_RAX)))
+#define jit_divi_ul_(result, d, rs, is)					\
+     /* if (d != rax) *sp++ = rax */					\
+    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
+     /* if (d != rcx) *sp++ = rcx */					\
+     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
+     /* if (d != rdx) *sp++ = rdx */					\
+     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
+     /* if (rs != rax) rax = rs */					\
+     jit_might(jit_reg64(rs), _RAX,		MOVQrr(rs, _RAX)),	\
+     /* rcx = is */							\
+     MOVQir(is, _RCX),							\
+     /* rdx ^= rdx */							\
+     XORQrr(_RDX, _RDX),						\
+     /* rdx:rax /= rcx (unsigned) => rax = quot, rdx = rem */		\
+     DIVQr(_RCX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
+     /* if (d != rdx) rdx = --*sp  */					\
+     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
+     /* if (d != rcx) rcx = --*sp  */					\
+     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
+     /* if (d != rax) rax = --*sp  */					\
+     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
 
-#define jit_divr_ul_(result, d, s1, s2)                 \
-        (jit_might (d,    _RAX, jit_pushr_l(_RAX)),             \
-        jit_might (d,    _RCX, jit_pushr_l(_RCX)),              \
-        jit_might (d,    _RDX, jit_pushr_l(_RDX)),              \
-        ((s1 == _RCX) ? jit_pushr_l(_RCX) : 0),         \
-        jit_might (s2,   _RCX, MOVQrr(s2, _RCX)),       \
-        ((s1 == _RCX) ? jit_popr_l(_RAX) :                      \
-        jit_might (s1,   _RAX, MOVQrr(s1, _RAX))),      \
-        XORQrr(_RDX, _RDX),                             \
-        DIVQr(_RCX),                                    \
-        jit_might(d,    result, MOVQrr(result, d)),     \
-        jit_might(d,     _RDX,  jit_popr_l(_RDX)),              \
-        jit_might(d,     _RCX,  jit_popr_l(_RCX)),              \
-        jit_might(d,     _RAX,  jit_popr_l(_RAX)))
+#define jit_divr_ul_(result, d, s1, s2)					\
+     /* if (d != rax) *sp++ = rax */					\
+    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
+     /* if (d != rcx) *sp++ = rcx */					\
+     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
+     /* if (d != rdx) *sp++ = rdx */					\
+     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
+     /* if (s1 == rcx) *sp++ = rcx */					\
+     ((jit_reg64(s1) == _RCX) ?			jit_pushr_l(_RCX) : 0),	\
+     /* if (s1 != rcx) rcx = s2 */					\
+     jit_might(jit_reg64(s2), _RCX,		MOVQrr(s2, _RCX)),	\
+     /* if (s1 == rcx) */						\
+     ((jit_reg64(s1) == _RCX)						\
+	/* rax = *--sp */						\
+	? jit_popr_l(_RAX)						\
+	/* else if (s1 == rax) rax = s1 */				\
+	: jit_might(jit_reg64(s1), _RAX,	MOVQrr(s1, _RAX))),	\
+     /* rdx ^= rdx */							\
+     XORQrr(_RDX, _RDX),						\
+     /* rdx:rax /= rcx (unsigned) => rax = quot, rdx = rem */		\
+     DIVQr(_RCX),							\
+     /* if (d != result) d = result */					\
+     jit_might(jit_reg64(d), jit_reg64(result), MOVQrr(result, d)),	\
+     /* if (d != rdx) rdx = --*sp  */					\
+     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
+     /* if (d != rcx) rcx = --*sp  */					\
+     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
+     /* if (d != rax) rax = --*sp  */					\
+     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
 
 #define jit_muli_i(d, rs, is)		jit_muli_l((d), (rs), (long)(int)(is))
 #define jit_muli_l(d, rs, is)						\

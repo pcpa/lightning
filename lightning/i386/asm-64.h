@@ -94,6 +94,14 @@
 #define jit_check8(rs)		1
 #define jit_reg8(rs)		(_rR(rs) | _AL)
 #define jit_reg16(rs)		(_rR(rs) | _AX)
+#define jit_reg32(rs)		(_rR(rs) | _EAX)
+#if !_ASM_SAFETY
+#  define jit_reg64(rs)		(rs)
+#else
+#  define jit_reg64(rs)							\
+    /* trigger bad lightning macros/usage of register classes  */	\
+    ((_rC(rs) == 0x50) ? (rs) : JITFAIL("(internal) bad 64-bit register " #rs))
+#endif
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #if 0

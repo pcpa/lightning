@@ -96,6 +96,13 @@
     ((jit_reg16(rs) == _SI || jit_reg16(rs) == _DI)			\
 	? _AL : (_rN(rs) | _AL))
 #define jit_reg16(rs)		(_rN(rs) | _AX)
+#if !_ASM_SAFETY
+#  define jit_reg32(rs)		(rs)
+#else
+#  define jit_reg32(rs)							\
+    /* trigger bad lightning macros/usage of register classes  */	\
+    ((_rC(rs) == 0x40) ? (rs) : JITFAIL("(internal) bad 32-bit register " #rs))
+#endif
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? _r_D   (R,D                ) : \
