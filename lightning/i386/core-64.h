@@ -483,13 +483,42 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
         jit_might(d,     _RCX,  jit_popr_l(_RCX)),              \
         jit_might(d,     _RAX,  jit_popr_l(_RAX)))
 
-#define jit_muli_l(d, rs, is)	jit_op_ ((d), (rs),       IMULQir((is), (d)) 		       )
-#define jit_mulr_l(d, s1, s2)	jit_opr_((d), (s1), (s2), IMULQrr((s1), (d)), IMULQrr((s2), (d)) )
+#define jit_muli_i(d, rs, is)		jit_muli_l((d), (rs), (long)(int)(is))
+#define jit_muli_l(d, rs, is)						\
+    /* Value is not zero? */						\
+    ((is)								\
+	/* Yes. Value fits in 32 bits? */				\
+	? jit_qop_((d), (rs), (is),					\
+	    /* Yes. Multiply register by immediate */			\
+	    IMULQir((is), (d)),						\
+	    /* No. Use temporary register (set by jit_qop_ macro) */	\
+	    IMULQrr(JIT_REXTMP, (d)))					\
+	/* No. Set register to zero */					\
+	: XORQrr((d), (d)))
+#define jit_muli_ui(d, rs, is)						\
+    /* Value is not zero? */						\
+    ((is)								\
+	/* Yes. Unsigned value fits in signed 32 bits? */		\
+	? (_uiP(31, (_ui)is)						\
+	    /* Yes. Use common jit_muli_l logic */			\
+	    ? jit_muli_l(d, rs, is)					\
+	    /* No. Need value in a register */				\
+	    : (jit_movi_l(JIT_REXTMP, (_ui)is),				\
+	       jit_mulr_l(d, rs, JIT_REXTMP)))				\
+	/* No. Set register to zero */					\
+	: XORQrr((d), (d)))
+#define jit_mulr_l(d, s1, s2)						\
+    /* s2 == d? */							\
+    (jit_qopr_((d), (s1), (s2),						\
+	/* Yes. Multiply s1 by d and store result in d */		\
+	IMULQrr((s1), (d)),						\
+	/* No. Move s1 to d and multiply s2 by d storing result in d */	\
+	IMULQrr((s2), (d))))
 
 /* As far as low bits are concerned, signed and unsigned multiplies are
    exactly the same. */
-#define jit_muli_ul(d, rs, is)	jit_op_ ((d), (rs),       IMULQir((is), (d)) 		       )
-#define jit_mulr_ul(d, s1, s2)	jit_opr_((d), (s1), (s2), IMULQrr((s1), (d)), IMULQrr((s2), (d)) )
+#define jit_muli_ul(d, rs, is)		jit_muli_l(d, rs, is)
+#define jit_mulr_ul(d, s1, s2)		jit_mulr_l(d, s1, s2)
 
 #define jit_hmuli_l(d, rs, is)														\
 	((d) == _RDX ? (	      jit_pushr_l(_RAX), jit_muli_l_((is), (rs)), 				     jit_popr_l(_RAX)		) :	\

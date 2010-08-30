@@ -173,5 +173,14 @@ struct jit_local_state {
 #define jit_sti_i(id, rs)               MOVLrm((rs), (id), 0,    0,    0)
 #define jit_stxi_i(id, rd, rs)          MOVLrm((rs), (id), (rd), 0,    0)
 
+#define jit_muli_i(d, rs, is)						\
+    /* Value is not zero? */						\
+    ((is)								\
+	/* Yes. if (d == rs) rs *= is; else d = rs, d *= is; */		\
+	? jit_op_((d), (rs), IMULLir((is), (d)))			\
+	/* No. Set register to zero */					\
+	: XORLrr((d), (d)))
+#define jit_muli_ui(d, rs, is)		jit_muli_i(d, rs, is)
+
 #endif /* __lightning_core_h */
 
