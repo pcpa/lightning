@@ -45,9 +45,9 @@
 #define JIT_FP_ARG_MAX		8
 
 #define JIT_R_NUM		3
-#define JIT_R(i)                ((i) == 0 ? _EAX : _R9 + (i))
+#define JIT_R(i)                ((i) == 0 ? _RAX : _R9 + (i))
 #define JIT_V_NUM               3
-#define JIT_V(i)                ((i) == 0 ? _EBX : _R12 + (i))
+#define JIT_V(i)                ((i) == 0 ? _RBX : _R12 + (i))
 
 struct jit_local_state {
   int   long_jumps;
