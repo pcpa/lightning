@@ -136,12 +136,54 @@ struct jit_local_state {
 #define jit_ori_l(d, rs, is)	jit_qop_ ((d), (rs), (is),   jit_reduceQ(OR, (is), (d)), ORQrr(JIT_REXTMP, (d))	       )
 #define jit_xori_l(d, rs, is)	jit_qop_ ((d), (rs), (is),   jit_reduceQ(XOR, (is), (d)), XORQrr(JIT_REXTMP, (d))	       )
 
-#define jit_lshi_l(d, rs, is)	((is) <= 3 ?   LEAQmr(0, 0, (rs), 1 << (is), (d))   :   jit_qop_small ((d), (rs), SHLQir((is), (d)) ))
-#define jit_rshi_l(d, rs, is)								jit_qop_small ((d), (rs), SARQir((is), (d))  )
-#define jit_rshi_ul(d, rs, is)								jit_qop_small ((d), (rs), SHRQir((is), (d))  )
-#define jit_lshr_l(d, r1, r2)	jit_shift((d), (r1), (r2), SHLQrr)
-#define jit_rshr_l(d, r1, r2)	jit_shift((d), (r1), (r2), SARQrr)
-#define jit_rshr_ul(d, r1, r2)	jit_shift((d), (r1), (r2), SHRQrr)
+/*  Instruction format is:
+ *  <shift> %r0 %r1
+ *	%r0 <shift>= %r1
+ *  only %cl can be used as %r1
+ */
+#define jit_qshiftr(d, s1, s2, shift)					\
+     /* if (d != s1) d = s1; */						\
+    (((jit_reg64(d) != jit_reg64(s1)) ? jit_movr_l(d, s1) : 0),		\
+     /* if (s2 != rcx) */						\
+     ((jit_reg64(s2) != _RCX)						\
+	/* if (d != rcx) *sp++ = rcx; */				\
+	? (((jit_reg64(d) != _RCX) ? jit_pushr_l(_RCX) : 0),		\
+	/* cl = reg8(s2); */						\
+	   MOVBrr(jit_reg8(s2), _CL))					\
+      : 0),								\
+     shift(_CL, (d)),							\
+     /* if (s2 != rcx && d != rcx) */					\
+     ((jit_reg64(s2) != _RCX && jit_reg64(d) != _RCX)			\
+	/* rcx = *--sp; */						\
+	? jit_popr_l(_RCX) : 0))
+
+#define jit_qshifti(d, rs, is, shift)					\
+     /* if (is != 0) */							\
+    ((is)								\
+	/* if (d != rs) d = rs, */					\
+	? ((((d) != (rs)) ? jit_movr_l(d, rs) : 0),			\
+	   shift((_uc)(is), (d)))					\
+     : 0)
+
+#define jit_lshi_l(d, rs, is)						\
+     /* if (is != 0) */							\
+    ((is)								\
+	/* if (is <= 3) */						\
+	? (((_uc)(is) <= 3)						\
+	    /* FIXME also better when d == rs? */			\
+	    /* 3 register optimized opcode */				\
+	    ? LEAQmr(0, 0, (rs), 1 << (_uc)(is), (d))			\
+	    /* if (d != rs) d = rs, */					\
+	    : (((d) != (rs) ? jit_movr_l(d, rs) : 0),			\
+		/* d >>= c; */						\
+	       SHLQir((_uc)(is), (d))))					\
+     : 0)
+
+#define jit_rshi_l(d, rs, is)	jit_qshifti((d), rs, is, SARQir)
+#define jit_rshi_ul(d, rs, is)	jit_qshifti((d), rs, is, SHRQir)
+#define jit_lshr_l(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SHLQrr)
+#define jit_rshr_l(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SARQrr)
+#define jit_rshr_ul(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SHRQrr)
 
 
 /* Stack */
