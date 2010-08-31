@@ -112,19 +112,22 @@ struct jit_local_state {
 #define jit_addi_l(d, rs, is)						\
     /* Value is not zero? */						\
     ((is)								\
-	/* Yes. Value is unsigned and fits in signed 32 bits? */	\
-	? (_uiP(31, is)							\
-	    /* Yes. d == rs? */						\
+	/* Value is negative and fits in 32 bits? */			\
+	? ((((is) < 0 && _s32P(is))					\
+	    /* Value is positive and fits in 31 bits? */		\
+	    || ((is) > 0 && _uiP(31, is)))				\
+	    /* d == rs? */						\
 	    ? jit_opi_((d), (rs),					\
-		/* Yes. Use add opcode */				\
+		/* Use sign extending add opcode */			\
 		ADDQir((is), (d)),					\
-		/* No. Use lea opcode */				\
+		/* Use sign extending 3 operand lea opcode */		\
 		LEAQmr((is), (rs), 0, 0, (d)))				\
-	    /* No. Need value in a register */				\
+	    /* d != rs. Need value in a register */			\
 	    : (jit_movi_l(JIT_REXTMP, is),				\
 	       jit_addr_l(d, rs, JIT_REXTMP)))				\
-	/* No. Do nothing. */						\
+	/* Value is zero. Do nothing. */				\
 	: 0)
+
 #define jit_addr_l(d, s1, s2)	jit_opo_((d), (s1), (s2), ADDQrr((s2), (d)), ADDQrr((s1), (d)), LEAQmr(0, (s1), (s2), 1, (d))  )
 #define jit_andi_l(d, rs, is)	jit_qop_ ((d), (rs), (is), ANDQir((is), (d)), ANDQrr(JIT_REXTMP, (d)))
 #define jit_andr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), ANDQrr((s1), (d)), ANDQrr((s2), (d)) )
@@ -302,14 +305,14 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_movi_l(d, is)						\
     /* Value is not zero? */						\
     ((is)								\
-	/* Yes. Value is unsigned and fits in signed 32 bits? */	\
-	? (_uiP(31, is)							\
-	    /* Yes. Use 32 bits opcode */				\
+	/* Value is unsigned and fits in unsigned 32 bits? */		\
+	? (_u32P(is)							\
+	    /* Use zero extending 32 bits opcode */			\
 	    ? MOVLir(is, (d))						\
-	    /* No. Use 64 bits opcode */				\
+	    /* Use sign extending 64 bits opcode */			\
 	    : MOVQir(is, (d)))						\
-	/* No. Set register to zero. */					\
-	: XORQrr ((d), (d)))
+	/* Set register to zero. */					\
+	: XORQrr((d), (d)))
 
 #define jit_bmsr_l(label, s1, s2)	(TESTQrr((s1), (s2)), JNZm(label), _jit.x.pc)
 #define jit_bmcr_l(label, s1, s2)	(TESTQrr((s1), (s2)), JZm(label),  _jit.x.pc)
@@ -323,11 +326,7 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_boaddi_ul(label, rs, is)	(ADDQir((is), (rs)), JCm(label), _jit.x.pc)
 #define jit_bosubi_ul(label, rs, is)	(SUBQir((is), (rs)), JCm(label), _jit.x.pc)
 
-/* Alias some jit_xyz_i to the jit_xyz_l couterpart because if using
- * the 32 bits version, they will zero extend, what is not desirable,
- * as jit_xyz_i may have been called because it is known the value
- * only matters in 32 bits representation, or was used to truncate
- * the immediate value, but not to zero extend */
+/* Alias some macros and add casts to ensure proper zero and sign extension */
 #define jit_negr_i(d, rs)	jit_negr_l(d, rs)
 #define jit_movr_i(d, rs)	jit_movr_l(d, rs)
 #define jit_movi_i(d, is)	jit_movi_l(d, (long)(int)is)
@@ -580,6 +579,7 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
      jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
 
 #define jit_muli_i(d, rs, is)		jit_muli_l((d), (rs), (long)(int)(is))
+#define jit_muli_ui(d, rs, is)		jit_muli_l((d), (rs), (_ul)(_ui)(is))
 #define jit_muli_l(d, rs, is)						\
     /* Value is not zero? */						\
     ((is)								\
@@ -591,18 +591,7 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 	    IMULQrr(JIT_REXTMP, (d)))					\
 	/* No. Set register to zero */					\
 	: XORQrr((d), (d)))
-#define jit_muli_ui(d, rs, is)						\
-    /* Value is not zero? */						\
-    ((is)								\
-	/* Yes. Unsigned value fits in signed 32 bits? */		\
-	? (_uiP(31, (_ui)is)						\
-	    /* Yes. Use common jit_muli_l logic */			\
-	    ? jit_muli_l(d, rs, is)					\
-	    /* No. Need value in a register */				\
-	    : (jit_movi_l(JIT_REXTMP, (_ui)is),				\
-	       jit_mulr_l(d, rs, JIT_REXTMP)))				\
-	/* No. Set register to zero */					\
-	: XORQrr((d), (d)))
+
 #define jit_mulr_l(d, s1, s2)						\
     /* s2 == d? */							\
     (jit_qopr_((d), (s1), (s2),						\
