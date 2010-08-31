@@ -110,25 +110,50 @@ struct jit_local_state {
 	jit_reduce_(op##Qir(is, rs)) )
 
 #define jit_addi_l(d, rs, is)						\
-    /* Value is not zero? */						\
+    /* if (is != 0) */							\
     ((is)								\
-	/* Value is negative and fits in 32 bits? */			\
-	? ((((is) < 0 && _s32P(is))					\
-	    /* Value is positive and fits in 31 bits? */		\
-	    || ((is) > 0 && _uiP(31, is)))				\
-	    /* d == rs? */						\
-	    ? jit_opi_((d), (rs),					\
-		/* Use sign extending add opcode */			\
-		ADDQir((is), (d)),					\
-		/* Use sign extending 3 operand lea opcode */		\
-		LEAQmr((is), (rs), 0, 0, (d)))				\
-	    /* d != rs. Need value in a register */			\
-	    : (jit_movi_l(JIT_REXTMP, is),				\
-	       jit_addr_l(d, rs, JIT_REXTMP)))				\
-	/* Value is zero. Do nothing. */				\
-	: 0)
+	/* if (is != 1) */						\
+	? (((is) != 1)							\
+	    /* if (is != -1) */						\
+	    ? (((is) != -1)						\
+		/* if ((is < 0 && int32_p(is)) */			\
+		? (((((is) < 0) && _s32P(is))				\
+		    /* || (is > 0 && uint31_p(is))) */			\
+		    || ((is) > 0 && _uiP(31, is)))			\
+		    /* if (d == rs) */					\
+		    ? (((d) == (rs))					\
+			/* Use sign extending add opcode */		\
+			? ADDQir((is), (d))				\
+			/* Use sign extending 3 operand lea opcode */	\
+			: LEAQmr((is), (rs), 0, 0, (d)))		\
+		    /* <need register for immediate> if (d != rs) */	\
+		    : (((d) != (rs))					\
+			/* d = is, d += rs; */				\
+			? (MOVQir((is), (d)), ADDQrr((rs), (d)))	\
+			/* tmp = is, d += tmp; */			\
+			: (MOVQir((is), JIT_REXTMP),			\
+			   ADDQrr(JIT_REXTMP, (d)))))			\
+		/* <is == -1> if (d != rs) d = rs; */			\
+		: ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),		\
+		    /* --d; */						\
+		    DECQr((d))))					\
+	    /* <is == 1> if (d != rs) d = rs; ++d; */			\
+	    : ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0), INCQr((d))))	\
+	/* <is == 0> if (d != rs) d = rs; */				\
+	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
 
-#define jit_addr_l(d, s1, s2)	jit_opo_((d), (s1), (s2), ADDQrr((s2), (d)), ADDQrr((s1), (d)), LEAQmr(0, (s1), (s2), 1, (d))  )
+#define jit_addr_l(d, s1, s2)						\
+    /* if (d == s1) */							\
+    (((d) == (s1))							\
+	/* d += s2; */							\
+	? ADDQrr((s2), (d))						\
+	/* else if (d == s2) */						\
+	: (((d) == (s2))						\
+	    /* d += s1; */						\
+	    ? ADDQrr((s1), (d))						\
+	    /* <d != s2> use sign extending 3 operand lea opcode */	\
+	    : LEAQmr(0, (s1), (s2), 1, (d))))
+
 #define jit_andi_l(d, rs, is)	jit_qop_ ((d), (rs), (is), ANDQir((is), (d)), ANDQrr(JIT_REXTMP, (d)))
 #define jit_andr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), ANDQrr((s1), (d)), ANDQrr((s2), (d)) )
 #define jit_orr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2),  ORQrr((s1), (d)),  ORQrr((s2), (d)) )
@@ -166,7 +191,7 @@ struct jit_local_state {
 	/* if (d != rs) d = rs, */					\
 	? ((((d) != (rs)) ? jit_movr_l(d, rs) : 0),			\
 	   shift((_uc)(is), (d)))					\
-     : 0)
+	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
 
 #define jit_lshi_l(d, rs, is)						\
      /* if (is != 0) */							\
@@ -180,7 +205,7 @@ struct jit_local_state {
 	    : (((d) != (rs) ? jit_movr_l(d, rs) : 0),			\
 		/* d >>= c; */						\
 	       SHLQir((_uc)(is), (d))))					\
-     : 0)
+	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
 
 #define jit_rshi_l(d, rs, is)	jit_qshifti((d), rs, is, SARQir)
 #define jit_rshi_ul(d, rs, is)	jit_qshifti((d), rs, is, SHRQir)
@@ -580,25 +605,43 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 
 #define jit_muli_i(d, rs, is)		jit_muli_l((d), (rs), (long)(int)(is))
 #define jit_muli_ui(d, rs, is)		jit_muli_l((d), (rs), (_ul)(_ui)(is))
+
 #define jit_muli_l(d, rs, is)						\
-    /* Value is not zero? */						\
+    /* if (is != 0) */							\
     ((is)								\
-	/* Yes. Value fits in 32 bits? */				\
-	? jit_qop_((d), (rs), (is),					\
-	    /* Yes. Multiply register by immediate */			\
-	    IMULQir((is), (d)),						\
-	    /* No. Use temporary register (set by jit_qop_ macro) */	\
-	    IMULQrr(JIT_REXTMP, (d)))					\
-	/* No. Set register to zero */					\
+	/* if (is != 1) */						\
+	? (((is) != 1)							\
+	    /* if (is != -1) */						\
+	    ? (((is) != -1)						\
+		/* if (int32_p(is)) { */				\
+		? ((_s32P((long)(is)))					\
+		    /* if (d != rs) d = rs; <fits in imm int32> */	\
+		    ? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),		\
+			/* d *= is; } */				\
+			IMULQir((is), (d)))				\
+		    /* if (d != rs) <does not fit in imm int32> */	\
+		    : (((d) != (rs))					\
+			/* d = is; d *= rs; */				\
+			? (MOVQir((is), (d)), IMULQrr((rs), (d)))	\
+			/* else tmp = is, d *= tmp;*/			\
+			: (MOVQir((is), JIT_REXTMP),			\
+			   IMULQrr(JIT_REXTMP, (d)))))			\
+		/* is == -1; */						\
+		: jit_negr_l((d), (rs)))				\
+	    /* is == 1 */						\
+	    : jit_movr_l((d), (rs)))					\
+	/* is == 0 */							\
 	: XORQrr((d), (d)))
 
 #define jit_mulr_l(d, s1, s2)						\
-    /* s2 == d? */							\
-    (jit_qopr_((d), (s1), (s2),						\
-	/* Yes. Multiply s1 by d and store result in d */		\
-	IMULQrr((s1), (d)),						\
-	/* No. Move s1 to d and multiply s2 by d storing result in d */	\
-	IMULQrr((s2), (d))))
+    /* if (d == s1) */							\
+    (((d) == (s1))							\
+	/* d *= s2; */							\
+	? IMULQrr((s2), (d))						\
+	/* else { if (d != s2) d = s2; */				\
+	: (((d) != (s2) ? MOVQrr((s2), (d)) : 0),			\
+	/* d *= s1; } */						\
+	   IMULQrr((s1), (d))))
 
 /* As far as low bits are concerned, signed and unsigned multiplies are
    exactly the same. */
