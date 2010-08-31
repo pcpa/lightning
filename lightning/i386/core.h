@@ -283,8 +283,8 @@
 
 /* Shifts */
 #define jit_shift(d, s1, s2, m)					\
-     ((d) == _ECX || (d) == (s2)				\
-      ? ((s2) == _EAX						\
+     (jit_reg32(d) == _ECX || (d) == (s2)			\
+      ? (jit_reg32(s2) == _EAX					\
 	 ? jit_fixd(d, _EDX, jit_shift2(_EDX, s1, s2, m))	\
 	 : jit_fixd(d, _EAX, jit_shift2(_EAX, s1, s2, m)))	\
       : jit_shift2(d, s1, s2, m))

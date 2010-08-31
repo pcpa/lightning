@@ -170,20 +170,32 @@ struct jit_local_state {
  *  only %cl can be used as %r1
  */
 #define jit_qshiftr(d, s1, s2, shift)					\
-     /* if (d != s1) d = s1; */						\
-    (((jit_reg64(d) != jit_reg64(s1)) ? jit_movr_l(d, s1) : 0),		\
-     /* if (s2 != rcx) */						\
-     ((jit_reg64(s2) != _RCX)						\
-	/* if (d != rcx) *sp++ = rcx; */				\
-	? (((jit_reg64(d) != _RCX) ? jit_pushr_l(_RCX) : 0),		\
-	/* cl = reg8(s2); */						\
-	   MOVBrr(jit_reg8(s2), _CL))					\
-      : 0),								\
-     shift(_CL, (d)),							\
-     /* if (s2 != rcx && d != rcx) */					\
-     ((jit_reg64(s2) != _RCX && jit_reg64(d) != _RCX)			\
-	/* rcx = *--sp; */						\
-	? jit_popr_l(_RCX) : 0))
+	/* if (d == rcx) { */						\
+    ((jit_reg64(d) == _RCX)						\
+	    /* tmp = s2 */						\
+	? (MOVQrr((s1), JIT_REXTMP),					\
+	    /* if (r2 != rcx) r8(rcx) = r8(s2); */			\
+	   ((jit_reg64(s2) != _RCX) ? MOVBrr(jit_reg8(s2), _CL) : 0),	\
+	    /* tmp >>= cl */						\
+	   shift(_CL, JIT_REXTMP),					\
+	    /* <d == rcx> rcx = tmp; */					\
+	   MOVQrr(JIT_REXTMP, _RCX))					\
+	/* } else if (s2 != rcx) { */					\
+	: (((jit_reg64(s2) != _RCX)					\
+	    /* tmp = rcx; */						\
+	    ? (MOVQrr(_RCX, JIT_REXTMP),				\
+	    /* r8(ecx) = r8(s2); */					\
+	       MOVBrr(jit_reg8(s2), _CL),				\
+	    /* if (d != s1) d = s1; */					\
+	       (((d) != (s1)) ? MOVQrr((s1), d) : 0),			\
+	    /* d >>= cl; */						\
+	       shift(_CL, (d)),						\
+	    /* rcx = tmp; */						\
+	       MOVQrr(JIT_REXTMP, _RCX))				\
+	/* else { if (d != s1) d = s1; */				\
+	    : ((((d) != (s1)) ? MOVQrr((s1), d) : 0),			\
+	    /* d >>= cl; } */						\
+	       shift(_CL, (d))))))
 
 #define jit_qshifti(d, rs, is, shift)					\
      /* if (is != 0) */							\
@@ -202,7 +214,7 @@ struct jit_local_state {
 	    /* 3 register optimized opcode */				\
 	    ? LEAQmr(0, 0, (rs), 1 << (_uc)(is), (d))			\
 	    /* if (d != rs) d = rs, */					\
-	    : (((d) != (rs) ? jit_movr_l(d, rs) : 0),			\
+	    : (((d) != (rs) ? MOVQrr((rs), (d)) : 0),			\
 		/* d >>= c; */						\
 	       SHLQir((_uc)(is), (d))))					\
 	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
