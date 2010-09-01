@@ -99,17 +99,9 @@
 #define jit_might(d, s1, op)					\
 	((s1 == d) ? 0 : op)
 
-#define jit_mulr_ui_(s1, s2)	jit_opr_(_EAX, s1, s2, MULLr(s1),  MULLr(s2))
-#define jit_mulr_i_(s1, s2)	jit_opr_(_EAX, s1, s2, IMULLr(s1), IMULLr(s2))
-
-
-#define jit_muli_i_(is, rs)				\
-	(MOVLir(is, rs == _EAX ? _EDX : _EAX),		\
-	 IMULLr(rs == _EAX ? _EDX : rs))
-
-#define jit_muli_ui_(is, rs)				\
-	(MOVLir(is, rs == _EAX ? _EDX : _EAX),		\
-	 IMULLr(rs == _EAX ? _EDX : rs))
+#define jit_muli_ui_(is, rs)						\
+	(MOVLir(is, (jit_reg32(rs) == _EAX) ? _EDX : _EAX),		\
+	 MULLr(jit_reg32(rs) == _EAX ? _EDX : rs))
 
 #define jit_divi_i_(result, d, rs, is)					\
      /* if (d != eax) *sp++ = eax */					\
@@ -251,25 +243,349 @@
    exactly the same. */
 #define jit_mulr_ui(d, s1, s2)	jit_opr_((d), (s1), (s2), IMULLrr((s1), (d)), IMULLrr((s2), (d)) )
 
-#define jit_hmuli_i(d, rs, is)														\
-	((d) == _EDX ? (	      jit_pushr_i(_EAX), jit_muli_i_((is), (rs)), 				     jit_popr_i(_EAX)		) :	\
-	((d) == _EAX ? (jit_pushr_i(_EDX),		    jit_muli_i_((is), (rs)), MOVLrr(_EDX, _EAX),	     jit_popr_i(_EDX) ) :	\
-	               (jit_pushr_i(_EDX), jit_pushr_i(_EAX), jit_muli_i_((is), (rs)), MOVLrr(_EDX, (d)), jit_popr_i(_EAX), jit_popr_i(_EDX) )))
+/*  Instruction format is:
+ *	imul reg32/mem32
+ *  and the result is stored in %edx:%eax
+ *  %eax = low 32 bits
+ *  %edx = high 32 bits
+ */
+/*
+jit_muli_i_(rs, is)
+{
+    if (jit_reg32(rs) == _EAX) {
+	MOVLir(is, _EDX);
+	IMULLr(_EDX);
+    }
+    else {
+	MOVLir(is, _EAX);
+	IMULLr(rs);
+    }
+}
+ */
+#define jit_muli_i_(rs, is)						\
+    /* if (rs == eax) { */						\
+    ((jit_reg32(rs) == _EAX)						\
+    /*	edx = is; */							\
+	? (MOVLir(is, _EDX),						\
+    /* edx:eax = edx * eax;	<eax = low, edx = high> */		\
+	   IMULLr(_EDX))						\
+    /* else { */							\
+    /*	eax = is; */							\
+	: (MOVLir(is, _EAX),						\
+    /* edx:eax = rs * eax;	<eax = low, edx = high> */		\
+	   IMULLr(rs)))
 
-#define jit_hmulr_i(d, s1, s2)													\
-	((d) == _EDX ? (	      jit_pushr_i(_EAX), jit_mulr_i_((s1), (s2)), 			  jit_popr_i(_EAX)		    ) :	\
-	((d) == _EAX ? (jit_pushr_i(_EDX),		    jit_mulr_i_((s1), (s2)), MOVLrr(_EDX, _EAX), 	       jit_popr_i(_EDX)  ) :	\
-	 	       (jit_pushr_i(_EDX), jit_pushr_i(_EAX), jit_mulr_i_((s1), (s2)), MOVLrr(_EDX, (d)),   jit_popr_i(_EAX), jit_popr_i(_EDX)  )))
+/*
+jit_hmuli_i(d, rs, is)	{
+    if (jit_reg32(d) == _EDX) {
+	jit_pushr_i(_EAX);
+	jit_muli_i_(rs, is);
+	jit_popr_i(_EAX);
+    }
+    else if (jit_reg32(d) == _EAX) {
+	jit_pushr_i(_EDX);
+	jit_muli_i_(rs, is);
+	MOVLrr(_EDX, _EAX);
+	jit_popr_i(_EDX);
+    }
+    else {
+	jit_pushr_i(_EDX);
+	jit_pushr_i(_EAX);
+	jit_muli_i_(rs, is);
+	MOVLrr(_EDX, d);
+	jit_popr_i(_EAX);
+	jit_popr_i(_EDX);
+    }
+}
+ */
+#define jit_hmuli_i(d, rs, is)						\
+    /* if (d == edx) { */						\
+    ((jit_reg32(d) == _EDX)						\
+    /* *sp++ = eax; */							\
+	? (jit_pushr_i(_EAX),						\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	   jit_muli_i_(rs, is),						\
+    /* eax = *--sp; */							\
+	   jit_popr_i(_EAX))						\
+   /* else if (d == eax) { */						\
+	: ((jit_reg32(d) == _EAX)					\
+    /* *sp++ = edx; */							\
+	   ? (jit_pushr_i(_EDX),					\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	      jit_muli_i_(rs, is),					\
+    /* eax = edx; */							\
+	      MOVLrr(_EDX, _EAX),					\
+    /* edx = *--sp; */							\
+	      jit_popr_i(_EDX))						\
+   /* else { */								\
+    /* *sp++ = edx; */							\
+	   : (jit_pushr_i(_EDX),					\
+    /* *sp++ = eax; */							\
+	      jit_pushr_i(_EAX),					\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	      jit_muli_i_(rs, is),					\
+    /* d = edx; */							\
+	      MOVLrr(_EDX, d),						\
+    /* edx = *--sp; */							\
+	      jit_popr_i(_EAX),						\
+    /* eax = *--sp; */							\
+	      jit_popr_i(_EDX))))
 
-#define jit_hmuli_ui(d, rs, is)														\
-	((d) == _EDX ? (	      jit_pushr_i(_EAX), jit_muli_ui_((is), (rs)), 				      jit_popr_i(_EAX)		) :	\
-	((d) == _EAX ? (jit_pushr_i(_EDX),		    jit_muli_ui_((is), (rs)), MOVLrr(_EDX, _EAX),	      jit_popr_i(_EDX) ) :	\
-	               (jit_pushr_i(_EDX), jit_pushr_i(_EAX), jit_muli_ui_((is), (rs)), MOVLrr(_EDX, (d)), jit_popr_i(_EAX), jit_popr_i(_EDX) )))
+/*
+jit_mulr_i_(s1, s2)
+{
+    if (jit_reg32(s2) == _EAX)
+	IMULLr(s1);
+    else if (jit_reg32(s1) == _EAX)
+	IMULLr(s2);
+    else {
+	MOVLrr(s2, _EAX);
+	IMULLr(s1);
+    }
+}
+ */
+#define jit_mulr_i_(s1, s2)						\
+    /* if (s2 == eax) */						\
+    ((jit_reg32(s2) == _EAX)						\
+    /*	edx:eax = s1 * s2; */						\
+	? IMULLr(s1)							\
+    /* else if (s1 == eax) */						\
+	: ((jit_reg32(s1) == _EAX)					\
+    /*	edx:eax = s2 * s1; */						\
+	    ? IMULLr(s2)						\
+    /* else { */							\
+    /*	eax = s2; */							\
+	    : (MOVLrr(s2, _EAX),					\
+    /*	edx:eax = s1 * s2; } */						\
+	       IMULLr(s1))))
 
-#define jit_hmulr_ui(d, s1, s2)													\
-	((d) == _EDX ? (	      jit_pushr_i(_EAX), jit_mulr_ui_((s1), (s2)), 			  jit_popr_i(_EAX)		    ) :	\
-	((d) == _EAX ? (jit_pushr_i(_EDX),		    jit_mulr_ui_((s1), (s2)), MOVLrr(_EDX, _EAX), 	       jit_popr_i(_EDX)  ) :	\
-	 	       (jit_pushr_i(_EDX), jit_pushr_i(_EAX), jit_mulr_ui_((s1), (s2)), MOVLrr(_EDX, (d)),  jit_popr_i(_EAX), jit_popr_i(_EDX)  )))
+/*
+jit_hmulr_i(d, s1, s2)	{
+    if (jit_reg32(d) == _EDX) {
+	jit_pushr_i(_EAX);
+	jit_mulr_i_(s1, s2);
+	jit_popr_i(_EAX);
+    }
+    else if (jit_reg32(d) == _EAX) {
+	jit_pushr_i(_EDX);
+	jit_mulr_i_(s1, s2);
+	MOVLrr(_EDX, _EAX);
+	jit_popr_i(_EDX);
+    }
+    else {
+	jit_pushr_i(_EDX);
+	jit_pushr_i(_EAX);
+	jit_mulr_i_(s1, s2);
+	MOVLrr(_EDX, d);
+	jit_popr_i(_EAX);
+	jit_popr_i(_EDX);
+    }
+}
+ */
+#define jit_hmulr_i(d, s1, s2)						\
+    /* if (d == edx) { */						\
+    ((jit_reg32(d) == _EDX)						\
+    /*	*sp++ = eax; */							\
+	? (jit_pushr_i(_EAX),						\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	   jit_mulr_i_(s1, s2),						\
+    /*	eax = *--sp; */							\
+	   jit_popr_i(_EAX))						\
+    /* } else if (d == eax) { */					\
+	: ((jit_reg32(d) == _EAX)					\
+    /*	*sp++ = edx; */							\
+	    ? (jit_pushr_i(_EDX),					\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	       jit_mulr_i_(s1, s2),					\
+    /*	eax = edx; */							\
+	       MOVLrr(_EDX, _EAX),					\
+    /*	edx = *--sp; */							\
+	       jit_popr_i(_EDX))					\
+    /* } else { */							\
+    /*	*sp++ = edx; */							\
+	    : (jit_pushr_i(_EDX),					\
+    /*	*sp++ = eax; */							\
+	       jit_pushr_i(_EAX),					\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	       jit_mulr_i_(s1, s2),					\
+    /*	d = eax; */							\
+	       MOVLrr(_EDX, d),						\
+    /*	eax = *--sp; */							\
+	       jit_popr_i(_EAX),					\
+    /*	edx = *--sp; */							\
+	       jit_popr_i(_EDX))))
+
+/*  Instruction format is:
+ *	mul reg32/mem32
+ *  and the result is stored in %edx:%eax
+ *  %eax = low 32 bits
+ *  %edx = high 32 bits
+ */
+/*
+jit_muli_ui_(rs, is)
+{
+    if (jit_reg32(rs) == _EAX) {
+	MOVLir(is, _EDX);
+	MULLr(_EDX);
+    }
+    else {
+	MOVLir(is, _EAX);
+	MULLr(rs);
+    }
+}
+ */
+#define jit_muli_ui_(rs, is)						\
+    /* if (rs == eax) { */						\
+    ((jit_reg32(rs) == _EAX)						\
+    /*	edx = is; */							\
+	? (MOVLir(is, _EDX),						\
+    /* edx:eax = edx * eax;	<eax = low, edx = high> */		\
+	   MULLr(_EDX))							\
+    /* else { */							\
+    /*	eax = is; */							\
+	: (MOVLir(is, _EAX),						\
+    /* edx:eax = rs * eax;	<eax = low, edx = high> */		\
+	   MULLr(rs)))
+
+/*
+jit_hmuli_ui(d, rs, is)	{
+    if (jit_reg32(d) == _EDX) {
+	jit_pushr_i(_EAX);
+	jit_muli_ui_(rs, is);
+	jit_popr_i(_EAX);
+    }
+    else if (jit_reg32(d) == _EAX) {
+	jit_pushr_i(_EDX);
+	jit_muli_ui_(rs, is);
+	MOVLrr(_EDX, _EAX);
+	jit_popr_i(_EDX);
+    }
+    else {
+	jit_pushr_i(_EDX);
+	jit_pushr_i(_EAX);
+	jit_muli_ui_(rs, is);
+	MOVLrr(_EDX, d);
+	jit_popr_i(_EAX);
+	jit_popr_i(_EDX);
+    }
+}
+ */
+#define jit_hmuli_ui(d, rs, is)						\
+    /* if (d == edx) { */						\
+    ((jit_reg32(d) == _EDX)						\
+    /* *sp++ = eax; */							\
+	? (jit_pushr_i(_EAX),						\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	   jit_muli_ui_(rs, is),					\
+    /* eax = *--sp; */							\
+	   jit_popr_i(_EAX))						\
+   /* else if (d == eax) { */						\
+	: ((jit_reg32(d) == _EAX)					\
+    /* *sp++ = edx; */							\
+	   ? (jit_pushr_i(_EDX),					\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	      jit_muli_ui_(rs, is),					\
+    /* eax = edx; */							\
+	      MOVLrr(_EDX, _EAX),					\
+    /* edx = *--sp; */							\
+	      jit_popr_i(_EDX))						\
+   /* else { */								\
+    /* *sp++ = edx; */							\
+	   : (jit_pushr_i(_EDX),					\
+    /* *sp++ = eax; */							\
+	      jit_pushr_i(_EAX),					\
+    /* edx:eax = rs * is;	<eax = low, edx = high> */		\
+	      jit_muli_ui_(rs, is),					\
+    /* d = edx; */							\
+	      MOVLrr(_EDX, d),						\
+    /* edx = *--sp; */							\
+	      jit_popr_i(_EAX),						\
+    /* eax = *--sp; */							\
+	      jit_popr_i(_EDX))))
+
+/*
+jit_mulr_ui_(s1, s2)
+{
+    if (jit_reg32(s2) == _EAX)
+	MULLr(s1);
+    else if (jit_reg32(s1) == _EAX)
+	MULLr(s2);
+    else {
+	MOVLrr(s2, _EAX);
+	MULLr(s1);
+    }
+}
+ */
+#define jit_mulr_ui_(s1, s2)						\
+    /* if (s2 == eax) */						\
+    ((jit_reg32(s2) == _EAX)						\
+    /*	edx:eax = s1 * s2; */						\
+	? MULLr(s1)							\
+    /* else if (s1 == eax) */						\
+	: ((jit_reg32(s1) == _EAX)					\
+    /*	edx:eax = s2 * s1; */						\
+	    ? MULLr(s2)							\
+    /* else { */							\
+    /*	eax = s2; */							\
+	    : (MOVLrr(s2, _EAX),					\
+    /*	edx:eax = s1 * s2; } */						\
+	       MULLr(s1))))
+
+/*
+jit_hmulr_ui(d, s1, s2)	{
+    if (jit_reg32(d) == _EDX) {
+	jit_pushr_i(_EAX);
+	jit_mulr_ui_(s1, s2);
+	jit_popr_i(_EAX);
+    }
+    else if (jit_reg32(d) == _EAX) {
+	jit_pushr_i(_EDX);
+	jit_mulr_ui_(s1, s2);
+	MOVLrr(_EDX, _EAX);
+	jit_popr_i(_EDX);
+    }
+    else {
+	jit_pushr_i(_EDX);
+	jit_pushr_i(_EAX);
+	jit_mulr_ui_(s1, s2);
+	MOVLrr(_EDX, d);
+	jit_popr_i(_EAX);
+	jit_popr_i(_EDX);
+    }
+}
+ */
+#define jit_hmulr_ui(d, s1, s2)						\
+    /* if (d == edx) { */						\
+    ((jit_reg32(d) == _EDX)						\
+    /*	*sp++ = eax; */							\
+	? (jit_pushr_i(_EAX),						\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	   jit_mulr_ui_(s1, s2),					\
+    /*	eax = *--sp; */							\
+	   jit_popr_i(_EAX))						\
+    /* } else if (d == eax) { */					\
+	: ((jit_reg32(d) == _EAX)					\
+    /*	*sp++ = edx; */							\
+	    ? (jit_pushr_i(_EDX),					\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	       jit_mulr_ui_(s1, s2),					\
+    /*	eax = edx; */							\
+	       MOVLrr(_EDX, _EAX),					\
+    /*	edx = *--sp; */							\
+	       jit_popr_i(_EDX))					\
+    /* } else { */							\
+    /*	*sp++ = edx; */							\
+	    : (jit_pushr_i(_EDX),					\
+    /*	*sp++ = eax; */							\
+	       jit_pushr_i(_EAX),					\
+    /*	edx:eax = s1 * s2;	<eax = low, edx = high> */		\
+	       jit_mulr_ui_(s1, s2),					\
+    /*	d = eax; */							\
+	       MOVLrr(_EDX, d),						\
+    /*	eax = *--sp; */							\
+	       jit_popr_i(_EAX),					\
+    /*	edx = *--sp; */							\
+	       jit_popr_i(_EDX))))
 
 #define jit_divi_i(d, rs, is)	jit_divi_i_(_EAX, (d), (rs), (is))
 #define jit_divi_ui(d, rs, is)	jit_divi_ui_(_EAX, (d), (rs), (is))
