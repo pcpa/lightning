@@ -37,6 +37,7 @@
 /* Used to implement ldc, stc, ... */
 #define JIT_CAN_16 0
 #define JIT_REXTMP		_R12
+#define JIT_REXTMP2		_R15
 
 /* Number or integer argument registers */
 #define JIT_ARG_MAX		6
@@ -495,14 +496,6 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_gei_ul(d, rs, is)   jit_bool_qi0((d), (rs), (is), SETAEr, INCLr  )
 
 /* Multiplication/division.  */
-#define jit_muli_l_(is, rs)                             \
-        (MOVQir(is, rs == _RAX ? _RDX : _RAX),          \
-         IMULQr(rs == _RAX ? _RDX : rs))
-
-#define jit_muli_ul_(is, rs)                            \
-        (MOVQir(is, rs == _RAX ? _RDX : _RAX),          \
-         IMULQr(rs == _RAX ? _RDX : rs))
-
 #define jit_divi_l_(result, d, rs, is)					\
      /* if (d != rax) *sp++ = rax */					\
     (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
@@ -660,25 +653,259 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_muli_ul(d, rs, is)		jit_muli_l(d, rs, is)
 #define jit_mulr_ul(d, s1, s2)		jit_mulr_l(d, s1, s2)
 
-#define jit_hmuli_l(d, rs, is)														\
-	((d) == _RDX ? (	      jit_pushr_l(_RAX), jit_muli_l_((is), (rs)), 				     jit_popr_l(_RAX)		) :	\
-	((d) == _RAX ? (jit_pushr_l(_RDX),		    jit_muli_l_((is), (rs)), MOVQrr(_RDX, _RAX),	     jit_popr_l(_RDX) ) :	\
-	               (jit_pushr_l(_RDX), jit_pushr_l(_RAX), jit_muli_l_((is), (rs)), MOVQrr(_RDX, (d)), jit_popr_l(_RAX), jit_popr_l(_RDX) )))
+/*  Instruction format is:
+ *	imul reg64/mem64
+ *  and the result is stored in %rdx:%rax
+ *  %rax = low 64 bits
+ *  %rdx = high 64 bits
+ */
+/*
+jit_muli_l_(rs, is)
+{
+    if (jit_reg64(rs) == _RAX) {
+	MOVQir(is, _RDX);
+	IMULQr(_RDX);
+    }
+    else {
+	MOVQir(is, _RAX);
+	IMULQr(rs);
+    }
+}
+ */
+#define jit_muli_l_(rs, is)						\
+    ((jit_reg64(rs) == _RAX)						\
+	? (MOVQir(is, _RDX),						\
+	   IMULQr(_RDX))						\
+	: (MOVQir(is, _RAX),						\
+	   IMULQr(rs)))
 
-#define jit_hmulr_l(d, s1, s2)													\
-	((d) == _RDX ? (	      jit_pushr_l(_RAX), jit_mulr_l_((s1), (s2)), 			  jit_popr_l(_RAX)		    ) :	\
-	((d) == _RAX ? (jit_pushr_l(_RDX),		    jit_mulr_l_((s1), (s2)), MOVQrr(_RDX, _RAX), 	       jit_popr_l(_RDX)  ) :	\
-	 	       (jit_pushr_l(_RDX), jit_pushr_l(_RAX), jit_mulr_l_((s1), (s2)), MOVQrr(_RDX, (d)),   jit_popr_l(_RAX), jit_popr_l(_RDX)  )))
+/*
+jit_hmuli_l(d, rs, is)	{
+    if (jit_reg64(d) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_muli_l_(rs, is);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(d) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_muli_l_(rs, is);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_muli_l_(rs, is);
+	MOVQrr(_RDX, d);
+	MOVQrr(JIT_REXTMP2, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+ */
+#define jit_hmuli_l(d, rs, is)						\
+    ((jit_reg64(d) == _RDX)						\
+	? (MOVQrr(_RAX, JIT_REXTMP),					\
+	   jit_muli_l_(rs, is),						\
+	   MOVQrr(JIT_REXTMP, _RAX))					\
+	: ((jit_reg64(d) == _RAX)					\
+	   ? (MOVQrr(_RDX, JIT_REXTMP),					\
+	      jit_muli_l_(rs, is),					\
+	      MOVQrr(_RDX, _RAX),					\
+	      MOVQrr(JIT_REXTMP, _RDX))					\
+	   : (MOVQrr(_RDX, JIT_REXTMP),					\
+	      MOVQrr(_RAX, JIT_REXTMP2),				\
+	      jit_muli_l_(rs, is),					\
+	      MOVQrr(_RDX, d),						\
+	      MOVQrr(JIT_REXTMP2, _RAX),				\
+	      MOVQrr(JIT_REXTMP, _RDX))))
 
-#define jit_hmuli_ul(d, rs, is)														\
-	((d) == _RDX ? (	      jit_pushr_l(_RAX), jit_muli_ul_((is), (rs)), 				      jit_popr_l(_RAX)		) :	\
-	((d) == _RAX ? (jit_pushr_l(_RDX),		    jit_muli_ul_((is), (rs)), MOVQrr(_RDX, _RAX),	      jit_popr_l(_RDX) ) :	\
-	               (jit_pushr_l(_RDX), jit_pushr_l(_RAX), jit_muli_ul_((is), (rs)), MOVQrr(_RDX, (d)), jit_popr_l(_RAX), jit_popr_l(_RDX) )))
+/*
+jit_mulr_l_(s1, s2)
+{
+    if (jit_reg64(s2) == _RAX)
+	IMULQr(s1);
+    else if (jit_reg64(s1) == _RAX)
+	IMULQr(s2);
+    else {
+	MOVQrr(s2, _RAX);
+	IMULQr(s1);
+    }
+}
+ */
+#define jit_mulr_l_(s1, s2)						\
+    ((jit_reg64(s2) == _RAX)						\
+	? IMULQr(s1)							\
+	: ((jit_reg64(s1) == _RAX)					\
+	    ? IMULQr(s2)						\
+	    : (MOVQrr(s2, _RAX),					\
+	       IMULQr(s1))))
 
-#define jit_hmulr_ul(d, s1, s2)													\
-	((d) == _RDX ? (	      jit_pushr_l(_RAX), jit_mulr_ul_((s1), (s2)), 			  jit_popr_l(_RAX)		    ) :	\
-	((d) == _RAX ? (jit_pushr_l(_RDX),		    jit_mulr_ul_((s1), (s2)), MOVQrr(_RDX, _RAX), 	       jit_popr_l(_RDX)  ) :	\
-	 	       (jit_pushr_l(_RDX), jit_pushr_l(_RAX), jit_mulr_ul_((s1), (s2)), MOVQrr(_RDX, (d)),  jit_popr_l(_RAX), jit_popr_l(_RDX)  )))
+/*
+jit_hmulr_l(d, s1, s2)	{
+    if (jit_reg64(d) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_mulr_l_(s1, s2);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(d) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_mulr_i_(s1, s2);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_mulr_l_(s1, s2);
+	MOVQrr(_RDX, d);
+	MOVQrr(JIT_REXTMP2, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+ */
+#define jit_hmulr_l(d, s1, s2)						\
+    ((jit_reg64(d) == _RDX)						\
+	? (MOVQrr(_RAX, JIT_REXTMP),					\
+	   jit_mulr_l_(s1, s2),						\
+	   MOVQrr(JIT_REXTMP, _RAX))					\
+	: ((jit_reg64(d) == _RAX)					\
+	    ? (MOVQrr(_RDX, JIT_REXTMP),				\
+	       jit_mulr_l_(s1, s2),					\
+	       MOVQrr(_RDX, _RAX),					\
+	       MOVQrr(JIT_REXTMP, _RDX))				\
+	    : (MOVQrr(_RDX, JIT_REXTMP),				\
+	       MOVQrr(_RAX, JIT_REXTMP2),				\
+	       jit_mulr_l_(s1, s2),					\
+	       MOVQrr(_RDX, d),						\
+	       MOVQrr(JIT_REXTMP2, _RAX),				\
+	       MOVQrr(JIT_REXTMP, _RDX))))
+
+/*  Instruction format is:
+ *	mul reg64/mem64
+ *  and the result is stored in %rdx:%rax
+ *  %rax = low 64 bits
+ *  %rdx = high 64 bits
+ */
+/*
+jit_muli_ul_(rs, is)
+{
+    if (jit_reg64(rs) == _RAX) {
+	MOVQir(is, _RDX);
+	MULQr(_RDX);
+    }
+    else {
+	MOVQir(is, _RAX);
+	MULQr(rs);
+    }
+}
+ */
+#define jit_muli_ul_(rs, is)						\
+    ((jit_reg64(rs) == _RAX)						\
+	? (MOVQir(is, _RDX),						\
+	   MULQr(_RDX))							\
+	: (MOVQir(is, _RAX),						\
+	   MULQr(rs)))
+
+/*
+jit_hmuli_ul(d, rs, is)	{
+    if (jit_reg64(d) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_muli_ul_(rs, is);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(d) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_muli_ul_(rs, is);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_muli_ul_(rs, is);
+	MOVQrr(_RDX, d);
+	MOVQrr(JIT_REXTMP2, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+ */
+#define jit_hmuli_ul(d, rs, is)						\
+    ((jit_reg64(d) == _RDX)						\
+	? (MOVQrr(_RAX, JIT_REXTMP),					\
+	   jit_muli_ul_(rs, is),					\
+	   MOVQrr(JIT_REXTMP, _RAX))					\
+	: ((jit_reg64(d) == _RAX)					\
+	   ? (MOVQrr(_RDX, JIT_REXTMP),					\
+	      jit_muli_ul_(rs, is),					\
+	      MOVQrr(_RDX, _RAX),					\
+	      MOVQrr(JIT_REXTMP, _RDX))					\
+	   : (MOVQrr(_RDX, JIT_REXTMP),					\
+	      MOVQrr(_RAX, JIT_REXTMP2),				\
+	      jit_muli_ul_(rs, is),					\
+	      MOVQrr(_RDX, d),						\
+	      MOVQrr(JIT_REXTMP2, _RAX),				\
+	      MOVQrr(JIT_REXTMP, _RDX))))
+
+/*
+jit_mulr_ul_(s1, s2)
+{
+    if (jit_reg64(s2) == _RAX)
+	MULQr(s1);
+    else if (jit_reg64(s1) == _RAX)
+	MULQr(s2);
+    else {
+	MOVQrr(s2, _RAX);
+	MULQr(s1);
+    }
+}
+ */
+#define jit_mulr_ul_(s1, s2)						\
+    ((jit_reg64(s2) == _RAX)						\
+	? MULQr(s1)							\
+	: ((jit_reg64(s1) == _RAX)					\
+	    ? MULQr(s2)							\
+	    : (MOVQrr(s2, _RAX),					\
+	       MULQr(s1))))
+
+/*
+jit_hmulr_ul(d, s1, s2)	{
+    if (jit_reg64(d) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_mulr_ul_(s1, s2);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(d) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_mulr_ul_(s1, s2);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_mulr_ul_(s1, s2);
+	MOVQrr(_RDX, d);
+	MOVQrr(JIT_REXTMP2, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+ */
+#define jit_hmulr_ul(d, s1, s2)						\
+    ((jit_reg64(d) == _RDX)						\
+	? (MOVQrr(_RAX, JIT_REXTMP),					\
+	   jit_mulr_ul_(s1, s2),					\
+	   MOVQrr(JIT_REXTMP, _RAX))					\
+	: ((jit_reg64(d) == _RAX)					\
+	    ? (MOVQrr(_RDX, JIT_REXTMP),				\
+	       jit_mulr_ul_(s1, s2),					\
+	       MOVQrr(_RDX, _RAX),					\
+	       MOVQrr(JIT_REXTMP, _RDX))				\
+	    : (MOVQrr(_RDX, JIT_REXTMP),				\
+	       MOVQrr(_RAX, JIT_REXTMP2),				\
+	       jit_mulr_ul_(s1, s2),					\
+	       MOVQrr(_RDX, d),						\
+	       MOVQrr(JIT_REXTMP2, _RAX),				\
+	       MOVQrr(JIT_REXTMP, _RDX))))
 
 #define jit_divi_l(d, rs, is)	jit_divi_l_(_RAX, (d), (rs), (is))
 #define jit_divi_ul(d, rs, is)	jit_divi_ul_(_RAX, (d), (rs), (is))
