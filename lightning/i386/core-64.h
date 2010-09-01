@@ -37,7 +37,6 @@
 /* Used to implement ldc, stc, ... */
 #define JIT_CAN_16 0
 #define JIT_REXTMP		_R12
-#define JIT_REXTMP2		_R15
 
 /* Number or integer argument registers */
 #define JIT_ARG_MAX		6
@@ -694,10 +693,10 @@ jit_hmuli_l(d, rs, is)	{
     }
     else {
 	MOVQrr(_RDX, JIT_REXTMP);
-	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_pushr_l(_RAX);
 	jit_muli_l_(rs, is);
 	MOVQrr(_RDX, d);
-	MOVQrr(JIT_REXTMP2, _RAX);
+	jit_popr_l(_RAX);
 	MOVQrr(JIT_REXTMP, _RDX);
     }
 }
@@ -713,10 +712,10 @@ jit_hmuli_l(d, rs, is)	{
 	      MOVQrr(_RDX, _RAX),					\
 	      MOVQrr(JIT_REXTMP, _RDX))					\
 	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      MOVQrr(_RAX, JIT_REXTMP2),				\
+	      jit_pushr_l(_RAX),						\
 	      jit_muli_l_(rs, is),					\
 	      MOVQrr(_RDX, d),						\
-	      MOVQrr(JIT_REXTMP2, _RAX),				\
+	      jit_popr_l(_RAX),						\
 	      MOVQrr(JIT_REXTMP, _RDX))))
 
 /*
@@ -755,10 +754,10 @@ jit_hmulr_l(d, s1, s2)	{
     }
     else {
 	MOVQrr(_RDX, JIT_REXTMP);
-	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_pushr_l(_RAX);
 	jit_mulr_l_(s1, s2);
 	MOVQrr(_RDX, d);
-	MOVQrr(JIT_REXTMP2, _RAX);
+	jit_popr_l(_RAX);
 	MOVQrr(JIT_REXTMP, _RDX);
     }
 }
@@ -774,10 +773,10 @@ jit_hmulr_l(d, s1, s2)	{
 	       MOVQrr(_RDX, _RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))				\
 	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       MOVQrr(_RAX, JIT_REXTMP2),				\
+	       jit_pushr_l(_RAX),						\
 	       jit_mulr_l_(s1, s2),					\
 	       MOVQrr(_RDX, d),						\
-	       MOVQrr(JIT_REXTMP2, _RAX),				\
+	       jit_popr_l(_RAX),						\
 	       MOVQrr(JIT_REXTMP, _RDX))))
 
 /*  Instruction format is:
@@ -821,10 +820,10 @@ jit_hmuli_ul(d, rs, is)	{
     }
     else {
 	MOVQrr(_RDX, JIT_REXTMP);
-	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_pushr_l(_RAX);
 	jit_muli_ul_(rs, is);
 	MOVQrr(_RDX, d);
-	MOVQrr(JIT_REXTMP2, _RAX);
+	jit_popr_l(_RAX);
 	MOVQrr(JIT_REXTMP, _RDX);
     }
 }
@@ -840,10 +839,10 @@ jit_hmuli_ul(d, rs, is)	{
 	      MOVQrr(_RDX, _RAX),					\
 	      MOVQrr(JIT_REXTMP, _RDX))					\
 	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      MOVQrr(_RAX, JIT_REXTMP2),				\
+	      jit_pushr_l(_RAX),						\
 	      jit_muli_ul_(rs, is),					\
 	      MOVQrr(_RDX, d),						\
-	      MOVQrr(JIT_REXTMP2, _RAX),				\
+	      jit_popr_l(_RAX),						\
 	      MOVQrr(JIT_REXTMP, _RDX))))
 
 /*
@@ -882,10 +881,10 @@ jit_hmulr_ul(d, s1, s2)	{
     }
     else {
 	MOVQrr(_RDX, JIT_REXTMP);
-	MOVQrr(_RAX, JIT_REXTMP2);
+	jit_pushr_l(_RAX);
 	jit_mulr_ul_(s1, s2);
 	MOVQrr(_RDX, d);
-	MOVQrr(JIT_REXTMP2, _RAX);
+	jit_popr_l(_RAX);
 	MOVQrr(JIT_REXTMP, _RDX);
     }
 }
@@ -901,10 +900,10 @@ jit_hmulr_ul(d, s1, s2)	{
 	       MOVQrr(_RDX, _RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))				\
 	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       MOVQrr(_RAX, JIT_REXTMP2),				\
+	       jit_pushr_l(_RAX),						\
 	       jit_mulr_ul_(s1, s2),					\
 	       MOVQrr(_RDX, d),						\
-	       MOVQrr(JIT_REXTMP2, _RAX),				\
+	       jit_popr_l(_RAX),						\
 	       MOVQrr(JIT_REXTMP, _RDX))))
 
 #define jit_divi_l(d, rs, is)	jit_divi_l_(_RAX, (d), (rs), (is))
