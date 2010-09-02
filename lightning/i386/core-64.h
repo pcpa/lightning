@@ -154,6 +154,189 @@ struct jit_local_state {
 	    /* <d != s2> use sign extending 3 operand lea opcode */	\
 	    : LEAQmr(0, (s1), (s2), 1, (d))))
 
+/* o Immediates are sign extended
+ * o CF (C)arry (F)lag is set when interpreting it as unsigned addition
+ * o OF (O)verflow (F)lag is set when interpreting it as signed addition
+ * FIXME there are shorter versions when register is %RAX
+ */
+/* Commutative */
+/*
+jit_addci_ul(d, rs, is) {
+    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is))) {
+	if (d != rs)
+	    MOVQrr(rs, d);
+	ADDQir(is, d);
+    }
+    else if (d == rs) {
+	MOVQir(is, JIT_REXTMP);
+	ADDQrr(JIT_REXTMP, d);
+    }
+    else {
+	MOVQir(is, d);
+	ADDQrr(rs, d);
+    }
+}
+ */
+#define jit_addci_ul(d, rs, is)						\
+    ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
+	? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),			\
+	   ADDQir((is), (d)))						\
+	: (((d) == (rs))						\
+	    ? (MOVQir((is), JIT_REXTMP),				\
+	       ADDQrr(JIT_REXTMP, (d)))					\
+	    : (MOVQir((is), (d)),					\
+	       ADDQrr((rs), (d)))))
+
+/*
+jit_addcr_ul(d, s1, s2) {
+    if (d == s2)
+	ADDQrr(s1, d);
+    else if (d == s1)
+	ADDQrr(s2, d);
+    else {
+	MOVQrr(s1, d);
+	ADDQrr(s2, d);
+    }
+}
+ */
+#define jit_addcr_ul(d, s1, s2)						\
+    (((d) == (s2))							\
+	? ADDQrr((s1), (d))						\
+	: (((d) == (s1))						\
+	    ?  ADDQrr((s2), (d))					\
+	    : (MOVQrr((s1), (d)),					\
+	       ADDQrr((s2), (d)))))
+
+/*
+jit_addxi_ul(d, rs, is) {
+    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is))) {
+	if (d != rs)
+	    MOVQrr(rs, d);
+	ADCQir(is, d);
+    }
+    else if (d == rs) {
+	MOVQir(is, JIT_REXTMP);
+	ADCQrr(JIT_REXTMP, d);
+    }
+    else {
+	MOVQir(is, d);
+	ADCQrr(rs, d);
+    }
+}
+ */
+#define jit_addxi_ul(d, rs, is)						\
+    ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
+	? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),			\
+	   ADCQir((is), (d)))						\
+	: (((d) == (rs))						\
+	    ? (MOVQir((is), JIT_REXTMP),				\
+	       ADCQrr(JIT_REXTMP, (d)))					\
+	    : (MOVQir((is), (d)),					\
+	       ADCQrr((rs), (d)))))
+
+/*
+jit_addxr_ul(d, s1, s2) {
+    if (d == s2)
+	ADCQrr(s1, d);
+    else if (d == s1)
+	ADCQrr(s2, d);
+    else {
+	MOVQrr(s1, d);
+	ADCQrr(s2, d);
+    }
+}
+ */
+#define jit_addxr_ul(d, s1, s2)						\
+    (((d) == (s2))							\
+	? ADCQrr((s1), (d))						\
+	: (((d) == (s1))						\
+	    ? ADCQrr((s2), (d))						\
+	    : (MOVQrr((s1), (d)),					\
+	       ADCQrr((s2), (d)))))
+
+/* Non commutative */
+/*
+jit_subci_ul(d, rs, is) {
+    if (d != rs)
+	MOVQrr(rs, d);
+    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is)))
+	SUBQir(is, d);
+    else {
+	MOVQir(is, JIT_REXTMP);
+	SUBQrr(JIT_REXTMP, d);
+    }
+}
+ */
+#define jit_subci_ul(d, rs, is)						\
+    ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),				\
+     ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
+	? SUBQir((is), (d))						\
+	: (MOVQir((is), JIT_REXTMP),					\
+	   SUBQrr(JIT_REXTMP, (d)))))
+
+/*
+jit_subcr_ul(d, s1, s2) {
+    if (d == s2) {
+	MOVQrr(d, JIT_REXTMP);
+	MOVQrr(s1, d);
+	SUBQrr(JIT_REXTMP, d);
+    }
+    else {
+	if (d != s1)
+	    MOVQrr(s1, d);
+	SUBQrr(s2, d);
+    }
+}
+ */
+#define jit_subcr_ul(d, s1, s2)						\
+    (((d) == (s2))							\
+	? (MOVQrr(d, JIT_REXTMP),					\
+	   MOVQrr(s1, d),						\
+	   SUBQrr(JIT_REXTMP, d))					\
+	: ((((d) != (s1)) ? MOVQrr((s1), (d)) : 0),			\
+	   SUBQrr(s2, d)))
+
+/*
+jit_subxi_ul(d, rs, is) {
+    if (d != rs)
+	MOVQrr(rs, d);
+    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is)))
+	SBBQir(is, d);
+    else {
+	MOVQir(is, JIT_REXTMP);
+	SBBQrr(JIT_REXTMP, d);
+    }
+}
+ */
+#define jit_subxi_ul(d, rs, is)						\
+    ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),				\
+     ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
+	? SBBQir((is), (d))						\
+	: (MOVQir((is), JIT_REXTMP),					\
+	   SBBQrr(JIT_REXTMP, (d)))))
+
+/*
+jit_subxr_ul(d, s1, s2) {
+    if (d == s2) {
+	MOVQrr(d, JIT_REXTMP);
+	MOVQrr(s1, d);
+	SBBQrr(JIT_REXTMP, d);
+    }
+    else {
+	if (d != s1)
+	    MOVQrr(s1, d);
+	SBBQrr(s2, d);
+    }
+}
+ */
+#define jit_subxr_ul(d, s1, s2)						\
+    (((d) == (s2))							\
+	? (MOVQrr(d, JIT_REXTMP),					\
+	   MOVQrr(s1, d),						\
+	   SBBQrr(JIT_REXTMP, d))					\
+	: ((((d) != (s1)) ? MOVQrr((s1), (d)) : 0),			\
+	   SBBQrr(s2, d)))
+
 #define jit_andi_l(d, rs, is)	jit_qop_ ((d), (rs), (is), ANDQir((is), (d)), ANDQrr(JIT_REXTMP, (d)))
 #define jit_andr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), ANDQrr((s1), (d)), ANDQrr((s2), (d)) )
 #define jit_orr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2),  ORQrr((s1), (d)),  ORQrr((s2), (d)) )
@@ -712,7 +895,7 @@ jit_hmuli_l(d, rs, is)	{
 	      MOVQrr(_RDX, _RAX),					\
 	      MOVQrr(JIT_REXTMP, _RDX))					\
 	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_pushr_l(_RAX),						\
+	      jit_pushr_l(_RAX),					\
 	      jit_muli_l_(rs, is),					\
 	      MOVQrr(_RDX, d),						\
 	      jit_popr_l(_RAX),						\
@@ -773,10 +956,10 @@ jit_hmulr_l(d, s1, s2)	{
 	       MOVQrr(_RDX, _RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))				\
 	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_pushr_l(_RAX),						\
+	       jit_pushr_l(_RAX),					\
 	       jit_mulr_l_(s1, s2),					\
 	       MOVQrr(_RDX, d),						\
-	       jit_popr_l(_RAX),						\
+	       jit_popr_l(_RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))))
 
 /*  Instruction format is:
@@ -839,7 +1022,7 @@ jit_hmuli_ul(d, rs, is)	{
 	      MOVQrr(_RDX, _RAX),					\
 	      MOVQrr(JIT_REXTMP, _RDX))					\
 	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_pushr_l(_RAX),						\
+	      jit_pushr_l(_RAX),					\
 	      jit_muli_ul_(rs, is),					\
 	      MOVQrr(_RDX, d),						\
 	      jit_popr_l(_RAX),						\
@@ -900,10 +1083,10 @@ jit_hmulr_ul(d, s1, s2)	{
 	       MOVQrr(_RDX, _RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))				\
 	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_pushr_l(_RAX),						\
+	       jit_pushr_l(_RAX),					\
 	       jit_mulr_ul_(s1, s2),					\
 	       MOVQrr(_RDX, d),						\
-	       jit_popr_l(_RAX),						\
+	       jit_popr_l(_RAX),					\
 	       MOVQrr(JIT_REXTMP, _RDX))))
 
 #define jit_divi_l(d, rs, is)	jit_divi_l_(_RAX, (d), (rs), (is))

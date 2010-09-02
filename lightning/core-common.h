@@ -102,12 +102,48 @@ typedef union jit_code {
 
 
 /* ALU synonyms */
+#if !defined(jit_addci_ui)
+#  if !defined(jit_addci_i)
+     /* need add/sub that sets carry for all operands */
+#    if _ASM_SAFETY
+#      warning Assuming jit_{add,sub}{r,i}_{i,ui} always sets carry
+#    endif
+#    define jit_addci_ui(d, rs, is)	jit_addi_ui((d), (rs), (is))
+#    define jit_addcr_ui(d, s1, s2)	jit_addr_ui((d), (s1), (s2))
+#    define jit_subci_ui(d, rs, is)	jit_subi_ui((d), (rs), (is))
+#    define jit_subcr_ui(d, s1, s2)	jit_subr_ui((d), (s1), (s2))
+#  elif defined(jit_addci_i)
+     /* allow logically reversed definitions */
+#    define jit_addci_ui(d, rs, is)	jit_addci_i((d), (rs), (is))
+#    define jit_addcr_ui(d, s1, s2)	jit_addcr_i((d), (s1), (s2))
+#    define jit_subci_ui(d, rs, is)	jit_subci_i((d), (rs), (is))
+#    define jit_subcr_ui(d, s1, s2)	jit_subcr_i((d), (s1), (s2))
+#  endif
+#endif
+#if !defined(jit_addci_i) && defined(jit_addci_ui)
+   /* provide compatibility logically wrong definitions */
+#  define jit_addci_i(d, rs, is)	jit_addci_ui((d), (rs), (is))
+#  define jit_addcr_i(d, s1, s2)	jit_addcr_ui((d), (s1), (s2))
+#  define jit_subci_i(d, rs, is)	jit_subci_ui((d), (rs), (is))
+#  define jit_subcr_i(d, s1, s2)	jit_subcr_ui((d), (s1), (s2))
+#endif
+#if !defined(jit_addxi_ui) && defined(jit_addxi_i)
+   /* allow logically reversed definitions */
+#  define jit_addxi_ui(d, rs, is)	jit_addxi_i((d), (rs), (is))
+#  define jit_addxr_ui(d, s1, s2)	jit_addxr_i((d), (s1), (s2))
+#  define jit_subxi_ui(d, rs, is)	jit_subxi_i((d), (rs), (is))
+#  define jit_subxr_ui(d, s1, s2)	jit_subxr_i((d), (s1), (s2))
+#endif
+#if !defined(jit_addxi_i) && defined(jit_addxi_ui)
+   /* provide compatibility logically wrong definitions */
+#  define jit_addxi_i(d, rs, is)	jit_addxi_ui((d), (rs), (is))
+#  define jit_addxr_i(d, s1, s2)	jit_addxr_ui((d), (s1), (s2))
+#  define jit_subxi_i(d, rs, is)	jit_subxi_ui((d), (rs), (is))
+#  define jit_subxr_i(d, s1, s2)	jit_subxr_ui((d), (s1), (s2))
+#endif
+
 #define jit_addi_ui(d, rs, is)		jit_addi_i((d), (rs), (is))	
 #define jit_addr_ui(d, s1, s2)		jit_addr_i((d), (s1), (s2))
-#define jit_addci_ui(d, rs, is)		jit_addci_i((d), (rs), (is))	
-#define jit_addcr_ui(d, s1, s2)		jit_addcr_i((d), (s1), (s2))
-#define jit_addxi_ui(d, rs, is)		jit_addxi_i((d), (rs), (is))	
-#define jit_addxr_ui(d, s1, s2)		jit_addxr_i((d), (s1), (s2))
 #define jit_andi_ui(d, rs, is)		jit_andi_i((d), (rs), (is))	
 #define jit_andr_ui(d, s1, s2)		jit_andr_i((d), (s1), (s2))
 #define jit_lshi_ui(d, rs, is)		jit_lshi_i((d), (rs), (is))	
@@ -122,19 +158,65 @@ typedef union jit_code {
 #define jit_rsbr_ui(d, s1, s2)		jit_rsbr_i((d), (s1), (s2))
 #define jit_subi_ui(d, rs, is)		jit_subi_i((d), (rs), (is))	
 #define jit_subr_ui(d, s1, s2)		jit_subr_i((d), (s1), (s2))
-#define jit_subci_ui(d, rs, is)		jit_subci_i((d), (rs), (is))	
-#define jit_subcr_ui(d, s1, s2)		jit_subcr_i((d), (s1), (s2))
-#define jit_subxi_ui(d, rs, is)		jit_subxi_i((d), (rs), (is))	
-#define jit_subxr_ui(d, s1, s2)		jit_subxr_i((d), (s1), (s2))
 #define jit_xori_ui(d, rs, is)		jit_xori_i((d), (rs), (is))	
 #define jit_xorr_ui(d, s1, s2)		jit_xorr_i((d), (s1), (s2))
 
+#if !defined(__WORDSIZE) || __WORDSIZE == 32
+   /* common definitions when sizeof(long) == sizeof(int) */
+#  if !defined(jit_addci_ul) && defined(jit_addci_ui)
+#    define jit_addci_ul(d, rs, is)	jit_addci_ui((d), (rs), (is))
+#    define jit_addcr_ul(d, s1, s2)	jit_addcr_ui((d), (s1), (s2))
+#    define jit_subci_ul(d, rs, is)	jit_subci_ui((d), (rs), (is))
+#    define jit_subcr_ul(d, s1, s2)	jit_subcr_ui((d), (s1), (s2))
+#  endif
+#  if !defined(jit_addxi_ul) && defined(jit_addxi_ui)
+#    define jit_addxi_ul(d, rs, is)	jit_addxi_ui((d), (rs), (is))
+#    define jit_addxr_ul(d, s1, s2)	jit_addxr_ui((d), (s1), (s2))
+#    define jit_subxi_ul(d, rs, is)	jit_subxi_ui((d), (rs), (is))
+#    define jit_subxr_ul(d, s1, s2)	jit_subxr_ui((d), (s1), (s2))
+#  endif
+#endif
+#if !defined(jit_addci_ul)
+#  if !defined(jit_addci_l)
+     /* need add/sub that sets carry for all operands */
+#    if _ASM_SAFETY
+#      warning Assuming jit_{add,sub}{r,i}_{l,ul} always sets carry
+#    endif
+#    define jit_addci_ul(d, rs, is)	jit_addi_ul((d), (rs), (is))
+#    define jit_addcr_ul(d, s1, s2)	jit_addr_ul((d), (s1), (s2))
+#    define jit_subci_ul(d, rs, is)	jit_subi_ul((d), (rs), (is))
+#    define jit_subcr_ul(d, s1, s2)	jit_subr_ul((d), (s1), (s2))
+#  elif defined(jit_addci_l)
+     /* allow logically reversed definitions */
+#    define jit_addci_ul(d, rs, is)	jit_addci_l((d), (rs), (is))
+#    define jit_addcr_ul(d, s1, s2)	jit_addcr_l((d), (s1), (s2))
+#    define jit_subci_ul(d, rs, is)	jit_subci_l((d), (rs), (is))
+#    define jit_subcr_ul(d, s1, s2)	jit_subcr_l((d), (s1), (s2))
+#  endif
+#endif
+#if !defined(jit_addci_l) && defined(jit_addci_ul)
+  /* provide compatibility logically wrong definitions */
+#  define jit_addci_l(d, rs, is)	jit_addci_ul((d), (rs), (is))
+#  define jit_addcr_l(d, s1, s2)	jit_addcr_ul((d), (s1), (s2))
+#  define jit_subci_l(d, rs, is)	jit_subci_ul((d), (rs), (is))
+#  define jit_subcr_l(d, s1, s2)	jit_subcr_ul((d), (s1), (s2))
+#endif
+#if !defined(jit_addxi_ul) && defined(jit_addxi_l)
+   /* allow logically reversed definitions */
+#  define jit_addxi_ul(d, rs, is)	jit_addxi_l((d), (rs), (is))
+#  define jit_addxr_ul(d, s1, s2)	jit_addxr_l((d), (s1), (s2))
+#  define jit_subxi_ul(d, rs, is)	jit_subxi_l((d), (rs), (is))
+#  define jit_subxr_ul(d, s1, s2)	jit_subxr_l((d), (s1), (s2))
+#endif
+#if !defined(jit_addxi_l) && defined(jit_addxi_ul)
+   /* provide compatibility logically wrong definitions */
+#  define jit_addxi_l(d, rs, is)	jit_addxi_ul((d), (rs), (is))
+#  define jit_addxr_l(d, s1, s2)	jit_addxr_ul((d), (s1), (s2))
+#  define jit_subxi_l(d, rs, is)	jit_subxi_ul((d), (rs), (is))
+#  define jit_subxr_l(d, s1, s2)	jit_subxr_ul((d), (s1), (s2))
+#endif
 #define jit_addi_ul(d, rs, is)		jit_addi_l((d), (rs), (is))	
 #define jit_addr_ul(d, s1, s2)		jit_addr_l((d), (s1), (s2))
-#define jit_addci_ul(d, rs, is)		jit_addci_l((d), (rs), (is))	
-#define jit_addcr_ul(d, s1, s2)		jit_addcr_l((d), (s1), (s2))
-#define jit_addxi_ul(d, rs, is)		jit_addxi_l((d), (rs), (is))	
-#define jit_addxr_ul(d, s1, s2)		jit_addxr_l((d), (s1), (s2))
 #define jit_andi_ul(d, rs, is)		jit_andi_l((d), (rs), (is))	
 #define jit_andr_ul(d, s1, s2)		jit_andr_l((d), (s1), (s2))
 #define jit_lshi_ul(d, rs, is)		jit_lshi_l((d), (rs), (is))	
@@ -147,15 +229,8 @@ typedef union jit_code {
 #define jit_rsbr_ul(d, s1, s2)		jit_rsbr_l((d), (s1), (s2))
 #define jit_subi_ul(d, rs, is)		jit_subi_l((d), (rs), (is))	
 #define jit_subr_ul(d, s1, s2)		jit_subr_l((d), (s1), (s2))
-#define jit_subci_ul(d, rs, is)		jit_subci_l((d), (rs), (is))	
-#define jit_subcr_ul(d, s1, s2)		jit_subcr_l((d), (s1), (s2))
-#define jit_subxi_ui(d, rs, is)		jit_subxi_i((d), (rs), (is))	
-#define jit_subxi_ul(d, rs, is)		jit_subxi_l((d), (rs), (is))	
-#define jit_subxr_ui(d, s1, s2)		jit_subxr_i((d), (s1), (s2))
-#define jit_subxr_ul(d, s1, s2)		jit_subxr_i((d), (s1), (s2))
 #define jit_xori_ul(d, rs, is)		jit_xori_l((d), (rs), (is))	
 #define jit_xorr_ul(d, s1, s2)		jit_xorr_l((d), (s1), (s2))
-
 #define jit_addr_p(d, s1, s2)		jit_addr_ul((d), (s1), 	      (s2))
 #define jit_addi_p(d, rs, is)		jit_addi_ul((d), (rs), (long) (is))
 #define jit_movr_p(d, rs)		jit_movr_ul((d),              (rs))
@@ -168,17 +243,6 @@ typedef union jit_code {
 #endif
 
 #define jit_patch(pv)        		jit_patch_at ((pv), (_jit.x.pc))
-
-#ifndef jit_addci_i
-#define jit_addci_i(d, rs, is)		jit_addi_i((d), (rs), (is))	
-#define jit_addcr_i(d, s1, s2)		jit_addr_i((d), (s1), (s2))
-#define jit_addci_l(d, rs, is)		jit_addi_l((d), (rs), (is))	
-#define jit_addcr_l(d, s1, s2)		jit_addr_l((d), (s1), (s2))
-#endif
-
-#ifndef jit_subcr_i
-#define jit_subcr_i(d, s1, s2)		jit_subr_i((d), (s1), (s2))
-#endif
 
 /* NEG is not mandatory -- pick an appropriate implementation */
 #ifndef jit_negr_i
@@ -208,8 +272,6 @@ typedef union jit_code {
 /* Common 'shortcut' implementations */
 #define jit_subi_i(d, rs, is)		jit_addi_i((d), (rs), -(is))
 #define jit_subi_l(d, rs, is)		jit_addi_l((d), (rs), -(is))
-#define jit_subci_i(d, rs, is)		jit_addci_i((d), (rs), -(is))
-#define jit_subci_l(d, rs, is)		jit_addci_l((d), (rs), -(is))
 #define jit_rsbr_f(d, s1, s2)		jit_subr_f((d), (s2), (s1))
 #define jit_rsbr_d(d, s1, s2)		jit_subr_d((d), (s2), (s1))
 #define jit_rsbr_i(d, s1, s2)		jit_subr_i((d), (s2), (s1))
@@ -487,14 +549,6 @@ typedef union jit_code {
 /* ALU */
 #define jit_addi_l(d, rs, is)		jit_addi_i((d), (rs), (is))	
 #define jit_addr_l(d, s1, s2)		jit_addr_i((d), (s1), (s2))
-#ifndef jit_addci_l
-#define jit_addci_l(d, rs, is)		jit_addci_i((d), (rs), (is))	
-#endif
-#ifndef jit_addcr_l
-#define jit_addcr_l(d, s1, s2)		jit_addcr_i((d), (s1), (s2))
-#endif
-#define jit_addxi_l(d, rs, is)		jit_addxi_i((d), (rs), (is))	
-#define jit_addxr_l(d, s1, s2)		jit_addxr_i((d), (s1), (s2))
 #define jit_andi_l(d, rs, is)		jit_andi_i((d), (rs), (is))	
 #define jit_andr_l(d, s1, s2)		jit_andr_i((d), (s1), (s2))
 #define jit_divi_l(d, rs, is)		jit_divi_i((d), (rs), (is))	
@@ -515,9 +569,6 @@ typedef union jit_code {
 #define jit_rshi_l(d, rs, is)		jit_rshi_i((d), (rs), (is))	
 #define jit_rshr_l(d, s1, s2)		jit_rshr_i((d), (s1), (s2))
 #define jit_subr_l(d, s1, s2)		jit_subr_i((d), (s1), (s2))
-#define jit_subcr_l(d, s1, s2)		jit_subcr_i((d), (s1), (s2))
-#define jit_subxi_l(d, rs, is)		jit_subxi_i((d), (rs), (is))	
-#define jit_subxr_l(d, s1, s2)		jit_subxr_i((d), (s1), (s2))
 #define jit_xori_l(d, rs, is)		jit_xori_i((d), (rs), (is))	
 #define jit_xorr_l(d, s1, s2)		jit_xorr_i((d), (s1), (s2))
 

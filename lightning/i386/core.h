@@ -215,17 +215,143 @@
 /* ALU */
 #define jit_addi_i(d, rs, is)	jit_opi_((d), (rs),       ADDLir((is), (d)), 			LEALmr((is), (rs), 0, 0, (d))  )
 #define jit_addr_i(d, s1, s2)	jit_opo_((d), (s1), (s2), ADDLrr((s2), (d)), ADDLrr((s1), (d)), LEALmr(0, (s1), (s2), 1, (d))  )
-#define jit_addci_i(d, rs, is)	jit_op_ ((d), (rs),       ADDLir((is), (d)) 		       )
-#define jit_addcr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), ADDLrr((s1), (d)), ADDLrr((s2), (d)) )
-#define jit_addxi_i(d, rs, is)	jit_op_ ((d), (rs),       ADCLir((is), (d)) 		       )
-#define jit_addxr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), ADCLrr((s1), (d)), ADCLrr((s2), (d)) )
+
+/*
+jit_addci_ui(d, rs, is) {
+    if (d == rs)
+	ADDLir(is, d);
+    else {
+	MOVLir(is, d);
+	ADDLrr(rs, d);
+    }
+}
+ */
+#define jit_addci_ui(d, rs, is)						\
+    (((d) == (rs))							\
+	? ADDLir((is), (d))						\
+	: (MOVLir((is), (d)),						\
+	   ADDLrr((rs), (d))))
+
+/*
+jit_addcr_ui(d, s1, s2) {
+    if (d == s2)
+	ADDLrr(s1, d);
+    else if (d == s1)
+	ADDLrr(s2, d);
+    else {
+	MOVLrr(s1, d);
+	ADDLrr(s2, d);
+    }
+}
+ */
+#define jit_addcr_ui(d, s1, s2)						\
+    (((d) == (s2))							\
+	? ADDLrr((s1), (d))						\
+	: (((d) == (s1))						\
+	    ? ADDLrr((s2), (d))						\
+	    : (MOVLrr((s1), (d)),					\
+	       ADDLrr((s2), (d)))))
+
+/*
+jit_addxi_ui(d, rs, is) {
+    if (d == rs)
+	ADCLir(is, d);
+    else {
+	MOVLir(is, d);
+	ADCLrr(rs, d);
+    }
+}
+ */
+#define jit_addxi_ui(d, rs, is)						\
+    (((d) == (rs))							\
+	? ADCLir((is), (d))						\
+	: (MOVLir((is), (d)),						\
+	   ADCLrr((rs), (d))))
+
+/*
+jit_addxr_ui(d, s1, s2) {
+    if (d == s2)
+	ADCLrr(s1, d);
+    else if (d == s1)
+	ADCLrr(s2, d);
+    else {
+	MOVLrr(s1, d);
+	ADDLrr(s2, d);
+    }
+}
+ */
+#define jit_addxr_ui(d, s1, s2)						\
+    (((d) == (s2))							\
+	? ADCLrr((s1), (d))						\
+	: (((d) == (s1))						\
+	    ? ADCLrr((s2), (d))						\
+	    : (MOVLrr((s1), (d)),					\
+	       ADCLrr((s2), (d)))))
+
+/*
+jit_subci_ui(d, rs, is) {
+    if (d == rs)
+	SUBLir(is, d);
+    else {
+	MOVLrr(rs, d);
+	SUBLir(is, d);
+    }
+} */
+#define jit_subci_ui(d, rs, is)						\
+    (((d) == (rs))							\
+	? SUBLir((is), (d))						\
+	: (MOVLrr((rs), (d)),						\
+	   SUBLir((is), (d))))
+
+/*
+jit_subcr_ui(d, s1, s2) {
+    if (d == s1)
+	SUBLrr(s2, d);
+    else {
+	MOVLrr(s1, d);
+	SUBLir(s2, d);
+    }
+} */
+#define jit_subcr_ui(d, s1, s2)						\
+    (((d) == (s1))							\
+	? SUBLrr((s2), (d))						\
+	: (MOVLrr((s1), (d)),						\
+	   SUBLrr((s2), (d))))
+
+/*
+jit_subxi_ui(d, rs, is) {
+    if (d == rs)
+	SBBLri(is, d);
+    else {
+	MOVLrr(rs, d);
+	SBBLir(is, d);
+    }
+} */
+#define jit_subxi_ui(d, rs, is)						\
+    (((d) == (rs))							\
+	? SBBLir((is), (d))						\
+	: (MOVLrr((rs), (d)),						\
+	   SBBLir((is), (d))))
+
+/*
+jit_subxr_ui(d, s1, s2) {
+    if (d == s1)
+	SBBLrr(s2, d);
+    else {
+	MOVLrr(s1, d);
+	SBBLir(s2, d);
+    }
+} */
+#define jit_subxr_ui(d, s1, s2)						\
+    (((d) == (s1))							\
+	? SBBLrr((s2), (d))						\
+	: (MOVLrr((s1), (d)),						\
+	   SBBLrr((s2), (d))))
+
 #define jit_andi_i(d, rs, is)	jit_op_ ((d), (rs),       ANDLir((is), (d)) 		       )
 #define jit_andr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), ANDLrr((s1), (d)), ANDLrr((s2), (d)) )
 #define jit_orr_i(d, s1, s2)	jit_opr_((d), (s1), (s2),  ORLrr((s1), (d)),  ORLrr((s2), (d)) )
 #define jit_subr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), (SUBLrr((s1), (d)), NEGLr(d)),	SUBLrr((s2), (d))	       )
-#define jit_subcr_i(d, s1, s2)	jit_subr_i((d), (s1), (s2))
-#define jit_subxr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), SBBLrr((s1), (d)), SBBLrr((s2), (d)) )
-#define jit_subxi_i(d, rs, is)	jit_op_ ((d), (rs),       SBBLir((is), (d)) 		       )
 #define jit_xorr_i(d, s1, s2)	jit_opr_((d), (s1), (s2), XORLrr((s1), (d)), XORLrr((s2), (d)) )
 
 
