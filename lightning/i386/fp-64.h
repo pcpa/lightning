@@ -268,14 +268,14 @@ jit_movi_d(rd, immd) {
 	jit_roundr_f_l ((rd), (rs));		\
 	jit_extr_l_f (JIT_FPTMP, (rd));			\
 	UCOMISSrr ((rs), JIT_FPTMP);			\
-	ADCLir (0, (rd));				\
+	ADCQir (0, (rd));				\
   } while (0)
 
 #define jit_ceilr_d_l(rd, rs) do {			\
 	jit_roundr_d_l ((rd), (rs));		\
 	jit_extr_l_d (JIT_FPTMP, (rd));			\
 	UCOMISDrr ((rs), JIT_FPTMP);			\
-	ADCLir (0, (rd));				\
+	ADCQir (0, (rd));				\
   } while (0)
 
 #define jit_floorr_f_i(rd, rs) do {			\
@@ -296,14 +296,14 @@ jit_movi_d(rd, immd) {
 	jit_roundr_f_l ((rd), (rs));		\
 	jit_extr_l_f (JIT_FPTMP, (rd));			\
 	UCOMISSrr (JIT_FPTMP, (rs));			\
-	SBBLir (0, (rd));				\
+	SBBQir (0, (rd));				\
   } while (0)
 
 #define jit_floorr_d_l(rd, rs) do {			\
 	jit_roundr_d_l ((rd), (rs));		\
 	jit_extr_l_d (JIT_FPTMP, (rd));			\
 	UCOMISDrr (JIT_FPTMP, (rs));			\
-	SBBLir (0, (rd));				\
+	SBBQir (0, (rd));				\
   } while (0)
 
 #define jit_bltr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAm ((d)), _jit.x.pc)

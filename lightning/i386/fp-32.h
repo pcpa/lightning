@@ -229,13 +229,19 @@ union jit_double_imm {
 	TESTLrr(aux, aux),			\
 	POPLr(aux),				\
 	JSSm(_jit.x.pc + 11),			\
+	_jitl.label0 = jit_get_label(),		\
 	ADDLir(0x7FFFFFFF, aux),	/* 6 */	\
 	SBBLir(0, rd),			/* 3 */ \
 	JMPSm(_jit.x.pc + 10),		/* 2 */ \
+	_jitl.label1 = jit_get_label(),		\
+	jit_patch_short_at(_jitl.label0,	\
+			   _jit.x.pc),		\
 	TESTLrr(aux, aux),		/* 2 */ \
 	SETGr(jit_reg8(aux)),		/* 3 */ \
 	SHRLir(1, aux),			/* 2 */ \
 	ADCLir(0, rd),			/* 3 */ \
+	jit_patch_short_at(_jitl.label1,	\
+			   _jit.x.pc),		\
 	POPLr(aux))
 
 /* the easy one */

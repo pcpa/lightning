@@ -47,6 +47,8 @@ struct jit_local_state {
   int	argssize;
   int	alloca_offset;
   int	alloca_slack;
+  jit_insn      *label0;
+  jit_insn      *label1;
 };
 
 /* Whether a register is used for the user-accessible registers.  */
@@ -123,6 +125,7 @@ struct jit_local_state {
 #define jit_movi_p(d, is)       (MOVLir (((long)(is)), (d)), _jit.x.pc)
 #define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v) - (jump_pc)))
 #define jit_patch_at(jump_pc,v)  jit_patch_long_at(jump_pc, v)
+#define jit_patch_short_at(jump_pc,v)  (*_PUC((jump_pc) - sizeof(char)) = _jit_UC((jit_insn *)(v) - (jump_pc)))
 
 /* Memory */
 #define jit_replace(s, rep, op)                         \
