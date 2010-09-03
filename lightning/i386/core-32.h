@@ -47,8 +47,7 @@ struct jit_local_state {
   int	argssize;
   int	alloca_offset;
   int	alloca_slack;
-  jit_insn      *label0;
-  jit_insn      *label1;
+  jit_insn      *label;
 };
 
 /* Whether a register is used for the user-accessible registers.  */
@@ -102,11 +101,16 @@ struct jit_local_state {
 #define jit_ret()		jit_base_ret (_jitl.alloca_offset)
 #endif
 
-#define jit_calli(label)	(CALLm( ((unsigned long) (label))), _jit.x.pc)
+#define jit_calli(sub)		(CALLm(((_ul)(sub))), _jitl.label = _jit.x.pc)
 #define jit_callr(reg)		CALLsr(reg)
+#define jit_patch_calli(pa, pv)	jit_patch_at(pa, pv)
 
 #define jit_pusharg_i(rs)	PUSHLr(rs)
-#define jit_finish(sub)        ((void)jit_calli((sub)), ADDLir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0)
+#define jit_finish(sub)							\
+    ((void)jit_calli((sub)),						\
+     ADDLir(sizeof(long) * _jitl.argssize, JIT_SP),			\
+    _jitl.argssize = 0,							\
+    _jitl.label)
 #define jit_finishr(reg)	(jit_callr((reg)), ADDLir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0)
 
 #define	jit_arg_c()		((_jitl.framesize += sizeof(int)) - sizeof(int))

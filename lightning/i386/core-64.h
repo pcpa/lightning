@@ -439,8 +439,12 @@ jit_subxr_ul(d, s1, s2) {
      PUSHQr(_EBX), PUSHQr(_R12), PUSHQr(_R13), PUSHQr(_R14), 		\
      PUSHQr(_EBP), MOVQrr(_ESP, _EBP))
 
-#define jit_calli(sub)          (MOVQir((long) (sub), JIT_REXTMP), CALLsr(JIT_REXTMP))
+#define jit_calli(sub)							\
+    (MOVQir((long)(sub), JIT_REXTMP),					\
+     _jitl.label = _jit.x.pc,						\
+     CALLsr(JIT_REXTMP))
 #define jit_callr(reg)		CALLsr((reg))
+#define jit_patch_calli(pa, pv)	jit_patch_movi(pa, pv)
 
 #define jit_prepare_i(ni)						\
     /* Initialize offset of right to left integer argument */		\
@@ -459,15 +463,39 @@ jit_subxr_ul(d, s1, s2) {
        /* No. Use a register */						\
      : MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
 
-#define jit_finish(sub)		(_jitl.fprssize \
-				 ? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0) \
-				 : MOVBir(0, _AL), \
-				 ((_jitl.argssize & 1) \
-				   ? (PUSHQr(_EAX), ++_jitl.argssize) : 0), \
-				 jit_calli(sub), \
-				 (_jitl.argssize \
-				  ? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0) \
-				  : 0))
+/*
+jit_finish(sub) {
+    if (_jitl.fprssize) {
+	MOVBir(_jitl.fprssize, _AL);
+	_jitl.fprssize = 0;
+    }
+    else
+	MOVBir(0, _AL);
+    if (_jitl.argssize & 1) {
+	PUSHQr(_RAX);
+	++_jitl.argssize;
+    }
+    jit_callr(sub);
+    if (_jitl.argssize) {
+	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
+	_jitl.argssize = 0;
+    }
+    return _jitl.label;
+}
+ */
+#define jit_finish(sub)							\
+    ((_jitl.fprssize							\
+	? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0)		\
+	:  MOVBir(0, _AL)),						\
+    ((_jitl.argssize & 1)						\
+	? (PUSHQr(_EAX), ++_jitl.argssize) : 0),			\
+     jit_calli(sub),							\
+    (_jitl.argssize							\
+	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
+	   _jitl.argssize = 0)						\
+	: 0),								\
+     _jitl.label)
+
 #define jit_reg_is_arg(reg)						\
     (jit_reg64(reg) == _RCX || jit_reg64(reg) == _RDX)
 
