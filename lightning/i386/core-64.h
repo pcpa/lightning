@@ -468,22 +468,49 @@ jit_subxr_ul(d, s1, s2) {
 				 (_jitl.argssize \
 				  ? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0) \
 				  : 0))
-#define jit_reg_is_arg(reg)     ((reg) == _ECX || (reg) == _EDX)
+#define jit_reg_is_arg(reg)						\
+    (jit_reg64(reg) == _RCX || jit_reg64(reg) == _RDX)
 
-#define jit_finishr(reg)	(_jitl.fprssize \
-				 ? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0) \
-				 : MOVBir(0, _AL), \
-				 ((_jitl.argssize & 1) \
-				   ? (PUSHQr(_EAX), ++_jitl.argssize) : 0), \
-				 (jit_reg_is_arg((reg)) \
-				  ? (MOVQrr(reg, JIT_REXTMP), \
-				     jit_callr(JIT_REXTMP)) \
-				  : jit_callr(reg)), \
-				 (_jitl.argssize \
-				  ? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0) \
-				  : 0))
+/*
+jit_finishr(reg) {
+    if (jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))
+	MOVQrr(reg, JIT_REXTMP);
+    if (_jitl.fprssize) {
+	MOVBir(_jitl.fprssize, _AL);
+	_jitl.fprssize = 0;
+    }
+    else
+	MOVBir(0, _AL);
+    if (_jitl.argssize & 1) {
+	PUSHQr(_RAX);
+	++_jitl.argssize;
+    }
+    if (jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))
+	jit_callr(JIT_REXTMP);
+    else
+	jit_callr(reg);
+    if (_jitl.argssize) {
+	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
+	_jitl.argssize = 0;
+    }
+}
+ */
+#define jit_finishr(reg)						\
+    (((jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))			\
+	? MOVQrr(reg, JIT_REXTMP) : 0),					\
+     (_jitl.fprssize							\
+	? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0)		\
+	: MOVBir(0, _AL)),						\
+     ((_jitl.argssize & 1)						\
+	? (PUSHQr(_RAX), ++_jitl.argssize) : 0),			\
+     ((jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))			\
+	? jit_callr(JIT_REXTMP) : jit_callr(reg)),			\
+     (_jitl.argssize							\
+	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
+	   _jitl.argssize = 0)						\
+	: 0))
 
-#define jit_retval_l(rd)	((void)jit_movr_l ((rd), _EAX))
+#define jit_retval_l(rd)	((void)jit_movr_l ((rd), _RAX))
 #define jit_arg_i()		(_jitl.nextarg_geti < JIT_ARG_MAX \
 				 ? _jitl.nextarg_geti++ \
 				 : ((_jitl.framesize += sizeof(long)) - sizeof(long)))
@@ -637,7 +664,6 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_popr_l(rs)  jit_popr_i(rs)
 
 #define jit_pusharg_l(rs) jit_pusharg_i(rs)
-#define jit_retval_l(rd)	((void)jit_movr_l ((rd), _EAX))
 #define jit_bltr_l(label, s1, s2)	jit_bra_qr((s1), (s2), JLm(label) )
 #define jit_bler_l(label, s1, s2)	jit_bra_qr((s1), (s2), JLEm(label) )
 #define jit_bgtr_l(label, s1, s2)	jit_bra_qr((s1), (s2), JGm(label) )
