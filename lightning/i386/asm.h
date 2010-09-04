@@ -315,9 +315,12 @@ enum {
 #define _ALULrr(OP, RS, RD)		(_REXLrr(RS, RD),		_O_Mrm		(((OP) << 3) + 1,_b11,_r4(RS),_r4(RD)				))
 #define _ALULmr(OP, MD, MB, MI, MS, RD)	(_REXLmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 3     ,_r4(RD)		,MD,MB,MI,MS		))
 #define _ALULrm(OP, RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(((OP) << 3) + 1     ,_r4(RS)		,MD,MB,MI,MS		))
-#define _ALULir(OP, IM, RD)		(!_s8P(IM) && (RD) == _EAX ? \
+
+#define _ALULir(OP, IM, RD)		(!_s8P(IM) && jit_reg32(RD) == _EAX ? \
 					(_REXLrr(0, RD),		_O_L		(((OP) << 3) + 5					,IM	)) : \
 					(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	)) )
+#define _ALULir(OP, IM, RD)		(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	))
+
 #define _ALULim(OP, IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_Os_r_X_sL	(0x81		     ,OP		,MD,MB,MI,MS	,IM	))
 
 #define _ALUQrr(OP, RS, RD)		(_REXQrr(RS, RD),		_O_Mrm		(((OP) << 3) + 1,_b11,_r8(RS),_r8(RD)				))
@@ -1095,7 +1098,7 @@ enum {
 
 #define TESTLrr(RS, RD)			(_REXLrr(RS, RD),		_O_Mrm		(0x85		,_b11,_r4(RS),_r4(RD)				))
 #define TESTLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(0x85		     ,_r4(RS)		,MD,MB,MI,MS		))
-#define TESTLir(IM, RD)			(!_s8P(IM) && (RD) == _EAX ? \
+#define TESTLir(IM, RD)			(!_s8P(IM) && jit_reg32(RD) == _EAX ? \
 					(_REXLrr(0, RD),		_O_L		(0xa9							,IM	)) : \
 					(_REXLrr(0, RD),		_O_Mrm_L	(0xf7		,_b11,_b000  ,_r4(RD)			,IM	)) )
 #define TESTLim(IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_O_r_X_L	(0xf7		     ,_b000		,MD,MB,MI,MS	,IM	))
