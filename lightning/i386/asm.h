@@ -319,7 +319,6 @@ enum {
 #define _ALULir(OP, IM, RD)		(!_s8P(IM) && jit_reg32(RD) == _EAX ? \
 					(_REXLrr(0, RD),		_O_L		(((OP) << 3) + 5					,IM	)) : \
 					(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	)) )
-#define _ALULir(OP, IM, RD)		(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	))
 
 #define _ALULim(OP, IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_Os_r_X_sL	(0x81		     ,OP		,MD,MB,MI,MS	,IM	))
 
