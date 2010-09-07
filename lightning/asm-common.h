@@ -85,13 +85,6 @@
 
 #endif
 
-typedef char		_sc;
-typedef unsigned char	_uc;
-typedef unsigned short	_us;
-typedef unsigned int	_ui;
-typedef long		_sl;
-typedef unsigned long	_ul;
-
 #define _jit_UC(X)	((_uc  )(X))
 #define _jit_US(X)	((_us  )(X))
 #define _jit_UI(X)	((_ui  )(X))

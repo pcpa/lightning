@@ -42,8 +42,6 @@
  *		+ sr/sm		= a star preceding a register or memory
  */
 
-typedef _uc		jit_insn;
-
 #ifndef LIGHTNING_DEBUG
 #define _b00		0
 #define _b01		1
@@ -299,7 +297,7 @@ enum {
 #define _ALUBrr(OP,RS, RD)		(_REXBrr(RS, RD),		_O_Mrm		(((OP) << 3)	,_b11,_r1(RS),_r1(RD)				))
 #define _ALUBmr(OP, MD, MB, MI, MS, RD)	(_REXBmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 2,_r1(RD)		,MD,MB,MI,MS		))
 #define _ALUBrm(OP, RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(((OP) << 3)	,    ,_r1(RS)		,MD,MB,MI,MS		))
-#define _ALUBir(OP, IM, RD)		((RD) == _AL ? \
+#define _ALUBir(OP, IM, RD)		(jit_reg8(RD) == _AL ? \
 					(_REXBrr(0, RD),		_O_B		(((OP) << 3) + 4					,_su8(IM))) : \
 					(_REXBrr(0, RD),		_O_Mrm_B	(0x80		,_b11,OP     ,_r1(RD)			,_su8(IM))) )
 #define _ALUBim(OP, IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_r_X_B	(0x80		     ,OP		,MD,MB,MI,MS	,_su8(IM)))
@@ -851,15 +849,27 @@ enum {
 #define IMULWirr(IM,RS,RD)		(_d16(), _REXLrr(RS, RD),	_Os_Mrm_sW	(0x69		,_b11,_r2(RS),_r2(RD)			,_su16(IM)	))
 #define IMULWimr(IM,MD,MB,MI,MS,RD)	(_d16(), _REXLmr(MB, MI, RD),	_Os_r_X_sW	(0x69		     ,_r2(RD)		,MD,MB,MI,MS	,_su16(IM)	))
 
-#define IMULLir(IM, RD)			(_REXLrr(0, RD),		_Os_Mrm_sL	(0x69		,_b11,_r4(RD),_r4(RD)			,IM	))
-#define IMULLrr(RS, RD)			(_REXLrr(RD, RS),		_OO_Mrm		(0x0faf		,_b11,_r4(RD),_r4(RS)				))
-#define IMULLmr(MD, MB, MI, MS, RD)	(_REXLmr(MB, MI, RD),		_OO_r_X		(0x0faf		     ,_r4(RD)		,MD,MB,MI,MS		))
-
-
-#define IMULLirr(IM,RS,RD)		(_REXLrr(RS, RD),		_Os_Mrm_sL	(0x69		,_b11,_r4(RS),_r4(RD)			,IM	))
-#define IMULLimr(IM,MD,MB,MI,MS,RD)	(_REXLmr(MB, MI, RD),		_Os_r_X_sL	(0x69		     ,_r4(RD)		,MD,MB,MI,MS	,IM	))
-
-
+#define IMULLir(IM, RD)			IMULLirr(IM, RD, RD)
+#define IMULLrr(RS, RD)							\
+    (_REXLrr(RD, RS), _OO_Mrm(0x0faf, _b11, _r4(RD), _r4(RS)))
+#define IMULLmr(MD, MB, MI, MS, RD)					\
+    (_REXLmr(MB, MI, RD), _OO_r_X(0x0faf, _r4(RD), MD, MB, MI, MS))
+#define IMULLirr(IM, RS, RD)						\
+    (_s8P(IM)								\
+	? IMULBLLirr(IM, RS, RD)					\
+	: IMULLLLirr(IM, RS, RD))
+#define IMULLimr(IM, MD, MB, MI, MS, RD)				\
+    (_s8P(IM)								\
+	? IMULBLLimr(IM, MD, MB, MI, MS, RD)				\
+	: IMULLLLimr(IM, MD, MB, MI, MS, RD))
+#define IMULBLLirr(IM, RS, RD)						\
+    (_REXLrr(RD, RS), _O_Mrm_B(0x6b, _b11, _r4(RD), _r4(RS), IM))
+#define IMULLLLirr(IM, RS, RD)						\
+    (_REXLrr(RD, RS), _O_Mrm_L(0x69, _b11, _r4(RD), _r4(RS), IM))
+#define IMULBLLimr(IM, MD, MB, MI, MS, RD)				\
+    (_REXLmr(MB, MI, RD), _O_r_X_B(0x6b, _r4(RD), MD, MB, MI, MS, IM))
+#define IMULLLLimr(IM, MD, MB, MI, MS, RD)				\
+    (_REXLmr(MB, MI, RD), _O_r_X_L(0x69, _r4(RD), MD, MB, MI, MS, IM))
 
 /* --- Control Flow related instructions ----------------------------------- */
 
@@ -1216,9 +1226,9 @@ enum {
 #define CWDE_()				CWTL_()
 #define CDQE_()				CLTQ_()
 
-#define CWTD_()				(_d16(),			_O		(0x99								))
-#define CLTD_()								_O		(0x99								)
-#define CQTO_()				_m64only(_REXQrr(0, 0),		_O		(0x99								))
+#define CWTD_()				(_d16(), _O(0x99))
+#define CLTD_()				_O(0x99)
+#define CQTO_()				_m64only((_REXQrr(0, 0), _O(0x99)))
 
 #define CWD_()				CWTD_()
 #define CDQ_()				CLTD_()

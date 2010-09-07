@@ -91,18 +91,6 @@
  * pushed registers, and %fp - JIT_SPARC_MAX_STACK_REGISTER_AREA and below is
  * used for the memory allocated via `allocai'.  */
 
-
-struct jit_local_state {
-  int	nextarg_put;	/* Next %o reg. to be written */
-  int	nextarg_get;	/* Next %i reg. to be read */
-
-  jit_insn *save;	/* Pointer to the `save' instruction */
-  unsigned  frame_size;	/* Current frame size as allocated by `save' */
-  int       alloca_offset; /* Current offset to the alloca'd memory (negative
-			      offset relative to %fp) */
-  jit_insn delay;
-};
-
 #ifdef JIT_NEED_PUSH_POP
 /* Maximum size for the "automatic variables" area on the stack (the area
    that starts from %fp-1 and ends at %sp+104, see the ABI doc).  This must

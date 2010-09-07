@@ -35,18 +35,6 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-struct jit_local_state {
-   int	nextarg_puti;  /* number of integer args */
-   int	nextarg_putf;  /* number of float args   */
-   int	nextarg_putd;  /* number of double args  */
-   int	nextarg_geti;  /* Next r20-r25 reg. to be read */
-   int	nextarg_getd;  /* The FP args are picked up from FPR1 -> FPR10 */
-   int  nbArgs;        /* Number of arguments for the prolog */
-
-   int  frame_size, slack;
-   jit_insn *stwu;
-};
-
 /* Patch a `stwu' instruction (with immediate operand) so that it decreases
    r1 by AMOUNT.  AMOUNT should already be rounded so that %sp remains quadword
    aligned.  */

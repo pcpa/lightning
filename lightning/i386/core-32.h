@@ -42,14 +42,6 @@
 #define JIT_V_NUM		3
 #define JIT_V(i)		((i) == 0 ? _EBX : _ESI + (i) - 1)
 
-struct jit_local_state {
-  int	framesize;
-  int	argssize;
-  int	alloca_offset;
-  int	alloca_slack;
-  jit_insn      *label;
-};
-
 /* Whether a register is used for the user-accessible registers.  */
 #define jit_save(reg)		1
 
@@ -71,10 +63,6 @@ struct jit_local_state {
         : SUBLir((amount) + (slack), _ESP)))),				  \
    _jitl.alloca_slack -= (amount),					  \
    _jitl.alloca_offset -= (amount))
-   
-/* Stack */
-#define jit_pushr_i(rs)		PUSHLr(rs)
-#define jit_popr_i(rs)		POPLr(rs)
 
 /* The += in argssize allows for stack pollution */
 
@@ -106,12 +94,38 @@ struct jit_local_state {
 #define jit_patch_calli(pa, pv)	jit_patch_at(pa, pv)
 
 #define jit_pusharg_i(rs)	PUSHLr(rs)
+
+#if GCC_SEE_JITL_CHANGE
+#define jit_finish(is)		jit_finish(is)
+__jit_inline jit_insn *
+jit_finish(jit_insn *is)
+{
+    jit_calli(is);
+    ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
+    _jitl.argssize = 0;
+
+    return (_jitl.label);
+}
+#else
 #define jit_finish(sub)							\
     ((void)jit_calli((sub)),						\
      ADDLir(sizeof(long) * _jitl.argssize, JIT_SP),			\
     _jitl.argssize = 0,							\
     _jitl.label)
+#endif
+
+#if GCC_SEE_JITL_CHANGE
+#define jit_finishr(rs)		jit_finishr(ss)
+__jit_inline void
+jit_finishr(int rs)
+{
+    jit_callr(rs);
+    ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
+    _jitl.argssize = 0;
+}
+#else
 #define jit_finishr(reg)	(jit_callr((reg)), ADDLir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0)
+#endif
 
 #define	jit_arg_c()		((_jitl.framesize += sizeof(int)) - sizeof(int))
 #define	jit_arg_uc()		((_jitl.framesize += sizeof(int)) - sizeof(int))
@@ -123,8 +137,6 @@ struct jit_local_state {
 #define	jit_arg_ul()		((_jitl.framesize += sizeof(long)) - sizeof(long))
 #define	jit_arg_p()		((_jitl.framesize += sizeof(long)) - sizeof(long))
 
-#define jit_negr_i(d, rs)	jit_opi_((d), (rs), NEGLr(d), (XORLrr((d), (d)), SUBLrr((rs), (d))))
-#define jit_movr_i(d, rs)	((void)((rs) == (d) ? 0 : MOVLrr((rs), (d))))
 #define jit_movi_i(d, is)	((is) ? MOVLir((is), (d)) : XORLrr((d), (d)))
 #define jit_movi_p(d, is)       (MOVLir (((long)(is)), (d)), _jit.x.pc)
 #define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v) - (jump_pc)))
@@ -179,15 +191,6 @@ struct jit_local_state {
 							    
 #define jit_sti_i(id, rs)               MOVLrm((rs), (id), 0,    0,    0)
 #define jit_stxi_i(id, rd, rs)          MOVLrm((rs), (id), (rd), 0,    0)
-
-#define jit_muli_i(d, rs, is)						\
-    /* Value is not zero? */						\
-    ((is)								\
-	/* Yes. if (d == rs) rs *= is; else d = rs, d *= is; */		\
-	? jit_op_((d), (rs), IMULLir((is), (d)))			\
-	/* No. Set register to zero */					\
-	: XORLrr((d), (d)))
-#define jit_muli_ui(d, rs, is)		jit_muli_i(d, rs, is)
 
 #endif /* __lightning_core_h */
 

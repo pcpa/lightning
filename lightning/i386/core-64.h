@@ -49,27 +49,6 @@
 #define JIT_V_NUM               3
 #define JIT_V(i)                ((i) == 0 ? _RBX : _R12 + (i))
 
-struct jit_local_state {
-  int   long_jumps;
-  int   nextarg_getfp;
-  int   nextarg_putfp;
-  int   nextarg_geti;
-  int	nextarg_puti;
-  int	framesize;
-  int	argssize;
-  int	fprssize;
-  int   alloca_offset;
-  int   alloca_slack;
-  jit_insn	*label;
-  union {
-      int	 i;
-      long	 l;
-      float	 f;
-      double	 d;
-      void	*p;
-  } data;
-};
-
 /* Whether a register in the "low" bank is used for the user-accessible
    registers.  */
 #define jit_save(reg)		((reg) == _EAX || (reg) == _EBX)
@@ -87,20 +66,6 @@ struct jit_local_state {
   jit_allocai_internal ((n), (_jitl.alloca_slack - (n)) & 15)
 
 /* 3-parameter operation */
-#define jit_qopr_(d, s1, s2, op1d, op2d)					\
-	( ((s2) == (d)) ? op1d :						\
-	  (  (((s1) == (d)) ? (void)0 : (void)MOVQrr((s1), (d))), op2d )	\
-	)
-
-/* 3-parameter operation, with immediate. TODO: fix the case where mmediate
-   does not fit! */
-#define jit_qop_small(d, s1, op2d)					\
-	(((s1) == (d)) ? op2d : (MOVQrr((s1), (d)), op2d))
-#define jit_qop_(d, s1, is, op2d, op2i)					\
-	(_s32P((long)(is))						\
-	 ? jit_qop_small ((d), (s1), (op2d))				\
-	 : (MOVQir ((is), JIT_REXTMP), jit_qop_small ((d), (s1), (op2i))))
-
 #define jit_bra_qr(s1, s2, op)		(CMPQrr(s2, s1), op, _jit.x.pc)
 #define _jit_bra_l(rs, is, op)		(CMPQir(is, rs), op, _jit.x.pc)
 
@@ -116,309 +81,27 @@ struct jit_local_state {
 	(_u8P(is) ? jit_reduce_(op##Bir(is, jit_reg8(rs))) :	\
 	jit_reduce_(op##Qir(is, rs)) )
 
-#define jit_addi_l(d, rs, is)						\
-    /* if (is != 0) */							\
+#define jit_movi_p(d, is)	(MOVQir(((long)(is)), (d)), _jit.x.pc)
+#define jit_movi_l(d, is)						\
+    /* Value is not zero? */						\
     ((is)								\
-	/* if (is != 1) */						\
-	? (((is) != 1)							\
-	    /* if (is != -1) */						\
-	    ? (((is) != -1)						\
-		/* if ((is < 0 && int32_p(is)) */			\
-		? (((((is) < 0) && _s32P(is))				\
-		    /* || (is > 0 && uint31_p(is))) */			\
-		    || ((is) > 0 && _uiP(31, is)))			\
-		    /* if (d == rs) */					\
-		    ? (((d) == (rs))					\
-			/* Use sign extending add opcode */		\
-			? ADDQir((is), (d))				\
-			/* Use sign extending 3 operand lea opcode */	\
-			: LEAQmr((is), (rs), 0, 0, (d)))		\
-		    /* <need register for immediate> if (d != rs) */	\
-		    : (((d) != (rs))					\
-			/* d = is, d += rs; */				\
-			? (MOVQir((is), (d)), ADDQrr((rs), (d)))	\
-			/* tmp = is, d += tmp; */			\
-			: (MOVQir((is), JIT_REXTMP),			\
-			   ADDQrr(JIT_REXTMP, (d)))))			\
-		/* <is == -1> if (d != rs) d = rs; */			\
-		: ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),		\
-		    /* --d; */						\
-		    DECQr((d))))					\
-	    /* <is == 1> if (d != rs) d = rs; ++d; */			\
-	    : ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0), INCQr((d))))	\
-	/* <is == 0> if (d != rs) d = rs; */				\
-	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
+	/* Value is unsigned and fits in unsigned 32 bits? */		\
+	? (_u32P(is)							\
+	    /* Use zero extending 32 bits opcode */			\
+	    ? MOVLir(is, (d))						\
+	    /* Use sign extending 64 bits opcode */			\
+	    : MOVQir(is, (d)))						\
+	/* Set register to zero. */					\
+	: XORQrr((d), (d)))
+#define jit_movr_l(d, rs)	((void)((rs) == (d) ? 0 : MOVQrr((rs), (d))))
+#define jit_movi_ul(d, is)	jit_movi_l(d, is)
 
-#define jit_addr_l(d, s1, s2)						\
-    /* if (d == s1) */							\
-    (((d) == (s1))							\
-	/* d += s2; */							\
-	? ADDQrr((s2), (d))						\
-	/* else if (d == s2) */						\
-	: (((d) == (s2))						\
-	    /* d += s1; */						\
-	    ? ADDQrr((s1), (d))						\
-	    /* <d != s2> use sign extending 3 operand lea opcode */	\
-	    : LEAQmr(0, (s1), (s2), 1, (d))))
+/* Alias some macros and add casts to ensure proper zero and sign extension */
+#define jit_movi_i(d, is)	jit_movi_l(d, (long)(int)is)
+#define jit_movi_ui(d, rs)	jit_movi_l((d), (_ul)(_ui)(rs))
 
-/* o Immediates are sign extended
- * o CF (C)arry (F)lag is set when interpreting it as unsigned addition
- * o OF (O)verflow (F)lag is set when interpreting it as signed addition
- * FIXME there are shorter versions when register is %RAX
- */
-/* Commutative */
-/*
-jit_addci_ul(d, rs, is) {
-    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is))) {
-	if (d != rs)
-	    MOVQrr(rs, d);
-	ADDQir(is, d);
-    }
-    else if (d == rs) {
-	MOVQir(is, JIT_REXTMP);
-	ADDQrr(JIT_REXTMP, d);
-    }
-    else {
-	MOVQir(is, d);
-	ADDQrr(rs, d);
-    }
-}
- */
-#define jit_addci_ul(d, rs, is)						\
-    ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
-	? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),			\
-	   ADDQir((is), (d)))						\
-	: (((d) == (rs))						\
-	    ? (MOVQir((is), JIT_REXTMP),				\
-	       ADDQrr(JIT_REXTMP, (d)))					\
-	    : (MOVQir((is), (d)),					\
-	       ADDQrr((rs), (d)))))
-
-/*
-jit_addcr_ul(d, s1, s2) {
-    if (d == s2)
-	ADDQrr(s1, d);
-    else if (d == s1)
-	ADDQrr(s2, d);
-    else {
-	MOVQrr(s1, d);
-	ADDQrr(s2, d);
-    }
-}
- */
-#define jit_addcr_ul(d, s1, s2)						\
-    (((d) == (s2))							\
-	? ADDQrr((s1), (d))						\
-	: (((d) == (s1))						\
-	    ?  ADDQrr((s2), (d))					\
-	    : (MOVQrr((s1), (d)),					\
-	       ADDQrr((s2), (d)))))
-
-/*
-jit_addxi_ul(d, rs, is) {
-    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is))) {
-	if (d != rs)
-	    MOVQrr(rs, d);
-	ADCQir(is, d);
-    }
-    else if (d == rs) {
-	MOVQir(is, JIT_REXTMP);
-	ADCQrr(JIT_REXTMP, d);
-    }
-    else {
-	MOVQir(is, d);
-	ADCQrr(rs, d);
-    }
-}
- */
-#define jit_addxi_ul(d, rs, is)						\
-    ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
-	? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),			\
-	   ADCQir((is), (d)))						\
-	: (((d) == (rs))						\
-	    ? (MOVQir((is), JIT_REXTMP),				\
-	       ADCQrr(JIT_REXTMP, (d)))					\
-	    : (MOVQir((is), (d)),					\
-	       ADCQrr((rs), (d)))))
-
-/*
-jit_addxr_ul(d, s1, s2) {
-    if (d == s2)
-	ADCQrr(s1, d);
-    else if (d == s1)
-	ADCQrr(s2, d);
-    else {
-	MOVQrr(s1, d);
-	ADCQrr(s2, d);
-    }
-}
- */
-#define jit_addxr_ul(d, s1, s2)						\
-    (((d) == (s2))							\
-	? ADCQrr((s1), (d))						\
-	: (((d) == (s1))						\
-	    ? ADCQrr((s2), (d))						\
-	    : (MOVQrr((s1), (d)),					\
-	       ADCQrr((s2), (d)))))
-
-/* Non commutative */
-/*
-jit_subci_ul(d, rs, is) {
-    if (d != rs)
-	MOVQrr(rs, d);
-    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is)))
-	SUBQir(is, d);
-    else {
-	MOVQir(is, JIT_REXTMP);
-	SUBQrr(JIT_REXTMP, d);
-    }
-}
- */
-#define jit_subci_ul(d, rs, is)						\
-    ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),				\
-     ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
-	? SUBQir((is), (d))						\
-	: (MOVQir((is), JIT_REXTMP),					\
-	   SUBQrr(JIT_REXTMP, (d)))))
-
-/*
-jit_subcr_ul(d, s1, s2) {
-    if (d == s2) {
-	MOVQrr(d, JIT_REXTMP);
-	MOVQrr(s1, d);
-	SUBQrr(JIT_REXTMP, d);
-    }
-    else {
-	if (d != s1)
-	    MOVQrr(s1, d);
-	SUBQrr(s2, d);
-    }
-}
- */
-#define jit_subcr_ul(d, s1, s2)						\
-    (((d) == (s2))							\
-	? (MOVQrr(d, JIT_REXTMP),					\
-	   MOVQrr(s1, d),						\
-	   SUBQrr(JIT_REXTMP, d))					\
-	: ((((d) != (s1)) ? MOVQrr((s1), (d)) : 0),			\
-	   SUBQrr(s2, d)))
-
-/*
-jit_subxi_ul(d, rs, is) {
-    if (d != rs)
-	MOVQrr(rs, d);
-    if ((is <= 0 && _s32P(is)) || (is > 0 && _uiP(31, is)))
-	SBBQir(is, d);
-    else {
-	MOVQir(is, JIT_REXTMP);
-	SBBQrr(JIT_REXTMP, d);
-    }
-}
- */
-#define jit_subxi_ul(d, rs, is)						\
-    ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),				\
-     ((((is) <= 0 && _s32P(is)) || ((is) > 0 && _uiP(31, is)))		\
-	? SBBQir((is), (d))						\
-	: (MOVQir((is), JIT_REXTMP),					\
-	   SBBQrr(JIT_REXTMP, (d)))))
-
-/*
-jit_subxr_ul(d, s1, s2) {
-    if (d == s2) {
-	MOVQrr(d, JIT_REXTMP);
-	MOVQrr(s1, d);
-	SBBQrr(JIT_REXTMP, d);
-    }
-    else {
-	if (d != s1)
-	    MOVQrr(s1, d);
-	SBBQrr(s2, d);
-    }
-}
- */
-#define jit_subxr_ul(d, s1, s2)						\
-    (((d) == (s2))							\
-	? (MOVQrr(d, JIT_REXTMP),					\
-	   MOVQrr(s1, d),						\
-	   SBBQrr(JIT_REXTMP, d))					\
-	: ((((d) != (s1)) ? MOVQrr((s1), (d)) : 0),			\
-	   SBBQrr(s2, d)))
-
-#define jit_andi_l(d, rs, is)	jit_qop_ ((d), (rs), (is), ANDQir((is), (d)), ANDQrr(JIT_REXTMP, (d)))
-#define jit_andr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), ANDQrr((s1), (d)), ANDQrr((s2), (d)) )
-#define jit_orr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2),  ORQrr((s1), (d)),  ORQrr((s2), (d)) )
-#define jit_subr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), (SUBQrr((s1), (d)), NEGQr(d)),	SUBQrr((s2), (d))	       )
-#define jit_xorr_l(d, s1, s2)	jit_qopr_((d), (s1), (s2), XORQrr((s1), (d)), XORQrr((s2), (d)) )
-
-/* These can sometimes use byte or word versions! */
-#define jit_ori_l(d, rs, is)	jit_qop_ ((d), (rs), (is),   jit_reduceQ(OR, (is), (d)), ORQrr(JIT_REXTMP, (d))	       )
-#define jit_xori_l(d, rs, is)	jit_qop_ ((d), (rs), (is),   jit_reduceQ(XOR, (is), (d)), XORQrr(JIT_REXTMP, (d))	       )
-
-/*  Instruction format is:
- *  <shift> %r0 %r1
- *	%r0 <shift>= %r1
- *  only %cl can be used as %r1
- */
-#define jit_qshiftr(d, s1, s2, shift)					\
-	/* if (d == rcx) { */						\
-    ((jit_reg64(d) == _RCX)						\
-	    /* tmp = s2 */						\
-	? (MOVQrr((s1), JIT_REXTMP),					\
-	    /* if (r2 != rcx) r8(rcx) = r8(s2); */			\
-	   ((jit_reg64(s2) != _RCX) ? MOVBrr(jit_reg8(s2), _CL) : 0),	\
-	    /* tmp >>= cl */						\
-	   shift(_CL, JIT_REXTMP),					\
-	    /* <d == rcx> rcx = tmp; */					\
-	   MOVQrr(JIT_REXTMP, _RCX))					\
-	/* } else if (s2 != rcx) { */					\
-	: (((jit_reg64(s2) != _RCX)					\
-	    /* tmp = rcx; */						\
-	    ? (MOVQrr(_RCX, JIT_REXTMP),				\
-	    /* r8(ecx) = r8(s2); */					\
-	       MOVBrr(jit_reg8(s2), _CL),				\
-	    /* if (d != s1) d = s1; */					\
-	       (((d) != (s1)) ? MOVQrr((s1), d) : 0),			\
-	    /* d >>= cl; */						\
-	       shift(_CL, (d)),						\
-	    /* rcx = tmp; */						\
-	       MOVQrr(JIT_REXTMP, _RCX))				\
-	/* else { if (d != s1) d = s1; */				\
-	    : ((((d) != (s1)) ? MOVQrr((s1), d) : 0),			\
-	    /* d >>= cl; } */						\
-	       shift(_CL, (d))))))
-
-#define jit_qshifti(d, rs, is, shift)					\
-     /* if (is != 0) */							\
-    ((is)								\
-	/* if (d != rs) d = rs, */					\
-	? ((((d) != (rs)) ? jit_movr_l(d, rs) : 0),			\
-	   shift((_uc)(is), (d)))					\
-	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
-
-#define jit_lshi_l(d, rs, is)						\
-     /* if (is != 0) */							\
-    ((is)								\
-	/* if (is <= 3) */						\
-	? (((_uc)(is) <= 3)						\
-	    /* FIXME also better when d == rs? */			\
-	    /* 3 register optimized opcode */				\
-	    ? LEAQmr(0, 0, (rs), 1 << (_uc)(is), (d))			\
-	    /* if (d != rs) d = rs, */					\
-	    : (((d) != (rs) ? MOVQrr((rs), (d)) : 0),			\
-		/* d >>= c; */						\
-	       SHLQir((_uc)(is), (d))))					\
-	: (((d) != (rs)) ? MOVQrr((rs), (d)) : 0))
-
-#define jit_rshi_l(d, rs, is)	jit_qshifti((d), rs, is, SARQir)
-#define jit_rshi_ul(d, rs, is)	jit_qshifti((d), rs, is, SHRQir)
-#define jit_lshr_l(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SHLQrr)
-#define jit_rshr_l(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SARQrr)
-#define jit_rshr_ul(d, r1, r2)	jit_qshiftr((d), (r1), (r2), SHRQrr)
-
-
-/* Stack */
-#define jit_pushr_i(rs)		PUSHQr(rs)
-#define jit_popr_i(rs)		POPQr(rs)
+#define jit_pushr_l(rs)		jit_pushr_i(rs)
+#define jit_popr_l(rs)		jit_popr_i(rs)
 
 /* Return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
 #define jit_prolog(n)							\
@@ -438,6 +121,11 @@ jit_subxr_ul(d, s1, s2) {
      /* Build stack frame */						\
      PUSHQr(_EBX), PUSHQr(_R12), PUSHQr(_R13), PUSHQr(_R14), 		\
      PUSHQr(_EBP), MOVQrr(_ESP, _EBP))
+
+#define jit_ret()							\
+    (LEAVE_(),								\
+     POPQr(_R14), POPQr(_R13), POPQr(_R12), POPQr(_EBX),		\
+     RET_())
 
 #define jit_calli(sub)							\
     (MOVQir((long)(sub), JIT_REXTMP),					\
@@ -463,8 +151,11 @@ jit_subxr_ul(d, s1, s2) {
        /* No. Use a register */						\
      : MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
 
-/*
-jit_finish(sub) {
+#if GCC_SEE_JITL_CHANGE
+#define jit_finish(is)			jit_finish(is)
+__jit_inline jit_insn *
+jit_finish(jit_insn *is)
+{
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _AL);
 	_jitl.fprssize = 0;
@@ -475,34 +166,41 @@ jit_finish(sub) {
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
-    jit_callr(sub);
+    jit_calli(is);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
     }
-    return _jitl.label;
+
+    return (_jitl.label);
 }
- */
+#else
 #define jit_finish(sub)							\
     ((_jitl.fprssize							\
 	? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0)		\
 	:  MOVBir(0, _AL)),						\
     ((_jitl.argssize & 1)						\
-	? (PUSHQr(_EAX), ++_jitl.argssize) : 0),			\
+	? (PUSHQr(_RAX), ++_jitl.argssize) : 0),			\
      jit_calli(sub),							\
     (_jitl.argssize							\
 	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
 	   _jitl.argssize = 0)						\
 	: 0),								\
      _jitl.label)
+#endif
 
 #define jit_reg_is_arg(reg)						\
     (jit_reg64(reg) == _RCX || jit_reg64(reg) == _RDX)
 
-/*
-jit_finishr(reg) {
-    if (jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))
-	MOVQrr(reg, JIT_REXTMP);
+#if GCC_SEE_JITL_CHANGE
+#define jit_finishr(rs)			jit_finishr(rs)
+__jit_inline void
+jit_finishr(int rs)
+{
+    int		need_temp;
+
+    if ((need_temp = jit_reg64(rs) == _RAX || jit_reg_is_arg(rs)))
+	MOVQrr(rs, JIT_REXTMP);
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _AL);
 	_jitl.fprssize = 0;
@@ -513,16 +211,16 @@ jit_finishr(reg) {
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
-    if (jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))
+    if (need_temp)
 	jit_callr(JIT_REXTMP);
     else
-	jit_callr(reg);
+	jit_callr(rs);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
     }
 }
- */
+#else
 #define jit_finishr(reg)						\
     (((jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))			\
 	? MOVQrr(reg, JIT_REXTMP) : 0),					\
@@ -537,6 +235,7 @@ jit_finishr(reg) {
 	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
 	   _jitl.argssize = 0)						\
 	: 0))
+#endif
 
 #define jit_retval_l(rd)	((void)jit_movr_l ((rd), _RAX))
 #define jit_arg_i()		(_jitl.nextarg_geti < JIT_ARG_MAX \
@@ -579,22 +278,762 @@ jit_finishr(reg) {
 				 ? jit_movr_p((reg), jit_arg_reg_order[(ofs)]) \
 				 : jit_ldxi_p((reg), JIT_FP, (ofs)))
 
+#define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v)))
+#define jit_patch_short_at(jump_pc,v)  (*_PSI((jump_pc) - sizeof(int)) = _jit_SI((jit_insn *)(v) - (jump_pc)))
+#define jit_patch_at(jump_pc,v) (_jitl.long_jumps ? jit_patch_long_at((jump_pc)-3, v) : jit_patch_short_at(jump_pc, v))
+
 static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 
-#define jit_negr_l(d, rs)	jit_opi_((d), (rs), NEGQr(d), (XORQrr((d), (d)), SUBQrr((rs), (d))) )
-#define jit_movr_l(d, rs)	((void)((rs) == (d) ? 0 : MOVQrr((rs), (d))))
-#define jit_movi_p(d, is)	(MOVQir(((long)(is)), (d)), _jit.x.pc)
-#define jit_movi_l(d, is)						\
-    /* Value is not zero? */						\
-    ((is)								\
-	/* Value is unsigned and fits in unsigned 32 bits? */		\
-	? (_u32P(is)							\
-	    /* Use zero extending 32 bits opcode */			\
-	    ? MOVLir(is, (d))						\
-	    /* Use sign extending 64 bits opcode */			\
-	    : MOVQir(is, (d)))						\
-	/* Set register to zero. */					\
-	: XORQrr((d), (d)))
+/* ALU */
+#define jit_negr_l(rd, r0)		jit_negr_l(rd, r0)
+__jit_inline void
+jit_negr_l(int rd, int r0)
+{
+    if (rd == r0)
+	NEGQr(rd);
+    else {
+	XORQrr(rd, rd);
+	SUBQrr(r0, rd);
+    }
+}
+
+#define jit_addi_l(rd, r0, i0)		jit_addi_l(rd, r0, i0)
+__jit_inline void
+jit_addi_l(int rd, int r0, long i0)
+{
+    if (i0 == 0)
+	jit_movr_l(rd, r0);
+    else if (i0 == 1) {
+	jit_movr_l(rd, r0);
+	INCQr(rd);
+    }
+    else if (i0 == -1) {
+	jit_movr_l(rd, r0);
+	DECQr(rd);
+    }
+    else if (jit_can_sign_extend_int_p(i0)) {
+	if (rd == r0)
+	    ADDQir(i0, rd);
+	else
+	    LEAQmr(i0, r0, 0, 0, rd);
+    }
+    else if (rd != r0) {
+	MOVQir(i0, rd);
+	ADDQrr(r0, rd);
+    }
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	ADDQrr(JIT_REXTMP, rd);
+    }
+}
+
+#define jit_addr_l(rd, r0, r1)		jit_addr_l(rd, r0, r1)
+__jit_inline void
+jit_addr_l(int rd, int r0, int r1)
+{
+    if (rd == r0)
+	ADDQrr(r1, rd);
+    else if (rd == r1)
+	ADDQrr(r0, rd);
+    else
+	LEAQmr(0, r0, r1, 1, rd);
+}
+
+#define jit_subr_l(rd, r0, r1)		jit_subr_l(rd, r0, r1)
+__jit_inline void
+jit_subr_l(int rd, int r0, int r1)
+{
+    if (r0 == r1)
+	XORQrr(rd, rd);
+    else if (rd == r1) {
+	SUBQrr(r0, rd);
+	NEGQr(rd);
+    }
+    else {
+	jit_movr_l(rd, r0);
+	SUBQrr(r1, rd);
+    }
+}
+
+/* o Immediates are sign extended
+ * o CF (C)arry (F)lag is set when interpreting it as unsigned addition
+ * o OF (O)verflow (F)lag is set when interpreting it as signed addition
+ * FIXME there are shorter versions when register is %RAX
+ */
+/* Commutative */
+#define jit_addci_ul(rd, r0, i0)	jit_addci_ul(rd, r0, i0)
+__jit_inline void
+jit_addci_ul(int rd, int r0, unsigned long i0)
+{
+    if (jit_can_sign_extend_unsigned_int_p(i0)) {
+	jit_movr_l(rd, r0);
+	ADDQir(i0, rd);
+    }
+    else if (rd == r0) {
+	MOVQir(i0, JIT_REXTMP);
+	ADDQrr(JIT_REXTMP, rd);
+    }
+    else {
+	MOVQir(i0, rd);
+	ADDQrr(r0, rd);
+    }
+}
+
+#define jit_addcr_ul(rd, r0, r1)	jit_addcr_ul(rd, r0, r1)
+__jit_inline void
+jit_addcr_ul(int rd, int r0, int r1) {
+    if (rd == r1)
+	ADDQrr(r0, rd);
+    else if (rd == r0)
+	ADDQrr(r1, rd);
+    else {
+	MOVQrr(r0, rd);
+	ADDQrr(r1, rd);
+    }
+}
+
+#define jit_addxi_ul(rd, r0, i0)	jit_addxi_ul(rd, r0, i0)
+__jit_inline void
+jit_addxi_ul(int rd, int r0, unsigned long i0)
+{
+    if (jit_can_sign_extend_unsigned_int_p(i0)) {
+	jit_movr_l(rd, r0);
+	ADCQir(i0, rd);
+    }
+    else if (rd == r0) {
+	MOVQir(i0, JIT_REXTMP);
+	ADCQrr(JIT_REXTMP, rd);
+    }
+    else {
+	MOVQir(i0, rd);
+	ADCQrr(r0, rd);
+    }
+}
+
+#define jit_addxr_ul(rd, r0, r1)	jit_addxr_ul(rd, r0, r1)
+__jit_inline void
+jit_addxr_ul(int rd, int r0, int r1) {
+    if (rd == r1)
+	ADCQrr(r0, rd);
+    else if (rd == r0)
+	ADCQrr(r1, rd);
+    else {
+	MOVQrr(r0, rd);
+	ADCQrr(r1, rd);
+    }
+}
+
+/* Non commutative */
+#define jit_subci_ul(rd, r0, i0)	jit_subci_ul(rd, r0, i0)
+__jit_inline void
+jit_subci_ul(int rd, int r0, unsigned long i0)
+{
+    jit_movr_l(rd, r0);
+    if (jit_can_sign_extend_unsigned_int_p(i0))
+	SUBQir(i0, rd);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	SUBQrr(JIT_REXTMP, rd);
+    }
+}
+
+#define jit_subcr_ul(rd, r0, r1)	jit_subcr_ul(rd, r0, r1)
+__jit_inline void
+jit_subcr_ul(int rd, int r0, int r1)
+{
+    if (rd == r1) {
+	MOVQrr(rd, JIT_REXTMP);
+	MOVQrr(r0, rd);
+	SUBQrr(JIT_REXTMP, rd);
+    }
+    else {
+	jit_movr_l(rd, r0);
+	SUBQrr(r1, rd);
+    }
+}
+
+#define jit_subxi_ul(rd, r0, i0)	jit_subxi_ul(rd, r0, i0)
+__jit_inline void
+jit_subxi_ul(int rd, int r0, unsigned long i0)
+{
+    if (rd != r0)
+	MOVQrr(r0, rd);
+    if (jit_can_sign_extend_unsigned_int_p(i0))
+	SBBQir(i0, rd);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	SBBQrr(JIT_REXTMP, rd);
+    }
+}
+
+#define jit_subxr_ul(rd, r0, r1)	jit_subxr_ul(rd, r0, r1)
+__jit_inline void
+jit_subxr_ul(int rd, int r0, int r1)
+{
+    if (rd == r1) {
+	MOVQrr(rd, JIT_REXTMP);
+	MOVQrr(r0, rd);
+	SBBQrr(JIT_REXTMP, rd);
+    }
+    else {
+	jit_movr_l(rd, r0);
+	SBBQrr(r1, rd);
+    }
+}
+
+#define jit_andi_l(rd, r0, i0)		jit_andi_l(rd, r0, i0)
+__jit_inline void
+jit_andi_l(int rd, int r0, long i0)
+{
+    if (i0 == 0)
+	XORQrr(rd, rd);
+    else if (i0 == -1)
+	jit_movr_l(rd, r0);
+    else if (rd == r0) {
+	if (jit_can_sign_extend_int_p(i0))
+	    ANDQir(i0, rd);
+	else {
+	    MOVQir(i0, JIT_REXTMP);
+	    ANDQrr(JIT_REXTMP, rd);
+	}
+    }
+    else {
+	MOVQir(i0, rd);
+	ANDQrr(r0, rd);
+    }
+}
+
+#define jit_andr_l(rd, r0, r1)		jit_andr_l(rd, r0, r1)
+__jit_inline void
+jit_andr_l(int rd, int r0, int r1)
+{
+    if (r0 == r1)
+	jit_movr_l(rd, r0);
+    else if (rd == r0)
+	ANDQrr(r1, rd);
+    else if (rd == r1)
+	ANDQrr(r0, rd);
+    else {
+	MOVQrr(r0, rd);
+	ANDQrr(r1, rd);
+    }
+}
+
+#define jit_ori_l(rd, r0, i0)		jit_ori_l(rd, r0, i0)
+__jit_inline void
+jit_ori_l(int rd, int r0, long i0)
+{
+    if (i0 == 0)
+	jit_movr_l(rd, r0);
+    else if (i0 == -1)
+	MOVQir(-1, rd);
+    else if (rd == r0) {
+	if (jit_can_sign_extend_char_p(i0))
+	    ORBir(i0, rd);
+	else if (jit_can_sign_extend_int_p(i0))
+	    ORQir(i0, rd);
+	else {
+	    MOVQir(i0, JIT_REXTMP);
+	    ORQrr(JIT_REXTMP, rd);
+	}
+    }
+    else {
+	MOVQir(i0, rd);
+	ORQrr(r0, rd);
+    }
+}
+
+#define jit_orr_l(rd, r0, r1)		jit_orr_l(rd, r0, r1)
+__jit_inline void
+jit_orr_l(int rd, int r0, int r1)
+{
+    if (r0 == r1)
+	jit_movr_l(rd, r0);
+    else if (rd == r0)
+	ORQrr(r1, rd);
+    else if (rd == r1)
+	ORQrr(r0, rd);
+    else {
+	MOVQrr(r0, rd);
+	ORQrr(r1, rd);
+    }
+}
+
+#define jit_xori_l(rd, r0, i0)		jit_xori_l(rd, r0, i0)
+__jit_inline void
+jit_xori_l(int rd, int r0, long i0)
+{
+    if (i0 == 0)
+	jit_movr_l(rd, r0);
+    else if (i0 == -1) {
+	jit_movr_l(rd, r0);
+	NOTQr(rd);
+    }
+    else {
+	jit_movr_l(rd, r0);
+	if (jit_check8(rd) && jit_can_sign_extend_char_p(i0))
+	    XORBir(i0, rd);
+	else
+	    XORQir(i0, rd);
+    }
+}
+
+#define jit_xorr_l(rd, r0, r1)		jit_xorr_l(rd, r0, r1)
+__jit_inline void
+jit_xorr_l(int rd, int r0, int r1)
+{
+    if (r0 == r1) {
+	if (rd != r0)
+	    MOVQrr(r0, rd);
+	else
+	    XORQrr(rd, rd);
+    }
+    else if (rd == r0)
+	XORQrr(r1, rd);
+    else if (rd == r1)
+	XORQrr(r0, rd);
+    else {
+	MOVQrr(r0, rd);
+	XORQrr(r1, rd);
+    }
+}
+
+#define jit_muli_l(rd, r0, i0)		jit_muli_l(rd, r0, i0)
+#define jit_muli_ul(rd, r0, i0)		jit_muli_l(rd, r0, i0)
+__jit_inline void
+jit_muli_l(int rd, int r0, long i0)
+{
+    if (i0 == 0)
+	XORQrr(rd, rd);
+    else if (i0 == 1)
+	jit_movr_l(rd, r0);
+    else if (i0 == -1)
+	jit_negr_l(rd, r0);
+    else if (jit_can_sign_extend_char_p(i0))
+	IMULBQQirr(i0, r0, rd);
+    else if (jit_can_sign_extend_int_p(i0))
+	IMULLQQirr(i0, r0, rd);
+    else if (rd == r0) {
+	MOVQir(i0, JIT_REXTMP);
+	IMULQrr(JIT_REXTMP, rd);
+    }
+    else {
+	MOVQir(i0, rd);
+	IMULQrr(r0, rd);
+    }
+}
+
+#define jit_mulr_l(rd, r0, r1)		jit_mulr_l(rd, r0, r1)
+#define jit_mulr_ul(rd, r0, r1)		jit_mulr_l(rd, r0, r1)
+__jit_inline void
+jit_mulr_l(int rd, int r0, int r1)
+{
+    if (rd == r0)
+	IMULQrr(r1, rd);
+    else if (rd == r1)
+	IMULQrr(r0, rd);
+    else {
+	MOVQrr(r0, rd);
+	IMULQrr(r1, rd);
+    }
+}
+
+/*  Instruction format is:
+ *	imul reg64/mem64
+ *  and the result is stored in %rdx:%rax
+ *  %rax = low 64 bits
+ *  %rdx = high 64 bits
+ */
+__jit_inline void
+jit_muli_l_(int r0, long i0)
+{
+    if (jit_reg64(r0) == _RAX) {
+	jit_movi_l(_RDX, i0);
+	IMULQr(_RDX);
+    }
+    else {
+	jit_movi_l(_RAX, i0);
+	IMULQr(r0);
+    }
+}
+
+#define jit_hmuli_l(rd, r0, i0)		jit_hmuli_l(rd, r0, i0)
+__jit_inline void
+jit_hmuli_l(int rd, int r0, long i0)
+{
+    if (jit_reg64(rd) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_muli_l_(r0, i0);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(rd) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_muli_l_(r0, i0);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_pushr_l(_RAX);
+	jit_muli_l_(r0, i0);
+	MOVQrr(_RDX, rd);
+	jit_popr_l(_RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+
+__jit_inline void
+jit_mulr_l_(int r0, int r1)
+{
+    if (jit_reg64(r1) == _RAX)
+	IMULQr(r0);
+    else if (jit_reg64(r0) == _RAX)
+	IMULQr(r1);
+    else {
+	MOVQrr(r1, _RAX);
+	IMULQr(r0);
+    }
+}
+
+#define jit_hmulr_l(rd, r0, r1)		jit_hmulr_l(rd, r0, r1)
+__jit_inline void
+jit_hmulr_l(int rd, int r0, int r1)
+{
+    if (jit_reg64(rd) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_mulr_l_(r0, r1);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(rd) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_mulr_l_(r0, r1);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_pushr_l(_RAX);
+	jit_mulr_l_(r0, r1);
+	MOVQrr(_RDX, rd);
+	jit_popr_l(_RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+
+/*  Instruction format is:
+ *	mul reg64/mem64
+ *  and the result is stored in %rdx:%rax
+ *  %rax = low 64 bits
+ *  %rdx = high 64 bits
+ */
+__jit_inline void
+jit_muli_ul_(int r0, unsigned long i0)
+{
+    if (jit_reg64(r0) == _RAX) {
+	jit_movi_ul(_RDX, i0);
+	MULQr(_RDX);
+    }
+    else {
+	jit_movi_ul(_RAX, i0);
+	MULQr(r0);
+    }
+}
+
+#define jit_hmuli_ul(rd, r0, i0)	jit_hmuli_ul(rd, r0, i0)
+__jit_inline void
+jit_hmuli_ul(int rd, int r0, unsigned long i0)
+{
+    if (jit_reg64(rd) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_muli_ul_(r0, i0);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(rd) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_muli_ul_(r0, i0);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_pushr_l(_RAX);
+	jit_muli_ul_(r0, i0);
+	MOVQrr(_RDX, rd);
+	jit_popr_l(_RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+
+__jit_inline void
+jit_mulr_ul_(int r0, int r1)
+{
+    if (jit_reg64(r1) == _RAX)
+	MULQr(r0);
+    else if (jit_reg64(r0) == _RAX)
+	MULQr(r1);
+    else {
+	MOVQrr(r1, _RAX);
+	MULQr(r0);
+    }
+}
+
+#define jit_hmulr_ul(rd, r0, r1)	jit_hmulr_ul(rd, r0, r1)
+__jit_inline void
+jit_hmulr_ul(int rd, int r0, int r1)
+{
+    if (jit_reg64(rd) == _RDX) {
+	MOVQrr(_RAX, JIT_REXTMP);
+	jit_mulr_ul_(r0, r1);
+	MOVQrr(JIT_REXTMP, _RAX);
+    }
+    else if (jit_reg64(rd) == _RAX) {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_mulr_ul_(r0, r1);
+	MOVQrr(_RDX, _RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+    else {
+	MOVQrr(_RDX, JIT_REXTMP);
+	jit_pushr_l(_RAX);
+	jit_mulr_ul_(r0, r1);
+	MOVQrr(_RDX, rd);
+	jit_popr_l(_RAX);
+	MOVQrr(JIT_REXTMP, _RDX);
+    }
+}
+
+__jit_inline void
+_jit_divi_l_(int rd, int r0, long i0, int is_signed, int is_divide)
+{
+    int		div;
+
+    if (rd == _RAX) {
+	jit_pushr_l(_RDX);
+	div = JIT_REXTMP;
+    }
+    else if (rd == _RDX) {
+	jit_pushr_l(_RAX);
+	div = JIT_REXTMP;
+    }
+    else if (rd == r0) {
+	jit_pushr_l(_RDX);
+	jit_pushr_l(_RAX);
+	div = JIT_REXTMP;
+    }
+    else {
+	jit_pushr_l(_RDX);
+	MOVQrr(_RAX, JIT_REXTMP);
+	div = rd;
+    }
+
+    MOVQir(i0, div);
+    jit_movr_l(_RAX, r0);
+
+    if (is_signed) {
+	CQO_();
+	IDIVQr(div);
+    }
+    else {
+	XORQrr(_RDX, _RDX);
+	DIVQr(div);
+    }
+
+    if (rd != _RAX) {
+	if (is_divide)
+	    MOVQrr(_RAX, rd);
+	if (div == JIT_REXTMP)
+	    jit_popr_l(_RAX);
+	else
+	    MOVQrr(JIT_REXTMP, _RAX);
+    }
+    if (rd != _RDX) {
+	if (!is_divide)
+	    MOVQrr(_RDX, rd);
+	jit_popr_l(_RDX);
+    }
+}
+
+__jit_inline void
+_jit_divr_l_(int rd, int r0, int r1, int is_signed, int is_divide)
+{
+    int		div;
+
+    div = (r1 == _RAX || r1 == _RDX) ? JIT_REXTMP : r1;
+    if (rd == _RAX)
+	jit_pushr_l(_RDX);
+    else if (rd == _RDX)
+	jit_pushr_l(_RAX);
+    else if (div == JIT_REXTMP) {
+	jit_pushr_l(_RAX);
+	jit_pushr_l(_RDX);
+    }
+    else {
+	jit_pushr_l(_RDX);
+	MOVQrr(_RAX, JIT_REXTMP);
+    }
+    jit_movr_l(div, r1);
+    jit_movr_l(_RAX, r0);
+
+    if (is_signed) {
+	CQO_();
+	IDIVQr(div);
+    }
+    else {
+	XORQrr(_RDX, _RDX);
+	DIVQr(div);
+    }
+
+    if (rd != _RAX) {
+	if (is_divide)
+	    MOVQrr(_RAX, rd);
+	if (div == JIT_REXTMP)
+	    jit_popr_l(_RAX);
+	else
+	    MOVQrr(JIT_REXTMP, _RAX);
+    }
+    if (rd != _RDX) {
+	if (!is_divide)
+	    MOVQrr(_RDX, rd);
+	jit_popr_l(_RDX);
+    }
+}
+
+#define jit_divi_l(rd, r0, i0)		jit_divi_l(rd, r0, i0)
+__jit_inline void
+jit_divi_l(int rd, int r0, long i0)
+{
+    _jit_divi_l_(rd, r0, i0, 1, 1);
+}
+
+#define jit_divr_l(rd, r0, r1)		jit_divr_l(rd, r0, r1)
+__jit_inline void
+jit_divr_l(int rd, int r0, int r1)
+{
+    _jit_divr_l_(rd, r0, r1, 1, 1);
+}
+
+#define jit_divi_ul(rd, r0, i0)		jit_divi_ul(rd, r0, i0)
+__jit_inline void
+jit_divi_ul(int rd, int r0, unsigned long i0)
+{
+    _jit_divi_l_(rd, r0, i0, 0, 1);
+}
+
+#define jit_divr_ul(rd, r0, r1)		jit_divr_ul(rd, r0, r1)
+__jit_inline void
+jit_divr_ul(int rd, int r0, int r1)
+{
+    _jit_divr_l_(rd, r0, r1, 0, 1);
+}
+
+#define jit_modi_l(rd, r0, i0)		jit_modi_l(rd, r0, i0)
+__jit_inline void
+jit_modi_l(int rd, int r0, long i0)
+{
+    _jit_divi_l_(rd, r0, i0, 1, 0);
+}
+
+#define jit_modr_l(rd, r0, r1)		jit_modr_l(rd, r0, r1)
+__jit_inline void
+jit_modr_l(int rd, int r0, int r1)
+{
+    _jit_divr_l_(rd, r0, r1, 1, 0);
+}
+
+#define jit_modi_ul(rd, r0, i0)		jit_modi_ul(rd, r0, i0)
+__jit_inline void
+jit_modi_ul(int rd, int r0, unsigned long i0)
+{
+    _jit_divi_l_(rd, r0, i0, 0, 0);
+}
+
+#define jit_modr_ul(rd, r0, r1)		jit_modr_ul(rd, r0, r1)
+__jit_inline void
+jit_modr_ul(int rd, int r0, int r1)
+{
+    _jit_divr_l_(rd, r0, r1, 0, 0);
+}
+
+/*  Instruction format is:
+ *  <shift> %r0 %r1
+ *	%r0 <shift>= %r1
+ *  only %cl can be used as %r1
+ */
+__jit_inline void
+_jit_shift64(int rd, int r0, int r1, int code)
+{
+    if (rd == _RCX) {
+	MOVQrr(r0, JIT_REXTMP);
+	if (r1 != _RCX)
+	    MOVBrr(jit_reg8(r1), _CL);
+	_ROTSHIQrr(code, _CL, JIT_REXTMP);
+	MOVQrr(JIT_REXTMP, _RCX);
+    }
+    else if (r1 != _RCX) {
+	MOVQrr(_RCX, JIT_REXTMP);
+	MOVBrr(jit_reg8(r1), _CL);
+	jit_movr_l(rd, r0);
+	_ROTSHIQrr(code, _CL, rd);
+	MOVQrr(JIT_REXTMP, _RCX);
+    }
+    else {
+	jit_movr_l(rd, r0);
+	_ROTSHIQrr(code, _CL, rd);
+    }
+}
+
+#define jit_lshi_l(rd, r0, i0)		jit_lshi_l(rd, r0, i0)
+__jit_inline void
+jit_lshi_l(int rd, int r0, unsigned char i0)
+{
+    if (i0 == 0)
+	jit_movr_l(rd, r0);
+    else if (i0 <= 3)
+	LEAQmr(0, 0, r0, 1 << i0, rd);
+    else {
+	jit_movr_l(rd, r0);
+	SHLQir(i0, rd);
+    }
+}
+
+#define jit_lshr_l(rd, r1, r2)		jit_lshr_l(rd, r1, r2)
+__jit_inline void
+jit_lshr_l(int rd, int r0, int r1)
+{
+    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SHL);
+}
+
+#define jit_rshi_l(rd, r0, i0)		jit_rshi_l(rd, r0, i0)
+__jit_inline void
+jit_rshi_l(int rd, int r0, unsigned char i0)
+{
+    jit_movr_l(rd, r0);
+    if (i0)
+	SARQir(i0, rd);
+}
+
+#define jit_rshr_l(rd, r1, r2)		jit_rshr_l(rd, r1, r2)
+__jit_inline void
+jit_rshr_l(int rd, int r0, int r1)
+{
+    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SAR);
+}
+
+#define jit_rshi_ul(rd, r0, i0)		jit_rshi_ul(rd, r0, i0)
+__jit_inline void
+jit_rshi_ul(int rd, int r0, unsigned char i0)
+{
+    jit_movr_l(rd, r0);
+    if (i0)
+	SHRQir(i0, rd);
+}
+
+#define jit_rshr_ul(rd, r1, r2)		jit_rshr_ul(rd, r1, r2)
+__jit_inline void
+jit_rshr_ul(int rd, int r0, int r1)
+{
+    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SHR);
+}
 
 #define jit_bmsr_l(label, s1, s2)	(TESTQrr((s1), (s2)), JNZm(label), _jit.x.pc)
 #define jit_bmcr_l(label, s1, s2)	(TESTQrr((s1), (s2)), JZm(label),  _jit.x.pc)
@@ -607,17 +1046,6 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_bosubi_l(label, rs, is)	(SUBQir((is), (rs)), JOm(label), _jit.x.pc)
 #define jit_boaddi_ul(label, rs, is)	(ADDQir((is), (rs)), JCm(label), _jit.x.pc)
 #define jit_bosubi_ul(label, rs, is)	(SUBQir((is), (rs)), JCm(label), _jit.x.pc)
-
-/* Alias some macros and add casts to ensure proper zero and sign extension */
-#define jit_negr_i(d, rs)	jit_negr_l(d, rs)
-#define jit_movr_i(d, rs)	jit_movr_l(d, rs)
-#define jit_movi_i(d, is)	jit_movi_l(d, (long)(int)is)
-#define jit_movi_ui(d, rs)	jit_movi_l((d), (_ul)(_ui)(rs))
-
-#define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v)))
-#define jit_patch_short_at(jump_pc,v)  (*_PSI((jump_pc) - sizeof(int)) = _jit_SI((jit_insn *)(v) - (jump_pc)))
-#define jit_patch_at(jump_pc,v) (_jitl.long_jumps ? jit_patch_long_at((jump_pc)-3, v) : jit_patch_short_at(jump_pc, v))
-#define jit_ret()			(LEAVE_(), POPQr(_R14), POPQr(_R13), POPQr(_R12), POPQr(_EBX), RET_())
 
 /* Memory */
 
@@ -688,9 +1116,6 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_bmsi_l(label, rs, is)	(jit_reduceQ(TEST, (is), (rs)), JNZm(label), _jit.x.pc)
 #define jit_bmci_l(label, rs, is)	(jit_reduceQ(TEST, (is), (rs)), JZm(label),  _jit.x.pc)
 
-#define jit_pushr_l(rs) jit_pushr_i(rs)
-#define jit_popr_l(rs)  jit_popr_i(rs)
-
 #define jit_pusharg_l(rs) jit_pusharg_i(rs)
 #define jit_bltr_l(label, s1, s2)	jit_bra_qr((s1), (s2), JLm(label) )
 #define jit_bler_l(label, s1, s2)	jit_bra_qr((s1), (s2), JLEm(label) )
@@ -738,426 +1163,4 @@ static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 #define jit_gti_ul(d, rs, is)   jit_bool_qi0((d), (rs), (is), SETAr,  SETNEr )
 #define jit_gei_ul(d, rs, is)   jit_bool_qi0((d), (rs), (is), SETAEr, INCLr  )
 
-/* Multiplication/division.  */
-#define jit_divi_l_(result, d, rs, is)					\
-     /* if (d != rax) *sp++ = rax */					\
-    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
-     /* if (d != rcx) *sp++ = rcx */					\
-     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
-     /* if (d != rdx) *sp++ = rdx */					\
-     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
-     /* if (rs != rax) rax = rs */					\
-     jit_might(jit_reg64(rs), _RAX,		MOVQrr(rs, _RAX)),	\
-     /* if (rs != rdx) rdx = rs */					\
-     jit_might(jit_reg64(rs), _RDX,		MOVQrr(rs, _RDX)),	\
-     /* rcx = is */							\
-     MOVQir(is, _RCX),							\
-     /* rdx >>= 63 */							\
-     SARQir(63, _RDX),							\
-     /* rdx:rax /= rcx	=> rax = quot, rdx = rem */			\
-     IDIVQr(_RCX),							\
-     /* if (d != result) d = result */					\
-     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
-     /* if (d != rdx) rdx = --*sp  */					\
-     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
-     /* if (d != rcx) rcx = --*sp  */					\
-     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
-     /* if (d != rax) rax = --*sp  */					\
-     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
-
-#define jit_divr_l_(result, d, s1, s2)					\
-     /* if (d != rax) *sp++ = rax */					\
-    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
-     /* if (d != rcx) *sp++ = rcx */					\
-     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
-     /* if (d != rdx) *sp++ = rdx */					\
-     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
-     /* if (s1 == rcx) *sp++ = rcx */					\
-     ((jit_reg64(s1) == _RCX) ?			jit_pushr_l(_RCX) : 0),	\
-     /* if (s1 != rcx) rcx = s2 */					\
-     jit_might(jit_reg64(s2), _RCX,		MOVQrr(s2, _RCX)),	\
-     /* if (s1 == rcx) */						\
-     ((jit_reg64(s1) == _RCX)						\
-	/* rdx = *--sp */						\
-	? jit_popr_l(_RDX)						\
-	/* else if (s1 == rdx) rdx = s1 */				\
-	: jit_might(jit_reg64(s1), _RDX,	MOVQrr(s1, _RDX))),	\
-     /* rax = rdx */							\
-     MOVQrr(_RDX, _RAX),						\
-     /* rdx >>= 63 */							\
-     SARQir(63, _RDX),							\
-     /* rdx:rax /= rcx	=> rax = quot, rdx = rem */			\
-     IDIVQr(_RCX),							\
-     /* if (d != result) d = result */					\
-     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
-     /* if (d != edx) edx = --*sp  */					\
-     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
-     /* if (d != rcx) rcx = --*sp  */					\
-     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
-     /* if (d != rax) rax = --*sp  */					\
-     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
-
-#define jit_divi_ul_(result, d, rs, is)					\
-     /* if (d != rax) *sp++ = rax */					\
-    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
-     /* if (d != rcx) *sp++ = rcx */					\
-     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
-     /* if (d != rdx) *sp++ = rdx */					\
-     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
-     /* if (rs != rax) rax = rs */					\
-     jit_might(jit_reg64(rs), _RAX,		MOVQrr(rs, _RAX)),	\
-     /* rcx = is */							\
-     MOVQir(is, _RCX),							\
-     /* rdx ^= rdx */							\
-     XORQrr(_RDX, _RDX),						\
-     /* rdx:rax /= rcx (unsigned) => rax = quot, rdx = rem */		\
-     DIVQr(_RCX),							\
-     /* if (d != result) d = result */					\
-     jit_might(jit_reg64(d), jit_reg64(result),	MOVQrr(result, d)),	\
-     /* if (d != rdx) rdx = --*sp  */					\
-     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
-     /* if (d != rcx) rcx = --*sp  */					\
-     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
-     /* if (d != rax) rax = --*sp  */					\
-     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
-
-#define jit_divr_ul_(result, d, s1, s2)					\
-     /* if (d != rax) *sp++ = rax */					\
-    (jit_might(jit_reg64(d),  _RAX,		jit_pushr_l(_RAX)),	\
-     /* if (d != rcx) *sp++ = rcx */					\
-     jit_might(jit_reg64(d),  _RCX,		jit_pushr_l(_RCX)),	\
-     /* if (d != rdx) *sp++ = rdx */					\
-     jit_might(jit_reg64(d),  _RDX,		jit_pushr_l(_RDX)),	\
-     /* if (s1 == rcx) *sp++ = rcx */					\
-     ((jit_reg64(s1) == _RCX) ?			jit_pushr_l(_RCX) : 0),	\
-     /* if (s1 != rcx) rcx = s2 */					\
-     jit_might(jit_reg64(s2), _RCX,		MOVQrr(s2, _RCX)),	\
-     /* if (s1 == rcx) */						\
-     ((jit_reg64(s1) == _RCX)						\
-	/* rax = *--sp */						\
-	? jit_popr_l(_RAX)						\
-	/* else if (s1 == rax) rax = s1 */				\
-	: jit_might(jit_reg64(s1), _RAX,	MOVQrr(s1, _RAX))),	\
-     /* rdx ^= rdx */							\
-     XORQrr(_RDX, _RDX),						\
-     /* rdx:rax /= rcx (unsigned) => rax = quot, rdx = rem */		\
-     DIVQr(_RCX),							\
-     /* if (d != result) d = result */					\
-     jit_might(jit_reg64(d), jit_reg64(result), MOVQrr(result, d)),	\
-     /* if (d != rdx) rdx = --*sp  */					\
-     jit_might(jit_reg64(d), _RDX,		jit_popr_l(_RDX)),	\
-     /* if (d != rcx) rcx = --*sp  */					\
-     jit_might(jit_reg64(d), _RCX,		jit_popr_l(_RCX)),	\
-     /* if (d != rax) rax = --*sp  */					\
-     jit_might(jit_reg64(d), _RAX,		jit_popr_l(_RAX)))
-
-#define jit_muli_i(d, rs, is)		jit_muli_l((d), (rs), (long)(int)(is))
-#define jit_muli_ui(d, rs, is)		jit_muli_l((d), (rs), (_ul)(_ui)(is))
-
-#define jit_muli_l(d, rs, is)						\
-    /* if (is != 0) */							\
-    ((is)								\
-	/* if (is != 1) */						\
-	? (((is) != 1)							\
-	    /* if (is != -1) */						\
-	    ? (((is) != -1)						\
-		/* if (int32_p(is)) { */				\
-		? ((_s32P((long)(is)))					\
-		    /* if (d != rs) d = rs; <fits in imm int32> */	\
-		    ? ((((d) != (rs)) ? MOVQrr((rs), (d)) : 0),		\
-			/* d *= is; } */				\
-			IMULQir((is), (d)))				\
-		    /* if (d != rs) <does not fit in imm int32> */	\
-		    : (((d) != (rs))					\
-			/* d = is; d *= rs; */				\
-			? (MOVQir((is), (d)), IMULQrr((rs), (d)))	\
-			/* else tmp = is, d *= tmp;*/			\
-			: (MOVQir((is), JIT_REXTMP),			\
-			   IMULQrr(JIT_REXTMP, (d)))))			\
-		/* is == -1; */						\
-		: jit_negr_l((d), (rs)))				\
-	    /* is == 1 */						\
-	    : jit_movr_l((d), (rs)))					\
-	/* is == 0 */							\
-	: XORQrr((d), (d)))
-
-#define jit_mulr_l(d, s1, s2)						\
-    /* if (d == s1) */							\
-    (((d) == (s1))							\
-	/* d *= s2; */							\
-	? IMULQrr((s2), (d))						\
-	/* else { if (d != s2) d = s2; */				\
-	: (((d) != (s2) ? MOVQrr((s2), (d)) : 0),			\
-	/* d *= s1; } */						\
-	   IMULQrr((s1), (d))))
-
-/* As far as low bits are concerned, signed and unsigned multiplies are
-   exactly the same. */
-#define jit_muli_ul(d, rs, is)		jit_muli_l(d, rs, is)
-#define jit_mulr_ul(d, s1, s2)		jit_mulr_l(d, s1, s2)
-
-/*  Instruction format is:
- *	imul reg64/mem64
- *  and the result is stored in %rdx:%rax
- *  %rax = low 64 bits
- *  %rdx = high 64 bits
- */
-/*
-jit_muli_l_(rs, is)
-{
-    if (jit_reg64(rs) == _RAX) {
-	MOVQir(is, _RDX);
-	IMULQr(_RDX);
-    }
-    else {
-	MOVQir(is, _RAX);
-	IMULQr(rs);
-    }
-}
- */
-#define jit_muli_l_(rs, is)						\
-    ((jit_reg64(rs) == _RAX)						\
-	? (MOVQir(is, _RDX),						\
-	   IMULQr(_RDX))						\
-	: (MOVQir(is, _RAX),						\
-	   IMULQr(rs)))
-
-/*
-jit_hmuli_l(d, rs, is)	{
-    if (jit_reg64(d) == _RDX) {
-	MOVQrr(_RAX, JIT_REXTMP);
-	jit_muli_l_(rs, is);
-	MOVQrr(JIT_REXTMP, _RAX);
-    }
-    else if (jit_reg64(d) == _RAX) {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_muli_l_(rs, is);
-	MOVQrr(_RDX, _RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-    else {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_pushr_l(_RAX);
-	jit_muli_l_(rs, is);
-	MOVQrr(_RDX, d);
-	jit_popr_l(_RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-}
- */
-#define jit_hmuli_l(d, rs, is)						\
-    ((jit_reg64(d) == _RDX)						\
-	? (MOVQrr(_RAX, JIT_REXTMP),					\
-	   jit_muli_l_(rs, is),						\
-	   MOVQrr(JIT_REXTMP, _RAX))					\
-	: ((jit_reg64(d) == _RAX)					\
-	   ? (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_muli_l_(rs, is),					\
-	      MOVQrr(_RDX, _RAX),					\
-	      MOVQrr(JIT_REXTMP, _RDX))					\
-	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_pushr_l(_RAX),					\
-	      jit_muli_l_(rs, is),					\
-	      MOVQrr(_RDX, d),						\
-	      jit_popr_l(_RAX),						\
-	      MOVQrr(JIT_REXTMP, _RDX))))
-
-/*
-jit_mulr_l_(s1, s2)
-{
-    if (jit_reg64(s2) == _RAX)
-	IMULQr(s1);
-    else if (jit_reg64(s1) == _RAX)
-	IMULQr(s2);
-    else {
-	MOVQrr(s2, _RAX);
-	IMULQr(s1);
-    }
-}
- */
-#define jit_mulr_l_(s1, s2)						\
-    ((jit_reg64(s2) == _RAX)						\
-	? IMULQr(s1)							\
-	: ((jit_reg64(s1) == _RAX)					\
-	    ? IMULQr(s2)						\
-	    : (MOVQrr(s2, _RAX),					\
-	       IMULQr(s1))))
-
-/*
-jit_hmulr_l(d, s1, s2)	{
-    if (jit_reg64(d) == _RDX) {
-	MOVQrr(_RAX, JIT_REXTMP);
-	jit_mulr_l_(s1, s2);
-	MOVQrr(JIT_REXTMP, _RAX);
-    }
-    else if (jit_reg64(d) == _RAX) {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_mulr_i_(s1, s2);
-	MOVQrr(_RDX, _RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-    else {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_pushr_l(_RAX);
-	jit_mulr_l_(s1, s2);
-	MOVQrr(_RDX, d);
-	jit_popr_l(_RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-}
- */
-#define jit_hmulr_l(d, s1, s2)						\
-    ((jit_reg64(d) == _RDX)						\
-	? (MOVQrr(_RAX, JIT_REXTMP),					\
-	   jit_mulr_l_(s1, s2),						\
-	   MOVQrr(JIT_REXTMP, _RAX))					\
-	: ((jit_reg64(d) == _RAX)					\
-	    ? (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_mulr_l_(s1, s2),					\
-	       MOVQrr(_RDX, _RAX),					\
-	       MOVQrr(JIT_REXTMP, _RDX))				\
-	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_pushr_l(_RAX),					\
-	       jit_mulr_l_(s1, s2),					\
-	       MOVQrr(_RDX, d),						\
-	       jit_popr_l(_RAX),					\
-	       MOVQrr(JIT_REXTMP, _RDX))))
-
-/*  Instruction format is:
- *	mul reg64/mem64
- *  and the result is stored in %rdx:%rax
- *  %rax = low 64 bits
- *  %rdx = high 64 bits
- */
-/*
-jit_muli_ul_(rs, is)
-{
-    if (jit_reg64(rs) == _RAX) {
-	MOVQir(is, _RDX);
-	MULQr(_RDX);
-    }
-    else {
-	MOVQir(is, _RAX);
-	MULQr(rs);
-    }
-}
- */
-#define jit_muli_ul_(rs, is)						\
-    ((jit_reg64(rs) == _RAX)						\
-	? (MOVQir(is, _RDX),						\
-	   MULQr(_RDX))							\
-	: (MOVQir(is, _RAX),						\
-	   MULQr(rs)))
-
-/*
-jit_hmuli_ul(d, rs, is)	{
-    if (jit_reg64(d) == _RDX) {
-	MOVQrr(_RAX, JIT_REXTMP);
-	jit_muli_ul_(rs, is);
-	MOVQrr(JIT_REXTMP, _RAX);
-    }
-    else if (jit_reg64(d) == _RAX) {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_muli_ul_(rs, is);
-	MOVQrr(_RDX, _RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-    else {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_pushr_l(_RAX);
-	jit_muli_ul_(rs, is);
-	MOVQrr(_RDX, d);
-	jit_popr_l(_RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-}
- */
-#define jit_hmuli_ul(d, rs, is)						\
-    ((jit_reg64(d) == _RDX)						\
-	? (MOVQrr(_RAX, JIT_REXTMP),					\
-	   jit_muli_ul_(rs, is),					\
-	   MOVQrr(JIT_REXTMP, _RAX))					\
-	: ((jit_reg64(d) == _RAX)					\
-	   ? (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_muli_ul_(rs, is),					\
-	      MOVQrr(_RDX, _RAX),					\
-	      MOVQrr(JIT_REXTMP, _RDX))					\
-	   : (MOVQrr(_RDX, JIT_REXTMP),					\
-	      jit_pushr_l(_RAX),					\
-	      jit_muli_ul_(rs, is),					\
-	      MOVQrr(_RDX, d),						\
-	      jit_popr_l(_RAX),						\
-	      MOVQrr(JIT_REXTMP, _RDX))))
-
-/*
-jit_mulr_ul_(s1, s2)
-{
-    if (jit_reg64(s2) == _RAX)
-	MULQr(s1);
-    else if (jit_reg64(s1) == _RAX)
-	MULQr(s2);
-    else {
-	MOVQrr(s2, _RAX);
-	MULQr(s1);
-    }
-}
- */
-#define jit_mulr_ul_(s1, s2)						\
-    ((jit_reg64(s2) == _RAX)						\
-	? MULQr(s1)							\
-	: ((jit_reg64(s1) == _RAX)					\
-	    ? MULQr(s2)							\
-	    : (MOVQrr(s2, _RAX),					\
-	       MULQr(s1))))
-
-/*
-jit_hmulr_ul(d, s1, s2)	{
-    if (jit_reg64(d) == _RDX) {
-	MOVQrr(_RAX, JIT_REXTMP);
-	jit_mulr_ul_(s1, s2);
-	MOVQrr(JIT_REXTMP, _RAX);
-    }
-    else if (jit_reg64(d) == _RAX) {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_mulr_ul_(s1, s2);
-	MOVQrr(_RDX, _RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-    else {
-	MOVQrr(_RDX, JIT_REXTMP);
-	jit_pushr_l(_RAX);
-	jit_mulr_ul_(s1, s2);
-	MOVQrr(_RDX, d);
-	jit_popr_l(_RAX);
-	MOVQrr(JIT_REXTMP, _RDX);
-    }
-}
- */
-#define jit_hmulr_ul(d, s1, s2)						\
-    ((jit_reg64(d) == _RDX)						\
-	? (MOVQrr(_RAX, JIT_REXTMP),					\
-	   jit_mulr_ul_(s1, s2),					\
-	   MOVQrr(JIT_REXTMP, _RAX))					\
-	: ((jit_reg64(d) == _RAX)					\
-	    ? (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_mulr_ul_(s1, s2),					\
-	       MOVQrr(_RDX, _RAX),					\
-	       MOVQrr(JIT_REXTMP, _RDX))				\
-	    : (MOVQrr(_RDX, JIT_REXTMP),				\
-	       jit_pushr_l(_RAX),					\
-	       jit_mulr_ul_(s1, s2),					\
-	       MOVQrr(_RDX, d),						\
-	       jit_popr_l(_RAX),					\
-	       MOVQrr(JIT_REXTMP, _RDX))))
-
-#define jit_divi_l(d, rs, is)	jit_divi_l_(_RAX, (d), (rs), (is))
-#define jit_divi_ul(d, rs, is)	jit_divi_ul_(_RAX, (d), (rs), (is))
-#define jit_modi_l(d, rs, is)	jit_divi_l_(_RDX, (d), (rs), (is))
-#define jit_modi_ul(d, rs, is)	jit_divi_ul_(_RDX, (d), (rs), (is))
-#define jit_divr_l(d, s1, s2)	jit_divr_l_(_RAX, (d), (s1), (s2))
-#define jit_divr_ul(d, s1, s2)	jit_divr_ul_(_RAX, (d), (s1), (s2))
-#define jit_modr_l(d, s1, s2)	jit_divr_l_(_RDX, (d), (s1), (s2))
-#define jit_modr_ul(d, s1, s2)	jit_divr_ul_(_RDX, (d), (s1), (s2))
-
 #endif /* __lightning_core_h */
-
