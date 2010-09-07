@@ -151,10 +151,9 @@
        /* No. Use a register */						\
      : MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
 
-#if GCC_SEE_JITL_CHANGE
-#define jit_finish(is)			jit_finish(is)
+#define jit_finish(label)		jit_finish(label)
 __jit_inline jit_insn *
-jit_finish(jit_insn *is)
+jit_finish(jit_insn *label)
 {
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _AL);
@@ -166,7 +165,7 @@ jit_finish(jit_insn *is)
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
-    jit_calli(is);
+    jit_calli(label);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
@@ -174,25 +173,10 @@ jit_finish(jit_insn *is)
 
     return (_jitl.label);
 }
-#else
-#define jit_finish(sub)							\
-    ((_jitl.fprssize							\
-	? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0)		\
-	:  MOVBir(0, _AL)),						\
-    ((_jitl.argssize & 1)						\
-	? (PUSHQr(_RAX), ++_jitl.argssize) : 0),			\
-     jit_calli(sub),							\
-    (_jitl.argssize							\
-	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
-	   _jitl.argssize = 0)						\
-	: 0),								\
-     _jitl.label)
-#endif
 
 #define jit_reg_is_arg(reg)						\
     (jit_reg64(reg) == _RCX || jit_reg64(reg) == _RDX)
 
-#if GCC_SEE_JITL_CHANGE
 #define jit_finishr(rs)			jit_finishr(rs)
 __jit_inline void
 jit_finishr(int rs)
@@ -220,22 +204,6 @@ jit_finishr(int rs)
 	_jitl.argssize = 0;
     }
 }
-#else
-#define jit_finishr(reg)						\
-    (((jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))			\
-	? MOVQrr(reg, JIT_REXTMP) : 0),					\
-     (_jitl.fprssize							\
-	? (MOVBir(_jitl.fprssize, _AL), _jitl.fprssize = 0)		\
-	: MOVBir(0, _AL)),						\
-     ((_jitl.argssize & 1)						\
-	? (PUSHQr(_RAX), ++_jitl.argssize) : 0),			\
-     ((jit_reg64(reg) == _RAX || jit_reg_is_arg(reg))			\
-	? jit_callr(JIT_REXTMP) : jit_callr(reg)),			\
-     (_jitl.argssize							\
-	? (ADDQir(sizeof(long) * _jitl.argssize, JIT_SP),		\
-	   _jitl.argssize = 0)						\
-	: 0))
-#endif
 
 #define jit_retval_l(rd)	((void)jit_movr_l ((rd), _RAX))
 #define jit_arg_i()		(_jitl.nextarg_geti < JIT_ARG_MAX \

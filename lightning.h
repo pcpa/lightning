@@ -120,9 +120,6 @@ jit_state		_jit = jit_init();
 jit_state		_jit;
 #endif
 
-/* declaring _jit as volatile appears to only workaround on i386 */
-#define GCC_SEE_JITL_CHANGE		0
-
 #define _jitl		_jit.jitl
 #define __jit_inline	inline static
 

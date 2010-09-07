@@ -95,27 +95,18 @@
 
 #define jit_pusharg_i(rs)	PUSHLr(rs)
 
-#if GCC_SEE_JITL_CHANGE
-#define jit_finish(is)		jit_finish(is)
+#define jit_finish(label)	jit_finish(label)
 __jit_inline jit_insn *
-jit_finish(jit_insn *is)
+jit_finish(jit_insn *label)
 {
-    jit_calli(is);
+    jit_calli(label);
     ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
     _jitl.argssize = 0;
 
     return (_jitl.label);
 }
-#else
-#define jit_finish(sub)							\
-    ((void)jit_calli((sub)),						\
-     ADDLir(sizeof(long) * _jitl.argssize, JIT_SP),			\
-    _jitl.argssize = 0,							\
-    _jitl.label)
-#endif
 
-#if GCC_SEE_JITL_CHANGE
-#define jit_finishr(rs)		jit_finishr(ss)
+#define jit_finishr(rs)		jit_finishr(rs)
 __jit_inline void
 jit_finishr(int rs)
 {
@@ -123,9 +114,6 @@ jit_finishr(int rs)
     ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
     _jitl.argssize = 0;
 }
-#else
-#define jit_finishr(reg)	(jit_callr((reg)), ADDLir(sizeof(long) * _jitl.argssize, JIT_SP), _jitl.argssize = 0)
-#endif
 
 #define	jit_arg_c()		((_jitl.framesize += sizeof(int)) - sizeof(int))
 #define	jit_arg_uc()		((_jitl.framesize += sizeof(int)) - sizeof(int))
