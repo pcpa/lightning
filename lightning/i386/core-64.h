@@ -375,7 +375,7 @@ jit_addcr_ul(int rd, int r0, int r1) {
 __jit_inline void
 jit_addxi_ul(int rd, int r0, unsigned long i0)
 {
-    if (jit_can_zero_extend_int_p(i0)) {
+    if (jit_can_sign_extend_int_p(i0)) {
 	jit_movr_l(rd, r0);
 	ADCQir(i0, rd);
     }
@@ -437,7 +437,7 @@ jit_subxi_ul(int rd, int r0, unsigned long i0)
 {
     if (rd != r0)
 	MOVQrr(r0, rd);
-    if (jit_can_zero_extend_int_p(i0))
+    if (jit_can_sign_extend_int_p(i0))
 	SBBQir(i0, rd);
     else {
 	MOVQir(i0, JIT_REXTMP);
