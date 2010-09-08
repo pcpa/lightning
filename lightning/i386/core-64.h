@@ -34,38 +34,40 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-static int jit_arg_reg_order[] = {
+static int
+jit_arg_reg_order[] = {
     _EDI, _ESI, _EDX, _ECX, _R8D, _R9D
 };
 
 /* Used to implement ldc, stc, ... */
-#define JIT_CAN_16 0
-#define JIT_REXTMP		_R12
+#define JIT_CAN_16			0
+#define JIT_REXTMP			_R12
 
 /* Number or integer argument registers */
-#define JIT_ARG_MAX		6
+#define JIT_ARG_MAX			6
 
 /* Number of float argument registers */
-#define JIT_FP_ARG_MAX		8
+#define JIT_FP_ARG_MAX			8
 
-#define JIT_R_NUM		3
-#define JIT_R(i)                ((i) == 0 ? _RAX : _R9 + (i))
-#define JIT_V_NUM               3
-#define JIT_V(i)                ((i) == 0 ? _RBX : _R12 + (i))
+#define JIT_R_NUM			3
+#define JIT_R(i)			((i) == 0 ? _RAX : _R9 + (i))
+#define JIT_V_NUM			3
+#define JIT_V(i)			((i) == 0 ? _RBX : _R12 + (i))
 
-/* Keep the stack 16-byte aligned, the SSE hardware prefers it this way.  */
-#define jit_allocai_internal(amount, slack)                           \
-  (((amount) < _jitl.alloca_slack                                     \
-    ? 0                                                               \
-    : (_jitl.alloca_slack += (amount) + (slack),                      \
-      SUBQir((amount) + (slack), _ESP))),                             \
-   _jitl.alloca_slack -= (amount),                                    \
-   _jitl.alloca_offset -= (amount))
+#define jit_allocai(n)			jit_allocai(n)
+__jit_inline int
+jit_allocai(int n)
+{
+    int		s = (_jitl.alloca_slack - n) & 15;
 
-#define jit_allocai(n)                                                \
-  jit_allocai_internal ((n), (_jitl.alloca_slack - (n)) & 15)
+    if (n >= _jitl.alloca_slack) {
+	_jitl.alloca_slack += n + s;
+	SUBQir(n + s, _ESP);
+    }
+    _jitl.alloca_slack -= n;
+    return (_jitl.alloca_offset -= n);
+}
 
-#if 1
 #define jit_movi_p(rd, i0)		jit_movi_p(rd, i0)
 __jit_inline jit_insn *
 jit_movi_p(int rd, void *i0)
@@ -75,6 +77,10 @@ jit_movi_p(int rd, void *i0)
 }
 
 #define jit_movi_l(rd, i0)		jit_movi_l(rd, i0)
+#define jit_movi_ul(rd, i0)		jit_movi_l(rd, i0)
+/* ensure proper zero/sign extension */
+#define jit_movi_i(d, is)		jit_movi_l(d, (long)(int)is)
+#define jit_movi_ui(d, rs)		jit_movi_l((d), (_ul)(_ui)(rs))
 __jit_inline void
 jit_movi_l(int rd, long i0)
 {
@@ -87,39 +93,6 @@ jit_movi_l(int rd, long i0)
     else
 	XORQrr(rd, rd);
 }
-
-#define jit_movr_l(rd, r0)		jit_movr_l(rd, r0)
-__jit_inline void
-jit_movr_l(int rd, int r0)
-{
-    if (rd != r0)
-	MOVQrr(r0, rd);
-}
-#else
-#define jit_movi_p(d, is)	(MOVQir(((long)(is)), (d)), _jit.x.pc)
-#define jit_movi_l(d, is)						\
-    /* Value is not zero? */						\
-    ((is)								\
-	/* Value is unsigned and fits in unsigned 32 bits? */		\
-	? (_u32P(is)							\
-	    /* Use zero extending 32 bits opcode */			\
-	    ? MOVLir(is, (d))						\
-	    /* Use sign extending 64 bits opcode */			\
-	    : MOVQir(is, (d)))						\
-	/* Set register to zero. */					\
-	: XORQrr((d), (d)))
-#define jit_movr_l(d, rs)		((void)((rs) == (d) ? 0 : MOVQrr((rs), (d))))
-#endif
-#define jit_movr_ul(d, rs)		jit_movr_l((d), (rs))
-#define jit_movr_p(d, rs)		jit_movr_ul((d), (rs))
-#define jit_movi_ul(d, is)		jit_movi_l(d, is)
-
-/* Alias some macros and add casts to ensure proper zero and sign extension */
-#define jit_movi_i(d, is)		jit_movi_l(d, (long)(int)is)
-#define jit_movi_ui(d, rs)		jit_movi_l((d), (_ul)(_ui)(rs))
-
-#define jit_pushr_l(rs)			jit_pushr_i(rs)
-#define jit_popr_l(rs)			jit_popr_i(rs)
 
 /* Return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
 #define jit_prolog(n)			jit_prolog(n)
@@ -179,9 +152,9 @@ jit_callr(int rs)
 
 #define jit_patch_calli(pa, pv)		jit_patch_calli(pa, pv)
 __jit_inline void
-jit_patch_calli(jit_insn *pa, jit_insn *pv)
+jit_patch_calli(jit_insn *call, jit_insn *label)
 {
-    jit_patch_movi(pa, pv);
+    jit_patch_movi(call, label);
 }
 
 #define jit_prepare_i(ni)		jit_prepare_i(ni)
@@ -257,30 +230,6 @@ jit_finishr(int rs)
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
     }
-}
-
-#define jit_patch_abs_long_at(jump, label)				\
-	jit_patch_abs_long_at(jump, label)
-__jit_inline void
-jit_patch_abs_long_at(jit_insn *jump, jit_insn *label)
-{
-    *(long *)(jump - sizeof(long)) = (long)label;
-}
-
-#define jit_patch_rel_int_at(jump, label)				\
-	jit_patch_rel_int_at(jump, label)
-__jit_inline void
-jit_patch_rel_int_at(jit_insn *jump, jit_insn *label)
-{
-    *(int *)(jump - sizeof(int)) = (int)(long)(label - jump);
-}
-
-#define jit_patch_rel_char_at(jump, label)				\
-	jit_patch_rel_char_at(jump, label)
-__jit_inline void
-jit_patch_rel_char_at(jit_insn *jump, jit_insn *label)
-{
-    *(signed char *)(jump - 1) = (char)(long)(label - jump);
 }
 
 #define jit_patch_at(jump, label)	jit_patch_at(jump, label)
@@ -367,7 +316,6 @@ jit_subr_l(int rd, int r0, int r1)
 /* o Immediates are sign extended
  * o CF (C)arry (F)lag is set when interpreting it as unsigned addition
  * o OF (O)verflow (F)lag is set when interpreting it as signed addition
- * FIXME there are shorter versions when register is %RAX
  */
 /* Commutative */
 #define jit_addci_ul(rd, r0, i0)	jit_addci_ul(rd, r0, i0)
@@ -465,8 +413,7 @@ jit_subcr_ul(int rd, int r0, int r1)
 __jit_inline void
 jit_subxi_ul(int rd, int r0, unsigned long i0)
 {
-    if (rd != r0)
-	MOVQrr(r0, rd);
+    jit_movr_l(rd, r0);
     if (jit_can_sign_extend_int_p(i0))
 	SBBQir(i0, rd);
     else {
@@ -485,7 +432,7 @@ jit_subxr_ul(int rd, int r0, int r1)
 	SBBQrr(JIT_REXTMP, rd);
     }
     else {
-	jit_movr_l(rd, r0);
+	MOVQrr(r0, rd);
 	SBBQrr(r1, rd);
     }
 }

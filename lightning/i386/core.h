@@ -82,6 +82,9 @@ jit_popr_i(int r0)
     POPLr(r0);
 }
 #else
+#  define jit_movr_l(rd, r0)		jit_movr_i(rd, r0)
+#  define jit_movr_ul(rd, r0)		jit_movr_i(rd, r0)
+#  define jit_movr_p(rd, r0)		jit_movr_i(rd, r0)
 __jit_inline void
 jit_movr_i(int rd, int r0)
 {
@@ -89,12 +92,14 @@ jit_movr_i(int rd, int r0)
 	MOVQrr(r0, rd);
 }
 
+#define jit_pushr_l(rs)			jit_pushr_i(rs)
 __jit_inline void
 jit_pushr_i(int r0)
 {
     PUSHQr(r0);
 }
 
+#define jit_popr_l(rs)			jit_popr_i(rs)
 __jit_inline void
 jit_popr_i(int r0)
 {
@@ -102,11 +107,35 @@ jit_popr_i(int r0)
 }
 #endif	/* __WORDSIZE == 32 */
 
-#define jit_patch_movi(pa, pv)		jit_patch_movi(pa, pv)
+#define jit_patch_abs_long_at(jump, label)				\
+	jit_patch_abs_long_at(jump, label)
 __jit_inline void
-jit_patch_movi(jit_insn *pa, jit_insn *pv)
+jit_patch_abs_long_at(jit_insn *jump, jit_insn *label)
 {
-    *(_PSL(pa - sizeof(long))) = _jit_SL(pv);
+    *(long *)(jump - sizeof(long)) = (long)label;
+}
+
+#define jit_patch_rel_int_at(jump, label)				\
+	jit_patch_rel_int_at(jump, label)
+__jit_inline void
+jit_patch_rel_int_at(jit_insn *jump, jit_insn *label)
+{
+    *(int *)(jump - sizeof(int)) = (int)(long)(label - jump);
+}
+
+#define jit_patch_rel_char_at(jump, label)				\
+	jit_patch_rel_char_at(jump, label)
+__jit_inline void
+jit_patch_rel_char_at(jit_insn *jump, jit_insn *label)
+{
+    *(char *)(jump - 1) = (char)(long)(label - jump);
+}
+
+#define jit_patch_movi(address, label)	jit_patch_movi(address, label)
+__jit_inline void
+jit_patch_movi(jit_insn *address, jit_insn *label)
+{
+    jit_patch_abs_long_at(address, label);
 }
 
 #define jit_jmpi(label)			jit_jmpi(label)
