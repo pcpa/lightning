@@ -91,7 +91,10 @@
 
 #define _rA(R)			_r4(R)
 
-#define jit_check8(rs)		((_rN(rs) | _AL) == _AL)
+#define jit_check8(rs)							\
+    (((_rN(rs) | 0x10) == _AL)						\
+     || ((_rN(rs) | 0x10) == _CL)					\
+     || ((_rN(rs) | 0x10) == _DL))
 #define jit_reg8(rs)							\
     ((jit_reg16(rs) == _SI || jit_reg16(rs) == _DI)			\
 	? _AL : (_rN(rs) | _AL))

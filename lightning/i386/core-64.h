@@ -39,8 +39,6 @@ jit_arg_reg_order[] = {
     _EDI, _ESI, _EDX, _ECX, _R8D, _R9D
 };
 
-/* Used to implement ldc, stc, ... */
-#define JIT_CAN_16			0
 #define JIT_REXTMP			_R12
 
 /* Number or integer argument registers */
@@ -150,7 +148,7 @@ jit_callr(int rs)
     CALLsr(rs);
 }
 
-#define jit_patch_calli(pa, pv)		jit_patch_calli(pa, pv)
+#define jit_patch_calli(call, label)	jit_patch_calli(call, label)
 __jit_inline void
 jit_patch_calli(jit_insn *call, jit_insn *label)
 {
@@ -1574,61 +1572,411 @@ jit_ntoh_ul(int rd, int r0)
     BSWAPQr(rd);
 }
 
-/* Used to implement ldc, stc, ... We have SIL and friends which simplify it all.  */
-#define jit_movbrm(rs, dd, db, di, ds)	MOVBrm(jit_reg8(rs), dd, db, di, ds)
+#define jit_ldr_c(r0, r1)		jit_ldr_c(r0, r1)
+__jit_inline void
+jit_ldr_c(int r0, int r1)
+{
+    MOVSBQmr(0, r1, 0,  0, r0);
+}
 
-#define jit_ldr_c(d, rs)                MOVSBQmr(0,    (rs), 0,    0, (d))
-#define jit_ldxr_c(d, s1, s2)           MOVSBQmr(0,    (s1), (s2), 1, (d))
-							    
-#define jit_ldr_s(d, rs)                MOVSWQmr(0,    (rs), 0,    0, (d))
-#define jit_ldxr_s(d, s1, s2)           MOVSWQmr(0,    (s1), (s2), 1, (d))
-							    
-#define jit_ldi_c(d, is)                (_u32P((long)(is)) ? MOVSBQmr((is), 0,    0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_c(d, JIT_REXTMP)))
-#define jit_ldxi_c(d, rs, is)           (_u32P((long)(is)) ? MOVSBQmr((is), (rs), 0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_c(d, rs, JIT_REXTMP)))
+#define jit_ldxr_c(r0, r1, r2)		jit_ldxr_c(r0, r1, r2)
+__jit_inline void
+jit_ldxr_c(int r0, int r1, int r2)
+{
+    MOVSBQmr(0, r1, r2, 1, r0);
+}
 
-#define jit_ldi_uc(d, is)               (_u32P((long)(is)) ? MOVZBLmr((is), 0,    0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_uc(d, JIT_REXTMP)))
-#define jit_ldxi_uc(d, rs, is)          (_u32P((long)(is)) ? MOVZBLmr((is), (rs), 0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_uc(d, rs, JIT_REXTMP)))
+#define jit_ldr_s(r0, r1)		jit_ldr_s(r0, r1)
+__jit_inline void
+jit_ldr_s(int r0, int r1)
+{
+    MOVSWQmr(0, r1, 0, 0, r0);
+}
 
-#define jit_sti_c(id, rs)               (_u32P((long)(id)) ? MOVBrm(jit_reg8(rs), (id), 0,    0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_str_c(JIT_REXTMP, rs)))
-#define jit_stxi_c(id, rd, rs)          (_u32P((long)(id)) ? MOVBrm(jit_reg8(rs), (id), (rd), 0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_stxr_c(JIT_REXTMP, rd, rs)))
+#define jit_ldxr_s(r0, r1, r2)		jit_ldxr_s(r0, r1, r2)
+__jit_inline void
+jit_ldxr_s(int r0, int r1, int r2)
+{
+    MOVSWQmr(0, r1, r2, 1, r0);
+}
 
-#define jit_ldi_s(d, is)                (_u32P((long)(is)) ? MOVSWQmr((is), 0,    0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_s(d, JIT_REXTMP)))
-#define jit_ldxi_s(d, rs, is)           (_u32P((long)(is)) ? MOVSWQmr((is), (rs), 0,    0, (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_s(d, rs, JIT_REXTMP)))
+#define jit_ldi_c(r0, i0)		jit_ldi_c(r0, i0)
+__jit_inline void
+jit_ldi_c(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSBQmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir((long)i0, JIT_REXTMP);
+	jit_ldr_c(r0, JIT_REXTMP);
+    }
+}
 
-#define jit_ldi_us(d, is)               (_u32P((long)(is)) ? MOVZWLmr((is), 0,    0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_us(d, JIT_REXTMP)))
-#define jit_ldxi_us(d, rs, is)          (_u32P((long)(is)) ? MOVZWLmr((is), (rs), 0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_us(d, rs, JIT_REXTMP)))
+#define jit_ldxi_c(r0, r1, i0)		jit_ldxi_c(r0, r1, i0)
+__jit_inline void
+jit_ldxi_c(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVSBQmr(i0, r1, 0,  0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_c(r0, r1, JIT_REXTMP);
+    }
+}
 
-#define jit_sti_s(id, rs)               (_u32P((long)(id)) ? MOVWrm(jit_reg16(rs), (id), 0,    0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_str_s(JIT_REXTMP, rs)))
-#define jit_stxi_s(id, rd, rs)          (_u32P((long)(id)) ? MOVWrm(jit_reg16(rs), (id), (rd), 0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_stxr_s(JIT_REXTMP, rd, rs)))
+#define jit_ldi_uc(r0, i0)		jit_ldi_uc(r0, i0)
+__jit_inline void
+jit_ldi_uc(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVZBLmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldr_uc(r0, JIT_REXTMP);
+    }
+}
 
-#define jit_ldi_ui(d, is)               (_u32P((long)(is)) ? MOVLmr((is), 0,    0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_ui(d, JIT_REXTMP)))
-#define jit_ldxi_ui(d, rs, is)          (_u32P((long)(is)) ? MOVLmr((is), (rs), 0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_ui(d, rs, JIT_REXTMP)))
+#define jit_ldxi_uc(r0, r1, i0)		jit_ldxi_uc(r0, r1, i0)
+__jit_inline void
+jit_ldxi_uc(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVZBLmr(i0, r1, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_uc(r0, r1, JIT_REXTMP);
+    }
+}
 
-#define jit_ldi_i(d, is)                (_u32P((long)(is)) ? MOVSLQmr((is), 0,    0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_i(d, JIT_REXTMP)))
-#define jit_ldxi_i(d, rs, is)           (_u32P((long)(is)) ? MOVSLQmr((is), (rs), 0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_i(d, rs, JIT_REXTMP)))
+#define jit_str_c(r0, r1)		jit_str_c(r0, r1)
+__jit_inline void
+jit_str_c(int r0, int r1)
+{
+    MOVBrm(r1, 0, r0, 0, 0);
+}
 
-#define jit_sti_i(id, rs)               (_u32P((long)(id)) ? MOVLrm((rs), (id), 0,    0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_str_i(JIT_REXTMP, rs)))
-#define jit_stxi_i(id, rd, rs)          (_u32P((long)(id)) ? MOVLrm((rs), (id), (rd), 0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_stxr_i(JIT_REXTMP, rd, rs)))
+#define jit_sti_c(i0, r0)		jit_sti_c(i0, r0)
+__jit_inline void
+jit_sti_c(void *i0, int r0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVBrm(r0, (long)i0, 0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_str_c(JIT_REXTMP, r0);
+    }
+}
 
-#define jit_ldi_l(d, is)                (_u32P((long)(is)) ? MOVQmr((is), 0,    0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_l(d, JIT_REXTMP)))
-#define jit_ldxi_l(d, rs, is)           (_u32P((long)(is)) ? MOVQmr((is), (rs), 0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_l(d, rs, JIT_REXTMP)))
-#define jit_ldxi_ul(d, rs, is)		jit_ldxi_l((d), (rs), (is))
-#define jit_ldxi_p(rd, rs, is)		jit_ldxi_l((rd), (rs), (is))
+#define jit_stxr_c(r0, r1, r2)		jit_stxr_c(r0, r1, r2)
+__jit_inline void
+jit_stxr_c(int r0, int r1, int r2)
+{
+    MOVBrm(r2, 0, r0, r1, 1);
+}
 
-#define jit_sti_l(id, rs)               (_u32P((long)(id)) ? MOVQrm((rs), (id), 0,    0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_str_l(JIT_REXTMP, rs)))
-#define jit_stxi_l(id, rd, rs)          (_u32P((long)(id)) ? MOVQrm((rs), (id), (rd), 0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_stxr_l(JIT_REXTMP, rd, rs)))
+#define jit_stxi_c(i0, r0, r1)		jit_stxi_c(i0, r0, r1)
+__jit_inline void
+jit_stxi_c(int i0, int r0, int r1)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVBrm(r1, i0, r0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_stxr_c(JIT_REXTMP, r0, r1);
+    }
+}
 
-#define jit_ldr_ui(d, rs)               MOVLmr(0,    (rs), 0,    0,  (d))
-#define jit_ldxr_ui(d, s1, s2)          MOVLmr(0,    (s1), (s2), 1,  (d))
+#define jit_ldi_s(r0, i0)		jit_ldi_s(r0, i0)
+__jit_inline void
+jit_ldi_s(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSWQmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir((long)i0, JIT_REXTMP);
+	jit_ldr_s(r0, JIT_REXTMP);
+    }
+}
 
-#define jit_ldr_i(d, rs)                MOVSLQmr(0,    (rs), 0,    0,  (d))
-#define jit_ldxr_i(d, s1, s2)           MOVSLQmr(0,    (s1), (s2), 1,  (d))
+#define jit_ldxi_s(r0, r1, i0)		jit_ldxi_s(r0, r1, i0)
+__jit_inline void
+jit_ldxi_s(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVSWQmr(i0, r1, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_s(r0, r1, JIT_REXTMP);
+    }
+}
 
-#define jit_ldr_l(d, rs)                MOVQmr(0,    (rs), 0,    0,  (d))
-#define jit_ldxr_l(d, s1, s2)           MOVQmr(0,    (s1), (s2), 1,  (d))
+#define jit_ldi_us(r0, i0)		jit_ldi_us(r0, i0)
+__jit_inline void
+jit_ldi_us(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVZWLmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldr_us(r0, JIT_REXTMP);
+    }
+}
 
-#define jit_str_l(rd, rs)               MOVQrm((rs), 0,    (rd), 0,    0)
-#define jit_stxr_l(d1, d2, rs)          MOVQrm((rs), 0,    (d1), (d2), 1)
+#define jit_ldxi_us(r0, r1, i0)		jit_ldxi_us(r0, r1, i0)
+__jit_inline void
+jit_ldxi_us(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVZWLmr(i0, r1, 0, 0, r0);
+    else  {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_us(r0, r1, JIT_REXTMP);
+    }
+}
+
+#define jit_sti_s(i0, r0)		jit_sti_s(i0, r0)
+__jit_inline void
+jit_sti_s(void *i0, int r0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVWrm(r0, (long)i0, 0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_str_s(JIT_REXTMP, r0);
+    }
+}
+
+#define jit_stxi_s(i0, r0, r1)		jit_stxi_s(i0, r0, r1)
+__jit_inline void
+jit_stxi_s(int i0, int r0, int r1)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVWrm(r1, i0, r0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_stxr_s(JIT_REXTMP, r0, r1);
+    }
+}
+
+#define jit_ldr_i(r0, r1)		jit_ldr_i(r0, r1)
+__jit_inline void
+jit_ldr_i(int r0, int r1)
+{
+    MOVSLQmr(0, r1, 0, 0, r0);
+}
+
+#define jit_ldi_i(r0, i0)		jit_ldi_i(r0, i0)
+__jit_inline void
+jit_ldi_i(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSLQmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir((long)i0, JIT_REXTMP);
+	jit_ldr_i(r0, JIT_REXTMP);
+    }
+}
+
+#define jit_ldxr_i(r0, r1, r2)		jit_ldxr_i(r0, r1, r2)
+__jit_inline void
+jit_ldxr_i(int r0, int r1, int r2)
+{
+    MOVSLQmr(0, r1, r2, 1, r0);
+}
+
+#define jit_ldxi_i(r0, r1, i0)		jit_ldxi_i(r0, r1, i0)
+__jit_inline void
+jit_ldxi_i(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVSLQmr(i0, r1, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_i(r0, r1, JIT_REXTMP);
+    }
+}
+
+#define jit_ldr_ui(r0, r1)		jit_ldr_ui(r0, r1)
+__jit_inline void
+jit_ldr_ui(int r0, int r1)
+{
+    MOVLmr(0, r1, 0, 0, r0);
+}
+
+#define jit_ldi_ui(r0, i0)		jit_ldi_ui(r0, i0)
+__jit_inline void
+jit_ldi_ui(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVLmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldr_ui(r0, JIT_REXTMP);
+    }
+}
+
+#define jit_ldxr_ui(r0, r1, r2)		jit_ldxr_ui(r0, r1, r2)
+__jit_inline void
+jit_ldxr_ui(int r0, int r1, int r2)
+{
+    MOVLmr(0, r1, r2, 1, r0);
+}
+
+#define jit_ldxi_ui(r0, r1, i0)		jit_ldxi_ui(r0, r1, i0)
+__jit_inline void
+jit_ldxi_ui(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVLmr(i0, r1, 0, 0, r0);
+    else  {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_ui(r0, r1, JIT_REXTMP);
+    }
+}
+
+#define jit_sti_i(i0, r0)		jit_sti_i(i0, r0)
+__jit_inline void
+jit_sti_i(void *i0, int r0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVLrm(r0, (long)i0, 0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_str_i(JIT_REXTMP, r0);
+    }
+}
+
+#define jit_stxi_i(i0, r0, r1)		jit_stxi_i(i0, r0, r1)
+__jit_inline void
+jit_stxi_i(int i0, int r0, int r1)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVLrm(r1, i0, r0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_stxr_i(JIT_REXTMP, r0, r1);
+    }
+}
+
+#define jit_ldr_l(r0, r1)		jit_ldr_l(r0, r1)
+__jit_inline void
+jit_ldr_l(int r0, int r1)
+{
+    MOVQmr(0, r1, 0, 0, r0);
+}
+
+#define jit_ldi_l(r0, i0)		jit_ldi_l(r0, i0)
+__jit_inline void
+jit_ldi_l(int r0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVQmr((long)i0, 0, 0, 0, r0);
+    else {
+	MOVQir((long)i0, JIT_REXTMP);
+	jit_ldr_l(r0, JIT_REXTMP);
+    }
+}
+
+#define jit_ldxr_l(r0, r1, r2)		jit_ldxr_l(r0, r1, r2)
+__jit_inline void
+jit_ldxr_l(int r0, int r1, int r2)
+{
+    MOVQmr(0, r1, r2, 1, r0);
+}
+
+#define jit_ldxi_l(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
+#define jit_ldxi_ul(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
+#define jit_ldxi_p(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
+__jit_inline void
+jit_ldxi_l(int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVQmr(i0, r1, 0, 0, r0);
+    else  {
+	MOVQir(i0, JIT_REXTMP);
+	jit_ldxr_l(r0, r1, JIT_REXTMP);
+    }
+}
+
+#define jit_str_l(r0, r1)		jit_str_l(r0, r1)
+__jit_inline void
+jit_str_l(int r0, int r1)
+{
+    MOVQrm(r1, 0, r0, 0, 0);
+}
+
+#define jit_sti_l(i0, r0)		jit_sti_l(i0, r0)
+__jit_inline void
+jit_sti_l(void *i0, int r0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVQrm(r0, (long)i0, 0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_str_l(JIT_REXTMP, r0);
+    }
+}
+
+#define jit_stxr_l(r0, r1, r2)		jit_stxr_l(r0, r1, r2)
+__jit_inline void
+jit_stxr_l(int r0, int r1, int r2)
+{
+    MOVQrm(r2, 0, r0, r1, 1);
+}
+
+#define jit_stxi_l(i0, r0, r1)		jit_stxi_l(i0, r0, r1)
+__jit_inline void
+jit_stxi_l(int i0, int r0, int r1)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	MOVQrm(r1, i0, r0, 0, 0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	jit_stxr_l(JIT_REXTMP, r0, r1);
+    }
+}
+
+#define jit_extr_c_l(rd, r0)		jit_extr_c_l(rd, r0)
+__jit_inline void
+jit_extr_c_l(int rd, int r0)
+{
+    MOVSBQrr(r0, rd);
+}
+
+#define jit_extr_c_ul(rd, r0)		jit_extr_c_ul(rd, r0)
+__jit_inline void
+jit_extr_c_ul(int rd, int r0)
+{
+    MOVZBQrr(r0, rd);
+}
+
+#define jit_extr_s_l(rd, r0)		jit_extr_s_l(rd, r0)
+__jit_inline void
+jit_extr_s_l(int rd, int r0)
+{
+    MOVSWQrr(r0, rd);
+}
+
+#define jit_extr_s_ul(rd, r0)		jit_extr_s_ul(rd, r0)
+__jit_inline void
+jit_extr_s_ul(int rd, int r0)
+{
+    MOVZWQrr(r0, rd);
+}
+
+#define jit_extr_s_l(rd, r0)		jit_extr_s_l(rd, r0)
+__jit_inline void
+jit_extr_i_l(int rd, int r0)
+{
+    MOVSLQrr(r0, rd);
+}
+
+#define jit_extr_s_ul(rd, r0)		jit_extr_s_ul(rd, r0)
+__jit_inline void
+jit_extr_i_ul(int rd, int r0)
+{
+    MOVLrr(r0, rd);
+}
 
 #define jit_retval_l(rd)		jit_retval_l(rd)
 __jit_inline void
@@ -1668,9 +2016,6 @@ __jit_inline void
 jit_getarg_c(int rd, int ofs)
 {
     if (ofs < JIT_ARG_MAX)
-#ifndef jit_extr_c_l
-#  define jit_extr_c_l(d, rs)		(jit_lshi_l((d), (rs), 56), jit_rshi_l((d), (d), 56))
-#endif
 	jit_extr_c_l(rd, jit_arg_reg_order[ofs]);
     else
 	jit_ldxi_c(rd, JIT_FP, ofs);
@@ -1681,9 +2026,6 @@ __jit_inline void
 jit_getarg_uc(int rd, int ofs)
 {
     if (ofs < JIT_ARG_MAX)
-#ifndef jit_extr_c_ul
-#  define jit_extr_c_ul(d, rs)		jit_andi_l((d), (rs), 0xFF)
-#endif
 	jit_extr_c_ul(rd, jit_arg_reg_order[ofs]);
     else
 	jit_ldxi_uc(rd, JIT_FP, ofs);
@@ -1694,9 +2036,6 @@ __jit_inline void
 jit_getarg_s(int rd, int ofs)
 {
     if (ofs < JIT_ARG_MAX)
-#ifndef jit_extr_s_l
-#  define jit_extr_s_l(d, rs)		(jit_lshi_l((d), (rs), 48), jit_rshi_l((d), (d), 48))
-#endif
 	jit_extr_s_l(rd, jit_arg_reg_order[ofs]);
     else
 	jit_ldxi_s(rd, JIT_FP, ofs);
@@ -1707,9 +2046,6 @@ __jit_inline void
 jit_getarg_us(int rd, int ofs)
 {
     if (ofs < JIT_ARG_MAX)
-#ifndef jit_extr_s_ul
-#  define jit_extr_s_ul(d, rs)		jit_andi_l((d), (rs), 0xFFFF)
-#endif
 	jit_extr_s_ul(rd, jit_arg_reg_order[ofs]);
     else
 	jit_ldxi_us(rd, JIT_FP, ofs);

@@ -367,7 +367,7 @@ jit_ori_i(int rd, int r0, int i0)
 	jit_movr_i(rd, r0);
 	if (jit_check8(rd) && jit_can_sign_extend_char_p(i0))
 	    ORBir(i0, rd);
-#if JIT_CAN_16
+#if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
 	    ORWir(i0, rd);
 #endif
@@ -406,7 +406,7 @@ jit_xori_i(int rd, int r0, int i0)
 	jit_movr_i(rd, r0);
 	if (jit_check8(rd) && jit_can_sign_extend_char_p(i0))
 	    XORBir(i0, rd);
-#if JIT_CAN_16
+#if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
 	    XORWir(i0, rd);
 #endif
@@ -1510,27 +1510,146 @@ jit_ntoh_ui(int rd, int r0)
     BSWAPLr(rd);
 }
 
-#define jit_ldr_uc(d, rs)               MOVZBLmr(0,    (rs), 0,    0, (d))
-#define jit_ldxr_uc(d, s1, s2)          MOVZBLmr(0,    (s1), (s2), 1, (d))
-							    
-#define jit_str_c(rd, rs)               jit_movbrm((rs), 0,    (rd), 0,    0)
-#define jit_stxr_c(d1, d2, rs)          jit_movbrm((rs), 0,    (d1), (d2), 1)
-							    
-#define jit_ldr_us(d, rs)               MOVZWLmr(0,    (rs), 0,    0,  (d))
-#define jit_ldxr_us(d, s1, s2)          MOVZWLmr(0,    (s1), (s2), 1,  (d))
-							    
-#define jit_str_s(rd, rs)               MOVWrm(jit_reg16(rs), 0,    (rd), 0,    0)
-#define jit_stxr_s(d1, d2, rs)          MOVWrm(jit_reg16(rs), 0,    (d1), (d2), 1)
-							    
-#define jit_str_i(rd, rs)               MOVLrm((rs), 0,    (rd), 0,    0)
-#define jit_stxr_i(d1, d2, rs)          MOVLrm((rs), 0,    (d1), (d2), 1)
-							    
+#define jit_extr_c_i(rd, r0)		jit_extr_c_i(rd, r0)
+__jit_inline void
+jit_extr_c_i(int rd, int r0)
+{
+    int		rep;
+
+    if (jit_check8(r0))
+	MOVSBLrr(r0, rd);
+    else {
+	if (rd == _EAX)
+	    rep = _EDX;
+	else
+	    rep = _EAX;
+	if (rd != r0)
+	    XCHGLrr(rep, r0);
+	else {
+	    jit_pushr_i(rep);
+	    MOVLrr(r0, rep);
+	}
+	MOVSBLrr(rep, rd);
+	if (rd != r0)
+	    XCHGLrr(rep, r0);
+	else
+	    jit_popr_i(rep);
+    }
+}
+
+#define jit_extr_c_ui(rd, r0)		jit_extr_c_ui(rd, r0)
+__jit_inline void
+jit_extr_c_ui(int rd, int r0)
+{
+    int		rep;
+
+    if (jit_check8(r0))
+	MOVZBLrr(r0, rd);
+    else {
+	if (rd == _EAX)
+	    rep = _EDX;
+	else
+	    rep = _EAX;
+	if (rd != r0)
+	    XCHGLrr(rep, r0);
+	else {
+	    jit_pushr_i(rep);
+	    MOVLrr(r0, rep);
+	}
+	MOVZBLrr(rep, rd);
+	if (rd != r0)
+	    XCHGLrr(rep, r0);
+	else
+	    jit_popr_i(rep);
+    }
+}
+
+#define jit_extr_s_i(rd, r0)		jit_extr_s_i(rd, r0)
+__jit_inline void
+jit_extr_s_i(int rd, int r0)
+{
+    MOVSWLrr(r0, rd);
+}
+
+#define jit_extr_s_ui(rd, r0)		jit_extr_s_ui(rd, r0)
+__jit_inline void
+jit_extr_s_ui(int rd, int r0)
+{
+    MOVZWLrr(r0, rd);
+}
+
+#define jit_ldr_uc(r0, r1)		jit_ldr_uc(r0, r1)
+__jit_inline void
+jit_ldr_uc(int r0, int r1)
+{
+    MOVZBLmr(0, r1, 0, 0, r0);
+}
+
+#define jit_ldxr_uc(r0, r1, r2)		jit_ldxr_uc(r0, r1, r2)
+__jit_inline void
+jit_ldxr_uc(int r0, int r1, int r2)
+{
+    MOVZBLmr(0, r1, r2, 1, r0);
+}
+
+#define jit_ldr_us(r0, r1)		jit_ldr_us(r0, r1)
+__jit_inline void
+jit_ldr_us(int r0, int r1)
+{
+    MOVZWLmr(0, r1, 0, 0, r0);
+}
+
+#define jit_ldxr_us(r0, r1, r2)		jit_ldxr_us(r0, r1, r2)
+__jit_inline void
+jit_ldxr_us(int r0, int r1, int r2)
+{
+    MOVZWLmr(0, r1, r2, 1, r0);
+}
+
+#define jit_str_s(r0, r1)		jit_str_s(r0, r1)
+__jit_inline void
+jit_str_s(int r0, int r1)
+{
+    MOVWrm(r1, 0, r0, 0, 0);
+}
+
+#define jit_stxr_s(r0, r1, r2)		jit_stxr_s(r0, r1, r2)
+__jit_inline void
+jit_stxr_s(int r0, int r1, int r2)
+{
+    MOVWrm(r2, 0, r0, r1, 1);
+}
+
+#define jit_str_i(r0, r1)		jit_str_i(r0, r1)
+__jit_inline void
+jit_str_i(int r0, int r1)
+{
+    MOVLrm(r1, 0, r0, 0, 0);
+}
+
+#define jit_stxr_i(r0, r1, r2)		jit_stxr_i(r0, r1, r2)
+__jit_inline void
+jit_stxr_i(int r0, int r1, int r2)
+{
+    MOVLrm(r2, 0, r0, r1, 1);
+}
+
 /* Extra */
-#define jit_nop()			NOP_()
+#define jit_nop				jit_nop
+__jit_inline void
+jit_nop(void)
+{
+    NOP_();
+}
 
-#define _jit_alignment(pc, n)		(((pc ^ _MASK(4)) + 1) & _MASK(n))
-#define jit_align(n) 			NOPi(_jit_alignment(_jit_UL(_jit.x.pc), (n)))
+#define jit_align(n) 			jit_align(n)
+__jit_inline void
+jit_align(int n)
+{
+    int		align = ((((_ul)_jit.x.pc) ^ _MASK(4)) + 1) & _MASK(n);
 
+    NOPi(align);
+}
 
 #if LIGHTNING_CROSS \
 	? LIGHTNING_TARGET == LIGHTNING_X86_64 \
@@ -1541,4 +1660,3 @@ jit_ntoh_ui(int rd, int r0)
 #endif
 
 #endif /* __lightning_core_i386_h */
-
