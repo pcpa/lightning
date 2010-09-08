@@ -233,15 +233,15 @@ union jit_double_imm {
 	ADDLir(0x7FFFFFFF, aux),	/* 6 */	\
 	SBBLir(0, rd),			/* 3 */ \
 	JMPSm(_jit.x.pc + 10),		/* 2 */ \
-	jit_patch_short_at(_jitl.label,		\
-			   _jit.x.pc),		\
+	jit_patch_rel_char_at(_jitl.label,	\
+			      _jit.x.pc),	\
 	_jitl.label = jit_get_label(),		\
 	TESTLrr(aux, aux),		/* 2 */ \
 	SETGr(jit_reg8(aux)),		/* 3 */ \
 	SHRLir(1, aux),			/* 2 */ \
 	ADCLir(0, rd),			/* 3 */ \
-	jit_patch_short_at(_jitl.label,		\
-			   _jit.x.pc),		\
+	jit_patch_rel_char_at(_jitl.label,	\
+			      _jit.x.pc),	\
 	POPLr(aux))
 
 /* the easy one */

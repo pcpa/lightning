@@ -317,20 +317,15 @@ jit_bner_f(jit_insn *label, int r0, int r1)
     jit_insn	*jz_label;
 
     UCOMISSrr(r0, r1);
-
     /* jump to user jump if parity (unordered) */
-    JPm(_jit.x.pc);
+    JPSm((long)(_jit.x.pc + 2));
     jp_label = _jit.x.pc;
-
     /* jump past user jump if zero (equal)  */
-    JZm(_jit.x.pc);
+    JZSm((long)(_jit.x.pc + 5));
     jz_label = _jit.x.pc;
-
-    /* FIXME could short cut if know that label is not going to be patched */
-    jit_patch(jp_label);
+    jit_patch_rel_char_at(jp_label, _jit.x.pc);
     JMPm((long)label);
-
-    jit_patch(jz_label);
+    jit_patch_rel_char_at(jz_label, _jit.x.pc);
     return (_jit.x.pc);
 }
 #define jit_bger_f(d, s1, s2)            (UCOMISSrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
@@ -362,20 +357,15 @@ jit_bner_d(jit_insn *label, int r0, int r1)
     jit_insn	*jz_label;
 
     UCOMISDrr(r0, r1);
-
     /* jump to user jump if parity (unordered) */
-    JPm(_jit.x.pc);
+    JPSm((long)(_jit.x.pc + 2));
     jp_label = _jit.x.pc;
-
     /* jump past user jump if zero (equal)  */
-    JZm(_jit.x.pc);
+    JZSm((long)(_jit.x.pc + 5));
     jz_label = _jit.x.pc;
-
-    /* FIXME could short cut if know that label is not going to be patched */
-    jit_patch(jp_label);
+    jit_patch_rel_char_at(jp_label, _jit.x.pc);
     JMPm((long)label);
-
-    jit_patch(jz_label);
+    jit_patch_rel_char_at(jz_label, _jit.x.pc);
     return (_jit.x.pc);
 }
 #define jit_bger_d(d, s1, s2)            (UCOMISDrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
@@ -398,29 +388,39 @@ jit_bunltr_d(jit_insn *label, int r0, int r1)
 
 #define jit_ltr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAr (jit_reg8((d))))
 #define jit_ler_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAEr (jit_reg8((d))))
-#define jit_eqr_f(d, s1, s2)						\
-     /* Set register to zero */						\
-    (XORLrr((d), (d)),							\
-     /* Compare operands */						\
-     UCOMISSrr((s1), (s2)),						\
-     /* Jump if even parity (unordered) */				\
-     JPEm(0),								\
-     _jitl.label = jit_get_label(),					\
-     /* Set register if zero flag is set (equal) */			\
-     SETEr(jit_reg8((d))),						\
-     /* Parity was even */						\
-     jit_patch(_jitl.label))
-#define jit_ner_f(d, s1, s2)						\
-     /* Set register to one */						\
-    (MOVLir(1, (d)),							\
-     /* Compare operands */						\
-     UCOMISSrr((s1), (s2)),						\
-     /* Jump if even parity (unordered) */				\
-     JPEm(0),								\
-     _jitl.label = jit_get_label(),					\
-     /* Set register if zero flag is not set (not equal) */		\
-     SETNEr(jit_reg8((d))),						\
-     jit_patch(_jitl.label))
+#define jit_eqr_f(rd, r0, r1)		jit_eqr_f(rd, r0, r1)
+__jit_inline void
+jit_eqr_f(int rd, int r0, int r1)
+{
+    /* set register to zero */
+    XORLrr(rd, rd);
+    /* compare operands */
+    UCOMISSrr(r0, r1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if equal */
+    SETEr(rd);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_ner_f(rd, r0, r1)		jit_ner_f(rd, r0, r1)
+__jit_inline void
+jit_ner_f(int rd, int r0, int r1)
+{
+    /* set register to one */
+    MOVLir(1, rd);
+    /* compare operands */
+    UCOMISSrr(r0, r1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if not equal */
+    SETNEr(rd);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
 #define jit_ger_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAEr (jit_reg8((d))))
 #define jit_gtr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAr (jit_reg8((d))))
 #define jit_unltr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAEr (jit_reg8((d))))
@@ -434,28 +434,39 @@ jit_bunltr_d(jit_insn *label, int r0, int r1)
 
 #define jit_ltr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAr (jit_reg8((d))))
 #define jit_ler_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAEr (jit_reg8((d))))
-#define jit_eqr_d(d, s1, s2)						\
-     /* Set register to zero */						\
-    (XORLrr((d), (d)),							\
-     /* Compare operands */						\
-     UCOMISDrr((s1), (s2)),						\
-     /* Jump if even parity (unordered) */				\
-     JPEm(0),								\
-     _jitl.label = jit_get_label(),					\
-     /* Set register if zero flag is set (equal) */			\
-     SETEr(jit_reg8((d))),						\
-     jit_patch(_jitl.label))
-#define jit_ner_d(d, s1, s2)						\
-     /* Set register to one */						\
-    (MOVLir(1, (d)),							\
-     /* Compare operands */						\
-     UCOMISDrr((s1), (s2)),						\
-     /* Jump if even parity (unordered) */				\
-     JPEm(0),								\
-     _jitl.label = jit_get_label(),					\
-     /* Set register if zero flag is not set (not equal) */		\
-     SETNEr(jit_reg8((d))),						\
-     jit_patch(_jitl.label))
+#define jit_eqr_d(rd, r0, r1)		jit_eqr_d(rd, r0, r1)
+__jit_inline void
+jit_eqr_d(int rd, int r0, int r1)
+{
+    /* set register to zero */
+    XORLrr(rd, rd);
+    /* compare operands */
+    UCOMISDrr(r0, r1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if equal */
+    SETEr(rd);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_ner_d(rd, r0, r1)		jit_ner_d(rd, r0, r1)
+__jit_inline void
+jit_ner_d(int rd, int r0, int r1)
+{
+    /* set register to one */
+    MOVLir(1, rd);
+    /* compare operands */
+    UCOMISDrr(r0, r1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if not equal */
+    SETNEr(rd);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
 #define jit_ger_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAEr (jit_reg8((d))))
 #define jit_gtr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAr (jit_reg8((d))))
 #define jit_unltr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAEr (jit_reg8((d))))

@@ -259,9 +259,39 @@ jit_finishr(int rs)
     }
 }
 
-#define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v)))
-#define jit_patch_short_at(jump_pc,v)  (*_PSI((jump_pc) - sizeof(int)) = _jit_SI((jit_insn *)(v) - (jump_pc)))
-#define jit_patch_at(jump_pc,v) (_jitl.long_jumps ? jit_patch_long_at((jump_pc)-3, v) : jit_patch_short_at(jump_pc, v))
+#define jit_patch_abs_long_at(jump, label)				\
+	jit_patch_abs_long_at(jump, label)
+__jit_inline void
+jit_patch_abs_long_at(jit_insn *jump, jit_insn *label)
+{
+    *(long *)(jump - sizeof(long)) = (long)label;
+}
+
+#define jit_patch_rel_int_at(jump, label)				\
+	jit_patch_rel_int_at(jump, label)
+__jit_inline void
+jit_patch_rel_int_at(jit_insn *jump, jit_insn *label)
+{
+    *(int *)(jump - sizeof(int)) = (int)(long)(label - jump);
+}
+
+#define jit_patch_rel_char_at(jump, label)				\
+	jit_patch_rel_char_at(jump, label)
+__jit_inline void
+jit_patch_rel_char_at(jit_insn *jump, jit_insn *label)
+{
+    *(signed char *)(jump - 1) = (char)(long)(label - jump);
+}
+
+#define jit_patch_at(jump, label)	jit_patch_at(jump, label)
+__jit_inline void
+jit_patch_at(jit_insn *jump, jit_insn *label)
+{
+    if (_jitl.long_jumps)
+	jit_patch_abs_long_at(jump - 3, label);
+    else
+	jit_patch_rel_int_at(jump, label);
+}
 
 /* ALU */
 #define jit_negr_l(rd, r0)		jit_negr_l(rd, r0)
