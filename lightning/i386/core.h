@@ -78,43 +78,6 @@
 	((s2 == d) ? op2d : 				\
 	((s1 == d) ? op1d : op12d))
 
-/* For LT, LE, ... */
-#define jit_replace8(d, cmp, op)				\
-	(jit_check8(d)						\
-	 ? ((cmp),						\
-             MOVLir(0, (d)),					\
-             op(_rR(d) | _AL))					\
-	 : (jit_pushr_i(_EAX), (cmp),				\
-            MOVLir(0, _EAX),					\
-            op(_AL), MOVLrr(_EAX, (d)), jit_popr_i(_EAX)))
-
-#define jit_bool_r(d, s1, s2, op)					\
-	(jit_replace8(d, CMPLrr(s2, s1), op))
-
-#define jit_bool_i(d, rs, is, op)					\
-	(jit_replace8(d, CMPLir(is, rs), op))
-
-/* When CMP with 0 can be replaced with TEST */
-#define jit_bool_i0(d, rs, is, op, op0)					\
-	((is) != 0							\
-	  ? (jit_replace8(d, CMPLir(is, rs), op)) 			\
-	  : (jit_replace8(d, TESTLrr(rs, rs), op0)))
-
-/* For BLT, BLE, ... */
-#define jit_bra_r(s1, s2, op)		(CMPLrr(s2, s1), op, _jit.x.pc)
-#define jit_bra_i(rs, is, op)		(CMPLir(is, rs), op, _jit.x.pc)
-
-/* When CMP with 0 can be replaced with TEST */
-#define jit_bra_i0(rs, is, op, op0)					\
-	( (is) == 0 ? (TESTLrr(rs, rs), op0, _jit.x.pc) : (CMPLir(is, rs), op, _jit.x.pc))
-
-/* Reduce arguments of XOR/OR/TEST */
-#define jit_reduce_(op)	op
-#define jit_reduce(op, is, rs)							\
-	(_u8P(is) && jit_check8(rs) ? jit_reduce_(op##Bir(is, jit_reg8(rs))) :	\
-	(_u16P(is) && JIT_CAN_16 ? jit_reduce_(op##Wir(is, jit_reg16(rs))) :			\
-	jit_reduce_(op##Lir(is, rs)) ))
-
 /* ALU */
 #define jit_negr_i(rd, r0)		jit_negr_i(rd, r0)
 __jit_inline void
@@ -890,46 +853,252 @@ jit_rshr_ui(int rd, int r0, int r1)
 #define jit_ntoh_us(d, rs)	jit_op_((d), (rs), RORWir(8, d))
 
 /* Boolean */
-#define jit_ltr_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETLr  )
-#define jit_ler_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETLEr )
-#define jit_gtr_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETGr  )
-#define jit_ger_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETGEr )
-#define jit_eqr_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETEr  )
-#define jit_ner_i(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETNEr )
-#define jit_ltr_ui(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETBr  )
-#define jit_ler_ui(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETBEr )
-#define jit_gtr_ui(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETAr  )
-#define jit_ger_ui(d, s1, s2)	jit_bool_r((d), (s1), (s2), SETAEr )
+__jit_inline void
+_jit_cmp_ri32(int rd, int r0, int i0, int code)
+{
+    int		same;
 
-#define jit_lti_i(d, rs, is)	jit_bool_i0((d), (rs), (is), SETLr,  SETSr  )
-#define jit_lei_i(d, rs, is)	jit_bool_i ((d), (rs), (is), SETLEr	    )
-#define jit_gti_i(d, rs, is)	jit_bool_i ((d), (rs), (is), SETGr 	    )
-#define jit_gei_i(d, rs, is)	jit_bool_i0((d), (rs), (is), SETGEr, SETNSr )
-#define jit_eqi_i(d, rs, is)	jit_bool_i0((d), (rs), (is), SETEr,  SETEr  )
-#define jit_nei_i(d, rs, is)	jit_bool_i0((d), (rs), (is), SETNEr, SETNEr )
-#define jit_lti_ui(d, rs, is)	jit_bool_i ((d), (rs), (is), SETBr	    )
-#define jit_lei_ui(d, rs, is)	jit_bool_i0((d), (rs), (is), SETBEr, SETEr  )
-#define jit_gti_ui(d, rs, is)	jit_bool_i0((d), (rs), (is), SETAr,  SETNEr )
-#define jit_gei_ui(d, rs, is)	jit_bool_i0((d), (rs), (is), SETAEr, INCLr  )
+    if (jit_check8(rd)) {
+	same = rd == r0;
+	if (!same)
+	    XORLrr(rd, rd);
+	CMPLir(i0, r0);
+	if (same)
+	    MOVLir(0, rd);
+	SETCCir(code, rd);
+    }
+    else {
+	same = jit_reg32(r0) == _EAX;
+	jit_pushr_i(_EAX);
+	if (!same)
+	    XORLrr(_EAX, _EAX);
+	CMPLir(i0, r0);
+	if (same)
+	    MOVLir(0, _EAX);
+	SETCCir(code, _AL);
+	MOVLrr(_EAX, rd);
+	jit_popr_i(_EAX);
+    }
+}
+
+__jit_inline void
+_jit_test_r32(int rd, int r0, int code)
+{
+    int		same;
+
+    if (jit_check8(rd)) {
+	same = rd == r0;
+	if (!same)
+	    XORLrr(rd, rd);
+	TESTLrr(r0, r0);
+	if (same)
+	    MOVLir(0, rd);
+	SETCCir(code, rd);
+    }
+    else {
+	same = jit_reg32(r0) == _EAX;
+	jit_pushr_i(_EAX);
+	if (!same)
+	    XORLrr(_EAX, _EAX);
+	TESTLrr(r0, r0);
+	if (same)
+	    MOVLir(0, _EAX);
+	SETCCir(code, _AL);
+	MOVLrr(_EAX, rd);
+	jit_popr_i(_EAX);
+    }
+}
+
+__jit_inline void
+_jit_cmp_rr32(int rd, int r0, int r1, int code)
+{
+    int		same;
+
+    if (jit_check8(rd)) {
+	same = rd == r0 || rd == r1;
+	if (!same)
+	    XORLrr(rd, rd);
+	CMPLrr(r1, r0);
+	if (same)
+	    MOVLir(0, rd);
+	SETCCir(code, rd);
+    }
+    else {
+	same = jit_reg32(r0) == _EAX || jit_reg32(r1) == _EAX;
+	jit_pushr_i(_EAX);
+	if (!same)
+	    XORLrr(_EAX, _EAX);
+	CMPLrr(r1, r0);
+	if (same)
+	    MOVLir(0, _EAX);
+	SETCCir(code, _AL);
+	MOVLrr(_EAX, rd);
+	jit_popr_i(_EAX);
+    }
+}
+
+#define jit_lti_i(rd, r0, i0)		jit_lti_i(rd, r0, i0)
+__jit_inline void
+jit_lti_i(int rd, int r0, int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_L);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_S);
+}
+
+#define jit_ltr_i(rd, r0, r1)		jit_ltr_i(rd, r0, r1)
+__jit_inline void
+jit_ltr_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_L);
+}
+
+#define jit_lei_i(rd, r0, i0)		jit_lei_i(rd, r0, i0)
+__jit_inline void
+jit_lei_i(int rd, int r0, int i0)
+{
+    _jit_cmp_ri32(rd, r0, i0,		X86_CC_LE);
+}
+
+#define jit_ler_i(rd, r0, r1)		jit_ler_i(rd, r0, r1)
+__jit_inline void
+jit_ler_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_LE);
+}
+
+#define jit_eqi_i(rd, r0, i0)		jit_eqi_i(rd, r0, i0)
+__jit_inline void
+jit_eqi_i(int rd, int r0, int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_E);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_E);
+}
+
+#define jit_eqr_i(rd, r0, r1)		jit_eqr_i(rd, r0, r1)
+__jit_inline void
+jit_eqr_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_E);
+}
+
+#define jit_gei_i(rd, r0, i0)		jit_gei_i(rd, r0, i0)
+__jit_inline void
+jit_gei_i(int rd, int r0, int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_GE);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_NS);
+}
+
+#define jit_ger_i(rd, r0, r1)		jit_ger_i(rd, r0, r1)
+__jit_inline void
+jit_ger_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_GE);
+}
+
+#define jit_gti_i(rd, r0, i0)		jit_gti_i(rd, r0, i0)
+__jit_inline void
+jit_gti_i(int rd, int r0, int i0)
+{
+    _jit_cmp_ri32(rd, r0, i0,		X86_CC_G);
+}
+
+#define jit_gtr_i(rd, r0, r1)		jit_gtr_i(rd, r0, r1)
+__jit_inline void
+jit_gtr_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_G);
+}
+
+#define jit_nei_i(rd, r0, i0)		jit_nei_i(rd, r0, i0)
+__jit_inline void
+jit_nei_i(int rd, int r0, long i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_NE);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_NE);
+}
+
+#define jit_ner_i(rd, r0, r1)		jit_ner_i(rd, r0, r1)
+__jit_inline void
+jit_ner_i(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_NE);
+}
+
+#define jit_lti_ui(rd, r0, i0)		jit_lti_ui(rd, r0, i0)
+__jit_inline void
+jit_lti_ui(int rd, int r0, unsigned int i0)
+{
+    _jit_cmp_ri32(rd, r0, i0,		X86_CC_B);
+}
+
+#define jit_ltr_ui(rd, r0, r1)		jit_ltr_ui(rd, r0, r1)
+__jit_inline void
+jit_ltr_ui(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_B);
+}
+
+#define jit_lei_ui(rd, r0, i0)		jit_lei_ui(rd, r0, i0)
+__jit_inline void
+jit_lei_ui(int rd, int r0, unsigned int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_BE);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_E);
+}
+
+#define jit_ler_ui(rd, r0, r1)		jit_ler_ui(rd, r0, r1)
+__jit_inline void
+jit_ler_ui(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_BE);
+}
+
+#define jit_gei_ui(rd, r0, i0)		jit_gei_ui(rd, r0, i0)
+__jit_inline void
+jit_gei_ui(int rd, int r0, unsigned int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_AE);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_NB);
+}
+
+#define jit_ger_ui(rd, r0, r1)		jit_ger_ui(rd, r0, r1)
+__jit_inline void
+jit_ger_ui(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_AE);
+}
+
+#define jit_gti_ui(rd, r0, i0)		jit_gti_ui(rd, r0, i0)
+__jit_inline void
+jit_gti_ui(int rd, int r0, unsigned int i0)
+{
+    if (i0)
+	_jit_cmp_ri32(rd, r0, i0,	X86_CC_A);
+    else
+	_jit_test_r32(rd, r0,		X86_CC_NE);
+}
+
+#define jit_gtr_ui(rd, r0, r1)		jit_gtr_ui(rd, r0, r1)
+__jit_inline void
+jit_gtr_ui(int rd, int r0, int r1)
+{
+    _jit_cmp_rr32(rd, r0, r1,		X86_CC_A);
+}
 
 /* Jump */
-#define jit_bltr_i(label, s1, s2)	jit_bra_r((s1), (s2), JLm(label) )
-#define jit_bler_i(label, s1, s2)	jit_bra_r((s1), (s2), JLEm(label) )
-#define jit_bgtr_i(label, s1, s2)	jit_bra_r((s1), (s2), JGm(label) )
-#define jit_bger_i(label, s1, s2)	jit_bra_r((s1), (s2), JGEm(label) )
-#define jit_beqr_i(label, s1, s2)	jit_bra_r((s1), (s2), JEm(label) )
-#define jit_bner_i(label, s1, s2)	jit_bra_r((s1), (s2), JNEm(label) )
-#define jit_bltr_ui(label, s1, s2)	jit_bra_r((s1), (s2), JBm(label) )
-#define jit_bler_ui(label, s1, s2)	jit_bra_r((s1), (s2), JBEm(label) )
-#define jit_bgtr_ui(label, s1, s2)	jit_bra_r((s1), (s2), JAm(label) )
-#define jit_bger_ui(label, s1, s2)	jit_bra_r((s1), (s2), JAEm(label) )
-#define jit_bmsr_i(label, s1, s2)	(TESTLrr((s1), (s2)), JNZm(label), _jit.x.pc)
-#define jit_bmcr_i(label, s1, s2)	(TESTLrr((s1), (s2)), JZm(label),  _jit.x.pc)
-#define jit_boaddr_i(label, s1, s2)	(ADDLrr((s2), (s1)), JOm(label), _jit.x.pc)
-#define jit_bosubr_i(label, s1, s2)	(SUBLrr((s2), (s1)), JOm(label), _jit.x.pc)
-#define jit_boaddr_ui(label, s1, s2)	(ADDLrr((s2), (s1)), JCm(label), _jit.x.pc)
-#define jit_bosubr_ui(label, s1, s2)	(SUBLrr((s2), (s1)), JCm(label), _jit.x.pc)
-
 #define jit_blti_i(label, r0, i0)	jit_blti_i(label, r0, i0)
 __jit_inline jit_insn *
 jit_blti_i(jit_insn *label, int r0, int i0)
@@ -945,11 +1114,29 @@ jit_blti_i(jit_insn *label, int r0, int i0)
     return (_jit.x.pc);
 }
 
+#define jit_bltr_i(label, r0, r1)	jit_bltr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bltr_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JLm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_blei_i(label, r0, i0)	jit_blei_i(label, r0, i0)
 __jit_inline jit_insn *
 jit_blei_i(jit_insn *label, int r0, int i0)
 {
     CMPLir(i0, r0);
+    JLEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bler_i(label, r0, r1)	jit_bler_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bler_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
     JLEm(label);
     return (_jit.x.pc);
 }
@@ -962,6 +1149,15 @@ jit_beqi_i(jit_insn *label, int r0, int i0)
 	CMPLir(i0, r0);
     else
 	TESTLrr(r0, r0);
+    JEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_beqr_i(label, r0, r1)	jit_beqr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_beqr_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
     JEm(label);
     return (_jit.x.pc);
 }
@@ -981,11 +1177,29 @@ jit_bgei_i(jit_insn *label, int r0, int i0)
     return (_jit.x.pc);
 }
 
+#define jit_bger_i(label, r0, r1)	jit_bger_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bger_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JGEm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_bgti_i(label, r0, i0)	jit_bgti_i(label, r0, i0)
 __jit_inline jit_insn *
 jit_bgti_i(jit_insn *label, int r0, int i0)
 {
     CMPLir(i0, r0);
+    JGm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bgtr_i(label, r0, r1)	jit_bgtr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bgtr_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
     JGm(label);
     return (_jit.x.pc);
 }
@@ -1002,18 +1216,36 @@ jit_bnei_i(jit_insn *label, int r0, int i0)
     return (_jit.x.pc);
 }
 
+#define jit_bner_i(label, r0, r1)	jit_bner_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bner_i(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JNEm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_blti_ui(label, r0, i0)	jit_blti_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_blti_ui(jit_insn *label, int r0, int i0)
+jit_blti_ui(jit_insn *label, int r0, unsigned int i0)
 {
     CMPLir(i0, r0);
     JBm(label);
     return (_jit.x.pc);
 }
 
+#define jit_bltr_ui(label, r0, r1)	jit_bltr_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_bltr_ui(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JBm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_blei_ui(label, r0, i0)	jit_blei_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_blei_ui(jit_insn *label, int r0, int i0)
+jit_blei_ui(jit_insn *label, int r0, unsigned int i0)
 {
     if (i0) {
 	CMPLir(i0, r0);
@@ -1026,18 +1258,36 @@ jit_blei_ui(jit_insn *label, int r0, int i0)
     return (_jit.x.pc);
 }
 
+#define jit_bler_ui(label, r0, r1)	jit_bler_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_bler_ui(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JBEm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_bgei_ui(label, r0, i0)	jit_bgei_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgei_ui(jit_insn *label, int r0, int i0)
+jit_bgei_ui(jit_insn *label, int r0, unsigned int i0)
 {
     CMPLir(i0, r0);
     JAEm(label);
     return (_jit.x.pc);
 }
 
+#define jit_bger_ui(label, r0, r1)	jit_bger_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_bger_ui(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JAEm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_bgti_ui(label, r0, i0)	jit_bgti_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgti_ui(jit_insn *label, int r0, int i0)
+jit_bgti_ui(jit_insn *label, int r0, unsigned int i0)
 {
     if (i0) {
 	CMPLir(i0, r0);
@@ -1050,13 +1300,134 @@ jit_bgti_ui(jit_insn *label, int r0, int i0)
     return (_jit.x.pc);
 }
 
-#define jit_boaddi_i(label, rs, is)	(ADDLir((is), (rs)), JOm(label), _jit.x.pc)
-#define jit_bosubi_i(label, rs, is)	(SUBLir((is), (rs)), JOm(label), _jit.x.pc)
-#define jit_boaddi_ui(label, rs, is)	(ADDLir((is), (rs)), JCm(label), _jit.x.pc)
-#define jit_bosubi_ui(label, rs, is)	(SUBLir((is), (rs)), JCm(label), _jit.x.pc)
+#define jit_bgtr_ui(label, r0, r1)	jit_bgtr_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_bgtr_ui(jit_insn *label, int r0, int r1)
+{
+    CMPLrr(r1, r0);
+    JAm(label);
+    return (_jit.x.pc);
+}
 
-#define jit_bmsi_i(label, rs, is)	(jit_reduce(TEST, (is), (rs)), JNZm(label), _jit.x.pc)
-#define jit_bmci_i(label, rs, is)	(jit_reduce(TEST, (is), (rs)), JZm(label),  _jit.x.pc)
+#define jit_boaddi_i(label, r0, i0)	jit_boaddi_i(label, r0, i0)
+__jit_inline jit_insn *
+jit_boaddi_i(jit_insn *label, int r0, int i0)
+{
+    ADDLir(i0, r0);
+    JOm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_boaddr_i(label, r0, r1)	jit_boaddr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_boaddr_i(jit_insn *label, int r0, int r1)
+{
+    ADDLrr(r1, r0);
+    JOm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bosubi_i(label, r0, i0)	jit_bosubi_i(label, r0, i0)
+__jit_inline jit_insn *
+jit_bosubi_i(jit_insn *label, int r0, int i0)
+{
+    SUBLir(i0, r0);
+    JOm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bosubr_i(label, r0, r1)	jit_bosubr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bosubr_i(jit_insn *label, int r0, int r1)
+{
+    SUBLrr(r1, r0);
+    JOm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_boaddi_ui(label, r0, i0)	jit_boaddi_ui(label, r0, i0)
+__jit_inline jit_insn *
+jit_boaddi_ui(jit_insn *label, int r0, unsigned int i0)
+{
+    ADDLir(i0, r0);
+    JCm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_boaddr_ui(label, r0, r1)	jit_boaddr_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_boaddr_ui(jit_insn *label, int r0, int r1)
+{
+    ADDLrr(r1, r0);
+    JCm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bosubi_ui(label, r0, i0)	jit_bosubi_ui(label, r0, i0)
+__jit_inline jit_insn *
+jit_bosubi_ui(jit_insn *label, int r0, unsigned int i0)
+{
+    SUBLir(i0, r0);
+    JCm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bosubr_ui(label, r0, r1)	jit_bosubr_ui(label, r0, r1)
+__jit_inline jit_insn *
+jit_bosubr_ui(jit_insn *label, int r0, int r1)
+{
+    SUBLrr(r1, r0);
+    JCm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bmsi_i(label, r0, i0)	jit_bmsi_i(label, r0, i0)
+__jit_inline jit_insn *
+jit_bmsi_i(jit_insn *label, int r0, int i0)
+{
+    if (jit_check8(r0) && jit_can_sign_extend_unsigned_char_p(i0))
+	TESTBir(i0, jit_reg8(r0));
+    /* valid in 64 bits mode */
+    else if (jit_can_sign_extend_unsigned_short_p(i0))
+	TESTWir(i0, jit_reg16(r0));
+    else
+	TESTLir(i0, jit_reg32(r0));
+    JNZm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bmsr_i(label, r0, r1)	jit_bmsr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bmsr_i(jit_insn *label, int r0, int r1)
+{
+    TESTLrr(r1, r0);
+    JNZm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bmci_i(label, r0, i0)	jit_bmci_i(label, r0, i0)
+__jit_inline jit_insn *
+jit_bmci_i(jit_insn *label, int r0, int i0)
+{
+    if (jit_check8(r0) && jit_can_sign_extend_unsigned_char_p(i0))
+	TESTBir(i0, jit_reg8(r0));
+    /* valid in 64 bits mode */
+    else if (jit_can_sign_extend_unsigned_short_p(i0))
+	TESTWir(i0, jit_reg16(r0));
+    else
+	TESTLir(i0, jit_reg32(r0));
+    JZm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bmcr_i(label, r0, r1)	jit_bmcr_i(label, r0, r1)
+__jit_inline jit_insn *
+jit_bmcr_i(jit_insn *label, int r0, int r1)
+{
+    TESTLrr(r1, r0);
+    JZm(label);
+    return (_jit.x.pc);
+}
 
 #define jit_jmpi(label)			(JMPm( ((unsigned long) (label))), _jit.x.pc)
 #define jit_jmpr(reg)			JMPsr(reg)

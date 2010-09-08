@@ -323,7 +323,8 @@ enum {
 #define _ALUQrr(OP, RS, RD)		(_REXQrr(RS, RD),		_O_Mrm		(((OP) << 3) + 1,_b11,_r8(RS),_r8(RD)				))
 #define _ALUQmr(OP, MD, MB, MI, MS, RD)	(_REXQmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 3     ,_r8(RD)		,MD,MB,MI,MS		))
 #define _ALUQrm(OP, RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_O_r_X		(((OP) << 3) + 1     ,_r8(RS)		,MD,MB,MI,MS		))
-#define _ALUQir(OP, IM, RD)						\
+#if _ASM_SAFETY
+#  define _ALUQir(OP, IM, RD)						\
     /* Immediate fits in 32 bits? */					\
     (_s32P((long)(IM))							\
      /* Yes. Immediate does not fit in 8 bits and reg is %rax? */	\
@@ -331,7 +332,13 @@ enum {
 	? (_REXQrr(0, RD), _O_L(((OP) << 3) + 5, IM))			\
 	: (_REXQrr(0, RD), _Os_Mrm_sL(0x81, _b11, OP, _r8(RD), IM)))	\
      /* No. Need immediate in a register */				\
-     : (MOVQir(IM, JIT_REXTMP), _ALUQrr(OP, JIT_REXTMP, RD)))
+     : JITFAIL("signed integer `"#IM"' too large for 32-bit field"))
+#else
+#  define _ALUQir(OP, IM, RD)						\
+    (!_s8P(IM) && (RD) == _RAX						\
+	? (_REXQrr(0, RD), _O_L(((OP) << 3) + 5, IM))			\
+	: (_REXQrr(0, RD), _Os_Mrm_sL(0x81, _b11, OP, _r8(RD), IM)))
+#endif
 #define _ALUQim(OP, IM, MD, MB, MI, MS)	(_REXQrm(0, MB, MI),		_Os_r_X_sL	(0x81		     ,OP		,MD,MB,MI,MS	,IM	))
 
 #define ADCBrr(RS, RD)			_ALUBrr(X86_ADC, RS, RD)
@@ -990,34 +997,34 @@ enum {
 
 /*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
 #define SETCCir(CC, RD)			(_REXBrr(0, RD),		_OO_Mrm		(0x0f90|(CC)	,_b11,_b000,_r1(RD)				))
-#define SETOr(RD)			SETCCir(0x0,RD)
-#define SETNOr(RD)			SETCCir(0x1,RD)
-#define SETBr(RD)			SETCCir(0x2,RD)
-#define SETNAEr(RD)			SETCCir(0x2,RD)
-#define SETNBr(RD)			SETCCir(0x3,RD)
-#define SETAEr(RD)			SETCCir(0x3,RD)
-#define SETEr(RD)			SETCCir(0x4,RD)
-#define SETZr(RD)			SETCCir(0x4,RD)
-#define SETNEr(RD)			SETCCir(0x5,RD)
-#define SETNZr(RD)			SETCCir(0x5,RD)
-#define SETBEr(RD)			SETCCir(0x6,RD)
-#define SETNAr(RD)			SETCCir(0x6,RD)
-#define SETNBEr(RD)			SETCCir(0x7,RD)
-#define SETAr(RD)			SETCCir(0x7,RD)
-#define SETSr(RD)			SETCCir(0x8,RD)
-#define SETNSr(RD)			SETCCir(0x9,RD)
-#define SETPr(RD)			SETCCir(0xa,RD)
-#define SETPEr(RD)			SETCCir(0xa,RD)
-#define SETNPr(RD)			SETCCir(0xb,RD)
-#define SETPOr(RD)			SETCCir(0xb,RD)
-#define SETLr(RD)			SETCCir(0xc,RD)
-#define SETNGEr(RD)			SETCCir(0xc,RD)
-#define SETNLr(RD)			SETCCir(0xd,RD)
-#define SETGEr(RD)			SETCCir(0xd,RD)
-#define SETLEr(RD)			SETCCir(0xe,RD)
-#define SETNGr(RD)			SETCCir(0xe,RD)
-#define SETNLEr(RD)			SETCCir(0xf,RD)
-#define SETGr(RD)			SETCCir(0xf,RD)
+#define SETOr(RD)			SETCCir(X86_CC_O,   RD)
+#define SETNOr(RD)			SETCCir(X86_CC_NO,  RD)
+#define SETBr(RD)			SETCCir(X86_CC_B,   RD)
+#define SETNAEr(RD)			SETCCir(X86_CC_NAE, RD)
+#define SETNBr(RD)			SETCCir(X86_CC_NB,  RD)
+#define SETAEr(RD)			SETCCir(X86_CC_AE,  RD)
+#define SETEr(RD)			SETCCir(X86_CC_E,   RD)
+#define SETZr(RD)			SETCCir(X86_CC_Z,   RD)
+#define SETNEr(RD)			SETCCir(X86_CC_NE,  RD)
+#define SETNZr(RD)			SETCCir(X86_CC_NZ,  RD)
+#define SETBEr(RD)			SETCCir(X86_CC_BE,  RD)
+#define SETNAr(RD)			SETCCir(X86_CC_NA,  RD)
+#define SETNBEr(RD)			SETCCir(X86_CC_NBE, RD)
+#define SETAr(RD)			SETCCir(X86_CC_A,   RD)
+#define SETSr(RD)			SETCCir(X86_CC_S,   RD)
+#define SETNSr(RD)			SETCCir(X86_CC_NS,  RD)
+#define SETPr(RD)			SETCCir(X86_CC_P,   RD)
+#define SETPEr(RD)			SETCCir(X86_CC_PE,  RD)
+#define SETNPr(RD)			SETCCir(X86_CC_NP,  RD)
+#define SETPOr(RD)			SETCCir(X86_CC_NO,  RD)
+#define SETLr(RD)			SETCCir(X86_CC_L,   RD)
+#define SETNGEr(RD)			SETCCir(X86_CC_NGE, RD)
+#define SETGEr(RD)			SETCCir(X86_CC_GE,  RD)
+#define SETNLr(RD)			SETCCir(X86_CC_NL,  RD)
+#define SETLEr(RD)			SETCCir(X86_CC_LE,  RD)
+#define SETNGr(RD)			SETCCir(X86_CC_NG,  RD)
+#define SETGr(RD)			SETCCir(X86_CC_G,   RD)
+#define SETNLEr(RD)			SETCCir(X86_CC_NLE, RD)
 
 /*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
 #define SETCCim(CC,MD,MB,MI,MS)		(_REXBrm(0, MB, MI),		_OO_r_X		(0x0f90|(CC)	     ,_b000		,MD,MB,MI,MS		))
