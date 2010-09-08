@@ -1099,18 +1099,35 @@ jit_gtr_ui(int rd, int r0, int r1)
 }
 
 /* Jump */
+__jit_inline void
+_jit_bcmp_ri32(jit_insn *label, int r0, int i0, int code)
+{
+    CMPLir(i0, r0);
+    JCCim(code, label);
+}
+
+__jit_inline void
+_jit_btest_r32(jit_insn *label, int r0, int code)
+{
+    TESTLrr(r0, r0);
+    JCCim(code, label);
+}
+
+__jit_inline void
+_jit_bcmp_rr32(jit_insn *label, int r0, int r1, int code)
+{
+    CMPLrr(r1, r0);
+    JCCim(code, label);
+}
+
 #define jit_blti_i(label, r0, i0)	jit_blti_i(label, r0, i0)
 __jit_inline jit_insn *
 jit_blti_i(jit_insn *label, int r0, int i0)
 {
-    if (i0) {
-	CMPLir(i0, r0);
-	JLm(label);
-    }
-    else {
-	TESTLrr(r0, r0);
-	JSm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_L);
+    else
+	_jit_btest_r32(label, r0,	X86_CC_S);
     return (_jit.x.pc);
 }
 
@@ -1118,8 +1135,7 @@ jit_blti_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_bltr_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JLm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_L);
     return (_jit.x.pc);
 }
 
@@ -1127,8 +1143,7 @@ jit_bltr_i(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blei_i(jit_insn *label, int r0, int i0)
 {
-    CMPLir(i0, r0);
-    JLEm(label);
+    _jit_bcmp_ri32(label, r0, i0,	X86_CC_LE);
     return (_jit.x.pc);
 }
 
@@ -1136,8 +1151,7 @@ jit_blei_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_bler_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JLEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_LE);
     return (_jit.x.pc);
 }
 
@@ -1146,10 +1160,9 @@ __jit_inline jit_insn *
 jit_beqi_i(jit_insn *label, int r0, int i0)
 {
     if (i0)
-	CMPLir(i0, r0);
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_E);
     else
-	TESTLrr(r0, r0);
-    JEm(label);
+	_jit_btest_r32(label, r0,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1157,8 +1170,7 @@ jit_beqi_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_beqr_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1166,14 +1178,10 @@ jit_beqr_i(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgei_i(jit_insn *label, int r0, int i0)
 {
-    if (i0) {
-	CMPLir(i0, r0);
-	JGEm(label);
-    }
-    else {
-	TESTLrr(r0, r0);
-	JNSm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_GE);
+    else
+	_jit_btest_r32(label, r0,	X86_CC_NS);
     return (_jit.x.pc);
 }
 
@@ -1181,8 +1189,7 @@ jit_bgei_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_bger_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JGEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_GE);
     return (_jit.x.pc);
 }
 
@@ -1190,8 +1197,7 @@ jit_bger_i(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgti_i(jit_insn *label, int r0, int i0)
 {
-    CMPLir(i0, r0);
-    JGm(label);
+    _jit_bcmp_ri32(label, r0, i0,	X86_CC_G);
     return (_jit.x.pc);
 }
 
@@ -1199,8 +1205,7 @@ jit_bgti_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_bgtr_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JGm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_G);
     return (_jit.x.pc);
 }
 
@@ -1209,10 +1214,9 @@ __jit_inline jit_insn *
 jit_bnei_i(jit_insn *label, int r0, int i0)
 {
     if (i0)
-	CMPLir(i0, r0);
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_NE);
     else
-	TESTLrr(r0, r0);
-    JNEm(label);
+	_jit_btest_r32(label, r0,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1220,8 +1224,7 @@ jit_bnei_i(jit_insn *label, int r0, int i0)
 __jit_inline jit_insn *
 jit_bner_i(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JNEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1229,8 +1232,7 @@ jit_bner_i(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blti_ui(jit_insn *label, int r0, unsigned int i0)
 {
-    CMPLir(i0, r0);
-    JBm(label);
+    _jit_bcmp_ri32(label, r0, i0,	X86_CC_B);
     return (_jit.x.pc);
 }
 
@@ -1238,8 +1240,7 @@ jit_blti_ui(jit_insn *label, int r0, unsigned int i0)
 __jit_inline jit_insn *
 jit_bltr_ui(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JBm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_B);
     return (_jit.x.pc);
 }
 
@@ -1247,14 +1248,10 @@ jit_bltr_ui(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blei_ui(jit_insn *label, int r0, unsigned int i0)
 {
-    if (i0) {
-	CMPLir(i0, r0);
-	JBEm(label);
-    }
-    else {
-	TESTLrr(r0, r0);
-	JEm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_BE);
+    else
+	_jit_btest_r32(label, r0,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1262,8 +1259,7 @@ jit_blei_ui(jit_insn *label, int r0, unsigned int i0)
 __jit_inline jit_insn *
 jit_bler_ui(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JBEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_BE);
     return (_jit.x.pc);
 }
 
@@ -1271,8 +1267,7 @@ jit_bler_ui(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgei_ui(jit_insn *label, int r0, unsigned int i0)
 {
-    CMPLir(i0, r0);
-    JAEm(label);
+    _jit_bcmp_ri32(label, r0, i0,	X86_CC_AE);
     return (_jit.x.pc);
 }
 
@@ -1280,8 +1275,7 @@ jit_bgei_ui(jit_insn *label, int r0, unsigned int i0)
 __jit_inline jit_insn *
 jit_bger_ui(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JAEm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_AE);
     return (_jit.x.pc);
 }
 
@@ -1289,14 +1283,10 @@ jit_bger_ui(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgti_ui(jit_insn *label, int r0, unsigned int i0)
 {
-    if (i0) {
-	CMPLir(i0, r0);
-	JAm(label);
-    }
-    else {
-	TESTLrr(r0, r0);
-	JNEm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri32(label, r0, i0,	X86_CC_A);
+    else
+	_jit_btest_r32(label, r0,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1304,8 +1294,7 @@ jit_bgti_ui(jit_insn *label, int r0, unsigned int i0)
 __jit_inline jit_insn *
 jit_bgtr_ui(jit_insn *label, int r0, int r1)
 {
-    CMPLrr(r1, r0);
-    JAm(label);
+    _jit_bcmp_rr32(label, r0, r1,	X86_CC_A);
     return (_jit.x.pc);
 }
 

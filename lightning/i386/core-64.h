@@ -1209,23 +1209,40 @@ jit_gtr_ul(int rd, int r0, int r1)
 }
 
 /* Jump */
+__jit_inline void
+_jit_bcmp_ri64(jit_insn *label, int r0, long i0, int code)
+{
+    if (jit_can_sign_extend_int_p(i0))
+	CMPQir(i0, r0);
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	CMPQrr(JIT_REXTMP, r0);
+    }
+    JCCim(code, label);
+}
+
+__jit_inline void
+_jit_btest_r64(jit_insn *label, int r0, int code)
+{
+    TESTQrr(r0, r0);
+    JCCim(code, label);
+}
+
+__jit_inline void
+_jit_bcmp_rr64(jit_insn *label, int r0, int r1, int code)
+{
+    CMPQrr(r1, r0);
+    JCCim(code, label);
+}
+
 #define jit_blti_l(label, r0, i0)	jit_blti_l(label, r0, i0)
 __jit_inline jit_insn *
 jit_blti_l(jit_insn *label, int r0, long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-	JLm(label);
-    }
-    else {
-	TESTQrr(r0, r0);
-	JSm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_L);
+    else
+	_jit_btest_r64(label, r0,	X86_CC_S);
     return (_jit.x.pc);
 }
 
@@ -1233,8 +1250,7 @@ jit_blti_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_bltr_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JLm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_L);
     return (_jit.x.pc);
 }
 
@@ -1242,13 +1258,7 @@ jit_bltr_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blei_l(jit_insn *label, int r0, long i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	CMPQir(i0, r0);
-    else {
-	MOVQir(i0, JIT_REXTMP);
-	CMPQrr(JIT_REXTMP, r0);
-    }
-    JLEm(label);
+    _jit_bcmp_ri64(label, r0, i0,	X86_CC_LE);
     return (_jit.x.pc);
 }
 
@@ -1256,8 +1266,7 @@ jit_blei_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_bler_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JLEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_LE);
     return (_jit.x.pc);
 }
 
@@ -1265,17 +1274,10 @@ jit_bler_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_beqi_l(jit_insn *label, int r0, long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_E);
     else
-	TESTQrr(r0, r0);
-    JEm(label);
+	_jit_btest_r64(label, r0,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1283,8 +1285,7 @@ jit_beqi_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_beqr_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1292,19 +1293,10 @@ jit_beqr_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgei_l(jit_insn *label, int r0, long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-	JGEm(label);
-    }
-    else {
-	TESTQrr(r0, r0);
-	JNSm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_GE);
+    else
+	_jit_btest_r64(label, r0,	X86_CC_NS);
     return (_jit.x.pc);
 }
 
@@ -1312,8 +1304,7 @@ jit_bgei_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_bger_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JGEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_GE);
     return (_jit.x.pc);
 }
 
@@ -1321,13 +1312,7 @@ jit_bger_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgti_l(jit_insn *label, int r0, long i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	CMPQir(i0, r0);
-    else {
-	MOVQir(i0, JIT_REXTMP);
-	CMPQrr(JIT_REXTMP, r0);
-    }
-    JGm(label);
+    _jit_bcmp_ri64(label, r0, i0,	X86_CC_G);
     return (_jit.x.pc);
 }
 
@@ -1335,8 +1320,7 @@ jit_bgti_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_bgtr_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JGm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_G);
     return (_jit.x.pc);
 }
 
@@ -1344,17 +1328,10 @@ jit_bgtr_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bnei_l(jit_insn *label, int r0, long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_NE);
     else
-	TESTQrr(r0, r0);
-    JNEm(label);
+	_jit_btest_r64(label, r0,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1362,8 +1339,7 @@ jit_bnei_l(jit_insn *label, int r0, long i0)
 __jit_inline jit_insn *
 jit_bner_l(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JNEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1371,13 +1347,7 @@ jit_bner_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blti_ul(jit_insn *label, int r0, unsigned long i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	CMPQir(i0, r0);
-    else {
-	MOVQir(i0, JIT_REXTMP);
-	CMPQrr(JIT_REXTMP, r0);
-    }
-    JBm(label);
+    _jit_bcmp_ri64(label, r0, i0,	X86_CC_B);
     return (_jit.x.pc);
 }
 
@@ -1385,8 +1355,7 @@ jit_blti_ul(jit_insn *label, int r0, unsigned long i0)
 __jit_inline jit_insn *
 jit_bltr_ul(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JBm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_B);
     return (_jit.x.pc);
 }
 
@@ -1394,19 +1363,10 @@ jit_bltr_ul(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_blei_ul(jit_insn *label, int r0, unsigned long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-	JBEm(label);
-    }
-    else {
-	TESTQrr(r0, r0);
-	JEm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_BE);
+    else
+	_jit_btest_r64(label, r0,	X86_CC_E);
     return (_jit.x.pc);
 }
 
@@ -1414,8 +1374,7 @@ jit_blei_ul(jit_insn *label, int r0, unsigned long i0)
 __jit_inline jit_insn *
 jit_bler_ul(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JBEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_BE);
     return (_jit.x.pc);
 }
 
@@ -1423,13 +1382,7 @@ jit_bler_ul(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgei_ul(jit_insn *label, int r0, unsigned long i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	CMPQir(i0, r0);
-    else {
-	MOVQir(i0, JIT_REXTMP);
-	CMPQrr(JIT_REXTMP, r0);
-    }
-    JAEm(label);
+    _jit_bcmp_ri64(label, r0, i0,	X86_CC_AE);
     return (_jit.x.pc);
 }
 
@@ -1437,8 +1390,7 @@ jit_bgei_ul(jit_insn *label, int r0, unsigned long i0)
 __jit_inline jit_insn *
 jit_bger_ul(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JAEm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_AE);
     return (_jit.x.pc);
 }
 
@@ -1446,19 +1398,10 @@ jit_bger_ul(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bgti_ul(jit_insn *label, int r0, unsigned long i0)
 {
-    if (i0) {
-	if (jit_can_sign_extend_int_p(i0))
-	    CMPQir(i0, r0);
-	else {
-	    MOVQir(i0, JIT_REXTMP);
-	    CMPQrr(JIT_REXTMP, r0);
-	}
-	JAm(label);
-    }
-    else {
-	TESTQrr(r0, r0);
-	JNEm(label);
-    }
+    if (i0)
+	_jit_bcmp_ri64(label, r0, i0,	X86_CC_A);
+    else
+	_jit_btest_r64(label, r0,	X86_CC_NE);
     return (_jit.x.pc);
 }
 
@@ -1466,8 +1409,7 @@ jit_bgti_ul(jit_insn *label, int r0, unsigned long i0)
 __jit_inline jit_insn *
 jit_bgtr_ul(jit_insn *label, int r0, int r1)
 {
-    CMPQrr(r1, r0);
-    JAm(label);
+    _jit_bcmp_rr64(label, r0, r1,	X86_CC_A);
     return (_jit.x.pc);
 }
 
