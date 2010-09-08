@@ -309,10 +309,40 @@ jit_movi_d(rd, immd) {
 #define jit_bltr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAm ((d)), _jit.x.pc)
 #define jit_bler_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAEm ((d)), _jit.x.pc)
 #define jit_beqr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), _OO (0x7a06), JEm ((d)), _jit.x.pc)
-#define jit_bner_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), _OO (0x7a02), _OO (0x7405), JMPm (((d))), _jit.x.pc) /* JP to JMP, JZ past JMP */
+#define jit_bner_f(label, r0, r1)	jit_bner_f(label, r0, r1)
+__jit_inline jit_insn *
+jit_bner_f(jit_insn *label, int r0, int r1)
+{
+    jit_insn	*jp_label;
+    jit_insn	*jz_label;
+
+    UCOMISSrr(r0, r1);
+
+    /* jump to user jump if parity (unordered) */
+    JPm(_jit.x.pc);
+    jp_label = _jit.x.pc;
+
+    /* jump past user jump if zero (equal)  */
+    JZm(_jit.x.pc);
+    jz_label = _jit.x.pc;
+
+    /* FIXME could short cut if know that label is not going to be patched */
+    jit_patch(jp_label);
+    JMPm((long)label);
+
+    jit_patch(jz_label);
+    return (_jit.x.pc);
+}
 #define jit_bger_f(d, s1, s2)            (UCOMISSrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
 #define jit_bgtr_f(d, s1, s2)            (UCOMISSrr ((s2), (s1)), JAm ((d)), _jit.x.pc)
-#define jit_bunltr_f(d, s1, s2)          (UCOMISSrr ((s2), (s1)), JNAEm ((d)), _jit.x.pc)
+#define jit_bunltr_f(label, r0, r1)	jit_bunltr_f(label, r0, r1)
+__jit_inline jit_insn *
+jit_bunltr_f(jit_insn *label, int r0, int r1)
+{
+    UCOMISSrr(r1, r0);
+    JNAEm(label);
+    return (_jit.x.pc);
+}
 #define jit_bunler_f(d, s1, s2)          (UCOMISSrr ((s2), (s1)), JNAm ((d)), _jit.x.pc)
 #define jit_buneqr_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JEm ((d)), _jit.x.pc)
 #define jit_bltgtr_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JNEm ((d)), _jit.x.pc)
@@ -324,10 +354,40 @@ jit_movi_d(rd, immd) {
 #define jit_bltr_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), JAm ((d)), _jit.x.pc)
 #define jit_bler_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), JAEm ((d)), _jit.x.pc)
 #define jit_beqr_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), _OO (0x7a06), JEm ((d)), _jit.x.pc)
-#define jit_bner_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), _OO (0x7a02), _OO (0x7405), JMPm (((d))), _jit.x.pc) /* JP to JMP, JZ past JMP */ 
+#define jit_bner_d(label, r0, r1)	jit_bner_d(label, r0, r1)
+__jit_inline jit_insn *
+jit_bner_d(jit_insn *label, int r0, int r1)
+{
+    jit_insn	*jp_label;
+    jit_insn	*jz_label;
+
+    UCOMISDrr(r0, r1);
+
+    /* jump to user jump if parity (unordered) */
+    JPm(_jit.x.pc);
+    jp_label = _jit.x.pc;
+
+    /* jump past user jump if zero (equal)  */
+    JZm(_jit.x.pc);
+    jz_label = _jit.x.pc;
+
+    /* FIXME could short cut if know that label is not going to be patched */
+    jit_patch(jp_label);
+    JMPm((long)label);
+
+    jit_patch(jz_label);
+    return (_jit.x.pc);
+}
 #define jit_bger_d(d, s1, s2)            (UCOMISDrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
 #define jit_bgtr_d(d, s1, s2)            (UCOMISDrr ((s2), (s1)), JAm ((d)), _jit.x.pc)
-#define jit_bunltr_d(d, s1, s2)          (UCOMISDrr ((s2), (s1)), JNAEm ((d)), _jit.x.pc, _jit.x.pc)
+#define jit_bunltr_d(label, r0, r1)	jit_bunltr_d(label, r0, r1)
+__jit_inline jit_insn *
+jit_bunltr_d(jit_insn *label, int r0, int r1)
+{
+    UCOMISDrr(r1, r0);
+    JNAEm(label);
+    return (_jit.x.pc);
+}
 #define jit_bunler_d(d, s1, s2)          (UCOMISDrr ((s2), (s1)), JNAm ((d)), _jit.x.pc)
 #define jit_buneqr_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JEm ((d)), _jit.x.pc)
 #define jit_bltgtr_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JNEm ((d)), _jit.x.pc)

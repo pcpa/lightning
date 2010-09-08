@@ -34,6 +34,10 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
+static int jit_arg_reg_order[] = {
+    _EDI, _ESI, _EDX, _ECX, _R8D, _R9D
+};
+
 /* Used to implement ldc, stc, ... */
 #define JIT_CAN_16 0
 #define JIT_REXTMP		_R12
@@ -49,10 +53,6 @@
 #define JIT_V_NUM               3
 #define JIT_V(i)                ((i) == 0 ? _RBX : _R12 + (i))
 
-/* Whether a register in the "low" bank is used for the user-accessible
-   registers.  */
-#define jit_save(reg)		((reg) == _EAX || (reg) == _EBX)
-
 /* Keep the stack 16-byte aligned, the SSE hardware prefers it this way.  */
 #define jit_allocai_internal(amount, slack)                           \
   (((amount) < _jitl.alloca_slack                                     \
@@ -65,6 +65,37 @@
 #define jit_allocai(n)                                                \
   jit_allocai_internal ((n), (_jitl.alloca_slack - (n)) & 15)
 
+#if 1
+#define jit_movi_p(rd, i0)		jit_movi_p(rd, i0)
+__jit_inline jit_insn *
+jit_movi_p(int rd, void *i0)
+{
+    MOVQir((long)i0, rd);
+    return (_jit.x.pc);
+}
+
+#define jit_movi_l(rd, i0)		jit_movi_l(rd, i0)
+__jit_inline void
+jit_movi_l(int rd, long i0)
+{
+    if (i0) {
+	if (jit_can_zero_extend_int_p(i0))
+	    MOVLir(i0, rd);
+	else
+	    MOVQir(i0, rd);
+    }
+    else
+	XORQrr(rd, rd);
+}
+
+#define jit_movr_l(rd, r0)		jit_movr_l(rd, r0)
+__jit_inline void
+jit_movr_l(int rd, int r0)
+{
+    if (rd != r0)
+	MOVQrr(r0, rd);
+}
+#else
 #define jit_movi_p(d, is)	(MOVQir(((long)(is)), (d)), _jit.x.pc)
 #define jit_movi_l(d, is)						\
     /* Value is not zero? */						\
@@ -77,63 +108,107 @@
 	    : MOVQir(is, (d)))						\
 	/* Set register to zero. */					\
 	: XORQrr((d), (d)))
-#define jit_movr_l(d, rs)	((void)((rs) == (d) ? 0 : MOVQrr((rs), (d))))
-#define jit_movi_ul(d, is)	jit_movi_l(d, is)
+#define jit_movr_l(d, rs)		((void)((rs) == (d) ? 0 : MOVQrr((rs), (d))))
+#endif
+#define jit_movr_ul(d, rs)		jit_movr_l((d), (rs))
+#define jit_movr_p(d, rs)		jit_movr_ul((d), (rs))
+#define jit_movi_ul(d, is)		jit_movi_l(d, is)
 
 /* Alias some macros and add casts to ensure proper zero and sign extension */
-#define jit_movi_i(d, is)	jit_movi_l(d, (long)(int)is)
-#define jit_movi_ui(d, rs)	jit_movi_l((d), (_ul)(_ui)(rs))
+#define jit_movi_i(d, is)		jit_movi_l(d, (long)(int)is)
+#define jit_movi_ui(d, rs)		jit_movi_l((d), (_ul)(_ui)(rs))
 
-#define jit_pushr_l(rs)		jit_pushr_i(rs)
-#define jit_popr_l(rs)		jit_popr_i(rs)
+#define jit_pushr_l(rs)			jit_pushr_i(rs)
+#define jit_popr_l(rs)			jit_popr_i(rs)
 
 /* Return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
-#define jit_prolog(n)							\
-     /* Initialize counter of integer arguments */			\
-    (_jitl.nextarg_puti = (n),						\
-     /* Initialize counter of stack arguments */			\
-     _jitl.argssize = (_jitl.nextarg_puti > JIT_ARG_MAX)		\
-	? _jitl.nextarg_puti - JIT_ARG_MAX : 0,				\
-     /* Initialize offset of stack arguments */				\
-     _jitl.framesize = (_jitl.argssize & 1) ? 56 : 48,			\
-     /* Initialize counter of float arguments */			\
-     _jitl.nextarg_putfp = 0,						\
-     /* Initialize offsets of arguments */				\
-     _jitl.nextarg_getfp = _jitl.nextarg_geti = 0,			\
-     /* Initialize alloca information */				\
-     _jitl.alloca_offset = _jitl.alloca_slack = 0,			\
-     /* Build stack frame */						\
-     PUSHQr(_EBX), PUSHQr(_R12), PUSHQr(_R13), PUSHQr(_R14), 		\
-     PUSHQr(_EBP), MOVQrr(_ESP, _EBP))
+#define jit_prolog(n)			jit_prolog(n)
+__jit_inline void
+jit_prolog(int n)
+{
+     /* counter of integer arguments */
+    _jitl.nextarg_puti = n;
+    /* counter of stack arguments */
+    _jitl.argssize = (_jitl.nextarg_puti > JIT_ARG_MAX)
+	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
+    /* offset of stack arguments */
+    _jitl.framesize = (_jitl.argssize & 1) ? 56 : 48;
+    /* counter of float arguments */
+    _jitl.nextarg_putfp = 0;
+    /*offsets of arguments */
+    _jitl.nextarg_getfp = _jitl.nextarg_geti = 0;
+    /* alloca information */
+    _jitl.alloca_offset = _jitl.alloca_slack = 0;
+    /* stack frame */
+    PUSHQr(_EBX);
+    PUSHQr(_R12);
+    PUSHQr(_R13);
+    PUSHQr(_R14);
+    PUSHQr(_EBP);
+    MOVQrr(_ESP, _EBP);
+}
 
-#define jit_ret()							\
-    (LEAVE_(),								\
-     POPQr(_R14), POPQr(_R13), POPQr(_R12), POPQr(_EBX),		\
-     RET_())
+#define jit_ret				jit_ret
+__jit_inline void
+jit_ret(void)
+{
+    LEAVE_();
+    POPQr(_R14);
+    POPQr(_R13);
+    POPQr(_R12);
+    POPQr(_EBX);
+    RET_();
+}
 
-#define jit_calli(sub)							\
-    (MOVQir((long)(sub), JIT_REXTMP),					\
-     _jitl.label = _jit.x.pc,						\
-     CALLsr(JIT_REXTMP))
-#define jit_callr(reg)		CALLsr((reg))
-#define jit_patch_calli(pa, pv)	jit_patch_movi(pa, pv)
+#define jit_calli(address)		jit_calli(address)
+__jit_inline jit_insn *
+jit_calli(void *address)
+{
+    MOVQir((long)address, JIT_REXTMP);
+    _jitl.label = _jit.x.pc;
+    CALLsr(JIT_REXTMP);
+    return (_jitl.label);
+}
 
-#define jit_prepare_i(ni)						\
-    /* Initialize offset of right to left integer argument */		\
-    (_jitl.nextarg_puti = (ni),						\
-     /* Initialize float argument offset and register counter */	\
-     _jitl.nextarg_putfp = _jitl.fprssize = 0,				\
-     /* argssize is used to keep track of stack slots used */		\
-     _jitl.argssize = _jitl.nextarg_puti > JIT_ARG_MAX			\
-     ? _jitl.nextarg_puti - JIT_ARG_MAX : 0)
+#define jit_callr(rs)			jit_callr(rs)
+__jit_inline void
+jit_callr(int rs)
+{
+    CALLsr(rs);
+}
 
-#define jit_pusharg_i(rs)						\
-    /* Need to use stack for argument? */				\
-    (--_jitl.nextarg_puti >= JIT_ARG_MAX				\
-       /* Yes. Push it */						\
-     ? PUSHQr(rs)							\
-       /* No. Use a register */						\
-     : MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]))
+#define jit_patch_calli(pa, pv)		jit_patch_calli(pa, pv)
+__jit_inline void
+jit_patch_calli(jit_insn *pa, jit_insn *pv)
+{
+    jit_patch_movi(pa, pv);
+}
+
+#define jit_prepare_i(ni)		jit_prepare_i(ni)
+__jit_inline void
+jit_prepare_i(int ni)
+{
+    /* offset of right to left integer argument */
+    _jitl.nextarg_puti = ni;
+    /* float argument offset and register counter */
+    _jitl.nextarg_putfp = _jitl.fprssize = 0;
+    /* argssize is used to keep track of stack slots used */
+    _jitl.argssize = _jitl.nextarg_puti > JIT_ARG_MAX
+	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
+}
+
+#define jit_pusharg_i(rs)		jit_pusharg_i(rs)
+#define jit_pusharg_l(rs)		jit_pusharg_i(rs)
+__jit_inline void
+jit_pusharg_i(int rs)
+{
+    if (--_jitl.nextarg_puti >= JIT_ARG_MAX)
+	/* pass argument in stack */
+	PUSHQr(rs);
+    else
+	/* pass argument in register */
+	MOVQrr(rs, jit_arg_reg_order[_jitl.nextarg_puti]);
+}
 
 #define jit_finish(label)		jit_finish(label)
 __jit_inline jit_insn *
@@ -158,17 +233,15 @@ jit_finish(jit_insn *label)
     return (_jitl.label);
 }
 
-#define jit_reg_is_arg(reg)						\
-    (jit_reg64(reg) == _RCX || jit_reg64(reg) == _RDX)
-
 #define jit_finishr(rs)			jit_finishr(rs)
 __jit_inline void
 jit_finishr(int rs)
 {
-    int		need_temp;
-
-    if ((need_temp = jit_reg64(rs) == _RAX || jit_reg_is_arg(rs)))
-	MOVQrr(rs, JIT_REXTMP);
+    if (rs == _RAX) {
+	/* clobbered with # of fp registers (for varargs) */
+	MOVQrr(_RAX, JIT_REXTMP);
+	rs = JIT_REXTMP;
+    }
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _AL);
 	_jitl.fprssize = 0;
@@ -179,62 +252,16 @@ jit_finishr(int rs)
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
-    if (need_temp)
-	jit_callr(JIT_REXTMP);
-    else
-	jit_callr(rs);
+    jit_callr(rs);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
     }
 }
 
-#define jit_retval_l(rd)	((void)jit_movr_l ((rd), _RAX))
-#define jit_arg_i()		(_jitl.nextarg_geti < JIT_ARG_MAX \
-				 ? _jitl.nextarg_geti++ \
-				 : ((_jitl.framesize += sizeof(long)) - sizeof(long)))
-#define jit_arg_c()		jit_arg_i()
-#define jit_arg_uc()		jit_arg_i()
-#define jit_arg_s()		jit_arg_i()
-#define jit_arg_us()		jit_arg_i()
-#define jit_arg_ui()		jit_arg_i()
-#define jit_arg_l()		jit_arg_i()
-#define jit_arg_ul()		jit_arg_i()
-#define jit_arg_p()		jit_arg_i()
-
-#define jit_getarg_c(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_extr_c_l((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_c((reg), JIT_FP, (ofs)))
-#define jit_getarg_uc(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_extr_uc_ul((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_uc((reg), JIT_FP, (ofs)))
-#define jit_getarg_s(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_extr_s_l((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_s((reg), JIT_FP, (ofs)))
-#define jit_getarg_us(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_extr_us_ul((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_us((reg), JIT_FP, (ofs)))
-#define jit_getarg_i(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_movr_l((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_i((reg), JIT_FP, (ofs)))
-#define jit_getarg_ui(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_movr_ul((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_ui((reg), JIT_FP, (ofs)))
-#define jit_getarg_l(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_movr_l((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_l((reg), JIT_FP, (ofs)))
-#define jit_getarg_ul(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_movr_ul((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_ul((reg), JIT_FP, ofs))
-#define jit_getarg_p(reg, ofs)	((ofs) < JIT_ARG_MAX \
-				 ? jit_movr_p((reg), jit_arg_reg_order[(ofs)]) \
-				 : jit_ldxi_p((reg), JIT_FP, (ofs)))
-
 #define jit_patch_long_at(jump_pc,v)  (*_PSL((jump_pc) - sizeof(long)) = _jit_SL((jit_insn *)(v)))
 #define jit_patch_short_at(jump_pc,v)  (*_PSI((jump_pc) - sizeof(int)) = _jit_SI((jit_insn *)(v) - (jump_pc)))
 #define jit_patch_at(jump_pc,v) (_jitl.long_jumps ? jit_patch_long_at((jump_pc)-3, v) : jit_patch_short_at(jump_pc, v))
-
-static int jit_arg_reg_order[] = { _EDI, _ESI, _EDX, _ECX, _R8D, _R9D };
 
 /* ALU */
 #define jit_negr_l(rd, r0)		jit_negr_l(rd, r0)
@@ -317,7 +344,7 @@ jit_subr_l(int rd, int r0, int r1)
 __jit_inline void
 jit_addci_ul(int rd, int r0, unsigned long i0)
 {
-    if (jit_can_sign_extend_unsigned_int_p(i0)) {
+    if (jit_can_sign_extend_int_p(i0)) {
 	jit_movr_l(rd, r0);
 	ADDQir(i0, rd);
     }
@@ -348,7 +375,7 @@ jit_addcr_ul(int rd, int r0, int r1) {
 __jit_inline void
 jit_addxi_ul(int rd, int r0, unsigned long i0)
 {
-    if (jit_can_sign_extend_unsigned_int_p(i0)) {
+    if (jit_can_zero_extend_int_p(i0)) {
 	jit_movr_l(rd, r0);
 	ADCQir(i0, rd);
     }
@@ -381,7 +408,7 @@ __jit_inline void
 jit_subci_ul(int rd, int r0, unsigned long i0)
 {
     jit_movr_l(rd, r0);
-    if (jit_can_sign_extend_unsigned_int_p(i0))
+    if (jit_can_sign_extend_int_p(i0))
 	SUBQir(i0, rd);
     else {
 	MOVQir(i0, JIT_REXTMP);
@@ -410,7 +437,7 @@ jit_subxi_ul(int rd, int r0, unsigned long i0)
 {
     if (rd != r0)
 	MOVQrr(r0, rd);
-    if (jit_can_sign_extend_unsigned_int_p(i0))
+    if (jit_can_zero_extend_int_p(i0))
 	SBBQir(i0, rd);
     else {
 	MOVQir(i0, JIT_REXTMP);
@@ -1007,7 +1034,7 @@ _jit_cmp_ri64(int rd, int r0, long i0, int code)
     int		same = rd == r0;
 
     if (!same)
-	/* XORir is cheaper */
+	/* XORLrr is cheaper */
 	XORLrr(rd, rd);
     if (jit_can_sign_extend_int_p(i0))
 	CMPQir(i0, r0);
@@ -1509,9 +1536,9 @@ jit_bosubr_ul(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bmsi_l(jit_insn *label, int r0, long i0)
 {
-    if (jit_can_sign_extend_unsigned_char_p(i0))
+    if (jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, jit_reg8(r0));
-    else if (jit_can_sign_extend_unsigned_short_p(i0))
+    else if (jit_can_zero_extend_short_p(i0))
 	TESTWir(i0, jit_reg16(r0));
     else if (jit_can_sign_extend_int_p(i0))
 	TESTLir(i0, jit_reg32(r0));
@@ -1536,11 +1563,11 @@ jit_bmsr_l(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bmci_l(jit_insn *label, int r0, long i0)
 {
-    if (jit_can_sign_extend_unsigned_char_p(i0))
+    if (jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, jit_reg8(r0));
-    else if (jit_can_sign_extend_unsigned_short_p(i0))
+    else if (jit_can_zero_extend_short_p(i0))
 	TESTWir(i0, jit_reg16(r0));
-    else if (jit_can_sign_extend_unsigned_int_p(i0))
+    else if (jit_can_zero_extend_int_p(i0))
 	TESTLir(i0, jit_reg32(r0));
     else if (jit_can_sign_extend_int_p(i0))
 	TESTQir(i0, jit_reg32(r0));
@@ -1562,9 +1589,16 @@ jit_bmcr_l(jit_insn *label, int r0, int r1)
 }
 
 /* Memory */
+#define jit_ntoh_ul(d, rs)		jit_ntoh_ul(d, rs)
+__jit_inline void
+jit_ntoh_ul(int rd, int r0)
+{
+    jit_movr_l(rd, r0);
+    BSWAPQr(rd);
+}
 
 /* Used to implement ldc, stc, ... We have SIL and friends which simplify it all.  */
-#define jit_movbrm(rs, dd, db, di, ds)         MOVBrm(jit_reg8(rs), dd, db, di, ds)
+#define jit_movbrm(rs, dd, db, di, ds)	MOVBrm(jit_reg8(rs), dd, db, di, ds)
 
 #define jit_ldr_c(d, rs)                MOVSBQmr(0,    (rs), 0,    0, (d))
 #define jit_ldxr_c(d, s1, s2)           MOVSBQmr(0,    (s1), (s2), 1, (d))
@@ -1601,6 +1635,8 @@ jit_bmcr_l(jit_insn *label, int r0, int r1)
 
 #define jit_ldi_l(d, is)                (_u32P((long)(is)) ? MOVQmr((is), 0,    0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldr_l(d, JIT_REXTMP)))
 #define jit_ldxi_l(d, rs, is)           (_u32P((long)(is)) ? MOVQmr((is), (rs), 0,    0,  (d)) :  (jit_movi_l(JIT_REXTMP, is), jit_ldxr_l(d, rs, JIT_REXTMP)))
+#define jit_ldxi_ul(d, rs, is)		jit_ldxi_l((d), (rs), (is))
+#define jit_ldxi_p(rd, rs, is)		jit_ldxi_l((rd), (rs), (is))
 
 #define jit_sti_l(id, rs)               (_u32P((long)(id)) ? MOVQrm((rs), (id), 0,    0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_str_l(JIT_REXTMP, rs)))
 #define jit_stxi_l(id, rd, rs)          (_u32P((long)(id)) ? MOVQrm((rs), (id), (rd), 0,    0) : (jit_movi_l(JIT_REXTMP, id), jit_stxr_l(JIT_REXTMP, rd, rs)))
@@ -1617,6 +1653,139 @@ jit_bmcr_l(jit_insn *label, int r0, int r1)
 #define jit_str_l(rd, rs)               MOVQrm((rs), 0,    (rd), 0,    0)
 #define jit_stxr_l(d1, d2, rs)          MOVQrm((rs), 0,    (d1), (d2), 1)
 
-#define jit_pusharg_l(rs) jit_pusharg_i(rs)
+#define jit_retval_l(rd)		jit_retval_l(rd)
+__jit_inline void
+jit_retval_l(int rd)
+{
+    jit_movr_l(rd, _RAX);
+}
+
+#define jit_arg_i			jit_arg_i
+#define jit_arg_c()			jit_arg_i()
+#define jit_arg_uc()			jit_arg_i()
+#define jit_arg_s()			jit_arg_i()
+#define jit_arg_us()			jit_arg_i()
+#define jit_arg_ui()			jit_arg_i()
+#define jit_arg_l()			jit_arg_i()
+#define jit_arg_ul()			jit_arg_i()
+#define jit_arg_p()			jit_arg_i()
+__jit_inline int
+jit_arg_i(void)
+{
+    int		ofs;
+
+    if (_jitl.nextarg_geti < JIT_ARG_MAX) {
+	ofs = _jitl.nextarg_geti;
+	++_jitl.nextarg_geti;
+    }
+    else {
+	ofs = _jitl.framesize;
+	_jitl.framesize += sizeof(long);
+    }
+
+    return (ofs);
+}
+
+#define jit_getarg_c(rd, ofs)		jit_getarg_c(rd, ofs)
+__jit_inline void
+jit_getarg_c(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+#ifndef jit_extr_c_l
+#  define jit_extr_c_l(d, rs)		(jit_lshi_l((d), (rs), 56), jit_rshi_l((d), (d), 56))
+#endif
+	jit_extr_c_l(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_c(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_uc(rd, ofs)		jit_getarg_uc(rd, ofs)
+__jit_inline void
+jit_getarg_uc(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+#ifndef jit_extr_c_ul
+#  define jit_extr_c_ul(d, rs)		jit_andi_l((d), (rs), 0xFF)
+#endif
+	jit_extr_c_ul(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_uc(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_s(rd, ofs)		jit_getarg_s(rd, ofs)
+__jit_inline void
+jit_getarg_s(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+#ifndef jit_extr_s_l
+#  define jit_extr_s_l(d, rs)		(jit_lshi_l((d), (rs), 48), jit_rshi_l((d), (d), 48))
+#endif
+	jit_extr_s_l(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_s(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_us(rd, ofs)		jit_getarg_us(rd, ofs)
+__jit_inline void
+jit_getarg_us(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+#ifndef jit_extr_s_ul
+#  define jit_extr_s_ul(d, rs)		jit_andi_l((d), (rs), 0xFFFF)
+#endif
+	jit_extr_s_ul(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_us(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_i(rd, ofs)		jit_getarg_i(rd, ofs)
+__jit_inline void
+jit_getarg_i(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+	jit_movr_l(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_i(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_ui(rd, ofs)		jit_getarg_ui(rd, ofs)
+__jit_inline void
+jit_getarg_ui(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+	jit_movr_ul(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_ui(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_l(rd, ofs)		jit_getarg_l(rd, ofs)
+__jit_inline void
+jit_getarg_l(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+	jit_movr_l(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_l(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_ul(rd, ofs)		jit_getarg_ul(rd, ofs)
+__jit_inline void
+jit_getarg_ul(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+	jit_movr_ul(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_ul(rd, JIT_FP, ofs);
+}
+
+#define jit_getarg_p(rd, ofs)		jit_getarg_p(rd, ofs)
+__jit_inline void
+jit_getarg_p(int rd, int ofs)
+{
+    if (ofs < JIT_ARG_MAX)
+	jit_movr_p(rd, jit_arg_reg_order[ofs]);
+    else
+	jit_ldxi_p(rd, JIT_FP, ofs);
+}
 
 #endif /* __lightning_core_h */

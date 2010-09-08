@@ -38,45 +38,99 @@
 #define JIT_SP			_ESP
 #define JIT_RET			_EAX
 
-#define jit_can_sign_extend_unsigned_char_p(im)				\
-    ((im) >= 0 && (im) <= 0x7f)
+#define jit_can_zero_extend_char_p(im)					\
+    ((im) >= 0 && (im) <= 0x80)
 
 #define jit_can_sign_extend_char_p(im)					\
-    (jit_can_sign_extend_unsigned_char_p(im) ||				\
-     ((im) < 0 && (im) >= -0x80))
+    (((im) >= 0 && (im) <=  0x7f) ||					\
+     ((im) <  0 && (im) >= -0x80))
 
-#define jit_can_sign_extend_unsigned_short_p(im)			\
-    ((im) >= 0 && (im) <= 0x7fff)
+#define jit_can_zero_extend_short_p(im)					\
+    ((im) >= 0 && (im) <= 0x8000)
 
 #define jit_can_sign_extend_short_p(im)					\
-    (jit_can_sign_extend_unsigned_short_p(im) ||			\
-     ((im) < 0 && (im) >= -0x8000))
+    (((im) >= 0 && (im) <=  0x7fff) ||					\
+     ((im) <  0 && (im) >= -0x8000))
 
-#define jit_can_sign_extend_unsigned_int_p(im)				\
-    ((im) >= 0 && (im) <= 0x7fffffff)
+#define jit_can_zero_extend_int_p(im)					\
+    ((im) >= 0 && (im) <= 0x80000000)
 
 #define jit_can_sign_extend_int_p(im)					\
-    (jit_can_sign_extend_unsigned_int_p(im) ||				\
-     ((im) < 0 && (im) >= -0x80000000))
+    (((im) >= 0 && (im) <=  0x7fffffff) ||				\
+     ((im) <  0 && (im) >= -0x80000000))
 
+#define jit_movr_i(rd, r0)		jit_movr_i(rd, r0)
+#define jit_pushr_i(r0)			jit_pushr_i(r0)
+#define jit_popr_i(r0)			jit_popr_i(r0)
 #if __WORDSIZE == 32
-#  define jit_movr_i(rd, r0)	((rd) == (r0) ? 0 : MOVLrr((r0), (rd)))
-#  define jit_pushr_i(r0)	PUSHLr(r0)
-#  define jit_popr_i(r0)	POPLr(r0)
+__jit_inline void
+jit_movr_i(int rd, int r0)
+{
+    if (rd != r0)
+	MOVLrr(r0, rd);
+}
+
+__jit_inline void
+jit_pushr_i(int r0)
+{
+    PUSHLr(r0);
+}
+
+__jit_inline void
+jit_popr_i(int r0)
+{
+    POPLr(r0);
+}
 #else
-#  define jit_movr_i(rd, r0)	((rd) == (r0) ? 0 : MOVQrr((r0), (rd)))
-#  define jit_pushr_i(r0)	PUSHQr(r0)
-#  define jit_popr_i(r0)	POPQr(r0)
-#endif
+__jit_inline void
+jit_movr_i(int rd, int r0)
+{
+    if (rd != r0)
+	MOVQrr(r0, rd);
+}
 
-/* 3-parameter operation, with immediate */
-#define jit_op_(d, s1, op2d)				\
-	((s1 == d) ? op2d : (MOVLrr(s1, d), op2d))
+__jit_inline void
+jit_pushr_i(int r0)
+{
+    PUSHQr(r0);
+}
 
-/* 3-parameter operation, optimizable */
-#define jit_opo_(d, s1, s2, op1d, op2d, op12d)		\
-	((s2 == d) ? op2d : 				\
-	((s1 == d) ? op1d : op12d))
+__jit_inline void
+jit_popr_i(int r0)
+{
+    POPQr(r0);
+}
+#endif	/* __WORDSIZE == 32 */
+
+#define jit_patch_movi(pa, pv)		jit_patch_movi(pa, pv)
+__jit_inline void
+jit_patch_movi(jit_insn *pa, jit_insn *pv)
+{
+    *(_PSL(pa - sizeof(long))) = _jit_SL(pv);
+}
+
+#define jit_jmpi(label)			jit_jmpi(label)
+__jit_inline jit_insn *
+jit_jmpi(jit_insn *label)
+{
+    JMPm((_ul)label);
+    return (_jit.x.pc);
+}
+
+#define jit_jmpr(rs)			jit_jmpr(rs)
+__jit_inline void
+jit_jmpr(int rs)
+{
+    JMPsr(rs);
+}
+
+/* Stack */
+#define jit_retval_i(rd)		jit_retval_i(rd)
+__jit_inline void
+jit_retval_i(int rd)
+{
+    jit_movr_i(jit_reg32(rd), _EAX);
+}
 
 /* ALU */
 #define jit_negr_i(rd, r0)		jit_negr_i(rd, r0)
@@ -844,14 +898,6 @@ jit_rshr_ui(int rd, int r0, int r1)
     _jit_shift32(jit_reg32(rd), jit_reg32(r0), jit_reg32(r1), X86_SHR);
 }
 
-/* Stack */
-#define jit_retval_i(rd)	((void)jit_movr_i ((rd), _EAX))
-
-#define jit_patch_movi(pa,pv)   (*_PSL((pa) - sizeof(long)) = _jit_SL((pv)))
-
-#define jit_ntoh_ui(d, rs)	jit_op_((d), (rs), BSWAPLr(d))
-#define jit_ntoh_us(d, rs)	jit_op_((d), (rs), RORWir(8, d))
-
 /* Boolean */
 __jit_inline void
 _jit_cmp_ri32(int rd, int r0, int i0, int code)
@@ -1374,10 +1420,10 @@ jit_bosubr_ui(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bmsi_i(jit_insn *label, int r0, int i0)
 {
-    if (jit_check8(r0) && jit_can_sign_extend_unsigned_char_p(i0))
+    if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, jit_reg8(r0));
     /* valid in 64 bits mode */
-    else if (jit_can_sign_extend_unsigned_short_p(i0))
+    else if (jit_can_zero_extend_short_p(i0))
 	TESTWir(i0, jit_reg16(r0));
     else
 	TESTLir(i0, jit_reg32(r0));
@@ -1398,10 +1444,10 @@ jit_bmsr_i(jit_insn *label, int r0, int r1)
 __jit_inline jit_insn *
 jit_bmci_i(jit_insn *label, int r0, int i0)
 {
-    if (jit_check8(r0) && jit_can_sign_extend_unsigned_char_p(i0))
+    if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, jit_reg8(r0));
     /* valid in 64 bits mode */
-    else if (jit_can_sign_extend_unsigned_short_p(i0))
+    else if (jit_can_zero_extend_short_p(i0))
 	TESTWir(i0, jit_reg16(r0));
     else
 	TESTLir(i0, jit_reg32(r0));
@@ -1418,10 +1464,23 @@ jit_bmcr_i(jit_insn *label, int r0, int r1)
     return (_jit.x.pc);
 }
 
-#define jit_jmpi(label)			(JMPm( ((unsigned long) (label))), _jit.x.pc)
-#define jit_jmpr(reg)			JMPsr(reg)
-
 /* Memory */
+#define jit_ntoh_us(rd, r0)		jit_ntoh_us(rd, r0)
+__jit_inline void
+jit_ntoh_us(int rd, int r0)
+{
+    jit_movr_i(rd, r0);
+    RORWir(8, rd);
+}
+
+#define jit_ntoh_ui(rd, r0)		jit_ntoh_ui(rd, r0)
+__jit_inline void
+jit_ntoh_ui(int rd, int r0)
+{
+    jit_movr_i(rd, r0);
+    BSWAPLr(rd);
+}
+
 #define jit_ldr_uc(d, rs)               MOVZBLmr(0,    (rs), 0,    0, (d))
 #define jit_ldxr_uc(d, s1, s2)          MOVZBLmr(0,    (s1), (s2), 1, (d))
 							    

@@ -204,7 +204,9 @@ typedef union jit_code {
 #ifndef jit_movi_ul
 #  define jit_movi_ul(d, rs)		jit_movi_l((d), (rs))
 #endif
-#define jit_movr_ul(d, rs)		jit_movr_l((d), (rs))
+#ifndef jit_movr_ul
+#  define jit_movr_ul(d, rs)		jit_movr_l((d), (rs))
+#endif
 #define jit_ori_ul(d, rs, is)		jit_ori_l((d), (rs), (is))	
 #define jit_orr_ul(d, s1, s2)		jit_orr_l((d), (s1), (s2))
 #define jit_rsbi_ul(d, rs, is)		jit_rsbi_l((d), (rs), (is))	
@@ -215,7 +217,9 @@ typedef union jit_code {
 #define jit_xorr_ul(d, s1, s2)		jit_xorr_l((d), (s1), (s2))
 #define jit_addr_p(d, s1, s2)		jit_addr_ul((d), (s1), 	      (s2))
 #define jit_addi_p(d, rs, is)		jit_addi_ul((d), (rs), (long) (is))
-#define jit_movr_p(d, rs)		jit_movr_ul((d),              (rs))
+#ifndef jit_movr_p
+#  define jit_movr_p(d, rs)		jit_movr_ul((d),              (rs))
+#endif
 #define jit_subr_p(d, s1, s2)		jit_subr_ul((d), (s1),        (s2))
 #define jit_subi_p(d, rs, is)		jit_subi_ul((d), (rs), (long) (is))
 #define jit_rsbi_p(d, rs, is)		jit_rsbi_ul((d), (rs), (long) (is))
@@ -409,12 +413,16 @@ typedef union jit_code {
 #define jit_ldr_p(rd, rs)		jit_ldr_l((rd), (rs))
 #define jit_ldi_p(rd, is)		jit_ldi_l((rd), (is))
 #define jit_ldxr_p(rd, s1, s2)		jit_ldxr_l((rd), (s1), (s2))
-#define jit_ldxi_p(rd, rs, is)		jit_ldxi_l((rd), (rs), (is))
+#ifndef jit_ldxi_p
+#  define jit_ldxi_p(rd, rs, is)	jit_ldxi_l((rd), (rs), (is))
+#endif
 
 #define jit_ldr_ul(d, rs)		jit_ldr_l((d), (rs))
 #define jit_ldi_ul(d, is)		jit_ldi_l((d), (is))
 #define jit_ldxr_ul(d, s1, s2)		jit_ldxr_l((d), (s1), (s2))
-#define jit_ldxi_ul(d, rs, is)		jit_ldxi_l((d), (rs), (is))
+#ifndef jit_ldxi_ul
+#  define jit_ldxi_ul(d, rs, is)	jit_ldxi_l((d), (rs), (is))
+#endif
 
 
 /* Boolean & branch synonyms */
