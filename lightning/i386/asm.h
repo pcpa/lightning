@@ -58,31 +58,27 @@
 #define _b111		7
 
 /*** REGISTERS ***/	/* [size,,number] */
+typedef enum {
+    _RAX	= 0x50,
+    _RCX	= 0x51,
+    _RDX	= 0x52,
+    _RBX	= 0x53,
+    _RSP	= 0x54,
+    _RBP	= 0x55,
+    _RSI	= 0x56,
+    _RDI	= 0x57,
+    _R8		= 0x58,
+    _R9		= 0x59,
+    _R10	= 0x5a,
+    _R11	= 0x5b,
+    _R12	= 0x5c,
+    _R13	= 0x5d,
+    _R14	= 0x5e,
+    _R15	= 0x5f,
+} jit_gpr_t;
 
 #define _NOREG		0
-
-#define _AL		0x10
-#define _CL		0x11
-#define _DL		0x12
-#define _BL		0x13
-
-#define _AX		0x30
-#define _CX		0x31
-#define _DX		0x32
-#define _BX		0x33
-#define _SP		0x34
-#define _BP		0x35
-#define _SI		0x36
-#define _DI		0x37
-
-#define _EAX		0x40
-#define _ECX		0x41
-#define _EDX		0x42
-#define _EBX		0x43
-#define _ESP		0x44
-#define _EBP		0x45
-#define _ESI		0x46
-#define _EDI		0x47
+#define _RIP		-2
 
 #define _MM0		0x60
 #define _MM1		0x61
@@ -127,10 +123,10 @@
 #define _rN(R)		((R) & 0x07)
 #define _rXP(R)		((R) > 0 && _rR(R) > 7)
 
-#define _rbpP(R)	(_rR(R) == _rR(_EBP))
-#define _rspP(R)	(_rR(R) == _rR(_ESP))
-#define _rbp13P(R)	(_rN(R) == _rN(_EBP))
-#define _rsp12P(R)	(_rN(R) == _rN(_ESP))
+#define _rbpP(R)	(_rR(R) == _rR(_RBP))
+#define _rspP(R)	(_rR(R) == _rR(_RSP))
+#define _rbp13P(R)	(_rN(R) == _rN(_RBP))
+#define _rsp12P(R)	(_rN(R) == _rN(_RSP))
 
 /*** ASSEMBLER ***/
 
@@ -155,7 +151,7 @@
 # define _s(S)		(((S)>3) ? JITFAIL("internal error: memory scale = " #S) : (S))
 # define _i(I)		(((I)>7) ? JITFAIL("internal error: memory index = " #I) : (I))
 # define _b(B)		(((B)>7) ? JITFAIL("internal error: memory base = "  #B) : (B))
-# define _noESP(I,OK)	(((I)==_ESP) ? JITFAIL("illegal index register: %esp") : (OK))
+# define _noESP(I,OK)	(((I)==_RSP) ? JITFAIL("illegal index register: %esp") : (OK))
 #endif
 
 #define _Mrm(Md,R,M)	_jit_B((_M(Md)<<6)|(_r(R)<<3)|_m(M))
@@ -297,7 +293,7 @@ enum {
 #define _ALUBrr(OP,RS, RD)		(_REXBrr(RS, RD),		_O_Mrm		(((OP) << 3)	,_b11,_r1(RS),_r1(RD)				))
 #define _ALUBmr(OP, MD, MB, MI, MS, RD)	(_REXBmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 2,_r1(RD)		,MD,MB,MI,MS		))
 #define _ALUBrm(OP, RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(((OP) << 3)	,    ,_r1(RS)		,MD,MB,MI,MS		))
-#define _ALUBir(OP, IM, RD)		(jit_reg8(RD) == _AL ? \
+#define _ALUBir(OP, IM, RD)		((RD) == _RAX ? \
 					(_REXBrr(0, RD),		_O_B		(((OP) << 3) + 4					,_su8(IM))) : \
 					(_REXBrr(0, RD),		_O_Mrm_B	(0x80		,_b11,OP     ,_r1(RD)			,_su8(IM))) )
 #define _ALUBim(OP, IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_r_X_B	(0x80		     ,OP		,MD,MB,MI,MS	,_su8(IM)))
@@ -305,7 +301,7 @@ enum {
 #define _ALUWrr(OP, RS, RD)		(_d16(), _REXLrr(RS, RD),	_O_Mrm		(((OP) << 3) + 1,_b11,_r2(RS),_r2(RD)				))
 #define _ALUWmr(OP, MD, MB, MI, MS, RD)	(_d16(), _REXLmr(MB, MI, RD),	_O_r_X		(((OP) << 3) + 3     ,_r2(RD)		,MD,MB,MI,MS		))
 #define _ALUWrm(OP, RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(((OP) << 3) + 1     ,_r2(RS)		,MD,MB,MI,MS		))
-#define _ALUWir(OP, IM, RD)		((RD) == _AX ? \
+#define _ALUWir(OP, IM, RD)		((RD) == _RAX ? \
 					(_d16(), _REXLrr(0, RD),	_O_W		(((OP) << 3) + 5					,_su16(IM))) : \
 					(_d16(), _REXLrr(0, RD),	_Os_Mrm_sW	(0x81		,_b11,OP     ,_r2(RD)			,_su16(IM))) )
 #define _ALUWim(OP, IM, MD, MB, MI, MS)	(_d16(), _REXLrm(0, MB, MI),	_Os_r_X_sW	(0x81		     ,OP		,MD,MB,MI,MS	,_su16(IM)))
@@ -314,7 +310,7 @@ enum {
 #define _ALULmr(OP, MD, MB, MI, MS, RD)	(_REXLmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 3     ,_r4(RD)		,MD,MB,MI,MS		))
 #define _ALULrm(OP, RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(((OP) << 3) + 1     ,_r4(RS)		,MD,MB,MI,MS		))
 
-#define _ALULir(OP, IM, RD)		(!_s8P(IM) && jit_reg32(RD) == _EAX ? \
+#define _ALULir(OP, IM, RD)		(!_s8P(IM) && (RD) == _RAX ? \
 					(_REXLrr(0, RD),		_O_L		(((OP) << 3) + 5					,IM	)) : \
 					(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	)) )
 
@@ -514,12 +510,12 @@ enum {
 #define _ROTSHIBim(OP,IM,MD,MB,MI,MS)	((IM) == 1 ? \
 					(_REXBrm(0, MB, MI),		_O_r_X		(0xd0		     ,OP		,MD,MB,MI,MS		)) : \
 					(_REXBrm(0, MB, MI),		_O_r_X_B	(0xc0		     ,OP		,MD,MB,MI,MS	,_u8(IM))) )
-#define _ROTSHIBrr(OP,RS,RD)		(((RS) == _CL) ? \
+#define _ROTSHIBrr(OP,RS,RD)		(((RS) == _RCX) ? \
 					(_REXBrr(RS, RD),		_O_Mrm		(0xd2		,_b11,OP,_r1(RD)				)) : \
-									JITFAIL("source register must be CL"					)  )
-#define _ROTSHIBrm(OP,RS,MD,MB,MI,MS)	(((RS) == _CL) ? \
+									JITFAIL("source register must be RCX"					)  )
+#define _ROTSHIBrm(OP,RS,MD,MB,MI,MS)	(((RS) == _RCX) ? \
 					(_REXBrm(RS, MB, MI),		_O_r_X		(0xd2		     ,OP		,MD,MB,MI,MS		)) : \
-									JITFAIL("source register must be CL"					)  )
+									JITFAIL("source register must be RCX"					)  )
 
 #define _ROTSHIWir(OP,IM,RD)		((IM) == 1 ? \
 					(_d16(), _REXLrr(0, RD),	_O_Mrm		(0xd1		,_b11,OP,_r2(RD)				)) : \
@@ -527,12 +523,12 @@ enum {
 #define _ROTSHIWim(OP,IM,MD,MB,MI,MS)	((IM) == 1 ? \
 					(_d16(), _REXLrm(0, MB, MI),	_O_r_X		(0xd1		     ,OP		,MD,MB,MI,MS		)) : \
 					(_d16(), _REXLrm(0, MB, MI),	_O_r_X_B	(0xc1		     ,OP		,MD,MB,MI,MS	,_u8(IM))) )
-#define _ROTSHIWrr(OP,RS,RD)		(((RS) == _CL) ? \
+#define _ROTSHIWrr(OP,RS,RD)		(((RS) == _RCX) ? \
 					(_d16(), _REXLrr(RS, RD),	_O_Mrm		(0xd3		,_b11,OP,_r2(RD)				)) : \
-									JITFAIL("source register must be CL"					)  )
-#define _ROTSHIWrm(OP,RS,MD,MB,MI,MS)	(((RS) == _CL) ? \
+									JITFAIL("source register must be RCX"					)  )
+#define _ROTSHIWrm(OP,RS,MD,MB,MI,MS)	(((RS) == _RCX) ? \
 					(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(0xd3		     ,OP		,MD,MB,MI,MS		)) : \
-									JITFAIL("source register must be CL"					)  )
+									JITFAIL("source register must be RCX"					)  )
 
 #define _ROTSHILir(OP,IM,RD)		((IM) == 1 ? \
 					(_REXLrr(0, RD),		_O_Mrm		(0xd1		,_b11,OP,_r4(RD)				)) : \
@@ -540,12 +536,12 @@ enum {
 #define _ROTSHILim(OP,IM,MD,MB,MI,MS)	((IM) == 1 ? \
 					(_REXLrm(0, MB, MI),		_O_r_X		(0xd1		     ,OP		,MD,MB,MI,MS		)) : \
 					(_REXLrm(0, MB, MI),		_O_r_X_B	(0xc1		     ,OP		,MD,MB,MI,MS	,_u8(IM))) )
-#define _ROTSHILrr(OP,RS,RD)		(((RS) == _CL) ? \
+#define _ROTSHILrr(OP,RS,RD)		(((RS) == _RCX) ? \
 					(_REXLrr(RS, RD),		_O_Mrm		(0xd3		,_b11,OP,_r4(RD)				)) : \
-									JITFAIL("source register must be CL"					)  )
-#define _ROTSHILrm(OP,RS,MD,MB,MI,MS)	(((RS) == _CL) ? \
+									JITFAIL("source register must be RCX"					)  )
+#define _ROTSHILrm(OP,RS,MD,MB,MI,MS)	(((RS) == _RCX) ? \
 					(_REXLrm(RS, MB, MI),		_O_r_X		(0xd3		     ,OP		,MD,MB,MI,MS		)) : \
-									JITFAIL("source register must be CL"					)  )
+									JITFAIL("source register must be RCX"					)  )
 
 #define _ROTSHIQir(OP,IM,RD)		((IM) == 1 ? \
 					(_REXQrr(0, RD),		_O_Mrm		(0xd1		,_b11,OP,_r8(RD)				)) : \
@@ -553,12 +549,12 @@ enum {
 #define _ROTSHIQim(OP,IM,MD,MB,MI,MS)	((IM) == 1 ? \
 					(_REXQrm(0, MB, MI),		_O_r_X		(0xd1		     ,OP		,MD,MB,MI,MS		)) : \
 					(_REXQrm(0, MB, MI),		_O_r_X_B	(0xc1		     ,OP		,MD,MB,MI,MS	,_u8(IM))) )
-#define _ROTSHIQrr(OP,RS,RD)		(((RS) == _CL) ? \
+#define _ROTSHIQrr(OP,RS,RD)		(((RS) == _RCX) ? \
 					(_REXQrr(RS, RD),		_O_Mrm		(0xd3		,_b11,OP,_r8(RD)				)) : \
-									JITFAIL("source register must be CL"					)  )
-#define _ROTSHIQrm(OP,RS,MD,MB,MI,MS)	(((RS) == _CL) ? \
+									JITFAIL("source register must be RCX"					)  )
+#define _ROTSHIQrm(OP,RS,MD,MB,MI,MS)	(((RS) == _RCX) ? \
 					(_REXQrm(RS, MB, MI),		_O_r_X		(0xd3		     ,OP		,MD,MB,MI,MS		)) : \
-									JITFAIL("source register must be CL"					)  )
+									JITFAIL("source register must be RCX"					)  )
 
 #define ROLBir(IM, RD)			_ROTSHIBir(X86_ROL, IM, RD)
 #define ROLBim(IM, MD, MB, MI, MS)	_ROTSHIBim(X86_ROL, IM, MD, MB, MI, MS)
@@ -1104,21 +1100,21 @@ enum {
 
 #define TESTBrr(RS, RD)			(_REXBrr(RS, RD),		_O_Mrm		(0x84		,_b11,_r1(RS),_r1(RD)				))
 #define TESTBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(0x84		     ,_r1(RS)		,MD,MB,MI,MS		))
-#define TESTBir(IM, RD)			((RD) == _AL ? \
+#define TESTBir(IM, RD)			((RD) == _RAX ? \
 					(_REXBrr(0, RD),		_O_B		(0xa8							,_u8(IM))) : \
 					(_REXBrr(0, RD),		_O_Mrm_B	(0xf6		,_b11,_b000  ,_r1(RD)			,_u8(IM))) )
 #define TESTBim(IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_r_X_B	(0xf6		     ,_b000		,MD,MB,MI,MS	,_u8(IM)))
 
 #define TESTWrr(RS, RD)			(_d16(), _REXLrr(RS, RD),	_O_Mrm		(0x85		,_b11,_r2(RS),_r2(RD)				))
 #define TESTWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(0x85		     ,_r2(RS)		,MD,MB,MI,MS		))
-#define TESTWir(IM, RD)			((RD) == _AX ? \
+#define TESTWir(IM, RD)			((RD) == _RAX ? \
 					(_d16(), _REXLrr(0, RD),	_O_W		(0xa9							,_u16(IM))) : \
 					(_d16(), _REXLrr(0, RD),	_O_Mrm_W	(0xf7		,_b11,_b000  ,_r2(RD)			,_u16(IM))) )
 #define TESTWim(IM, MD, MB, MI, MS)	(_d16(), _REXLrm(0, MB, MI),	_O_r_X_W	(0xf7		     ,_b000		,MD,MB,MI,MS	,_u16(IM)))
 
 #define TESTLrr(RS, RD)			(_REXLrr(RS, RD),		_O_Mrm		(0x85		,_b11,_r4(RS),_r4(RD)				))
 #define TESTLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(0x85		     ,_r4(RS)		,MD,MB,MI,MS		))
-#define TESTLir(IM, RD)			(!_s8P(IM) && jit_reg32(RD) == _EAX ? \
+#define TESTLir(IM, RD)			(!_s8P(IM) && (RD) == _RAX ? \
 					(_REXLrr(0, RD),		_O_L		(0xa9							,IM	)) : \
 					(_REXLrr(0, RD),		_O_Mrm_L	(0xf7		,_b11,_b000  ,_r4(RD)			,IM	)) )
 #define TESTLim(IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_O_r_X_L	(0xf7		     ,_b000		,MD,MB,MI,MS	,IM	))
@@ -1314,8 +1310,8 @@ enum {
 #define FDIVPr(RD)		ESCri(RD,066)
 #define FDIVRPr(RD)		ESCri(RD,067)
 
-#define FNSTSWr(RD)		((RD == _AX || RD == _EAX) ? _OO (0xdfe0)		\
-				 : JITFAIL ("AX or EAX expected"))
+#define FNSTSWr(RD)							\
+    ((RD == _RAX) ? _OO (0xdfe0) : JITFAIL ("RAX expected"))
 /* N byte NOPs */
 #define NOPi(N)		(((  (N)    >= 8) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00),_jit_B(0x90)) : (void) 0), \
 			 (( ((N)&7) == 7) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00)) : \

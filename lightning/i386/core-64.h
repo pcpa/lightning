@@ -36,7 +36,7 @@
 
 static int
 jit_arg_reg_order[] = {
-    _EDI, _ESI, _EDX, _ECX, _R8D, _R9D
+    _RDI, _RSI, _RDX, _RCX, _R8, _R9
 };
 
 #define JIT_REXTMP			_R12
@@ -60,7 +60,7 @@ jit_allocai(int n)
 
     if (n >= _jitl.alloca_slack) {
 	_jitl.alloca_slack += n + s;
-	SUBQir(n + s, _ESP);
+	SUBQir(n + s, _RSP);
     }
     _jitl.alloca_slack -= n;
     return (_jitl.alloca_offset -= n);
@@ -111,12 +111,12 @@ jit_prolog(int n)
     /* alloca information */
     _jitl.alloca_offset = _jitl.alloca_slack = 0;
     /* stack frame */
-    PUSHQr(_EBX);
+    PUSHQr(_RBX);
     PUSHQr(_R12);
     PUSHQr(_R13);
     PUSHQr(_R14);
-    PUSHQr(_EBP);
-    MOVQrr(_ESP, _EBP);
+    PUSHQr(_RBP);
+    MOVQrr(_RSP, _RBP);
 }
 
 #define jit_ret				jit_ret
@@ -127,7 +127,7 @@ jit_ret(void)
     POPQr(_R14);
     POPQr(_R13);
     POPQr(_R12);
-    POPQr(_EBX);
+    POPQr(_RBX);
     RET_();
 }
 
@@ -186,11 +186,11 @@ __jit_inline jit_insn *
 jit_finish(jit_insn *label)
 {
     if (_jitl.fprssize) {
-	MOVBir(_jitl.fprssize, _AL);
+	MOVBir(_jitl.fprssize, _RAX);
 	_jitl.fprssize = 0;
     }
     else
-	MOVBir(0, _AL);
+	MOVBir(0, _RAX);
     if (_jitl.argssize & 1) {
 	PUSHQr(_RAX);
 	++_jitl.argssize;
@@ -214,11 +214,11 @@ jit_finishr(int rs)
 	rs = JIT_REXTMP;
     }
     if (_jitl.fprssize) {
-	MOVBir(_jitl.fprssize, _AL);
+	MOVBir(_jitl.fprssize, _RAX);
 	_jitl.fprssize = 0;
     }
     else
-	MOVBir(0, _AL);
+	MOVBir(0, _RAX);
     if (_jitl.argssize & 1) {
 	PUSHQr(_RAX);
 	++_jitl.argssize;
@@ -526,7 +526,7 @@ jit_xori_l(int rd, int r0, long i0)
     else {
 	if (jit_can_sign_extend_char_p(i0)) {
 	    jit_movr_l(rd, r0);
-	    XORBir(i0, jit_reg8(rd));
+	    XORBir(i0, rd);
 	}
 	else if (jit_can_sign_extend_int_p(i0)) {
 	    jit_movr_l(rd, r0);
@@ -614,7 +614,7 @@ jit_mulr_l(int rd, int r0, int r1)
 __jit_inline void
 jit_muli_l_(int r0, long i0)
 {
-    if (jit_reg64(r0) == _RAX) {
+    if (r0 == _RAX) {
 	jit_movi_l(_RDX, i0);
 	IMULQr(_RDX);
     }
@@ -628,12 +628,12 @@ jit_muli_l_(int r0, long i0)
 __jit_inline void
 jit_hmuli_l(int rd, int r0, long i0)
 {
-    if (jit_reg64(rd) == _RDX) {
+    if (rd == _RDX) {
 	MOVQrr(_RAX, JIT_REXTMP);
 	jit_muli_l_(r0, i0);
 	MOVQrr(JIT_REXTMP, _RAX);
     }
-    else if (jit_reg64(rd) == _RAX) {
+    else if (rd == _RAX) {
 	MOVQrr(_RDX, JIT_REXTMP);
 	jit_muli_l_(r0, i0);
 	MOVQrr(_RDX, _RAX);
@@ -652,9 +652,9 @@ jit_hmuli_l(int rd, int r0, long i0)
 __jit_inline void
 jit_mulr_l_(int r0, int r1)
 {
-    if (jit_reg64(r1) == _RAX)
+    if (r1 == _RAX)
 	IMULQr(r0);
-    else if (jit_reg64(r0) == _RAX)
+    else if (r0 == _RAX)
 	IMULQr(r1);
     else {
 	MOVQrr(r1, _RAX);
@@ -666,12 +666,12 @@ jit_mulr_l_(int r0, int r1)
 __jit_inline void
 jit_hmulr_l(int rd, int r0, int r1)
 {
-    if (jit_reg64(rd) == _RDX) {
+    if (rd == _RDX) {
 	MOVQrr(_RAX, JIT_REXTMP);
 	jit_mulr_l_(r0, r1);
 	MOVQrr(JIT_REXTMP, _RAX);
     }
-    else if (jit_reg64(rd) == _RAX) {
+    else if (rd == _RAX) {
 	MOVQrr(_RDX, JIT_REXTMP);
 	jit_mulr_l_(r0, r1);
 	MOVQrr(_RDX, _RAX);
@@ -696,7 +696,7 @@ jit_hmulr_l(int rd, int r0, int r1)
 __jit_inline void
 jit_muli_ul_(int r0, unsigned long i0)
 {
-    if (jit_reg64(r0) == _RAX) {
+    if (r0 == _RAX) {
 	jit_movi_ul(_RDX, i0);
 	MULQr(_RDX);
     }
@@ -710,12 +710,12 @@ jit_muli_ul_(int r0, unsigned long i0)
 __jit_inline void
 jit_hmuli_ul(int rd, int r0, unsigned long i0)
 {
-    if (jit_reg64(rd) == _RDX) {
+    if (rd == _RDX) {
 	MOVQrr(_RAX, JIT_REXTMP);
 	jit_muli_ul_(r0, i0);
 	MOVQrr(JIT_REXTMP, _RAX);
     }
-    else if (jit_reg64(rd) == _RAX) {
+    else if (rd == _RAX) {
 	MOVQrr(_RDX, JIT_REXTMP);
 	jit_muli_ul_(r0, i0);
 	MOVQrr(_RDX, _RAX);
@@ -734,9 +734,9 @@ jit_hmuli_ul(int rd, int r0, unsigned long i0)
 __jit_inline void
 jit_mulr_ul_(int r0, int r1)
 {
-    if (jit_reg64(r1) == _RAX)
+    if (r1 == _RAX)
 	MULQr(r0);
-    else if (jit_reg64(r0) == _RAX)
+    else if (r0 == _RAX)
 	MULQr(r1);
     else {
 	MOVQrr(r1, _RAX);
@@ -748,12 +748,12 @@ jit_mulr_ul_(int r0, int r1)
 __jit_inline void
 jit_hmulr_ul(int rd, int r0, int r1)
 {
-    if (jit_reg64(rd) == _RDX) {
+    if (rd == _RDX) {
 	MOVQrr(_RAX, JIT_REXTMP);
 	jit_mulr_ul_(r0, r1);
 	MOVQrr(JIT_REXTMP, _RAX);
     }
-    else if (jit_reg64(rd) == _RAX) {
+    else if (rd == _RAX) {
 	MOVQrr(_RDX, JIT_REXTMP);
 	jit_mulr_ul_(r0, r1);
 	MOVQrr(_RDX, _RAX);
@@ -932,20 +932,20 @@ _jit_shift64(int rd, int r0, int r1, int code)
     if (rd == _RCX) {
 	MOVQrr(r0, JIT_REXTMP);
 	if (r1 != _RCX)
-	    MOVBrr(jit_reg8(r1), _CL);
-	_ROTSHIQrr(code, _CL, JIT_REXTMP);
+	    MOVBrr(r1, _RCX);
+	_ROTSHIQrr(code, _RCX, JIT_REXTMP);
 	MOVQrr(JIT_REXTMP, _RCX);
     }
     else if (r1 != _RCX) {
 	MOVQrr(_RCX, JIT_REXTMP);
-	MOVBrr(jit_reg8(r1), _CL);
+	MOVBrr(r1, _RCX);
 	jit_movr_l(rd, r0);
-	_ROTSHIQrr(code, _CL, rd);
+	_ROTSHIQrr(code, _RCX, rd);
 	MOVQrr(JIT_REXTMP, _RCX);
     }
     else {
 	jit_movr_l(rd, r0);
-	_ROTSHIQrr(code, _CL, rd);
+	_ROTSHIQrr(code, _RCX, rd);
     }
 }
 
@@ -967,7 +967,7 @@ jit_lshi_l(int rd, int r0, unsigned char i0)
 __jit_inline void
 jit_lshr_l(int rd, int r0, int r1)
 {
-    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SHL);
+    _jit_shift64(rd, r0, r1, X86_SHL);
 }
 
 #define jit_rshi_l(rd, r0, i0)		jit_rshi_l(rd, r0, i0)
@@ -983,7 +983,7 @@ jit_rshi_l(int rd, int r0, unsigned char i0)
 __jit_inline void
 jit_rshr_l(int rd, int r0, int r1)
 {
-    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SAR);
+    _jit_shift64(rd, r0, r1, X86_SAR);
 }
 
 #define jit_rshi_ul(rd, r0, i0)		jit_rshi_ul(rd, r0, i0)
@@ -999,7 +999,7 @@ jit_rshi_ul(int rd, int r0, unsigned char i0)
 __jit_inline void
 jit_rshr_ul(int rd, int r0, int r1)
 {
-    _jit_shift64(jit_reg64(rd), jit_reg64(r0), jit_reg64(r1), X86_SHR);
+    _jit_shift64(rd, r0, r1, X86_SHR);
 }
 
 /* Boolean */
@@ -1512,11 +1512,11 @@ __jit_inline jit_insn *
 jit_bmsi_l(jit_insn *label, int r0, long i0)
 {
     if (jit_can_zero_extend_char_p(i0))
-	TESTBir(i0, jit_reg8(r0));
+	TESTBir(i0, r0);
     else if (jit_can_zero_extend_short_p(i0))
-	TESTWir(i0, jit_reg16(r0));
+	TESTWir(i0, r0);
     else if (jit_can_sign_extend_int_p(i0))
-	TESTLir(i0, jit_reg32(r0));
+	TESTLir(i0, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	TESTQrr(JIT_REXTMP, r0);
@@ -1539,13 +1539,13 @@ __jit_inline jit_insn *
 jit_bmci_l(jit_insn *label, int r0, long i0)
 {
     if (jit_can_zero_extend_char_p(i0))
-	TESTBir(i0, jit_reg8(r0));
+	TESTBir(i0, r0);
     else if (jit_can_zero_extend_short_p(i0))
-	TESTWir(i0, jit_reg16(r0));
+	TESTWir(i0, r0);
     else if (jit_can_zero_extend_int_p(i0))
-	TESTLir(i0, jit_reg32(r0));
+	TESTLir(i0, r0);
     else if (jit_can_sign_extend_int_p(i0))
-	TESTQir(i0, jit_reg32(r0));
+	TESTQir(i0, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	TESTQrr(JIT_REXTMP, r0);

@@ -34,12 +34,12 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-#define JIT_AP				_EBP
+#define JIT_AP				_RBP
 
 #define JIT_R_NUM			3
-#define JIT_R(i)			(_EAX + (i))
+#define JIT_R(i)			(_RAX + (i))
 #define JIT_V_NUM			3
-#define JIT_V(i)			((i) == 0 ? _EBX : _ESI + (i) - 1)
+#define JIT_V(i)			((i) == 0 ? _RBX : _RSI + (i) - 1)
 
 #define jit_movi_i(rd, i0)		jit_movi_i(rd, i0)
 __jit_inline void
@@ -72,11 +72,11 @@ jit_prolog(int n)
 {
     _jitl.framesize = 20;
     _jitl.alloca_offset = _jitl.alloca_slack = 0;
-    PUSHLr(_EBX);
-    PUSHLr(_ESI);
-    PUSHLr(_EDI);
-    PUSHLr(_EBP);
-    MOVLrr(_ESP, _EBP);
+    PUSHLr(_RBX);
+    PUSHLr(_RSI);
+    PUSHLr(_RDI);
+    PUSHLr(_RBP);
+    MOVLrr(_RSP, _RBP);
     SUBLir(12, JIT_SP);
 }
 
@@ -85,9 +85,9 @@ __jit_inline void
 jit_ret(void)
 {
     LEAVE_();
-    POPLr(_EDI);
-    POPLr(_ESI);
-    POPLr(_EBX);
+    POPLr(_RDI);
+    POPLr(_RSI);
+    POPLr(_RBX);
     RET_();
 }
 
@@ -99,9 +99,9 @@ jit_allocai(int n)
     if (n >= _jitl.alloca_slack) {
 	_jitl.alloca_slack += n + s;
 	if (n + s == sizeof(int))
-	    PUSHLr(_EAX);
+	    PUSHLr(_RAX);
 	else
-	    SUBLir(n + s, _ESP);
+	    SUBLir(n + s, _RSP);
     }
     _jitl.alloca_slack -= n;
     return (_jitl.alloca_offset -= n);
@@ -248,9 +248,9 @@ jit_sti_c(void *i0, int r0)
     if (jit_check8(r0))
 	MOVBrm(r0, (long)i0, 0, 0, 0);
     else {
-	XCHGLrr(_EAX, r0);
-	MOVBrm(_EAX, (long)i0, 0, 0, 0);
-	XCHGLrr(_EAX, r0);
+	XCHGLrr(_RAX, r0);
+	MOVBrm(_RAX, (long)i0, 0, 0, 0);
+	XCHGLrr(_RAX, r0);
     }
 }
 
@@ -263,10 +263,10 @@ jit_stxi_c(int i0, int r0, int r1)
     if (jit_check8(r1))
 	MOVBrm(r1, i0, r0, 0, 0);
     else {
-	if (r0 == _EAX)
-	    rep = _EDX;
+	if (r0 == _RAX)
+	    rep = _RDX;
 	else
-	    rep = _EAX;
+	    rep = _RAX;
 	if (r0 != r1) 
 	    XCHGLrr(rep, r1);
 	else {
@@ -290,10 +290,10 @@ jit_str_c(int r0, int r1)
     if (jit_check8(r1))
 	MOVBrm(r1, 0, r0, 0, 0);
     else {
-	if (r0 == _EAX)
-	    rep = _EDX;
+	if (r0 == _RAX)
+	    rep = _RDX;
 	else
-	    rep = _EAX;
+	    rep = _RAX;
 	if (r0 != r1)
 	    XCHGLrr(rep, r1);
 	else {
@@ -317,14 +317,14 @@ jit_stxr_c(int r0, int r1, int r2)
     if (jit_check8(r2))
 	MOVBrm(r2, 0, r0, r1, 1);
     else {
-	if (r0 == _EAX || r1 == _EAX) {
-	    if (r0 == _EDX || r1 == _EDX)
-		rep = _ECX;
+	if (r0 == _RAX || r1 == _RAX) {
+	    if (r0 == _RDX || r1 == _RDX)
+		rep = _RCX;
 	    else
-		rep = _EDX;
+		rep = _RDX;
 	}
 	else
-	    rep = _EAX;
+	    rep = _RAX;
 	if (r0 != r2 && r1 != r2)
 	    XCHGLrr(rep, r2);
 	else {

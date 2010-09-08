@@ -51,32 +51,18 @@
 #  define _rM(R)		_rN(R)
 #  define _rX(R)		_rN(R)
 #else
-/* _r1() used to check only for _AL and _AH but there is
- * usage of _CL and _DL when _*AX is already an operand */
 #  define _r1(R)							\
-    /* Valid 32 bit register? */					\
-    ((!((R) & ~0x77)							\
-	/* 32, 16 or 8 bit register? */					\
-	&& (((_rC(R) == 0x40 || _rC(R) == 0x30 || _rC(R) == 0x10)	\
-	    /* Yes. Register is _AL, _CL or _DL? */			\
-	    && (   (_rN(R) | 0x10) == _AL				\
-		|| (_rN(R) | 0x10) == _CL				\
-		|| (_rN(R) | 0x10) == _DL))				\
-	    /* No. Register is _AH? */					\
-	|| ((_rC(R) == 0x20 && (_rN(R) | 0x20) == _AH))))		\
-	? _rN(R) : JITFAIL("bad 8-bit register " #R))
+    (((R) >= _RAX && (R) <= _RBX)					\
+	? _rN(R)							\
+	: JITFAIL("bad 8-bit register " #R))
 #  define _r2(R)							\
-    /* Valid 32 bit register? */					\
-    ((!((R) & ~0x77)							\
-	/* 32, 16 or 8 bit register? */					\
-	&& (_rC(R) == 0x40 || _rC(R) == 0x30 || _rC(R) == 0x10))	\
-	? _rN(R) : JITFAIL("bad 16-bit register " #R))
+    (((R) >= _RAX && (R) <= _RDI)					\
+	? _rN(R)							\
+	: JITFAIL("bad 16-bit register " #R))
 #  define _r4(R)							\
-    /* Valid 32 bit register? */					\
-    ((!((R) & ~0x77)							\
-	/* 32, 16 or 8 bit register? */					\
-	&& (_rC(R) == 0x40 || _rC(R) == 0x30 || _rC(R) == 0x10))	\
-	? _rN(R) : JITFAIL("bad 32-bit register " #R))
+    (((R) >= _RAX && (R) <= _RDI)					\
+	? _rN(R)							\
+	: JITFAIL("bad 32-bit register " #R))
 #  define _r8(R)							\
 	JITFAIL("bad 64-bit register " #R)
 #  define _rM(R)							\
@@ -92,24 +78,11 @@
 #define _rA(R)			_r4(R)
 
 #define jit_check8(rs)							\
-    (((_rN(rs) | 0x10) == _AL)						\
-     || ((_rN(rs) | 0x10) == _CL)					\
-     || ((_rN(rs) | 0x10) == _DL))
-#define jit_reg8(rs)							\
-    ((jit_reg16(rs) == _SI || jit_reg16(rs) == _DI)			\
-	? _AL : (_rN(rs) | _AL))
-#define jit_reg16(rs)		(_rN(rs) | _AX)
-#if !_ASM_SAFETY
-#  define jit_reg32(rs)		(rs)
-#else
-#  define jit_reg32(rs)							\
-    /* trigger bad lightning macros/usage of register classes  */	\
-    ((_rC(rs) == 0x40) ? (rs) : JITFAIL("(internal) bad 32-bit register " #rs))
-#endif
+    ((rs) == _RAX || (rs) == _RCX || (rs) == _RDX)
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? _r_D   (R,D                ) : \
-				           (_rsp12P(B) ? _r_DBIS(R,D,_ESP,_ESP,1)   : \
+				           (_rsp12P(B) ? _r_DBIS(R,D,_RSP,_RSP,1)   : \
 						         _r_DB  (R,D,     B       )))  : \
 				 (_r0P(B)	       ? _r_4IS (R,D,	         I,S)   : \
 				 (!_rspP(I)            ? _r_DBIS(R,D,     B,     I,S)   : \
@@ -117,11 +90,6 @@
 #define _m32only(X)		(X)
 #define _m64only(X)		JITFAIL("invalid instruction in 32-bit mode")
 #define _m64(X)			((void)0)
-
-#define _AH		0x24
-#define _CH		0x25
-#define _DH		0x26
-#define _BH		0x27
 
 #define CALLsr(R)			CALLLsr(R)
 #define JMPsr(R)			JMPLsr(R)

@@ -52,33 +52,21 @@
 #  define _rX(R)		_rN(R)
 #else
 #  define _r1(R)							\
-    /* Valid 64 bit register? */					\
-    ((!((R) & ~0xff)							\
-	/* 64, 32, 16 or 8 bit register? */				\
-	&& (_rC(R) == 0x50 || _rC(R) == 0x40				\
-		|| _rC(R) == 0x30 || _rC(R) == 0x10))			\
-	? _rN(R) : JITFAIL("bad 8-bit register " #R))
+    (((R) >= _RAX && (R) <= _R15)					\
+	? _rN(R)							\
+	: JITFAIL("bad 8-bit register " #R))
 #  define _r2(R)							\
-    /* Valid 64 bit register? */					\
-    ((!((R) & ~0xff)							\
-	/* 64, 32, 16 or 8 bit register? */				\
-	&& (_rC(R) == 0x50 || _rC(R) == 0x40				\
-		|| _rC(R) == 0x30 || _rC(R) == 0x10))			\
-	? _rN(R) : JITFAIL("bad 16-bit register " #R))
+    (((R) >= _RAX && (R) <= _R15)					\
+	? _rN(R)							\
+	: JITFAIL("bad 16-bit register " #R))
 #  define _r4(R)							\
-    /* Valid 64 bit register? */					\
-    ((!((R) & ~0xff)							\
-	/* 64, 32, 16 or 8 bit register? */				\
-	&& (_rC(R) == 0x50 || _rC(R) == 0x40				\
-		|| _rC(R) == 0x30 || _rC(R) == 0x10))			\
-	? _rN(R) : JITFAIL("bad 32-bit register " #R))
+    (((R) >= _RAX && (R) <= _R15)					\
+	? _rN(R)							\
+	: JITFAIL("bad 32-bit register " #R))
 #  define _r8(R)							\
-    /* Valid 64 bit register? */					\
-    ((!((R) & ~0xff)							\
-	/* 64, 32, 16 or 8 bit register? */				\
-	&& (_rC(R) == 0x50 || _rC(R) == 0x40				\
-		|| _rC(R) == 0x30 || _rC(R) == 0x10))			\
-	? _rN(R) : JITFAIL("bad 64-bit register " #R))
+    (((R) >= _RAX && (R) <= _R15)					\
+	? _rN(R)							\
+	: JITFAIL("bad 64-bit register " #R))
 #  define _rM(R)							\
     /* Valid MMX* register? */						\
     ((!((R) & ~0x6f) && _rC(R) == 0x60)					\
@@ -92,16 +80,6 @@
 #define _rA(R)			_r8(R)
 
 #define jit_check8(rs)		1
-#define jit_reg8(rs)		(_rR(rs) | _AL)
-#define jit_reg16(rs)		(_rR(rs) | _AX)
-#define jit_reg32(rs)		(_rR(rs) | _EAX)
-#if !_ASM_SAFETY
-#  define jit_reg64(rs)		(rs)
-#else
-#  define jit_reg64(rs)							\
-    /* trigger bad lightning macros/usage of register classes  */	\
-    ((_rC(rs) == 0x50) ? (rs) : JITFAIL("(internal) bad 64-bit register " #rs))
-#endif
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #if 0
@@ -134,55 +112,7 @@
 #define _m64only(X)		(X)
 #define _m64(X)			(X)
 
-#define _SPL		0x14
-#define _BPL		0x15
-#define _SIL		0x16
-#define _DIL		0x17
-#define _R8B		0x18
-#define _R9B		0x19
-#define _R10B		0x1A
-#define _R11B		0x1B
-#define _R12B		0x1C
-#define _R13B		0x1D
-#define _R14B		0x1E
-#define _R15B		0x1F
-
-#define _R8W		0x38
-#define _R9W		0x39
-#define _R10W		0x3A
-#define _R11W		0x3B
-#define _R12W		0x3C
-#define _R13W		0x3D
-#define _R14W		0x3E
-#define _R15W		0x3F
-#define _R8D		0x48
-#define _R9D		0x49
-#define _R10D		0x4A
-#define _R11D		0x4B
-#define _R12D		0x4C
-#define _R13D		0x4D
-#define _R14D		0x4E
-#define _R15D		0x4F
-
-#define _RAX		0x50
-#define _RCX		0x51
-#define _RDX		0x52
-#define _RBX		0x53
-#define _RSP		0x54
-#define _RBP		0x55
-#define _RSI		0x56
-#define _RDI		0x57
-#define _R8		0x58
-#define _R9		0x59
-#define _R10		0x5A
-#define _R11		0x5B
-#define _R12		0x5C
-#define _R13		0x5D
-#define _R14		0x5E
-#define _R15		0x5F
-#define _RIP		-2
-
-#define _r1e8lP(R)	((int)(R) >= _SPL && (int)(R) <= _DIL)
+#define _r1e8lP(R)	((int)(R) >= _RSP && (int)(R) <= _RDX)
 
 #define DECWr(RD)	(_d16(), _REXLrr(0, RD),	_O_Mrm		(0xff		,_b11,_b001  ,_r2(RD)				))
 #define DECLr(RD)	(_REXLrr(0, RD),		_O_Mrm		(0xff		,_b11,_b001  ,_r4(RD)				))

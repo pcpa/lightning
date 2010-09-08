@@ -101,24 +101,24 @@
 jit_negr_f(rd, rs) {
     PUSHQi(0x80000000);
     if (rd == rs) {
-	jit_ldr_f(JIT_FPRTMP, _ESP);
+	jit_ldr_f(JIT_FPRTMP, _RSP);
 	XORPSrr(JIT_FPRTMP, rd);
     }
     else {
-	jit_ldr_f(rd, _ESP);
+	jit_ldr_f(rd, _RSP);
 	XORPSrr(rs, rd);
     }
-    ADDQir(8, _ESP);
+    ADDQir(8, _RSP);
 }
  */
 #define jit_negr_f(rd, rs)						\
     (PUSHQi(0x80000000),						\
      (((rd) == (rs))							\
-	? (jit_ldr_f(JIT_FPTMP, _ESP),					\
+	? (jit_ldr_f(JIT_FPTMP, _RSP),					\
 	   XORPSrr(JIT_FPTMP, (rd)))					\
-	: (jit_ldr_f((rd), _ESP),					\
+	: (jit_ldr_f((rd), _RSP),					\
 	   XORPSrr((rs), (rd)))),					\
-     ADDQir(8, _ESP))
+     ADDQir(8, _RSP))
 
 #define _jit_abs_d(rd,cnst,rs)						\
 	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
@@ -132,25 +132,25 @@ jit_negr_d(rd, rs) {
     MOVQir(0x8000000000000000, JIT_REXTMP);
     PUSHQr(JIT_REXTMP);
     if (rd == rs) {
-	jit_ldr_d(JIT_FPRTMP, _ESP);
+	jit_ldr_d(JIT_FPRTMP, _RSP);
 	XORPDrr(JIT_FPRTMP, rd);
     }
     else {
-	jit_ldr_d(rd, _ESP);
+	jit_ldr_d(rd, _RSP);
 	XORPDrr(rs, rd);
     }
-    ADDQir(8, _ESP);
+    ADDQir(8, _RSP);
 }
  */
 #define jit_negr_d(rd, rs)						\
     (MOVQir(0x8000000000000000, JIT_REXTMP),				\
      PUSHQr(JIT_REXTMP),						\
      (((rd) == (rs))							\
-	? (jit_ldr_d(JIT_FPTMP, _ESP),					\
+	? (jit_ldr_d(JIT_FPTMP, _RSP),					\
 	   XORPDrr(JIT_FPTMP, (rd)))					\
-	: (jit_ldr_d((rd), _ESP),					\
+	: (jit_ldr_d((rd), _RSP),					\
 	   XORPDrr((rs), (rd)))),					\
-     ADDQir(8, _ESP))
+     ADDQir(8, _RSP))
 
 #define jit_sqrt_d(rd,rs)	SQRTSSrr((rs), (rd))
 #define jit_sqrt_f(rd,rs)	SQRTSDrr((rs), (rd))
@@ -192,8 +192,8 @@ jit_movi_f(rd, immf) {
 	XORPSrr(rd, rd);
     else {
 	PUSHQi(_jitl.data.i);
-	jit_ldr_f(rd, _ESP);
-	ADDQir(8, _ESP);
+	jit_ldr_f(rd, _RSP);
+	ADDQir(8, _RSP);
     }
 }
  */
@@ -202,8 +202,8 @@ jit_movi_f(rd, immf) {
      ((_jitl.data.f == 0.0 && !(_jitl.data.i & 0x80000000))		\
 	? XORPSrr((rd), (rd))						\
 	: (PUSHQi(_jitl.data.i),					\
-	   jit_ldr_f((rd), _ESP),					\
-	   ADDQir(8, _ESP))))
+	   jit_ldr_f((rd), _RSP),					\
+	   ADDQir(8, _RSP))))
 
 /*
 jit_movi_d(rd, immd) {
@@ -217,8 +217,8 @@ jit_movi_d(rd, immd) {
 	    MOVQir(_jitl.data.l, JIT_REXTMP);
 	    PUSHQr(JIT_REXTMP);
 	}
-	jit_ldr_d(rd, _ESP);
-	ADDQir(8, _ESP);
+	jit_ldr_d(rd, _RSP);
+	ADDQir(8, _RSP);
     }
 }
  */
@@ -231,8 +231,8 @@ jit_movi_d(rd, immd) {
 	    ? PUSHQi(_jitl.data.l)					\
 	    : (MOVQir(_jitl.data.l, JIT_REXTMP),			\
 	       PUSHQr(JIT_REXTMP))),					\
-	   jit_ldr_d((rd), _ESP),					\
-	   ADDQir(8, _ESP))))
+	   jit_ldr_d((rd), _RSP),					\
+	   ADDQir(8, _RSP))))
 
 #define jit_extr_i_d(rd, rs)	CVTSI2SDLrr((rs), (rd))
 #define jit_extr_i_f(rd, rs)	CVTSI2SSLrr((rs), (rd))
@@ -386,8 +386,8 @@ jit_bunltr_d(jit_insn *label, int r0, int r1)
 #define jit_bordr_d(d, s1, s2)           (UCOMISDrr ((s1), (s2)), JNPm ((d)), _jit.x.pc)
 #define jit_bunordr_d(d, s1, s2)         (UCOMISDrr ((s1), (s2)), JPm ((d)), _jit.x.pc)
 
-#define jit_ltr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAr (jit_reg8((d))))
-#define jit_ler_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAEr (jit_reg8((d))))
+#define jit_ltr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAr ((d)))
+#define jit_ler_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAEr ((d)))
 #define jit_eqr_f(rd, r0, r1)		jit_eqr_f(rd, r0, r1)
 __jit_inline void
 jit_eqr_f(int rd, int r0, int r1)
@@ -421,19 +421,19 @@ jit_ner_f(int rd, int r0, int r1)
     /* was unordered */
     jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
 }
-#define jit_ger_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAEr (jit_reg8((d))))
-#define jit_gtr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAr (jit_reg8((d))))
-#define jit_unltr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAEr (jit_reg8((d))))
-#define jit_unler_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAr (jit_reg8((d))))
-#define jit_uneqr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETEr (jit_reg8((d))))
-#define jit_ltgtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNEr (jit_reg8((d))))
-#define jit_unger_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAr (jit_reg8((d))))
-#define jit_ungtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAEr (jit_reg8((d))))
-#define jit_ordr_f(d, s1, s2)           (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNPr (jit_reg8((d))))
-#define jit_unordr_f(d, s1, s2)         (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETPr (jit_reg8((d))))
+#define jit_ger_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAEr ((d)))
+#define jit_gtr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAr ((d)))
+#define jit_unltr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAEr ((d)))
+#define jit_unler_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAr ((d)))
+#define jit_uneqr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETEr ((d)))
+#define jit_ltgtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNEr ((d)))
+#define jit_unger_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAr ((d)))
+#define jit_ungtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAEr ((d)))
+#define jit_ordr_f(d, s1, s2)           (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNPr ((d)))
+#define jit_unordr_f(d, s1, s2)         (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETPr ((d)))
 
-#define jit_ltr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAr (jit_reg8((d))))
-#define jit_ler_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAEr (jit_reg8((d))))
+#define jit_ltr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAr ((d)))
+#define jit_ler_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAEr ((d)))
 #define jit_eqr_d(rd, r0, r1)		jit_eqr_d(rd, r0, r1)
 __jit_inline void
 jit_eqr_d(int rd, int r0, int r1)
@@ -467,16 +467,16 @@ jit_ner_d(int rd, int r0, int r1)
     /* was unordered */
     jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
 }
-#define jit_ger_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAEr (jit_reg8((d))))
-#define jit_gtr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAr (jit_reg8((d))))
-#define jit_unltr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAEr (jit_reg8((d))))
-#define jit_unler_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAr (jit_reg8((d))))
-#define jit_uneqr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETEr (jit_reg8((d))))
-#define jit_ltgtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNEr (jit_reg8((d))))
-#define jit_unger_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAr (jit_reg8((d))))
-#define jit_ungtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAEr (jit_reg8((d))))
-#define jit_ordr_d(d, s1, s2)           (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNPr (jit_reg8((d))))
-#define jit_unordr_d(d, s1, s2)         (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETPr (jit_reg8((d))))
+#define jit_ger_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAEr ((d)))
+#define jit_gtr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAr ((d)))
+#define jit_unltr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAEr ((d)))
+#define jit_unler_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAr ((d)))
+#define jit_uneqr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETEr ((d)))
+#define jit_ltgtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNEr ((d)))
+#define jit_unger_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAr ((d)))
+#define jit_ungtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAEr ((d)))
+#define jit_ordr_d(d, s1, s2)           (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNPr ((d)))
+#define jit_unordr_d(d, s1, s2)         (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETPr ((d)))
 
 #define jit_prolog_f(num)						\
     /* Update counter. Have float arguments on stack? */		\
