@@ -59,49 +59,49 @@
     (((im) >= 0 && (im) <=  0x7fffffff) ||				\
      ((im) <  0 && (im) >= -0x80000000))
 
-#define jit_movr_i(rd, r0)		jit_movr_i(rd, r0)
+#define jit_movr_i(r0, r1)		jit_movr_i(r0, r1)
 #define jit_pushr_i(r0)			jit_pushr_i(r0)
 #define jit_popr_i(r0)			jit_popr_i(r0)
 #if __WORDSIZE == 32
 __jit_inline void
-jit_movr_i(int rd, int r0)
+jit_movr_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (rd != r0)
-	MOVLrr(r0, rd);
+    if (r0 != r1)
+	MOVLrr(r1, r0);
 }
 
 __jit_inline void
-jit_pushr_i(int r0)
+jit_pushr_i(jit_gpr_t r0)
 {
     PUSHLr(r0);
 }
 
 __jit_inline void
-jit_popr_i(int r0)
+jit_popr_i(jit_gpr_t r0)
 {
     POPLr(r0);
 }
 #else
-#  define jit_movr_l(rd, r0)		jit_movr_i(rd, r0)
-#  define jit_movr_ul(rd, r0)		jit_movr_i(rd, r0)
-#  define jit_movr_p(rd, r0)		jit_movr_i(rd, r0)
+#  define jit_movr_l(r0, r1)		jit_movr_i(r0, r1)
+#  define jit_movr_ul(r0, r1)		jit_movr_i(r0, r1)
+#  define jit_movr_p(r0, r1)		jit_movr_i(r0, r1)
 __jit_inline void
-jit_movr_i(int rd, int r0)
+jit_movr_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (rd != r0)
-	MOVQrr(r0, rd);
+    if (r0 != r1)
+	MOVQrr(r1, r0);
 }
 
-#define jit_pushr_l(rs)			jit_pushr_i(rs)
+#define jit_pushr_l(r0)			jit_pushr_i(r0)
 __jit_inline void
-jit_pushr_i(int r0)
+jit_pushr_i(jit_gpr_t r0)
 {
     PUSHQr(r0);
 }
 
-#define jit_popr_l(rs)			jit_popr_i(rs)
+#define jit_popr_l(r0)			jit_popr_i(r0)
 __jit_inline void
-jit_popr_i(int r0)
+jit_popr_i(jit_gpr_t r0)
 {
     POPQr(r0);
 }
@@ -146,292 +146,287 @@ jit_jmpi(jit_insn *label)
     return (_jit.x.pc);
 }
 
-#define jit_jmpr(rs)			jit_jmpr(rs)
+#define jit_jmpr(r0)			jit_jmpr(r0)
 __jit_inline void
-jit_jmpr(int rs)
+jit_jmpr(jit_gpr_t r0)
 {
-    JMPsr(rs);
+    JMPsr(r0);
 }
 
 /* Stack */
-#define jit_retval_i(rd)		jit_retval_i(rd)
+#define jit_retval_i(r0)		jit_retval_i(r0)
 __jit_inline void
-jit_retval_i(int rd)
+jit_retval_i(jit_gpr_t r0)
 {
-    jit_movr_i(rd, _RAX);
+    jit_movr_i(r0, _RAX);
 }
 
 /* ALU */
-#define jit_negr_i(rd, r0)		jit_negr_i(rd, r0)
+#define jit_negr_i(r0, r1)		jit_negr_i(r0, r1)
 __jit_inline void
-jit_negr_i(int rd, int r0)
+jit_negr_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (rd == r0)
-	NEGLr(rd);
+    if (r0 == r1)
+	NEGLr(r0);
     else {
-	XORLrr(rd, rd);
-	SUBLrr(r0, rd);
+	XORLrr(r0, r0);
+	SUBLrr(r1, r0);
     }
 }
 
-#define jit_addi_i(rd, r0, i0)		jit_addi_i(rd, r0, i0)
+#define jit_addi_i(r0, r1, i0)		jit_addi_i(r0, r1, i0)
 __jit_inline void
-jit_addi_i(int rd, int r0, int i0)
+jit_addi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0 == 0)
-	jit_movr_i(rd, r0);
+	jit_movr_i(r0, r1);
     else if (i0 == 1) {
-	jit_movr_i(rd, r0);
-	INCLr(rd);
+	jit_movr_i(r0, r1);
+	INCLr(r0);
     }
     else if (i0 == -1) {
-	jit_movr_i(rd, r0);
-	DECLr(rd);
+	jit_movr_i(r0, r1);
+	DECLr(r0);
     }
-    else if (rd == r0)
-	ADDLir(i0, rd);
+    else if (r0 == r1)
+	ADDLir(i0, r0);
     else
-	LEALmr(i0, r0, 0, 0, rd);
+	LEALmr(i0, r1, 0, 0, r0);
 }
 
-#define jit_addr_i(rd, r0, r1)		jit_addr_i(rd, r0, r1)
+#define jit_addr_i(r0, r1, r2)		jit_addr_i(r0, r1, r2)
 __jit_inline void
-jit_addr_i(int rd, int r0, int r1)
-{
-    if (rd == r0)
-	ADDLrr(r1, rd);
-    else if (rd == r1)
-	ADDLrr(r0, rd);
-    else
-	LEALmr(0, r0, r1, 1, rd);
-}
-
-#define jit_subr_i(rd, r0, r1)		jit_subr_i(rd, r0, r1)
-__jit_inline void
-jit_subr_i(int rd, int r0, int r1)
+jit_addr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
-	XORLrr(rd, rd);
-    else if (rd == r1) {
-	SUBLrr(r0, rd);
-	NEGLr(rd);
-    }
-    else {
-	jit_movr_i(rd, r0);
-	SUBLrr(r1, rd);
-    }
+	ADDLrr(r2, r0);
+    else if (r0 == r2)
+	ADDLrr(r1, r0);
+    else
+	LEALmr(0, r1, r2, 1, r0);
 }
 
-#define jit_addci_ui(rd, r0, i0)	jit_addci_ui(rd, r0, i0)
+#define jit_subr_i(r0, r1, r2)		jit_subr_i(r0, r1, r2)
 __jit_inline void
-jit_addci_ui(int rd, int r0, unsigned int i0)
+jit_subr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (rd == r0)
-	ADDLir(i0, rd);
+    if (r1 == r2)
+	XORLrr(r0, r0);
+    else if (r0 == r2) {
+	SUBLrr(r1, r0);
+	NEGLr(r0);
+    }
     else {
-	MOVLir(i0, rd);
-	ADDLrr(r0, rd);
+	jit_movr_i(r0, r1);
+	SUBLrr(r2, r0);
     }
 }
 
-#define jit_addcr_ui(rd, r0, r1)	jit_addcr_ui(rd, r0, r1)
+#define jit_addci_ui(r0, r1, i0)	jit_addci_ui(r0, r1, i0)
 __jit_inline void
-jit_addcr_ui(int rd, int r0, int r1)
-{
-    if (rd == r1)
-	ADDLrr(r0, rd);
-    else if (rd == r0)
-	ADDLrr(r1, rd);
-    else {
-	MOVLrr(r0, rd);
-	ADDLrr(r1, rd);
-    }
-}
-
-#define jit_addxi_ui(rd, r0, i0)	jit_addxi_ui(rd, r0, i0)
-__jit_inline void
-jit_addxi_ui(int rd, int r0, unsigned int i0)
-{
-    if (rd == r0)
-	ADCLir(i0, rd);
-    else {
-	MOVLir(i0, rd);
-	ADCLrr(r0, rd);
-    }
-}
-
-#define jit_addxr_ui(rd, r0, r1)	jit_addxr_ui(rd, r0, r1)
-__jit_inline void
-jit_addxr_ui(int rd, int r0, int r1) {
-    if (rd == r1)
-	ADCLrr(r0, rd);
-    else if (rd == r0)
-	ADCLrr(r1, rd);
-    else {
-	MOVLrr(r0, rd);
-	ADCLrr(r1, rd);
-    }
-}
-
-#define jit_subci_ui(rd, r0, i0)	jit_subci_ui(rd, r0, i0)
-__jit_inline void
-jit_subci_ui(int rd, int r0, unsigned int i0)
-{
-    if (rd == r0)
-	SUBLir(i0, rd);
-    else {
-	MOVLir(i0, rd);
-	SUBLrr(r0, rd);
-    }
-}
-
-#define jit_subcr_ui(rd, r0, r1)	jit_subcr_ui(rd, r0, r1)
-__jit_inline void
-jit_subcr_ui(int rd, int r0, int r1)
-{
-    if (rd == r0)
-	SUBLrr(r1, rd);
-    else {
-	MOVLrr(r0, rd);
-	SUBLir(r1, rd);
-    }
-}
-
-#define jit_subxi_ui(rd, r0, i0)	jit_subxi_ui(rd, r0, i0)
-__jit_inline void
-jit_subxi_ui(int rd, int r0, unsigned int i0)
-{
-    if (rd == r0)
-	SBBLir(i0, rd);
-    else {
-	MOVLir(i0, rd);
-	SBBLrr(r0, rd);
-    }
-}
-
-#define jit_subxr_ui(rd, r0, r1)	jit_subxr_ui(rd, r0, r1)
-__jit_inline void
-jit_subxr_ui(int rd, int r0, int r1)
-{
-    if (rd == r0)
-	SBBLrr(r1, rd);
-    else {
-	MOVLrr(r0, rd);
-	SBBLir(r1, rd);
-    }
-}
-
-#define jit_andi_i(rd, r0, i0)		jit_andi_i(rd, r0, i0)
-__jit_inline void
-jit_andi_i(int rd, int r0, int i0)
-{
-    if (i0 == 0)
-	XORLrr(rd, rd);
-    else if (i0 == -1) {
-	if (rd != r0)
-	    MOVLrr(r0, rd);
-    }
-    else {
-	if (rd != r0)
-	    MOVLrr(r0, rd);
-	ANDLir(i0, rd);
-    }
-}
-
-#define jit_andr_i(rd, r0, r1)		jit_andr_i(rd, r0, r1)
-__jit_inline void
-jit_andr_i(int rd, int r0, int r1)
+jit_addci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
-	jit_movr_i(rd, r0);
-    else if (rd == r0)
-	ANDLrr(r1, rd);
-    else if (rd == r1)
-	ANDLrr(r0, rd);
+	ADDLir(i0, r0);
     else {
-	MOVLrr(r0, rd);
-	ANDLrr(r1, rd);
+	MOVLir(i0, r0);
+	ADDLrr(r1, r0);
     }
 }
 
-#define jit_ori_i(rd, r0, i0)		jit_ori_i(rd, r0, i0)
+#define jit_addcr_ui(r0, r1, r2)	jit_addcr_ui(r0, r1, r2)
 __jit_inline void
-jit_ori_i(int rd, int r0, int i0)
+jit_addcr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r0 == r2)
+	ADDLrr(r1, r0);
+    else if (r0 == r1)
+	ADDLrr(r2, r0);
+    else {
+	MOVLrr(r1, r0);
+	ADDLrr(r2, r0);
+    }
+}
+
+#define jit_addxi_ui(r0, r1, i0)	jit_addxi_ui(r0, r1, i0)
+__jit_inline void
+jit_addxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+{
+    if (r0 == r1)
+	ADCLir(i0, r0);
+    else {
+	MOVLir(i0, r0);
+	ADCLrr(r1, r0);
+    }
+}
+
+#define jit_addxr_ui(r0, r1, r2)	jit_addxr_ui(r0, r1, r2)
+__jit_inline void
+jit_addxr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2) {
+    if (r0 == r2)
+	ADCLrr(r1, r0);
+    else if (r0 == r1)
+	ADCLrr(r2, r0);
+    else {
+	MOVLrr(r1, r0);
+	ADCLrr(r2, r0);
+    }
+}
+
+#define jit_subci_ui(r0, r1, i0)	jit_subci_ui(r0, r1, i0)
+__jit_inline void
+jit_subci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+{
+    if (r0 == r1)
+	SUBLir(i0, r0);
+    else {
+	MOVLir(i0, r0);
+	SUBLrr(r1, r0);
+    }
+}
+
+#define jit_subcr_ui(r0, r1, r2)	jit_subcr_ui(r0, r1, r2)
+__jit_inline void
+jit_subcr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r0 == r1)
+	SUBLrr(r2, r0);
+    else {
+	MOVLrr(r1, r0);
+	SUBLir(r2, r0);
+    }
+}
+
+#define jit_subxi_ui(r0, r1, i0)	jit_subxi_ui(r0, r1, i0)
+__jit_inline void
+jit_subxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+{
+    if (r0 == r1)
+	SBBLir(i0, r0);
+    else {
+	MOVLir(i0, r0);
+	SBBLrr(r1, r0);
+    }
+}
+
+#define jit_subxr_ui(r0, r1, r2)	jit_subxr_ui(r0, r1, r2)
+__jit_inline void
+jit_subxr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r0 == r1)
+	SBBLrr(r2, r0);
+    else {
+	MOVLrr(r1, r0);
+	SBBLir(r2, r0);
+    }
+}
+
+#define jit_andi_i(r0, r1, i0)		jit_andi_i(r0, r1, i0)
+__jit_inline void
+jit_andi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0 == 0)
-	jit_movr_i(rd, r0);
-    else if (i0 == -1) {
-	MOVLir(-1, rd);
-    }
+	XORLrr(r0, r0);
     else {
-	jit_movr_i(rd, r0);
-	if (jit_check8(rd) && jit_can_sign_extend_char_p(i0))
-	    ORBir(i0, rd);
+	jit_movr_i(r0, r1);
+	if (i0 != -1)
+	    ANDLir(i0, r0);
+    }
+}
+
+#define jit_andr_i(r0, r1, r2)		jit_andr_i(r0, r1, r2)
+__jit_inline void
+jit_andr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r1 == r2)
+	jit_movr_i(r0, r1);
+    else if (r0 == r1)
+	ANDLrr(r2, r0);
+    else if (r0 == r2)
+	ANDLrr(r1, r0);
+    else {
+	MOVLrr(r1, r0);
+	ANDLrr(r2, r0);
+    }
+}
+
+#define jit_ori_i(r0, r1, i0)		jit_ori_i(r0, r1, i0)
+__jit_inline void
+jit_ori_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    if (i0 == 0)
+	jit_movr_i(r0, r1);
+    else if (i0 == -1)
+	MOVLir(-1, r0);
+    else {
+	jit_movr_i(r0, r1);
+	if (jit_check8(r0) && jit_can_sign_extend_char_p(i0))
+	    ORBir(i0, r0);
 #if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
-	    ORWir(i0, rd);
+	    ORWir(i0, r0);
 #endif
 	else
-	    ORLir(i0, rd);
+	    ORLir(i0, r0);
     }
 }
 
-#define jit_orr_i(rd, r0, r1)		jit_orr_i(rd, r0, r1)
+#define jit_orr_i(r0, r1, r2)		jit_orr_i(r0, r1, r2)
 __jit_inline void
-jit_orr_i(int rd, int r0, int r1)
+jit_orr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1)
-	jit_movr_i(rd, r0);
-    else if (rd == r0)
-	ORLrr(r1, rd);
-    else if (rd == r1)
-	ORLrr(r0, rd);
+    if (r1 == r2)
+	jit_movr_i(r0, r1);
+    else if (r0 == r1)
+	ORLrr(r2, r0);
+    else if (r0 == r2)
+	ORLrr(r1, r0);
     else {
-	MOVLrr(r0, rd);
-	ORLrr(r1, rd);
+	MOVLrr(r1, r0);
+	ORLrr(r2, r0);
     }
 }
 
-#define jit_xori_i(rd, r0, i0)		jit_xori_i(rd, r0, i0)
+#define jit_xori_i(r0, r1, i0)		jit_xori_i(r0, r1, i0)
 __jit_inline void
-jit_xori_i(int rd, int r0, int i0)
+jit_xori_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0 == 0)
-	jit_movr_i(rd, r0);
+	jit_movr_i(r0, r1);
     else if (i0 == -1) {
-	jit_movr_i(rd, r0);
-	NOTLr(rd);
+	jit_movr_i(r0, r1);
+	NOTLr(r0);
     }
     else {
-	jit_movr_i(rd, r0);
-	if (jit_check8(rd) && jit_can_sign_extend_char_p(i0))
-	    XORBir(i0, rd);
+	jit_movr_i(r0, r1);
+	if (jit_check8(r0) && jit_can_sign_extend_char_p(i0))
+	    XORBir(i0, r0);
 #if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
-	    XORWir(i0, rd);
+	    XORWir(i0, r0);
 #endif
 	else
-	    XORLir(i0, rd);
+	    XORLir(i0, r0);
     }
 }
 
-#define jit_xorr_i(rd, r0, r1)		jit_xorr_i(rd, r0, r1)
+#define jit_xorr_i(r0, r1, r2)		jit_xorr_i(r0, r1, r2)
 __jit_inline void
-jit_xorr_i(int rd, int r0, int r1)
+jit_xorr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1) {
-	if (rd != r0)
-	    MOVLrr(r0, rd);
+    if (r1 == r2) {
+	if (r0 != r1)
+	    MOVLrr(r1, r0);
 	else
-	    XORLrr(rd, rd);
+	    XORLrr(r0, r0);
     }
-    else if (rd == r0)
-	XORLrr(r1, rd);
-    else if (rd == r1)
-	XORLrr(r0, rd);
+    else if (r0 == r1)
+	XORLrr(r2, r0);
+    else if (r0 == r2)
+	XORLrr(r1, r0);
     else {
-	MOVLrr(r0, rd);
-	XORLrr(r1, rd);
+	MOVLrr(r1, r0);
+	XORLrr(r2, r0);
     }
 }
 
@@ -442,7 +437,7 @@ jit_xorr_i(int rd, int r0, int r1)
  *  %edx = high 32 bits
  */
 __jit_inline void
-jit_muli_i_(int r0, int i0)
+jit_muli_i_(jit_gpr_t r0, int i0)
 {
     if (r0 == _RAX) {
 	MOVLir(i0, _RDX);
@@ -454,33 +449,33 @@ jit_muli_i_(int r0, int i0)
     }
 }
 
-#define jit_hmuli_i(rd, r0, i1)		jit_hmuli_i(rd, r0, i1)
+#define jit_hmuli_i(r0, r1, i0)		jit_hmuli_i(r0, r1, i0)
 __jit_inline void
-jit_hmuli_i(int rd, int r0, int i0)
+jit_hmuli_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (rd == _RDX) {
+    if (r0 == _RDX) {
 	jit_pushr_i(_RAX);
-	jit_muli_i_(r0, i0);
+	jit_muli_i_(r1, i0);
 	jit_popr_i(_RAX);
     }
-    else if (rd == _RAX) {
+    else if (r0 == _RAX) {
 	jit_pushr_i(_RDX);
-	jit_muli_i_(r0, i0);
+	jit_muli_i_(r1, i0);
 	MOVLrr(_RDX, _RAX);
 	jit_popr_i(_RDX);
     }
     else {
 	jit_pushr_i(_RDX);
 	jit_pushr_i(_RAX);
-	jit_muli_i_(r0, i0);
-	MOVLrr(_RDX, rd);
+	jit_muli_i_(r1, i0);
+	MOVLrr(_RDX, r0);
 	jit_popr_i(_RAX);
 	jit_popr_i(_RDX);
     }
 }
 
 __jit_inline void
-jit_mulr_i_(int r0, int r1)
+jit_mulr_i_(jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r1 == _RAX)
 	IMULLr(r0);
@@ -492,26 +487,26 @@ jit_mulr_i_(int r0, int r1)
     }
 }
 
-#define jit_hmulr_i(rd, r0, r1)		jit_hmulr_i(rd, r0, r1)
+#define jit_hmulr_i(r0, r1, r2)		jit_hmulr_i(r0, r1, r2)
 __jit_inline void
-jit_hmulr_i(int rd, int r0, int r1)
+jit_hmulr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (rd == _RDX) {
+    if (r0 == _RDX) {
 	jit_pushr_i(_RAX);
-	jit_mulr_i_(r0, r1);
+	jit_mulr_i_(r1, r2);
 	jit_popr_i(_RAX);
     }
-    else if (rd == _RAX) {
+    else if (r0 == _RAX) {
 	jit_pushr_i(_RDX);
-	jit_mulr_i_(r0, r1);
+	jit_mulr_i_(r1, r2);
 	MOVLrr(_RDX, _RAX);
 	jit_popr_i(_RDX);
     }
     else {
 	jit_pushr_i(_RDX);
 	jit_pushr_i(_RAX);
-	jit_mulr_i_(r0, r1);
-	MOVLrr(_RDX, rd);
+	jit_mulr_i_(r1, r2);
+	MOVLrr(_RDX, r0);
 	jit_popr_i(_RAX);
 	jit_popr_i(_RDX);
     }
@@ -524,7 +519,7 @@ jit_hmulr_i(int rd, int r0, int r1)
  *  %edx = high 32 bits
  */
 __jit_inline void
-jit_muli_ui_(int r0, unsigned int i0)
+jit_muli_ui_(jit_gpr_t r0, unsigned int i0)
 {
     if (r0 == _RAX) {
 	MOVLir(i0, _RDX);
@@ -536,33 +531,33 @@ jit_muli_ui_(int r0, unsigned int i0)
     }
 }
 
-#define jit_hmuli_ui(rd, r0, i1)	jit_hmuli_ui(rd, r0, i1)
+#define jit_hmuli_ui(r0, r1, i0)	jit_hmuli_ui(r0, r1, i0)
 __jit_inline void
-jit_hmuli_ui(int rd, int r0, unsigned int i0)
+jit_hmuli_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    if (rd == _RDX) {
+    if (r0 == _RDX) {
 	jit_pushr_i(_RAX);
-	jit_muli_ui_(r0, i0);
+	jit_muli_ui_(r1, i0);
 	jit_popr_i(_RAX);
     }
-    else if (rd == _RAX) {
+    else if (r0 == _RAX) {
 	jit_pushr_i(_RDX);
-	jit_muli_ui_(r0, i0);
+	jit_muli_ui_(r1, i0);
 	MOVLrr(_RDX, _RAX);
 	jit_popr_i(_RDX);
     }
     else {
 	jit_pushr_i(_RDX);
 	jit_pushr_i(_RAX);
-	jit_muli_ui_(r0, i0);
-	MOVLrr(_RDX, rd);
+	jit_muli_ui_(r1, i0);
+	MOVLrr(_RDX, r0);
 	jit_popr_i(_RAX);
 	jit_popr_i(_RDX);
     }
 }
 
 __jit_inline void
-jit_mulr_ui_(int r0, int r1)
+jit_mulr_ui_(jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r1 == _RAX)
 	MULLr(r0);
@@ -574,87 +569,87 @@ jit_mulr_ui_(int r0, int r1)
     }
 }
 
-#define jit_hmulr_ui(rd, r0, r1)	jit_hmulr_ui(rd, r0, r1)
+#define jit_hmulr_ui(r0, r1, r2)	jit_hmulr_ui(r0, r1, r2)
 __jit_inline void
-jit_hmulr_ui(int rd, int r0, int r1)
+jit_hmulr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (rd == _RDX) {
+    if (r0 == _RDX) {
 	jit_pushr_i(_RAX);
-	jit_mulr_ui_(r0, r1);
+	jit_mulr_ui_(r1, r2);
 	jit_popr_i(_RAX);
     }
-    else if (rd == _RAX) {
+    else if (r0 == _RAX) {
 	jit_pushr_i(_RDX);
-	jit_mulr_ui_(r0, r1);
+	jit_mulr_ui_(r1, r2);
 	MOVLrr(_RDX, _RAX);
 	jit_popr_i(_RDX);
     }
     else {
 	jit_pushr_i(_RDX);
 	jit_pushr_i(_RAX);
-	jit_mulr_ui_(r0, r1);
-	MOVLrr(_RDX, rd);
+	jit_mulr_ui_(r1, r2);
+	MOVLrr(_RDX, r0);
 	jit_popr_i(_RAX);
 	jit_popr_i(_RDX);
     }
 }
 
-#define jit_muli_i(rd, r0, i0)		jit_muli_i(rd, r0, i0)
-#define jit_muli_ui(rd, r0, i0)		jit_muli_i(rd, r0, i0)
+#define jit_muli_i(r0, r1, i0)		jit_muli_i(r0, r1, i0)
+#define jit_muli_ui(r0, r1, i0)		jit_muli_i(r0, r1, i0)
 __jit_inline void
-jit_muli_i(int rd, int r0, int i0)
+jit_muli_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0 == 0)
-	XORLrr(rd, rd);
+	XORLrr(r0, r0);
     else if (i0 == 1)
-	jit_movr_i(rd, r0);
+	jit_movr_i(r0, r1);
     else if (i0 == -1)
-	jit_negr_i(rd, r0);
+	jit_negr_i(r0, r1);
     else if (jit_can_sign_extend_char_p(i0))
-	IMULBLLirr(i0, r0, rd);
+	IMULBLLirr(i0, r1, r0);
     else
-	IMULLLLirr(i0, r0, rd);
+	IMULLLLirr(i0, r1, r0);
 }
 
-#define jit_mulr_i(rd, r0, r1)		jit_mulr_i(rd, r0, r1)
-#define jit_mulr_ui(rd, r0, r1)		jit_mulr_i(rd, r0, r1)
+#define jit_mulr_i(r0, r1, r2)		jit_mulr_i(r0, r1, r2)
+#define jit_mulr_ui(r0, r1, r2)		jit_mulr_i(r0, r1, r2)
 __jit_inline void
-jit_mulr_i(int rd, int r0, int r1)
+jit_mulr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (rd == r0)
-	IMULLrr(r1, rd);
-    else if (rd == r1)
-	IMULLrr(r0, rd);
+    if (r0 == r1)
+	IMULLrr(r2, r0);
+    else if (r0 == r2)
+	IMULLrr(r1, r0);
     else {
-	MOVLrr(r0, rd);
-	IMULLrr(r1, rd);
+	MOVLrr(r1, r0);
+	IMULLrr(r2, r0);
     }
 }
 
 __jit_inline void
-jit_divi_i_(int rd, int r0, int i0, int is_signed, int is_divide)
+jit_divi_i_(jit_gpr_t r0, jit_gpr_t r1, int i0, int is_signed, int is_divide)
 {
-    int		div;
+    jit_gpr_t	div;
     int		pop;
 
-    if (rd != _RDX)
+    if (r0 != _RDX)
 	jit_pushr_i(_RDX);
-    if (rd != _RAX)
+    if (r0 != _RAX)
 	jit_pushr_i(_RAX);
 
-    if (rd == _RAX || rd == _RDX) {
+    if (r0 == _RAX || r0 == _RDX) {
 	div = _RCX;
 	pop = 1;
     }
     else {
-	div = rd;
+	div = r0;
 	pop = 0;
     }
 
     if (pop)
 	jit_pushr_i(div);
-    if (r0 != _RAX)
-	MOVLrr(r0, _RAX);
+    if (r1 != _RAX)
+	MOVLrr(r1, _RAX);
     MOVLir(i0, div);
 
     if (is_signed) {
@@ -669,72 +664,73 @@ jit_divi_i_(int rd, int r0, int i0, int is_signed, int is_divide)
     if (pop)
 	jit_popr_i(div);
 
-    if (rd != _RAX) {
+    if (r0 != _RAX) {
 	if (is_divide)
-	    MOVLrr(_RAX, rd);
+	    MOVLrr(_RAX, r0);
 	jit_popr_i(_RAX);
     }
-    if (rd != _RDX) {
+    if (r0 != _RDX) {
 	if (!is_divide)
-	    MOVLrr(_RDX, rd);
+	    MOVLrr(_RDX, r0);
 	jit_popr_i(_RDX);
     }
 }
 
 __jit_inline void
-jit_divr_i_(int rd, int r0, int r1, int is_signed, int is_divide)
+jit_divr_i_(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2,
+	    int is_signed, int is_divide)
 {
-    int		div;
-    int		pop;
+    jit_gpr_t	div;
+    jit_gpr_t		pop;
 
-    if (rd != _RDX)
+    if (r0 != _RDX)
 	jit_pushr_i(_RDX);
-    if (rd != _RAX)
+    if (r0 != _RAX)
 	jit_pushr_i(_RAX);
 
-    if (r1 == _RAX) {
-	if (rd == _RAX || rd == _RDX) {
-	    div = r0 == _RCX ? _RBX : _RCX;
+    if (r2 == _RAX) {
+	if (r0 == _RAX || r0 == _RDX) {
+	    div = r1 == _RCX ? _RBX : _RCX;
 	    jit_pushr_i(div);
 	    MOVLrr(_RAX, div);
-	    if (r0 != _RAX)
-		MOVLrr(r0, _RAX);
+	    if (r1 != _RAX)
+		MOVLrr(r1, _RAX);
 	    pop = 1;
 	}
 	else {
-	    if (rd == r0)
-		XCHGLrr(_RAX, rd);
+	    if (r0 == r1)
+		XCHGLrr(_RAX, r0);
 	    else {
-		if (rd != _RAX)
-		    MOVLrr(_RAX, rd);
 		if (r0 != _RAX)
-		    MOVLrr(r0, _RAX);
+		    MOVLrr(_RAX, r0);
+		if (r1 != _RAX)
+		    MOVLrr(r1, _RAX);
 	    }
-	    div = rd;
+	    div = r0;
 	    pop = 0;
 	}
     }
-    else if (r1 == _RDX) {
-	if (rd == _RAX || rd == _RDX) {
-	    div = r0 == _RCX ? _RBX : _RCX;
+    else if (r2 == _RDX) {
+	if (r0 == _RAX || r0 == _RDX) {
+	    div = r1 == _RCX ? _RBX : _RCX;
 	    jit_pushr_i(div);
 	    MOVLrr(_RDX, div);
-	    if (r0 != _RAX)
-		MOVLrr(r0, _RAX);
+	    if (r1 != _RAX)
+		MOVLrr(r1, _RAX);
 	    pop = 1;
 	}
 	else {
-	    if (r0 != _RAX)
-		MOVLrr(r0, _RAX);
-	    MOVLrr(_RDX, rd);
-	    div = rd;
+	    if (r1 != _RAX)
+		MOVLrr(r1, _RAX);
+	    MOVLrr(_RDX, r0);
+	    div = r0;
 	    pop = 0;
 	}
     }
     else {
-	if (r0 != _RAX)
-	    MOVLrr(r0, _RAX);
-	div = r1;
+	if (r1 != _RAX)
+	    MOVLrr(r1, _RAX);
+	div = r2;
 	pop = 0;
     }
 
@@ -749,447 +745,447 @@ jit_divr_i_(int rd, int r0, int r1, int is_signed, int is_divide)
 
     if (pop)
 	jit_popr_i(div);
-    if (rd != _RAX) {
+    if (r0 != _RAX) {
 	if (is_divide)
-	    MOVLrr(_RAX, rd);
+	    MOVLrr(_RAX, r0);
 	jit_popr_i(_RAX);
     }
-    if (rd != _RDX) {
+    if (r0 != _RDX) {
 	if (!is_divide)
-	    MOVLrr(_RDX, rd);
+	    MOVLrr(_RDX, r0);
 	jit_popr_i(_RDX);
     }
 }
 
-#define jit_divi_i(rd, r0, i0)		jit_divi_i(rd, r0, i0)
+#define jit_divi_i(r0, r1, i0)		jit_divi_i(r0, r1, i0)
 __jit_inline void
-jit_divi_i(int rd, int r0, int i0)
+jit_divi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    jit_divi_i_(rd, r0, i0, 1, 1);
+    jit_divi_i_(r0, r1, i0, 1, 1);
 }
 
-#define jit_divr_i(rd, r0, r1)		jit_divr_i(rd, r0, r1)
+#define jit_divr_i(r0, r1, r2)		jit_divr_i(r0, r1, r2)
 __jit_inline void
-jit_divr_i(int rd, int r0, int r1)
+jit_divr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_divr_i_(rd, r0, r1, 1, 1);
+    jit_divr_i_(r0, r1, r2, 1, 1);
 }
 
-#define jit_divi_ui(rd, r0, i0)		jit_divi_ui(rd, r0, i0)
+#define jit_divi_ui(r0, r1, i0)		jit_divi_ui(r0, r1, i0)
 __jit_inline void
-jit_divi_ui(int rd, int r0, unsigned int i0)
+jit_divi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    jit_divi_i_(rd, r0, i0, 0, 1);
+    jit_divi_i_(r0, r1, i0, 0, 1);
 }
 
-#define jit_divr_ui(rd, r0, r1)		jit_divr_ui(rd, r0, r1)
+#define jit_divr_ui(r0, r1, r2)		jit_divr_ui(r0, r1, r2)
 __jit_inline void
-jit_divr_ui(int rd, int r0, int r1)
+jit_divr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_divr_i_(rd, r0, r1, 0, 1);
+    jit_divr_i_(r0, r1, r2, 0, 1);
 }
 
-#define jit_modi_i(rd, r0, i0)		jit_modi_i(rd, r0, i0)
+#define jit_modi_i(r0, r1, i0)		jit_modi_i(r0, r1, i0)
 __jit_inline void
-jit_modi_i(int rd, int r0, int i0)
+jit_modi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    jit_divi_i_(rd, r0, i0, 1, 0);
+    jit_divi_i_(r0, r1, i0, 1, 0);
 }
 
-#define jit_modr_i(rd, r0, r1)		jit_modr_i(rd, r0, r1)
+#define jit_modr_i(r0, r1, r2)		jit_modr_i(r0, r1, r2)
 __jit_inline void
-jit_modr_i(int rd, int r0, int r1)
+jit_modr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_divr_i_(rd, r0, r1, 1, 0);
+    jit_divr_i_(r0, r1, r2, 1, 0);
 }
 
-#define jit_modi_ui(rd, r0, i0)		jit_modi_ui(rd, r0, i0)
+#define jit_modi_ui(r0, r1, i0)		jit_modi_ui(r0, r1, i0)
 __jit_inline void
-jit_modi_ui(int rd, int r0, unsigned int i0)
+jit_modi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    jit_divi_i_(rd, r0, i0, 0, 0);
+    jit_divi_i_(r0, r1, i0, 0, 0);
 }
 
-#define jit_modr_ui(rd, r0, r1)		jit_modr_ui(rd, r0, r1)
+#define jit_modr_ui(r0, r1, r2)		jit_modr_ui(r0, r1, r2)
 __jit_inline void
-jit_modr_ui(int rd, int r0, int r1)
+jit_modr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_divr_i_(rd, r0, r1, 0, 0);
+    jit_divr_i_(r0, r1, r2, 0, 0);
 }
 
 /* Shifts */
 __jit_inline void
-_jit_shift32(int rd, int r0, int r1, int code)
+_jit_shift32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
 {
-    int		lsh;
+    jit_gpr_t	lsh;
 
-    if (rd != _RCX && r1 != _RCX)
+    if (r0 != _RCX && r2 != _RCX)
 	jit_pushr_i(_RCX);
 
-    if (r0 == _RCX) {
-	if (rd != _RCX) {
-	    if (rd == r1)
-		XCHGLrr(_RCX, rd);
+    if (r1 == _RCX) {
+	if (r0 != _RCX) {
+	    if (r0 == r2)
+		XCHGLrr(_RCX, r0);
 	    else {
-		MOVLrr(_RCX, rd);
-		MOVLrr(r1, _RCX);
+		MOVLrr(_RCX, r0);
+		MOVLrr(r2, _RCX);
 	    }
-	    lsh = rd;
+	    lsh = r0;
 	}
-	/* rd == _RCX */
-	else if (r1 == _RCX) {
+	/* r0 == _RCX */
+	else if (r2 == _RCX) {
 	    jit_pushr_i(_RAX);
 	    MOVLrr(_RCX, _RAX);
 	    lsh = _RAX;
 	}
 	else {
-	    jit_pushr_i(r1);
-	    XCHGLrr(_RCX, r1);
-	    lsh = r1;
+	    jit_pushr_i(r2);
+	    XCHGLrr(_RCX, r2);
+	    lsh = r2;
 	}
     }
-    /* r0 != _RCX */
-    else if (rd == _RCX) {
-	jit_pushr_i(r0);
-	if (r1 != _RCX)
-	    MOVLrr(r1, _RCX);
-	lsh = r0;
+    /* r1 != _RCX */
+    else if (r0 == _RCX) {
+	jit_pushr_i(r1);
+	if (r2 != _RCX)
+	    MOVLrr(r2, _RCX);
+	lsh = r1;
     }
     else {
-	if (r1 != _RCX)
-	    MOVLrr(r1, _RCX);
-	if (rd != r0)
-	    MOVLrr(r0, rd);
-	lsh = rd;
+	if (r2 != _RCX)
+	    MOVLrr(r2, _RCX);
+	if (r0 != r1)
+	    MOVLrr(r1, r0);
+	lsh = r0;
     }
 
     _ROTSHILrr(code, _RCX, lsh);
 
-    if (lsh != rd) {
-	MOVLrr(lsh, rd);
+    if (lsh != r0) {
+	MOVLrr(lsh, r0);
 	jit_popr_i(lsh);
     }
 
-    if (rd != _RCX && r1 != _RCX)
+    if (r0 != _RCX && r2 != _RCX)
 	jit_popr_i(_RCX);
 }
 
-#define jit_lshi_i(rd, r0, i0)		jit_lshi_i(rd, r0, i0)
+#define jit_lshi_i(r0, r1, i0)		jit_lshi_i(r0, r1, i0)
 __jit_inline void
-jit_lshi_i(int rd, int r0, unsigned char i0)
+jit_lshi_i(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
     if (i0 == 0)
-	jit_movr_i(rd, r0);
+	jit_movr_i(r0, r1);
     else if (i0 <= 3)
-	LEALmr(0, 0, r0, 1 << i0, rd);
+	LEALmr(0, 0, r1, 1 << i0, r0);
     else {
-	jit_movr_i(rd, r0);
-	SHLLir(i0, rd);
+	jit_movr_i(r0, r1);
+	SHLLir(i0, r0);
     }
 }
 
-#define jit_lshr_i(rd, r0, r1)		jit_lshr_i(rd, r0, r1)
+#define jit_lshr_i(r0, r1, r2)		jit_lshr_i(r0, r1, r2)
 __jit_inline void
-jit_lshr_i(int rd, int r0, int r1)
+jit_lshr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_shift32(rd, r0, r1, X86_SHL);
+    _jit_shift32(r0, r1, r2, X86_SHL);
 }
 
-#define jit_rshi_i(rd, r0, i0)		jit_rshi_i(rd, r0, i0)
+#define jit_rshi_i(r0, r1, i0)		jit_rshi_i(r0, r1, i0)
 __jit_inline void
-jit_rshi_i(int rd, int r0, unsigned char i0)
+jit_rshi_i(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
-    jit_movr_i(rd, r0);
+    jit_movr_i(r0, r1);
     if (i0)
-	SARLir(i0, rd);
+	SARLir(i0, r0);
 }
 
-#define jit_rshr_i(rd, r0, r1)		jit_rshr_i(rd, r0, r1)
+#define jit_rshr_i(r0, r1, r2)		jit_rshr_i(r0, r1, r2)
 __jit_inline void
-jit_rshr_i(int rd, int r0, int r1)
+jit_rshr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_shift32(rd, r0, r1, X86_SAR);
+    _jit_shift32(r0, r1, r2, X86_SAR);
 }
 
-#define jit_rshi_ui(rd, r0, i0)		jit_rshi_ui(rd, r0, i0)
+#define jit_rshi_ui(r0, r1, i0)		jit_rshi_ui(r0, r1, i0)
 __jit_inline void
-jit_rshi_ui(int rd, int r0, unsigned char i0)
+jit_rshi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
-    jit_movr_i(rd, r0);
+    jit_movr_i(r0, r1);
     if (i0)
-	SHRLir(i0, rd);
+	SHRLir(i0, r0);
 }
 
-#define jit_rshr_ui(rd, r0, r1)		jit_rshr_ui(rd, r0, r1)
+#define jit_rshr_ui(r0, r1, r2)		jit_rshr_ui(r0, r1, r2)
 __jit_inline void
-jit_rshr_ui(int rd, int r0, int r1)
+jit_rshr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_shift32(rd, r0, r1, X86_SHR);
+    _jit_shift32(r0, r1, r2, X86_SHR);
 }
 
 /* Boolean */
 __jit_inline void
-_jit_cmp_ri32(int rd, int r0, int i0, int code)
+_jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, int code)
 {
     int		same;
 
-    if (jit_check8(rd)) {
-	same = rd == r0;
+    if (jit_check8(r0)) {
+	same = r0 == r1;
 	if (!same)
-	    XORLrr(rd, rd);
-	CMPLir(i0, r0);
+	    XORLrr(r0, r0);
+	CMPLir(i0, r1);
 	if (same)
-	    MOVLir(0, rd);
-	SETCCir(code, rd);
+	    MOVLir(0, r0);
+	SETCCir(code, r0);
     }
     else {
-	same = r0 == _RAX;
+	same = r1 == _RAX;
 	jit_pushr_i(_RAX);
 	if (!same)
 	    XORLrr(_RAX, _RAX);
-	CMPLir(i0, r0);
+	CMPLir(i0, r1);
 	if (same)
 	    MOVLir(0, _RAX);
 	SETCCir(code, _RAX);
-	MOVLrr(_RAX, rd);
+	MOVLrr(_RAX, r0);
 	jit_popr_i(_RAX);
     }
 }
 
 __jit_inline void
-_jit_test_r32(int rd, int r0, int code)
+_jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, int code)
 {
     int		same;
 
-    if (jit_check8(rd)) {
-	same = rd == r0;
+    if (jit_check8(r0)) {
+	same = r0 == r1;
 	if (!same)
-	    XORLrr(rd, rd);
-	TESTLrr(r0, r0);
+	    XORLrr(r0, r0);
+	TESTLrr(r1, r1);
 	if (same)
-	    MOVLir(0, rd);
-	SETCCir(code, rd);
+	    MOVLir(0, r0);
+	SETCCir(code, r0);
     }
     else {
-	same = r0 == _RAX;
+	same = r1 == _RAX;
 	jit_pushr_i(_RAX);
 	if (!same)
 	    XORLrr(_RAX, _RAX);
-	TESTLrr(r0, r0);
+	TESTLrr(r1, r1);
 	if (same)
 	    MOVLir(0, _RAX);
 	SETCCir(code, _RAX);
-	MOVLrr(_RAX, rd);
+	MOVLrr(_RAX, r0);
 	jit_popr_i(_RAX);
     }
 }
 
 __jit_inline void
-_jit_cmp_rr32(int rd, int r0, int r1, int code)
+_jit_cmp_rr32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
 {
     int		same;
 
-    if (jit_check8(rd)) {
-	same = rd == r0 || rd == r1;
+    if (jit_check8(r0)) {
+	same = r0 == r1 || r0 == r2;
 	if (!same)
-	    XORLrr(rd, rd);
-	CMPLrr(r1, r0);
+	    XORLrr(r0, r0);
+	CMPLrr(r2, r1);
 	if (same)
-	    MOVLir(0, rd);
-	SETCCir(code, rd);
+	    MOVLir(0, r0);
+	SETCCir(code, r0);
     }
     else {
-	same = r0 == _RAX || r1 == _RAX;
+	same = r1 == _RAX || r2 == _RAX;
 	jit_pushr_i(_RAX);
 	if (!same)
 	    XORLrr(_RAX, _RAX);
-	CMPLrr(r1, r0);
+	CMPLrr(r2, r1);
 	if (same)
 	    MOVLir(0, _RAX);
 	SETCCir(code, _RAX);
-	MOVLrr(_RAX, rd);
+	MOVLrr(_RAX, r0);
 	jit_popr_i(_RAX);
     }
 }
 
-#define jit_lti_i(rd, r0, i0)		jit_lti_i(rd, r0, i0)
+#define jit_lti_i(r0, r1, i0)		jit_lti_i(r0, r1, i0)
 __jit_inline void
-jit_lti_i(int rd, int r0, int i0)
+jit_lti_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_L);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_L);
     else
-	_jit_test_r32(rd, r0,		X86_CC_S);
+	_jit_test_r32(r0, r1,		X86_CC_S);
 }
 
-#define jit_ltr_i(rd, r0, r1)		jit_ltr_i(rd, r0, r1)
+#define jit_ltr_i(r0, r1, r2)		jit_ltr_i(r0, r1, r2)
 __jit_inline void
-jit_ltr_i(int rd, int r0, int r1)
+jit_ltr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_L);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_L);
 }
 
-#define jit_lei_i(rd, r0, i0)		jit_lei_i(rd, r0, i0)
+#define jit_lei_i(r0, r1, i0)		jit_lei_i(r0, r1, i0)
 __jit_inline void
-jit_lei_i(int rd, int r0, int i0)
+jit_lei_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    _jit_cmp_ri32(rd, r0, i0,		X86_CC_LE);
+    _jit_cmp_ri32(r0, r1, i0,		X86_CC_LE);
 }
 
-#define jit_ler_i(rd, r0, r1)		jit_ler_i(rd, r0, r1)
+#define jit_ler_i(r0, r1, r2)		jit_ler_i(r0, r1, r2)
 __jit_inline void
-jit_ler_i(int rd, int r0, int r1)
+jit_ler_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_LE);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_LE);
 }
 
-#define jit_eqi_i(rd, r0, i0)		jit_eqi_i(rd, r0, i0)
+#define jit_eqi_i(r0, r1, i0)		jit_eqi_i(r0, r1, i0)
 __jit_inline void
-jit_eqi_i(int rd, int r0, int i0)
+jit_eqi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_E);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_E);
     else
-	_jit_test_r32(rd, r0,		X86_CC_E);
+	_jit_test_r32(r0, r1,		X86_CC_E);
 }
 
-#define jit_eqr_i(rd, r0, r1)		jit_eqr_i(rd, r0, r1)
+#define jit_eqr_i(r0, r1, r2)		jit_eqr_i(r0, r1, r2)
 __jit_inline void
-jit_eqr_i(int rd, int r0, int r1)
+jit_eqr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_E);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_E);
 }
 
-#define jit_gei_i(rd, r0, i0)		jit_gei_i(rd, r0, i0)
+#define jit_gei_i(r0, r1, i0)		jit_gei_i(r0, r1, i0)
 __jit_inline void
-jit_gei_i(int rd, int r0, int i0)
+jit_gei_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_GE);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_GE);
     else
-	_jit_test_r32(rd, r0,		X86_CC_NS);
+	_jit_test_r32(r0, r1,		X86_CC_NS);
 }
 
-#define jit_ger_i(rd, r0, r1)		jit_ger_i(rd, r0, r1)
+#define jit_ger_i(r0, r1, r2)		jit_ger_i(r0, r1, r2)
 __jit_inline void
-jit_ger_i(int rd, int r0, int r1)
+jit_ger_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_GE);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_GE);
 }
 
-#define jit_gti_i(rd, r0, i0)		jit_gti_i(rd, r0, i0)
+#define jit_gti_i(r0, r1, i0)		jit_gti_i(r0, r1, i0)
 __jit_inline void
-jit_gti_i(int rd, int r0, int i0)
+jit_gti_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    _jit_cmp_ri32(rd, r0, i0,		X86_CC_G);
+    _jit_cmp_ri32(r0, r1, i0,		X86_CC_G);
 }
 
-#define jit_gtr_i(rd, r0, r1)		jit_gtr_i(rd, r0, r1)
+#define jit_gtr_i(r0, r1, r2)		jit_gtr_i(r0, r1, r2)
 __jit_inline void
-jit_gtr_i(int rd, int r0, int r1)
+jit_gtr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_G);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_G);
 }
 
-#define jit_nei_i(rd, r0, i0)		jit_nei_i(rd, r0, i0)
+#define jit_nei_i(r0, r1, i0)		jit_nei_i(r0, r1, i0)
 __jit_inline void
-jit_nei_i(int rd, int r0, long i0)
+jit_nei_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_NE);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_NE);
     else
-	_jit_test_r32(rd, r0,		X86_CC_NE);
+	_jit_test_r32(r0, r1,		X86_CC_NE);
 }
 
-#define jit_ner_i(rd, r0, r1)		jit_ner_i(rd, r0, r1)
+#define jit_ner_i(r0, r1, r2)		jit_ner_i(r0, r1, r2)
 __jit_inline void
-jit_ner_i(int rd, int r0, int r1)
+jit_ner_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_NE);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_NE);
 }
 
-#define jit_lti_ui(rd, r0, i0)		jit_lti_ui(rd, r0, i0)
+#define jit_lti_ui(r0, r1, i0)		jit_lti_ui(r0, r1, i0)
 __jit_inline void
-jit_lti_ui(int rd, int r0, unsigned int i0)
+jit_lti_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    _jit_cmp_ri32(rd, r0, i0,		X86_CC_B);
+    _jit_cmp_ri32(r0, r1, i0,		X86_CC_B);
 }
 
-#define jit_ltr_ui(rd, r0, r1)		jit_ltr_ui(rd, r0, r1)
+#define jit_ltr_ui(r0, r1, r2)		jit_ltr_ui(r0, r1, r2)
 __jit_inline void
-jit_ltr_ui(int rd, int r0, int r1)
+jit_ltr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_B);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_B);
 }
 
-#define jit_lei_ui(rd, r0, i0)		jit_lei_ui(rd, r0, i0)
+#define jit_lei_ui(r0, r1, i0)		jit_lei_ui(r0, r1, i0)
 __jit_inline void
-jit_lei_ui(int rd, int r0, unsigned int i0)
+jit_lei_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_BE);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_BE);
     else
-	_jit_test_r32(rd, r0,		X86_CC_E);
+	_jit_test_r32(r0, r1,		X86_CC_E);
 }
 
-#define jit_ler_ui(rd, r0, r1)		jit_ler_ui(rd, r0, r1)
+#define jit_ler_ui(r0, r1, r2)		jit_ler_ui(r0, r1, r2)
 __jit_inline void
-jit_ler_ui(int rd, int r0, int r1)
+jit_ler_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_BE);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_BE);
 }
 
-#define jit_gei_ui(rd, r0, i0)		jit_gei_ui(rd, r0, i0)
+#define jit_gei_ui(r0, r1, i0)		jit_gei_ui(r0, r1, i0)
 __jit_inline void
-jit_gei_ui(int rd, int r0, unsigned int i0)
+jit_gei_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_AE);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_AE);
     else
-	_jit_test_r32(rd, r0,		X86_CC_NB);
+	_jit_test_r32(r0, r1,		X86_CC_NB);
 }
 
-#define jit_ger_ui(rd, r0, r1)		jit_ger_ui(rd, r0, r1)
+#define jit_ger_ui(r0, r1, r2)		jit_ger_ui(r0, r1, r2)
 __jit_inline void
-jit_ger_ui(int rd, int r0, int r1)
+jit_ger_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_AE);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_AE);
 }
 
-#define jit_gti_ui(rd, r0, i0)		jit_gti_ui(rd, r0, i0)
+#define jit_gti_ui(r0, r1, i0)		jit_gti_ui(r0, r1, i0)
 __jit_inline void
-jit_gti_ui(int rd, int r0, unsigned int i0)
+jit_gti_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (i0)
-	_jit_cmp_ri32(rd, r0, i0,	X86_CC_A);
+	_jit_cmp_ri32(r0, r1, i0,	X86_CC_A);
     else
-	_jit_test_r32(rd, r0,		X86_CC_NE);
+	_jit_test_r32(r0, r1,		X86_CC_NE);
 }
 
-#define jit_gtr_ui(rd, r0, r1)		jit_gtr_ui(rd, r0, r1)
+#define jit_gtr_ui(r0, r1, r2)		jit_gtr_ui(r0, r1, r2)
 __jit_inline void
-jit_gtr_ui(int rd, int r0, int r1)
+jit_gtr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _jit_cmp_rr32(rd, r0, r1,		X86_CC_A);
+    _jit_cmp_rr32(r0, r1, r2,		X86_CC_A);
 }
 
 /* Jump */
 __jit_inline void
-_jit_bcmp_ri32(jit_insn *label, int r0, int i0, int code)
+_jit_bcmp_ri32(jit_insn *label, jit_gpr_t r0, int i0, int code)
 {
     CMPLir(i0, r0);
     JCCim(code, label);
 }
 
 __jit_inline void
-_jit_btest_r32(jit_insn *label, int r0, int code)
+_jit_btest_r32(jit_insn *label, jit_gpr_t r0, int code)
 {
     TESTLrr(r0, r0);
     JCCim(code, label);
 }
 
 __jit_inline void
-_jit_bcmp_rr32(jit_insn *label, int r0, int r1, int code)
+_jit_bcmp_rr32(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1, int code)
 {
     CMPLrr(r1, r0);
     JCCim(code, label);
@@ -1197,7 +1193,7 @@ _jit_bcmp_rr32(jit_insn *label, int r0, int r1, int code)
 
 #define jit_blti_i(label, r0, i0)	jit_blti_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_blti_i(jit_insn *label, int r0, int i0)
+jit_blti_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_L);
@@ -1208,7 +1204,7 @@ jit_blti_i(jit_insn *label, int r0, int i0)
 
 #define jit_bltr_i(label, r0, r1)	jit_bltr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bltr_i(jit_insn *label, int r0, int r1)
+jit_bltr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_L);
     return (_jit.x.pc);
@@ -1216,7 +1212,7 @@ jit_bltr_i(jit_insn *label, int r0, int r1)
 
 #define jit_blei_i(label, r0, i0)	jit_blei_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_blei_i(jit_insn *label, int r0, int i0)
+jit_blei_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     _jit_bcmp_ri32(label, r0, i0,	X86_CC_LE);
     return (_jit.x.pc);
@@ -1224,7 +1220,7 @@ jit_blei_i(jit_insn *label, int r0, int i0)
 
 #define jit_bler_i(label, r0, r1)	jit_bler_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bler_i(jit_insn *label, int r0, int r1)
+jit_bler_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_LE);
     return (_jit.x.pc);
@@ -1232,7 +1228,7 @@ jit_bler_i(jit_insn *label, int r0, int r1)
 
 #define jit_beqi_i(label, r0, i0)	jit_beqi_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_beqi_i(jit_insn *label, int r0, int i0)
+jit_beqi_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_E);
@@ -1243,7 +1239,7 @@ jit_beqi_i(jit_insn *label, int r0, int i0)
 
 #define jit_beqr_i(label, r0, r1)	jit_beqr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_beqr_i(jit_insn *label, int r0, int r1)
+jit_beqr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_E);
     return (_jit.x.pc);
@@ -1251,7 +1247,7 @@ jit_beqr_i(jit_insn *label, int r0, int r1)
 
 #define jit_bgei_i(label, r0, i0)	jit_bgei_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgei_i(jit_insn *label, int r0, int i0)
+jit_bgei_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_GE);
@@ -1262,7 +1258,7 @@ jit_bgei_i(jit_insn *label, int r0, int i0)
 
 #define jit_bger_i(label, r0, r1)	jit_bger_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bger_i(jit_insn *label, int r0, int r1)
+jit_bger_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_GE);
     return (_jit.x.pc);
@@ -1270,7 +1266,7 @@ jit_bger_i(jit_insn *label, int r0, int r1)
 
 #define jit_bgti_i(label, r0, i0)	jit_bgti_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgti_i(jit_insn *label, int r0, int i0)
+jit_bgti_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     _jit_bcmp_ri32(label, r0, i0,	X86_CC_G);
     return (_jit.x.pc);
@@ -1278,7 +1274,7 @@ jit_bgti_i(jit_insn *label, int r0, int i0)
 
 #define jit_bgtr_i(label, r0, r1)	jit_bgtr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bgtr_i(jit_insn *label, int r0, int r1)
+jit_bgtr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_G);
     return (_jit.x.pc);
@@ -1286,7 +1282,7 @@ jit_bgtr_i(jit_insn *label, int r0, int r1)
 
 #define jit_bnei_i(label, r0, i0)	jit_bnei_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bnei_i(jit_insn *label, int r0, int i0)
+jit_bnei_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_NE);
@@ -1297,7 +1293,7 @@ jit_bnei_i(jit_insn *label, int r0, int i0)
 
 #define jit_bner_i(label, r0, r1)	jit_bner_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bner_i(jit_insn *label, int r0, int r1)
+jit_bner_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_NE);
     return (_jit.x.pc);
@@ -1305,7 +1301,7 @@ jit_bner_i(jit_insn *label, int r0, int r1)
 
 #define jit_blti_ui(label, r0, i0)	jit_blti_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_blti_ui(jit_insn *label, int r0, unsigned int i0)
+jit_blti_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     _jit_bcmp_ri32(label, r0, i0,	X86_CC_B);
     return (_jit.x.pc);
@@ -1313,7 +1309,7 @@ jit_blti_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_bltr_ui(label, r0, r1)	jit_bltr_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_bltr_ui(jit_insn *label, int r0, int r1)
+jit_bltr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_B);
     return (_jit.x.pc);
@@ -1321,7 +1317,7 @@ jit_bltr_ui(jit_insn *label, int r0, int r1)
 
 #define jit_blei_ui(label, r0, i0)	jit_blei_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_blei_ui(jit_insn *label, int r0, unsigned int i0)
+jit_blei_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_BE);
@@ -1332,7 +1328,7 @@ jit_blei_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_bler_ui(label, r0, r1)	jit_bler_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_bler_ui(jit_insn *label, int r0, int r1)
+jit_bler_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_BE);
     return (_jit.x.pc);
@@ -1340,7 +1336,7 @@ jit_bler_ui(jit_insn *label, int r0, int r1)
 
 #define jit_bgei_ui(label, r0, i0)	jit_bgei_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgei_ui(jit_insn *label, int r0, unsigned int i0)
+jit_bgei_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     _jit_bcmp_ri32(label, r0, i0,	X86_CC_AE);
     return (_jit.x.pc);
@@ -1348,7 +1344,7 @@ jit_bgei_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_bger_ui(label, r0, r1)	jit_bger_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_bger_ui(jit_insn *label, int r0, int r1)
+jit_bger_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_AE);
     return (_jit.x.pc);
@@ -1356,7 +1352,7 @@ jit_bger_ui(jit_insn *label, int r0, int r1)
 
 #define jit_bgti_ui(label, r0, i0)	jit_bgti_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_bgti_ui(jit_insn *label, int r0, unsigned int i0)
+jit_bgti_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     if (i0)
 	_jit_bcmp_ri32(label, r0, i0,	X86_CC_A);
@@ -1367,7 +1363,7 @@ jit_bgti_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_bgtr_ui(label, r0, r1)	jit_bgtr_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_bgtr_ui(jit_insn *label, int r0, int r1)
+jit_bgtr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     _jit_bcmp_rr32(label, r0, r1,	X86_CC_A);
     return (_jit.x.pc);
@@ -1375,7 +1371,7 @@ jit_bgtr_ui(jit_insn *label, int r0, int r1)
 
 #define jit_boaddi_i(label, r0, i0)	jit_boaddi_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_boaddi_i(jit_insn *label, int r0, int i0)
+jit_boaddi_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     ADDLir(i0, r0);
     JOm(label);
@@ -1384,7 +1380,7 @@ jit_boaddi_i(jit_insn *label, int r0, int i0)
 
 #define jit_boaddr_i(label, r0, r1)	jit_boaddr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_boaddr_i(jit_insn *label, int r0, int r1)
+jit_boaddr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     ADDLrr(r1, r0);
     JOm(label);
@@ -1393,7 +1389,7 @@ jit_boaddr_i(jit_insn *label, int r0, int r1)
 
 #define jit_bosubi_i(label, r0, i0)	jit_bosubi_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bosubi_i(jit_insn *label, int r0, int i0)
+jit_bosubi_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     SUBLir(i0, r0);
     JOm(label);
@@ -1402,7 +1398,7 @@ jit_bosubi_i(jit_insn *label, int r0, int i0)
 
 #define jit_bosubr_i(label, r0, r1)	jit_bosubr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bosubr_i(jit_insn *label, int r0, int r1)
+jit_bosubr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     SUBLrr(r1, r0);
     JOm(label);
@@ -1411,7 +1407,7 @@ jit_bosubr_i(jit_insn *label, int r0, int r1)
 
 #define jit_boaddi_ui(label, r0, i0)	jit_boaddi_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_boaddi_ui(jit_insn *label, int r0, unsigned int i0)
+jit_boaddi_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     ADDLir(i0, r0);
     JCm(label);
@@ -1420,7 +1416,7 @@ jit_boaddi_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_boaddr_ui(label, r0, r1)	jit_boaddr_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_boaddr_ui(jit_insn *label, int r0, int r1)
+jit_boaddr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     ADDLrr(r1, r0);
     JCm(label);
@@ -1429,7 +1425,7 @@ jit_boaddr_ui(jit_insn *label, int r0, int r1)
 
 #define jit_bosubi_ui(label, r0, i0)	jit_bosubi_ui(label, r0, i0)
 __jit_inline jit_insn *
-jit_bosubi_ui(jit_insn *label, int r0, unsigned int i0)
+jit_bosubi_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
     SUBLir(i0, r0);
     JCm(label);
@@ -1438,7 +1434,7 @@ jit_bosubi_ui(jit_insn *label, int r0, unsigned int i0)
 
 #define jit_bosubr_ui(label, r0, r1)	jit_bosubr_ui(label, r0, r1)
 __jit_inline jit_insn *
-jit_bosubr_ui(jit_insn *label, int r0, int r1)
+jit_bosubr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     SUBLrr(r1, r0);
     JCm(label);
@@ -1447,7 +1443,7 @@ jit_bosubr_ui(jit_insn *label, int r0, int r1)
 
 #define jit_bmsi_i(label, r0, i0)	jit_bmsi_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bmsi_i(jit_insn *label, int r0, int i0)
+jit_bmsi_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, r0);
@@ -1462,7 +1458,7 @@ jit_bmsi_i(jit_insn *label, int r0, int i0)
 
 #define jit_bmsr_i(label, r0, r1)	jit_bmsr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bmsr_i(jit_insn *label, int r0, int r1)
+jit_bmsr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     TESTLrr(r1, r0);
     JNZm(label);
@@ -1471,7 +1467,7 @@ jit_bmsr_i(jit_insn *label, int r0, int r1)
 
 #define jit_bmci_i(label, r0, i0)	jit_bmci_i(label, r0, i0)
 __jit_inline jit_insn *
-jit_bmci_i(jit_insn *label, int r0, int i0)
+jit_bmci_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
     if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, r0);
@@ -1486,7 +1482,7 @@ jit_bmci_i(jit_insn *label, int r0, int i0)
 
 #define jit_bmcr_i(label, r0, r1)	jit_bmcr_i(label, r0, r1)
 __jit_inline jit_insn *
-jit_bmcr_i(jit_insn *label, int r0, int r1)
+jit_bmcr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     TESTLrr(r1, r0);
     JZm(label);
@@ -1494,142 +1490,142 @@ jit_bmcr_i(jit_insn *label, int r0, int r1)
 }
 
 /* Memory */
-#define jit_ntoh_us(rd, r0)		jit_ntoh_us(rd, r0)
+#define jit_ntoh_us(r0, r1)		jit_ntoh_us(r0, r1)
 __jit_inline void
-jit_ntoh_us(int rd, int r0)
+jit_ntoh_us(jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_movr_i(rd, r0);
-    RORWir(8, rd);
+    jit_movr_i(r0, r1);
+    RORWir(8, r0);
 }
 
-#define jit_ntoh_ui(rd, r0)		jit_ntoh_ui(rd, r0)
+#define jit_ntoh_ui(r0, r1)		jit_ntoh_ui(r0, r1)
 __jit_inline void
-jit_ntoh_ui(int rd, int r0)
+jit_ntoh_ui(jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_movr_i(rd, r0);
-    BSWAPLr(rd);
+    jit_movr_i(r0, r1);
+    BSWAPLr(r0);
 }
 
-#define jit_extr_c_i(rd, r0)		jit_extr_c_i(rd, r0)
+#define jit_extr_c_i(r0, r1)		jit_extr_c_i(r0, r1)
 __jit_inline void
-jit_extr_c_i(int rd, int r0)
+jit_extr_c_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    int		rep;
+    jit_gpr_t	rep;
 
-    if (jit_check8(r0))
-	MOVSBLrr(r0, rd);
+    if (jit_check8(r1))
+	MOVSBLrr(r1, r0);
     else {
-	if (rd == _RAX)
+	if (r0 == _RAX)
 	    rep = _RDX;
 	else
 	    rep = _RAX;
-	if (rd != r0)
-	    XCHGLrr(rep, r0);
+	if (r0 != r1)
+	    XCHGLrr(rep, r1);
 	else {
 	    jit_pushr_i(rep);
-	    MOVLrr(r0, rep);
+	    MOVLrr(r1, rep);
 	}
-	MOVSBLrr(rep, rd);
-	if (rd != r0)
-	    XCHGLrr(rep, r0);
+	MOVSBLrr(rep, r0);
+	if (r0 != r1)
+	    XCHGLrr(rep, r1);
 	else
 	    jit_popr_i(rep);
     }
 }
 
-#define jit_extr_c_ui(rd, r0)		jit_extr_c_ui(rd, r0)
+#define jit_extr_c_ui(r0, r1)		jit_extr_c_ui(r0, r1)
 __jit_inline void
-jit_extr_c_ui(int rd, int r0)
+jit_extr_c_ui(jit_gpr_t r0, jit_gpr_t r1)
 {
-    int		rep;
+    jit_gpr_t	rep;
 
-    if (jit_check8(r0))
-	MOVZBLrr(r0, rd);
+    if (jit_check8(r1))
+	MOVZBLrr(r1, r0);
     else {
-	if (rd == _RAX)
+	if (r0 == _RAX)
 	    rep = _RDX;
 	else
 	    rep = _RAX;
-	if (rd != r0)
-	    XCHGLrr(rep, r0);
+	if (r0 != r1)
+	    XCHGLrr(rep, r1);
 	else {
 	    jit_pushr_i(rep);
-	    MOVLrr(r0, rep);
+	    MOVLrr(r1, rep);
 	}
-	MOVZBLrr(rep, rd);
-	if (rd != r0)
-	    XCHGLrr(rep, r0);
+	MOVZBLrr(rep, r0);
+	if (r0 != r1)
+	    XCHGLrr(rep, r1);
 	else
 	    jit_popr_i(rep);
     }
 }
 
-#define jit_extr_s_i(rd, r0)		jit_extr_s_i(rd, r0)
+#define jit_extr_s_i(r0, r1)		jit_extr_s_i(r0, r1)
 __jit_inline void
-jit_extr_s_i(int rd, int r0)
+jit_extr_s_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSWLrr(r0, rd);
+    MOVSWLrr(r1, r0);
 }
 
-#define jit_extr_s_ui(rd, r0)		jit_extr_s_ui(rd, r0)
+#define jit_extr_s_ui(r0, r1)		jit_extr_s_ui(r0, r1)
 __jit_inline void
-jit_extr_s_ui(int rd, int r0)
+jit_extr_s_ui(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVZWLrr(r0, rd);
+    MOVZWLrr(r1, r0);
 }
 
 #define jit_ldr_uc(r0, r1)		jit_ldr_uc(r0, r1)
 __jit_inline void
-jit_ldr_uc(int r0, int r1)
+jit_ldr_uc(jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVZBLmr(0, r1, 0, 0, r0);
 }
 
 #define jit_ldxr_uc(r0, r1, r2)		jit_ldxr_uc(r0, r1, r2)
 __jit_inline void
-jit_ldxr_uc(int r0, int r1, int r2)
+jit_ldxr_uc(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     MOVZBLmr(0, r1, r2, 1, r0);
 }
 
 #define jit_ldr_us(r0, r1)		jit_ldr_us(r0, r1)
 __jit_inline void
-jit_ldr_us(int r0, int r1)
+jit_ldr_us(jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVZWLmr(0, r1, 0, 0, r0);
 }
 
 #define jit_ldxr_us(r0, r1, r2)		jit_ldxr_us(r0, r1, r2)
 __jit_inline void
-jit_ldxr_us(int r0, int r1, int r2)
+jit_ldxr_us(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     MOVZWLmr(0, r1, r2, 1, r0);
 }
 
 #define jit_str_s(r0, r1)		jit_str_s(r0, r1)
 __jit_inline void
-jit_str_s(int r0, int r1)
+jit_str_s(jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVWrm(r1, 0, r0, 0, 0);
 }
 
 #define jit_stxr_s(r0, r1, r2)		jit_stxr_s(r0, r1, r2)
 __jit_inline void
-jit_stxr_s(int r0, int r1, int r2)
+jit_stxr_s(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     MOVWrm(r2, 0, r0, r1, 1);
 }
 
 #define jit_str_i(r0, r1)		jit_str_i(r0, r1)
 __jit_inline void
-jit_str_i(int r0, int r1)
+jit_str_i(jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVLrm(r1, 0, r0, 0, 0);
 }
 
 #define jit_stxr_i(r0, r1, r2)		jit_stxr_i(r0, r1, r2)
 __jit_inline void
-jit_stxr_i(int r0, int r1, int r2)
+jit_stxr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     MOVLrm(r2, 0, r0, r1, 1);
 }
