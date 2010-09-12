@@ -866,7 +866,7 @@ jit_eqr_d(jit_gpr_t r0, int f0, int f1)
 	else
 	    _i686_fp_cmp(r0, f0, f1,	X86_CC_E, X86_CC_PE);
     }
-    else if (f1 == 1)
+    else if (f1 == 0)
 	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_E);
     else
 	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_E);
@@ -905,7 +905,7 @@ jit_ner_d(jit_gpr_t r0, int f0, int f1)
 	else
 	    _i686_fp_cmp(r0, f0, f1,	X86_CC_NE, X86_CC_PE);
     }
-    else if (f1 == 1)
+    else if (f1 == 0)
 	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_NE);
     else
 	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_NE);
@@ -998,7 +998,7 @@ __jit_inline void
 jit_unordr_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686()) {
-	if (f1 == 1)
+	if (f1 == 0)
 	    _i686_fp_cmp(r0, f1, f0,	X86_CC_P, 0);
 	else
 	    _i686_fp_cmp(r0, f0, f1,	X86_CC_P, 0);
