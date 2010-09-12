@@ -586,6 +586,8 @@ _i386_floorr_d_i(jit_gpr_t r0, int f0)
 __jit_inline void
 _i686_floorr_d_i(jit_gpr_t r0, int f0)
 {
+    jit_insn	*label;
+
     /* make room */
     PUSHLr(_RAX);
     /* push value */
@@ -593,12 +595,17 @@ _i686_floorr_d_i(jit_gpr_t r0, int f0)
     /* round to nearest */
     FRNDINT_();
     /* compare and set flags */
+    FXCHr(f0 + 1);
     FCOMIr(f0 + 1);
+    FXCHr(f0 + 1);
     /* store integer */
     FISTPLm(0, _RSP, 0, 0);
     POPLr(r0);
+    JPESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
     /* subtract 1 if carry */
     SBBLir(0, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
 }
 
 #define jit_floorr_d_i(r0, f0)		jit_floorr_d_i(r0, f0)
@@ -700,6 +707,8 @@ _i386_ceilr_d_i(jit_gpr_t r0, int f0)
 __jit_inline void
 _i686_ceilr_d_i(jit_gpr_t r0, int f0)
 {
+    jit_insn	*label;
+
     /* make room */
     PUSHLr(_RAX);
     /* push value */
@@ -711,8 +720,11 @@ _i686_ceilr_d_i(jit_gpr_t r0, int f0)
     /* store integer */
     FISTPLm(0, _RSP, 0, 0);
     POPLr(r0);
+    JPESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
     /* add 1 if carry */
     ADCLir(0, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
 }
 
 #define jit_ceilr_d_i(r0, f0)		jit_ceilr_d_i(r0, f0)
