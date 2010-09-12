@@ -927,84 +927,79 @@ jit_rshr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 _jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, int code)
 {
-    int		same;
+    int		op;
+    jit_gpr_t	reg;
 
     if (jit_check8(r0)) {
-	same = r0 == r1;
-	if (!same)
+	if (!(op = r0 == r1))
 	    XORLrr(r0, r0);
 	CMPLir(i0, r1);
-	if (same)
+	if (op)
 	    MOVLir(0, r0);
 	SETCCir(code, r0);
     }
     else {
-	same = r1 == _RAX;
-	jit_pushr_i(_RAX);
-	if (!same)
-	    XORLrr(_RAX, _RAX);
+	reg = r1 == _RAX ? _RDX : _RAX;
+	MOVLrr(reg, r0);
+	XORLrr(reg, reg);
 	CMPLir(i0, r1);
-	if (same)
-	    MOVLir(0, _RAX);
-	SETCCir(code, _RAX);
-	MOVLrr(_RAX, r0);
-	jit_popr_i(_RAX);
+	SETCCir(code, reg);
+	XCHGLrr(reg, r0);
     }
 }
 
 __jit_inline void
 _jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, int code)
 {
-    int		same;
+    int		op;
+    jit_gpr_t	reg;
 
     if (jit_check8(r0)) {
-	same = r0 == r1;
-	if (!same)
+	if (!(op = r0 == r1))
 	    XORLrr(r0, r0);
 	TESTLrr(r1, r1);
-	if (same)
+	if (op)
 	    MOVLir(0, r0);
 	SETCCir(code, r0);
     }
     else {
-	same = r1 == _RAX;
-	jit_pushr_i(_RAX);
-	if (!same)
-	    XORLrr(_RAX, _RAX);
+	reg = r1 == _RAX ? _RDX : _RAX;
+	MOVLrr(reg, r0);
+	XORLrr(reg, reg);
 	TESTLrr(r1, r1);
-	if (same)
-	    MOVLir(0, _RAX);
-	SETCCir(code, _RAX);
-	MOVLrr(_RAX, r0);
-	jit_popr_i(_RAX);
+	SETCCir(code, reg);
+	XCHGLrr(reg, r0);
     }
 }
 
 __jit_inline void
 _jit_cmp_rr32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
 {
-    int		same;
+    int		op;
+    jit_gpr_t	reg;
 
     if (jit_check8(r0)) {
-	same = r0 == r1 || r0 == r2;
-	if (!same)
+	if (!(op = r0 == r1 || r0 == r2))
 	    XORLrr(r0, r0);
 	CMPLrr(r2, r1);
-	if (same)
+	if (op)
 	    MOVLir(0, r0);
 	SETCCir(code, r0);
     }
     else {
-	same = r1 == _RAX || r2 == _RAX;
-	jit_pushr_i(_RAX);
-	if (!same)
-	    XORLrr(_RAX, _RAX);
+	if (r1 == _RAX || r2 == _RAX) {
+	    if (r1 == _RDX || r2 == _RDX)
+		reg = _RCX;
+	    else
+		reg = _RDX;
+	}
+	else
+	    reg = _RAX;
+	MOVLrr(reg, r0);
+	XORLrr(reg, reg);
 	CMPLrr(r2, r1);
-	if (same)
-	    MOVLir(0, _RAX);
-	SETCCir(code, _RAX);
-	MOVLrr(_RAX, r0);
-	jit_popr_i(_RAX);
+	SETCCir(code, reg);
+	XCHGLrr(reg, r0);
     }
 }
 

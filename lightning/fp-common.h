@@ -62,6 +62,9 @@
 #define jit_negr_f(rd,rs)		jit_negr_d(rd,rs)
 #define jit_sqrt_f(rd,rs)		jit_sqrt_d(rd,rs)
 #define jit_extr_i_f(rd, rs)		jit_extr_i_d(rd, rs)
+#if defined(jit_rintr_d_i)
+#  define jit_rintr_f_i(rd, rs)		jit_rintr_d_i(rd, rs)
+#endif
 #define jit_roundr_f_i(rd, rs)		jit_roundr_d_i(rd, rs)
 #define jit_floorr_f_i(rd, rs)		jit_floorr_d_i(rd, rs)
 #define jit_ceilr_f_i(rd, rs)		jit_ceilr_d_i(rd, rs)
@@ -84,11 +87,11 @@
 #endif
 
 #ifndef jit_extr_f_d
-#define jit_extr_f_d(rd, rs)		jit_movr_d(rd, rs)
+#  define jit_extr_f_d(rd, rs)		jit_movr_d(rd, rs)
 #endif
 
 #ifndef jit_extr_d_f
-#define jit_extr_d_f(rd, rs)		jit_movr_d(rd, rs)
+#  define jit_extr_d_f(rd, rs)		jit_movr_d(rd, rs)
 #endif
 
 #if !defined(__WORDSIZE) || __WORDSIZE == 32
@@ -99,12 +102,18 @@
 #    define jit_extr_l_d(rd, rs)	jit_extr_i_d(rd, rs)
 #  endif
 #  if !defined(jit_roundr_f_l)
+#    if defined(jit_rintr_f_i)
+#      define jit_rintr_f_l(rd, rs)	jit_rintr_f_i(rd, rs)
+#    endif
 #    define jit_roundr_f_l(rd, rs)	jit_roundr_f_i(rd, rs)
 #    define jit_truncr_f_l(rd, rs)	jit_truncr_f_i(rd, rs)
 #    define jit_floorr_f_l(rd, rs)	jit_floorr_f_i(rd, rs)
 #    define jit_ceilr_f_l(rd, rs)	jit_ceilr_f_i(rd, rs)
 #  endif
 #  if !defined(jit_roundr_d_l)
+#    if defined(jit_rintr_d_i)
+#      define jit_rintr_d_l(rd, rs)	jit_rintr_d_i(rd, rs)
+#    endif
 #    define jit_roundr_d_l(rd, rs)	jit_roundr_d_i(rd, rs)
 #    define jit_truncr_d_l(rd, rs)	jit_truncr_d_i(rd, rs)
 #    define jit_floorr_d_l(rd, rs)	jit_floorr_d_i(rd, rs)

@@ -50,6 +50,17 @@
 #define JIT_FPRET	       0
 #define JIT_FPR(i)	       (i)
 
+/* FIXME should be a runtime flags */
+
+/* FISTTP, FCOMI and FUCOMI are p6 or newer */
+#define jit_i686()			1
+
+/* assume always round to nearest */
+/* not assuming round to nearest averages more than 3 times slower than
+ * fastest version, and slightly less then 3 times slower than pre p6
+ * version, but works regardless of rounding mode */
+#define jit_always_round_to_nearest()	1
+
 #define jit_fxch(rs, op)       (((rs) != 0 ? FXCHr(rs) : 0),   \
                                 op, ((rs) != 0 ? FXCHr(rs) : 0))
 
@@ -73,8 +84,8 @@
 #define jit_mulr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FMULrr,FMULrr)
 #define jit_divr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FDIVrr,FDIVRrr)
 
-#define jit_abs_d(rd,rs)       jit_fp_unary ((rd), (rs), _OO (0xd9e1))
-#define jit_negr_d(rd,rs)      jit_fp_unary ((rd), (rs), _OO (0xd9e0))
+#define jit_abs_d(rd,rs)       jit_fp_unary ((rd), (rs), FABS_())
+#define jit_negr_d(rd,rs)      jit_fp_unary ((rd), (rs), FCHS_())
 #define jit_sqrt_d(rd,rs)      jit_fp_unary ((rd), (rs), _OO (0xd9fa))
 
 /* - moves:
@@ -108,27 +119,6 @@
 		FXCH ST3     Get back old st0
 
    (and similarly for immediates, using the stack) */
-
-#define jit_movi_f(rd,immf)                     \
-        (_O (0x68),                            \
-         *((float *) _jit.x.pc) = (float) immf, \
-         _jit.x.uc_pc += sizeof (float),       \
-        jit_ldr_f((rd), _RSP),                 \
-        ADDLir(4, _RSP))
-
-union jit_double_imm {
-  double d;
-  int i[2];
-};
-
-#define jit_movi_d(rd,immd)                                                            \
-        (_O (0x68),                                                                    \
-         _jit.x.uc_pc[4] = 0x68,                                                       \
-         ((union jit_double_imm *) (_jit.x.uc_pc + 5))->d = (double) immd,             \
-         *((int *) _jit.x.uc_pc) = ((union jit_double_imm *) (_jit.x.uc_pc + 5))->i[1],        \
-         _jit.x.uc_pc += 9,                                                            \
-        jit_ldr_d((rd), _RSP),                                                         \
-        ADDLir(8, _RSP))
 
 #define jit_ldi_f(rd, is)                              \
   ((rd) == 0 ? (FSTPr (0), FLDSm((is), 0, 0, 0))       \
@@ -176,88 +166,568 @@ union jit_double_imm {
 #define jit_sti_d(id, rs)      jit_fxch ((rs), FSTLm((id), 0,    0, 0))
 #define jit_str_d(rd, rs)      jit_fxch ((rs), FSTLm(0,    (rd), 0, 0))
 
+#define jit_movi_f(f0, i0)		jit_movi_f(f0, i0)
+__jit_inline void
+jit_movi_f(int f0, float i0)
+{
+    union {
+	int	i;
+	float	f;
+    } data;
+    int		c;
+
+    c = 1;
+    data.f = i0;
+    if (data.f == 0.0) {
+	if (data.i & 0x80000000)
+	    c = 0;
+	else
+	    FLDZ_();
+    }
+    else if (data.f == 1.0)
+	FLD1_();
+    else if (data.f == 3.3219280948873623478703195458468f)
+	FLDL2T_();
+    else if (data.f == 1.4426950408889634073599246886656f)
+	FLDL2E_();
+    else if (data.f == 3.1415926535897932384626421096161f)
+	FLDPI_();
+    else if (data.f == 0.3010299956639811952137387498515f)
+	FLDLG2_();
+    else if (data.f == 0.6931471805599453094172323683399f)
+	FLDLN2_();
+    else
+	c = 0;
+
+    if (c)
+	FSTPr(f0 + 1);
+    else {
+	PUSHLi(data.i);
+	jit_ldr_f(f0, _RSP);
+	ADDLir(4, _RSP);
+    }
+}
+
+#define jit_movi_d(f0, i0)		jit_movi_d(f0, i0)
+__jit_inline void
+jit_movi_d(int f0, double i0)
+{
+    union {
+	int	i[2];
+	double	d;
+    } data;
+    int		c;
+
+    c = 1;
+    data.d = i0;
+    if (data.d == 0.0) {
+	if (data.i[1] & 0x80000000)
+	    c = 0;
+	else
+	    FLDZ_();
+    }
+    else if (data.d == 1.0)
+	FLD1_();
+    else if (data.d == 3.3219280948873623478703195458468)
+	FLDL2T_();
+    else if (data.d == 1.4426950408889634073599246886656)
+	FLDL2E_();
+    else if (data.d == 3.1415926535897932384626421096161)
+	FLDPI_();
+    else if (data.d == 0.3010299956639811952137387498515)
+	FLDLG2_();
+    else if (data.d == 0.6931471805599453094172323683399)
+	FLDLN2_();
+    else
+	c = 0;
+
+    if (c)
+	FSTPr(f0 + 1);
+    else {
+	PUSHLi(data.i[1]);
+	PUSHLi(data.i[0]);
+	jit_ldr_d(f0, _RSP);
+	ADDLir(8, _RSP);
+    }
+}
+
 /* ABI */
 #define jit_retval_d(rd)		FSTPr((rd) + 1)
 
-/* Assume round to near mode */
-#define jit_floorr_d_i(rd, rs) \
-       (FLDr (rs), jit_floor2((rd), ((rd) == _RDX ? _RAX : _RDX)))
+#define jit_rintr_d_i(r0, f0)		jit_rintr_d_i(r0, f0)
+__jit_inline void
+jit_rintr_d_i(jit_gpr_t r0, int f0)
+{
+    PUSHLr(_RAX);
+    if (f0)
+	FXCHr(f0);
+    /* store integer using current rounding mode */
+    FISTLm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+    POPLr(r0);
+}
 
-#define jit_ceilr_d_i(rd, rs)  \
-       (FLDr (rs), jit_ceil2((rd), ((rd) == _RDX ? _RAX : _RDX)))
+/* This looks complex/slow, but actually is quite faster than
+ * adjusting the rounding mode as done in _safe_roundr_d_i
+ */
+__jit_inline void
+_i386_roundr_d_i(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
 
-#define jit_truncr_d_i(rd, rs) \
-       (FLDr (rs), jit_trunc2((rd), ((rd) == _RDX ? _RAX : _RDX)))
+    /* make room on stack */
+    PUSHLr(_RAX);
+    if (r0 != _RAX)
+	MOVLrr(_RAX, r0);
 
-#define jit_calc_diff(ofs)		\
-	FISTLm(ofs, _RSP, 0, 0),	\
-	FILDLm(ofs, _RSP, 0, 0),	\
-	FSUBRPr(1),			\
-	FSTPSm(4+ofs, _RSP, 0, 0)	\
+    /* st(0) = rint(f0) */
+    FLDr(f0);
 
-/* The real meat */
-#define jit_floor2(rd, aux)		\
-	(PUSHLr(aux),			\
-	SUBLir(8, _RSP),		\
-	jit_calc_diff(0),		\
-	POPLr(rd),			/* floor in rd */ \
-	POPLr(aux),			/* x-round(x) in aux */ \
-	ADDLir(0x7FFFFFFF, aux),	/* carry if x-round(x) < -0 */ \
-	SBBLir(0, rd),			/* subtract 1 if carry */ \
-	POPLr(aux))
+    /* status test(st(0), 0.0) in %ax to know if positive */
+    FTST_();
+    FNSTSWr(_RAX);
 
-#define jit_ceil2(rd, aux)		\
-	(PUSHLr(aux),			\
-	SUBLir(8, _RSP),		\
-	jit_calc_diff(0),		\
-	POPLr(rd),			/* floor in rd */ \
-	POPLr(aux),			/* x-round(x) in aux */ \
-	TESTLrr(aux, aux),		\
-	SETGr(aux),			\
-	SHRLir(1, aux),			\
-	ADCLir(0, rd),			\
-	POPLr(aux))
+    /*	Assuming default, round to nearest:
+     *	f(n) = n - rint(n)
+     *	f(0.3) =  0.3	f(-0.3) = -0.3
+     *	f(0.5) =  0.5	f(-0.5) = -0.5	(wrong round down to even)
+     *	f(0.7) = -0.3	f(-0.7) =  0.3
+     *	f(1.3) =  0.3	f(-1.3) = -0.3
+     *	f(1.5) = -0.5	f(-1.5) =  0.5	(correct round up to even)
+     *	f(1.7) = -0.3	f(-1.7) =  0.3
+     *
+     *	Logic used is:
+     *	-0.5 * sgn(n) + (n - rint(n))
+     *
+     *	If result of above is not zero, round to nearest (even on ties)
+     *	will round away from zero as expected, otherwise:
+     *	rint(n - -0.5 * sgn(n))
+     *
+     *	Example:
+     *	round_to_nearest(0.5) = 0, what is wrong, following above:
+     *		0.5 - rint(0.5) = 0.5
+     *		-0.5 * 1 + 0.5 = 0
+     *		rint(0.5 - -0.5 * 1) = 1
+     *	with negative value:
+     *	round_to_nearest(-2.5) = -2, what is wrong, following above:
+     *		-2.5 - rint(-2.5) = -0.5
+     *		-0.5 * -1 + -0.5 = 0.0
+     *		rint(-2.5 - -0.5 * -1) = -3
+     */
 
-/* a mingling of the two above */
-#define jit_trunc2(rd, aux)			\
-	(PUSHLr(aux),				\
-	SUBLir(12, _RSP),			\
-	FSTSm(0, _RSP, 0, 0),			\
-	jit_calc_diff(4),			\
-	POPLr(aux),				\
-	POPLr(rd),				\
-	TESTLrr(aux, aux),			\
-	POPLr(aux),				\
-	JSSm(_jit.x.pc + 11),			\
-	_jitl.label = jit_get_label(),		\
-	ADDLir(0x7FFFFFFF, aux),	/* 6 */	\
-	SBBLir(0, rd),			/* 3 */ \
-	JMPSm(_jit.x.pc + 10),		/* 2 */ \
-	jit_patch_rel_char_at(_jitl.label,	\
-			      _jit.x.pc),	\
-	_jitl.label = jit_get_label(),		\
-	TESTLrr(aux, aux),		/* 2 */ \
-	SETGr(aux),			/* 3 */ \
-	SHRLir(1, aux),			/* 2 */ \
-	ADCLir(0, rd),			/* 3 */ \
-	jit_patch_rel_char_at(_jitl.label,	\
-			      _jit.x.pc),	\
-	POPLr(aux))
+    /* st(0) = rint(st(0)) */
+    FRNDINT_();
 
-/* the easy one */
-#define jit_roundr_d_i(rd, rs)                         \
-        (PUSHLr(_RAX),                                 \
-        jit_fxch ((rs), FISTLm(0, _RSP, 0, 0)),       \
-	POPLr((rd)))
+    /* st(0) = st(f0+1)-st(0) */
+    FSUBRrr(f0 + 1, 0);
 
-#define jit_fp_test(d, s1, s2, n, _and, res)           \
-       (((s1) == 0 ? FUCOMr((s2)) : (FLDr((s1)), FUCOMPr((s2) + 1))),     \
-        ((d) != _RAX ? MOVLrr(_RAX, (d)) : 0),                 \
-        FNSTSWr(_RAX),                                         \
-        SHRLir(n, _RAX),                                       \
-        ((_and) ? ANDLir((_and), _RAX) : MOVLir(0, _RAX)),     \
-        res,                                                   \
-        ((d) != _RAX ? _O (0x90 + ((d) & 7)) : 0))     /* xchg */
+    /* st(0) = -0.5, st(1) = fract */
+    FLD1_();
+    FCHS_();
+    F2XM1_();
+
+    /* if (st(f0+2) is positive, do not change sign of -0.5 */
+    ANDWir(FPSW_COND, _RAX);
+    TESTWrr(_RAX, _RAX);
+    JZSm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
+    FCHS_();
+    jit_patch_rel_char_at(label, _jit.x.pc);
+
+    /* st(0) = *0.5 + fract, st(1) = *0.5 */
+    FXCHr(1);
+    FADDrr(1, 0);
+
+    /* status of test(st(0), 0.0) in %ax to know if zero
+     * (tie round to nearest, that was even, and was round towards zero) */
+    FTST_();
+    FNSTSWr(_RAX);
+
+    /* replace top of x87 stack with jit register argument */
+    FFREEr(0);
+    FINCSTP_();
+    FLDr(f0 + 1);
+
+    /* if operation did not result in zero, can round to near */
+    ANDWir(FPSW_COND, _RAX);
+    CMPWir(FPSW_EQ, _RAX);
+    JNESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
+
+    /* adjust for round, st(0) = st(0) - *0.5 */
+    FSUBrr(1, 0);
+
+    jit_patch_rel_char_at(label, _jit.x.pc);
+
+    /* overwrite *0.5 with (possibly adjusted) value */
+    FSTPr(1);
+
+    /* store value and pop x87 stack */
+    FISTPLm(0, _RSP, 0, 0);
+
+    if (r0 != _RAX)
+	XCHGLrr(_RAX, r0);
+    POPLr(r0);
+}
+
+__jit_inline void
+_safe_roundr_d_i(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
+
+    /* make room on stack and save %rax */
+    SUBLir(8, _RSP);
+    if (r0 != _RAX)
+	MOVLrr(_RAX, r0);
+
+    /* load copy of value */
+    FLDr(f0);
+
+    /* store control word */
+    FSTCWm(0, _RSP, 0, 0);
+    /* load control word */
+    jit_ldr_s(_RAX, _RSP);
+    /* make copy */
+    jit_stxi_s(4, _RSP, _RAX);
+
+    /* clear top bits and select chop (truncate mode) */
+    MOVZBLrr(_RAX, _RAX);
+#if __WORDSIZE == 32
+    ORWir(FPCW_CHOP, _RAX);
+#else
+    ORLir(FPCW_CHOP, _RAX);
+#endif
+
+    /* load new control word */
+    jit_str_s(_RSP, _RAX);
+    FLDCWm(0, _RSP, 0, 0);
+
+    /* compare with 0 */
+    FTST_();
+    FNSTSWr(_RAX);
+
+    /* load -0.5 */
+    FLD1_();
+    FCHS_();
+    F2XM1_();
+
+    /* if negative keep sign of -0.5 */
+    ANDWir(FPSW_COND, _RAX);
+    CMPWir(FPSW_LT, _RAX);
+    JESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
+    FCHS_();
+    jit_patch_rel_char_at(label, _jit.x.pc);
+
+    /* add/sub 0.5 */
+    FADDPr(1);
+
+    /* round adjusted value using truncation */
+    FISTPLm(0, _RSP, 0, 0);
+
+    /* load result and restore state */
+    FLDCWm(4, _RSP, 0, 0);
+    if (r0 != _RAX)
+	XCHGLrr(_RAX, r0);
+    jit_ldr_i(r0, _RSP);
+    ADDLir(8, _RSP);
+}
+
+#define jit_roundr_d_i(r0, f0)		jit_roundr_d_i(r0, f0)
+__jit_inline void
+jit_roundr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_always_round_to_nearest())
+	_i386_roundr_d_i(r0, f0);
+    else
+	_safe_roundr_d_i(r0, f0);
+}
+
+__jit_inline void
+_i386_truncr_d_i(jit_gpr_t r0, int f0)
+{
+    /* make room, store control word and copy */
+    SUBLir(8, _RSP);
+    FSTCWm(0, _RSP, 0, 0);
+    jit_ldr_s(r0, _RSP);
+    jit_stxi_s(4, _RSP, r0);
+
+    /* clear top bits and select chop (round towards zero) */
+    if (jit_check8(r0))
+	/* always the path in 64-bit mode */
+	MOVZBLrr(r0, r0);
+    else
+	/* 32-bit mode only */
+	ANDWir(0xff, r0);
+#if __WORDSIZE == 32
+    ORWir(FPCW_CHOP, r0);
+#else
+    /* FIXME not only this for x86_64
+     * (push/pop and stack aligned at 8 bytes) */
+    ORLir(FPCW_CHOP, r0);
+#endif
+
+    /* load new control word and convert integer */
+    jit_str_s(_RSP, r0);
+    FLDCWm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+    FISTLm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+
+    /* load result and restore state */
+    FLDCWm(4, _RSP, 0, 0);
+    jit_ldr_i(r0, _RSP);
+    ADDLir(8, _RSP);
+}
+
+__jit_inline void
+_i686_truncr_d_i(jit_gpr_t r0, int f0)
+{
+    PUSHLr(_RAX);
+    FLDr(f0);
+    FISTTPLm(0, _RSP, 0, 0);
+    POPLr(r0);
+}
+
+#define jit_truncr_d_i(r0, f0)		jit_truncr_d_i(r0, f0)
+__jit_inline void
+jit_truncr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_i686())
+	_i686_truncr_d_i(r0, f0);
+    else
+	/* also "safe" version */
+	_i386_truncr_d_i(r0, f0);
+}
+
+__jit_inline void
+_safe_floorr_d_i(jit_gpr_t r0, int f0)
+{
+    /* make room, store control word and copy */
+    SUBLir(8, _RSP);
+    FSTCWm(0, _RSP, 0, 0);
+    jit_ldr_s(r0, _RSP);
+    jit_stxi_s(4, _RSP, r0);
+
+    /* clear top bits and select down (round towards minus infinity) */
+    if (jit_check8(r0))
+	MOVZBLrr(r0, r0);
+    else
+	ANDWir(0xff, r0);
+#if __WORDSIZE == 32
+    ORWir(FPCW_DOWN, r0);
+#else
+    ORLir(FPCW_DOWN, r0);
+#endif
+
+    /* load new control word and convert integer */
+    jit_str_s(_RSP, r0);
+    FLDCWm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+    FISTLm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+
+    /* load integer and restore state */
+    FLDCWm(4, _RSP, 0, 0);
+    jit_ldr_i(r0, _RSP);
+    ADDLir(8, _RSP);
+}
+
+__jit_inline void
+_i386_floorr_d_i(jit_gpr_t r0, int f0)
+{
+    /* less than 10% slower, reliable with invalid,
+     *  unordered values (convert to 0x80000000) */
+#if 1
+    jit_insn	*label;
+
+    PUSHLr(_RAX);
+    if (r0 != _RAX)
+	MOVLrr(_RAX, r0);
+    FLDr(f0);
+    FRNDINT_();
+    FUCOMr(f0 + 1);
+    FNSTSWr(_RAX);
+    ANDWir(FPSW_COND, _RAX);
+    TESTWrr(_RAX, _RAX);
+    JNESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
+    FLD1_();
+    FSUBRPr(1);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    FISTPLm(0, _RSP, 0, 0);
+    if (r0 != _RAX)
+	XCHGLrr(_RAX, r0);
+    POPLr(r0);
+#else
+    /* original code */
+    jit_gpr_t	 aux = r0 == _RDX ? _RAX : _RDX;
+
+    PUSHLr(aux);
+    FLDr(f0);
+    SUBLir(8, _RSP);
+    FISTLm(0, _RSP, 0, 0);
+    FILDLm(0, _RSP, 0, 0);
+    FSUBRPr(1);
+    FSTPSm(4, _RSP, 0, 0);
+    POPLr(r0);
+    POPLr(aux);
+    ADDLir(0x7FFFFFFF, aux);
+    SBBLir(0, r0);
+    POPLr(aux);
+#endif
+}
+
+__jit_inline void
+_i686_floorr_d_i(jit_gpr_t r0, int f0)
+{
+    /* make room */
+    PUSHLr(_RAX);
+    /* push value */
+    FLDr(f0);
+    /* round to nearest */
+    FRNDINT_();
+    /* compare and set flags */
+    FCOMIr(f0 + 1);
+    /* store integer */
+    FISTPLm(0, _RSP, 0, 0);
+    POPLr(r0);
+    /* subtract 1 if carry */
+    SBBLir(0, r0);
+}
+
+#define jit_floorr_d_i(r0, f0)		jit_floorr_d_i(r0, f0)
+__jit_inline void
+jit_floorr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_always_round_to_nearest()) {
+	if (jit_i686())
+	    _i686_floorr_d_i(r0, f0);
+	else
+	    _i386_floorr_d_i(r0, f0);
+    }
+    else
+	_safe_floorr_d_i(r0, f0);
+}
+
+__jit_inline void
+_safe_ceilr_d_i(jit_gpr_t r0, int f0)
+{
+    /* make room, store control word and copy */
+    SUBLir(8, _RSP);
+    FSTCWm(0, _RSP, 0, 0);
+    jit_ldr_s(r0, _RSP);
+    jit_stxi_s(4, _RSP, r0);
+
+    /* clear top bits and select up (round towards positive infinity) */
+    if (jit_check8(r0))
+	MOVZBLrr(r0, r0);
+    else
+	ANDWir(0xff, r0);
+#if __WORDSIZE == 32
+    ORWir(FPCW_UP, r0);
+#else
+    ORLir(FPCW_UP, r0);
+#endif
+
+    /* load new control word and convert integer */
+    jit_str_s(_RSP, r0);
+    FLDCWm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+    FISTLm(0, _RSP, 0, 0);
+    if (f0)
+	FXCHr(f0);
+
+    /* load integer and restore state */
+    FLDCWm(4, _RSP, 0, 0);
+    jit_ldr_i(r0, _RSP);
+    ADDLir(8, _RSP);
+}
+
+__jit_inline void
+_i386_ceilr_d_i(jit_gpr_t r0, int f0)
+{
+    /* less than 10% slower, reliable with invalid,
+     *  unordered values (convert to 0x80000000) */
+#if 1
+    jit_insn	*label;
+
+    PUSHLr(_RAX);
+    if (r0 != _RAX)
+	MOVLrr(_RAX, r0);
+    FLDr(f0);
+    FRNDINT_();
+    FUCOMr(f0 + 1);
+    FNSTSWr(_RAX);
+    ANDWir(FPSW_COND, _RAX);
+    CMPWir(FPSW_LT, _RAX);
+    JNESm((long)(_jit.x.pc + 4));
+    label = _jit.x.pc;
+    FLD1_();
+    FADDPr(1);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    FISTPLm(0, _RSP, 0, 0);
+    if (r0 != _RAX)
+	XCHGLrr(_RAX, r0);
+    POPLr(r0);
+#else
+    /* original code */
+    jit_gpr_t	aux = r0 == _RDX ? _RAX : _RDX;
+
+    PUSHLr(aux);
+    FLDr(f0);
+    SUBLir(8, _RSP);
+    FISTLm(0, _RSP, 0, 0);
+    FILDLm(0, _RSP, 0, 0);
+    FSUBRPr(1);
+    FSTPSm(4, _RSP, 0, 0);
+    POPLr(r0);
+    POPLr(aux);
+    TESTLrr(aux, aux);
+    SETGr(aux);
+    SHRLir(1, aux);
+    ADCLir(0, r0);
+    POPLr(aux);
+#endif
+}
+
+__jit_inline void
+_i686_ceilr_d_i(jit_gpr_t r0, int f0)
+{
+    /* make room */
+    PUSHLr(_RAX);
+    /* push value */
+    FLDr(f0);
+    /* round to nearest */
+    FRNDINT_();
+    /* compare and set flags */
+    FCOMIr(f0 + 1);
+    /* store integer */
+    FISTPLm(0, _RSP, 0, 0);
+    POPLr(r0);
+    /* add 1 if carry */
+    ADCLir(0, r0);
+}
+
+#define jit_ceilr_d_i(r0, f0)		jit_ceilr_d_i(r0, f0)
+__jit_inline void
+jit_ceilr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_always_round_to_nearest()) {
+	if (jit_i686())
+	    _i686_ceilr_d_i(r0, f0);
+	else
+	    _i386_ceilr_d_i(r0, f0);
+    }
+    else
+	_safe_ceilr_d_i(r0, f0);
+}
 
 #define jit_fp_btest(d, s1, s2, n, _and, cmp, res)             \
        (((s1) == 0 ? FUCOMr((s2)) : (FLDr((s1)), FUCOMPr((s2) + 1))),    \
@@ -269,8 +739,6 @@ union jit_double_imm {
         POPLr(_RAX),                                           \
         res ((d)),					       \
 	_jit.x.pc)
-
-#define jit_nothing_needed(x)
 
 /* After FNSTSW we have 1 if <, 40 if =, 0 if >, 45 if unordered.  Here
    is how to map the values of the status word's high byte to the
@@ -297,20 +765,247 @@ union jit_double_imm {
   lt, le, ungt, unge are actually computed as gt, ge, unlt, unle with
   the operands swapped; it is more efficient this way.  */
 
-#define jit_gtr_d(d, s1, s2)            jit_fp_test((d), (s1), (s2), 8, 0x45, SETZr (_RAX))
-#define jit_ger_d(d, s1, s2)            jit_fp_test((d), (s1), (s2), 9, 0, SBBBir (-1, _RAX))
-#define jit_unler_d(d, s1, s2)          jit_fp_test((d), (s1), (s2), 8, 0x45, SETNZr (_RAX))
-#define jit_unltr_d(d, s1, s2)          jit_fp_test((d), (s1), (s2), 9, 0, ADCBir (0, _RAX))
-#define jit_ltr_d(d, s1, s2)            jit_fp_test((d), (s2), (s1), 8, 0x45, SETZr (_RAX))
-#define jit_ler_d(d, s1, s2)            jit_fp_test((d), (s2), (s1), 9, 0, SBBBir (-1, _RAX))
-#define jit_unger_d(d, s1, s2)          jit_fp_test((d), (s2), (s1), 8, 0x45, SETNZr (_RAX))
-#define jit_ungtr_d(d, s1, s2)          jit_fp_test((d), (s2), (s1), 9, 0, ADCBir (0, _RAX))
-#define jit_eqr_d(d, s1, s2)            jit_fp_test((d), (s1), (s2), 8, 0x45, (CMPBir (0x40, _RAX), SETEr (_RAX)))
-#define jit_ner_d(d, s1, s2)            jit_fp_test((d), (s1), (s2), 8, 0x45, (CMPBir (0x40, _RAX), SETNEr (_RAX)))
-#define jit_ltgtr_d(d, s1, s2)          jit_fp_test((d), (s1), (s2), 15, 0, SBBBir (-1, _RAX))
-#define jit_uneqr_d(d, s1, s2)          jit_fp_test((d), (s1), (s2), 15, 0, ADCBir (0, _RAX))
-#define jit_ordr_d(d, s1, s2)           jit_fp_test((d), (s1), (s2), 11, 0, SBBBir (-1, _RAX))
-#define jit_unordr_d(d, s1, s2)         jit_fp_test((d), (s1), (s2), 11, 0, ADCBir (0, _RAX))
+__jit_inline void
+_i386_fp_cmp(jit_gpr_t r0, int f0, int f1, int shift, int and, int code)
+{
+    if (f0 == 0)
+	FUCOMr(f1);
+    else {
+	FLDr(f0);
+	FUCOMPr(f1 + 1);
+    }
+    if (r0 != _RAX)
+	MOVLrr(_RAX, r0);
+    FNSTSWr(_RAX);
+    SHRLir(shift, _RAX);
+    if (and)
+	ANDLir(and, _RAX);
+    else
+	MOVLir(0, _RAX);
+    if (shift == 8) {
+	if (code < 0) {
+	    CMPBir(0x40, _RAX);
+	    code = -code;
+	}
+	SETCCir(code, _RAX);
+    }
+    else if (code == 0)
+	ADCBir(0, _RAX);
+    else
+	SBBBir(-1, _RAX);
+    if (r0 != _RAX)
+	XCHGLrr(r0, _RAX);
+}
+
+__jit_inline void
+_i686_fp_cmp(jit_gpr_t r0, int f0, int f1, int code, int ord)
+{
+    int		 rc;
+    jit_gpr_t	 reg;
+    jit_insn	*label;
+
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+
+    if (ord != X86_CC_PE || code == X86_CC_E)
+	XORLrr(reg, reg);
+    else
+	MOVLir(1, reg);
+
+    if (f0 == 0)
+	FUCOMIr(f1);
+    else {
+	FLDr(f0);
+	FUCOMIPr(f1 + 1);
+    }
+    if (ord) {
+	JCCSim(ord, (long)(_jit.x.pc + 3));
+	label = _jit.x.pc;
+    }
+    SETCCir(code, reg);
+    if (ord)
+	jit_patch_rel_char_at(label, _jit.x.pc);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
+}
+
+#define jit_ltr_f(r0, f0, f1)		jit_ltr_d(r0, f0, f1)
+#define jit_ltr_d(r0, f0, f1)		jit_ltr_d(r0, f0, f1)
+__jit_inline void
+jit_ltr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_A, 0);
+    else
+	_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_Z);
+}
+
+#define jit_ler_f(r0, f0, f1)		jit_ler_d(r0, f0, f1)
+#define jit_ler_d(r0, f0, f1)		jit_ler_d(r0, f0, f1)
+__jit_inline void
+jit_ler_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_AE, 0);
+    else
+	_i386_fp_cmp(r0, f1, f0,	9, 0, -1);
+}
+
+#define jit_eqr_f(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
+#define jit_eqr_d(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
+__jit_inline void
+jit_eqr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686()) {
+	if (f1 == 0)
+	    _i686_fp_cmp(r0, f1, f0,	X86_CC_E, X86_CC_PE);
+	else
+	    _i686_fp_cmp(r0, f0, f1,	X86_CC_E, X86_CC_PE);
+    }
+    else if (f1 == 1)
+	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_E);
+    else
+	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_E);
+}
+
+#define jit_ger_f(r0, f0, f1)		jit_ger_d(r0, f0, f1)
+#define jit_ger_d(r0, f0, f1)		jit_ger_d(r0, f0, f1)
+__jit_inline void
+jit_ger_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_AE, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	9, 0, -1);
+}
+
+#define jit_gtr_f(r0, f0, f1)		jit_gtr_d(r0, f0, f1)
+#define jit_gtr_d(r0, f0, f1)		jit_gtr_d(r0, f0, f1)
+__jit_inline void
+jit_gtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_A, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_Z);
+}
+
+#define jit_ner_f(r0, f0, f1)		jit_ner_d(r0, f0, f1)
+#define jit_ner_d(r0, f0, f1)		jit_ner_d(r0, f0, f1)
+__jit_inline void
+jit_ner_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686()) {
+	if (f1 == 0)
+	    _i686_fp_cmp(r0, f1, f0,	X86_CC_NE, X86_CC_PE);
+	else
+	    _i686_fp_cmp(r0, f0, f1,	X86_CC_NE, X86_CC_PE);
+    }
+    else if (f1 == 1)
+	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_NE);
+    else
+	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_NE);
+}
+
+#define jit_unltr_f(r0, f0, f1)		jit_unltr_d(r0, f0, f1)
+#define jit_unltr_d(r0, f0, f1)		jit_unltr_d(r0, f0, f1)
+__jit_inline void
+jit_unltr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_NAE, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	9, 0, 0);
+}
+
+#define jit_unler_f(r0, f0, f1)		jit_unler_d(r0, f0, f1)
+#define jit_unler_d(r0, f0, f1)		jit_unler_d(r0, f0, f1)
+__jit_inline void
+jit_unler_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_NA, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_NZ);
+}
+
+#define jit_ltgtr_f(r0, f0, f1)		jit_ltgtr_d(r0, f0, f1)
+#define jit_ltgtr_d(r0, f0, f1)		jit_ltgtr_d(r0, f0, f1)
+__jit_inline void
+jit_ltgtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_NE, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	15, 0, -1);
+}
+
+#define jit_uneqr_f(r0, f0, f1)		jit_uneqr_d(r0, f0, f1)
+#define jit_uneqr_d(r0, f0, f1)		jit_uneqr_d(r0, f0, f1)
+__jit_inline void
+jit_uneqr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_E, 0);
+    else
+	_i386_fp_cmp(r0, f0, f1,	15, 0, 0);
+}
+
+#define jit_unger_f(r0, f0, f1)		jit_unger_d(r0, f0, f1)
+#define jit_unger_d(r0, f0, f1)		jit_unger_d(r0, f0, f1)
+__jit_inline void
+jit_unger_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_NA, 0);
+    else
+	_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_NZ);
+}
+
+#define jit_ungtr_f(r0, f0, f1)		jit_ungtr_d(r0, f0, f1)
+#define jit_ungtr_d(r0, f0, f1)		jit_ungtr_d(r0, f0, f1)
+__jit_inline void
+jit_ungtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_NAE, 0);
+    else
+	_i386_fp_cmp(r0, f1, f0,	9, 0, 0);
+}
+
+#define jit_ordr_f(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
+#define jit_ordr_d(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
+__jit_inline void
+jit_ordr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686()) {
+	if (f1 == 0)
+	    _i686_fp_cmp(r0, f1, f0,	X86_CC_NP, 0);
+	else
+	    _i686_fp_cmp(r0, f0, f1,	X86_CC_NP, 0);
+    }
+    else
+	_i386_fp_cmp(r0, f0, f1,	11, 0, -1);
+}
+
+#define jit_unordr_f(r0, f0, f1)	jit_unordr_d(r0, f0, f1)
+#define jit_unordr_d(r0, f0, f1)	jit_unordr_d(r0, f0, f1)
+__jit_inline void
+jit_unordr_d(jit_gpr_t r0, int f0, int f1)
+{
+    if (jit_i686()) {
+	if (f1 == 1)
+	    _i686_fp_cmp(r0, f1, f0,	X86_CC_P, 0);
+	else
+	    _i686_fp_cmp(r0, f0, f1,	X86_CC_P, 0);
+    }
+    else
+	_i386_fp_cmp(r0, f0, f1,	11, 0, 0);
+}
 
 #define jit_bgtr_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 8, 0x45, 0, JZm)
 #define jit_bger_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 9, 0, 0, JNCm)

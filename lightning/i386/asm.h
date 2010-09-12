@@ -1259,59 +1259,180 @@ enum {
 
 /* x87 instructions -- yay, we found a use for octal constants :-) */
 
-#define ESCmi(D,B,I,S,OP)	(_REXLrm(0,B,I), _O_r_X(0xd8|(OP >> 3), (OP & 7), D,B,I,S))
-#define ESCri(RD,OP)		_O_Mrm(0xd8|(OP >> 3), _b11, (OP & 7), RD)
+enum {
+    FPCW_MCW_PC	    = 0x300,	/* Precision control mask */
+    FPCW_64	    = 0x300,	/* 64-bit precision */
+    FPCW_53	    = 0x200,	/* 53-bit precision */
+    FPCW_24	    = 0x000,	/* 24-bit precision */
+    FPCW_MCW_RC	    = 0xc00,	/* Rounding control mask */
+    FPCW_CHOP	    = 0xc00,	/* Truncate */
+    FPCW_UP	    = 0x800,	/* Round up */
+    FPCW_DOWN	    = 0x400,	/* Round down */
+    FPCW_NEAR	    = 0x000,	/* Round to nearest */
+    FPCW_MCW_EM	    = 0x03f,	/* Exception mask */
+    FPCW_INVALID    = 0x001,	/* Allow invalid numbers */
+    FPCW_DENORMAL   = 0x002,	/* Allow denormals (very small numbers) */
+    FPCW_ZERODIVIDE = 0x004,	/* Allow divide by zero */
+    FPCW_OVERFLOW   = 0x008,	/* Allow overflow */
+    FPCW_UNDERFLOW  = 0x010,	/* Allow underflow */
+    FPCW_INEXACT    = 0x020,	/* Allow inexact precision */
+};
 
-#define ESCrri(RS,RD,OP)	((RS) == _ST0 ? ESCri(RD,(OP|040))			\
-				 : (RD) == _ST0 ? ESCri(RS,OP)				\
-				 : JITFAIL ("coprocessor instruction without st0"))
+enum {
+    FPSW_INVALID	= 0x0001,
+    FPSW_DENORMAL	= 0x0002,
+    FPSW_ZERODIVIDE	= 0x0004,
+    FPSW_OVERFLOW	= 0x0008,
+    FPSW_UNDERFLOW	= 0x0010,
+    FPSW_INEXACT	= 0x0020,
+    FPSW_STACKFAULT	= 0x0040,
+    FPSW_EXCEPT		= 0x0080,
+    FPSW_STACK		= 0x3800,	/* Top of stack pointer */
+    FPSW_BUSY		= 0x8000,
 
-#define FLDSm(D,B,I,S)		ESCmi(D,B,I,S,010)     /* fld m32real  */
-#define FILDLm(D,B,I,S)		ESCmi(D,B,I,S,030)     /* fild m32int  */
-#define FLDLm(D,B,I,S)		ESCmi(D,B,I,S,050)     /* fld m64real  */
-#define FILDWm(D,B,I,S)		ESCmi(D,B,I,S,070)     /* fild m16int  */
-#define FSTSm(D,B,I,S)		ESCmi(D,B,I,S,012)     /* fst m32real  */
-#define FISTLm(D,B,I,S)		ESCmi(D,B,I,S,032)     /* fist m32int  */
-#define FSTLm(D,B,I,S)		ESCmi(D,B,I,S,052)     /* fst m64real  */
-#define FISTWm(D,B,I,S)		ESCmi(D,B,I,S,072)     /* fist m16int  */
-#define FSTPSm(D,B,I,S)		ESCmi(D,B,I,S,013)     /* fstp m32real */
-#define FISTPLm(D,B,I,S)	ESCmi(D,B,I,S,033)     /* fistp m32int */
-#define FSTPLm(D,B,I,S)		ESCmi(D,B,I,S,053)     /* fstp m64real */
-#define FISTPWm(D,B,I,S)	ESCmi(D,B,I,S,073)     /* fistp m16int */
-#define FLDTm(D,B,I,S)		ESCmi(D,B,I,S,035)     /* fld m80real  */
-#define FILDQm(D,B,I,S)		ESCmi(D,B,I,S,075)     /* fild m64int  */
-#define FSTPTm(D,B,I,S)		ESCmi(D,B,I,S,037)     /* fstp m80real */
-#define FISTPQm(D,B,I,S)	ESCmi(D,B,I,S,077)     /* fistp m64int */
+    /* Condition mask (bits 14,10,9,8) */
+    FPSW_COND		= 0x4700,
+    FPSW_GT		= 0x0000,
+    FPSW_LT		= 0x0100,
+    FPSW_EQ		= 0x4000,
+    FPSW_UN		= 0x4500,
 
-#define FADDrr(RS,RD)		ESCrri(RS,RD,000)
-#define FMULrr(RS,RD)		ESCrri(RS,RD,001)
-#define FSUBrr(RS,RD)		ESCrri(RS,RD,004)
-#define FSUBRrr(RS,RD)		ESCrri(RS,RD,005)
-#define FDIVrr(RS,RD)		ESCrri(RS,RD,006)
-#define FDIVRrr(RS,RD)		ESCrri(RS,RD,007)
+    /* Classify mask (bits 14,10,9,8) bit 9 (C1) is sign */
+    /* FIXME verify correctness */
+    FPSW_CLASS		= 0x4700,	/* C3 C2 C1 C0 */
+    FPSW_UNSUPPORTED	= 0x0000,	/*  0  0  0  0 */
+    FPSW_NAN		= 0x0100,	/*  0  0  0  1 */
+    FPSW_FINITE		= 0x0400,	/*  0  1  0  0 */
+    FPSW_ZERO		= 0x4000,	/*  1  0  0  0 */
+    FPSW_EMPTY		= 0x4100,	/*  1  0  0  1 */
+    FPSW_DENORM		= 0x4400,	/*  1  1  0  0 */
+};
 
-#define FLDr(RD)		ESCri(RD,010)
-#define FXCHr(RD)		ESCri(RD,011)
-#define FFREEr(RD)		ESCri(RD,050)
-#define FSTr(RD)		ESCri(RD,052)
-#define FSTPr(RD)		ESCri(RD,053)
-#define FCOMr(RD)		ESCri(RD,002)
-#define FCOMPr(RD)		ESCri(RD,003)
-#define FCOMIr(RD)		ESCri(RD,036)
-#define FCOMIPr(RD)		ESCri(RD,076)
-#define FUCOMr(RD)		ESCri(RD,054)
-#define FUCOMPr(RD)		ESCri(RD,055)
-#define FUCOMIr(RD)		ESCri(RD,035)
-#define FUCOMIPr(RD)		ESCri(RD,075)
-#define FADDPr(RD)		ESCri(RD,060)
-#define FMULPr(RD)		ESCri(RD,061)
-#define FSUBPr(RD)		ESCri(RD,064)
-#define FSUBRPr(RD)		ESCri(RD,065)
-#define FDIVPr(RD)		ESCri(RD,066)
-#define FDIVRPr(RD)		ESCri(RD,067)
+#define ESCmi(D, B, I, S, OP)						\
+    (_REXLrm(0, B, I), _O_r_X(0xd8 | (OP >> 3), (OP & 7), D, B, I, S))
+
+#define ESCri(RD,OP)							\
+    _O_Mrm(0xd8 | (OP >> 3), _b11, (OP & 7), RD)
+
+#define ESCrri(RS,RD,OP)						\
+    ((RS) == _ST0							\
+	? ESCri(RD,(OP | 040))						\
+	: (RD) == _ST0							\
+	    ? ESCri(RS, OP)						\
+	    : JITFAIL ("coprocessor instruction without st0"))
+
+#define    FLDSm(D,B,I,S)	ESCmi(D,B,I,S, 010)	/*    fld m32real */
+#define    FSTSm(D,B,I,S)	ESCmi(D,B,I,S, 012)	/*    fst m32real */
+#define   FSTPSm(D,B,I,S)	ESCmi(D,B,I,S, 013)	/*   fstp m32real */
+#define   FLDCWm(D,B,I,S)	ESCmi(D,B,I,S, 015)	/*  fldcw m16int  */
+#define   FSTCWm(D,B,I,S)	/* 0x9b prefix to fnstcw */		\
+    (_REXLrm(0,B,I), _OO_r_X(0x9bd9,7,D,B,I,S))		/*  fstcw m16int  */
+#define  FNSTCWm(D,B,I,S)	ESCmi(D,B,I,S, 017)	/* fnstcw m16int  */
+#define   FILDLm(D,B,I,S)	ESCmi(D,B,I,S, 030)	/*   fild m32int  */
+#define FISTTPLm(D,B,I,S)	ESCmi(D,B,I,S, 031)	/* fisttp m32int  */
+#define   FISTLm(D,B,I,S)	ESCmi(D,B,I,S, 032)	/*   fist m32int  */
+#define  FISTPLm(D,B,I,S)	ESCmi(D,B,I,S, 033)	/*  fistp m32int  */
+#define    FLDTm(D,B,I,S)	ESCmi(D,B,I,S, 035)	/*    fld m80real */
+#define   FSTPTm(D,B,I,S)	ESCmi(D,B,I,S, 037)	/*   fstp m80real */
+#define    FLDLm(D,B,I,S)	ESCmi(D,B,I,S, 050)	/*    fld m64real */
+#define    FSTLm(D,B,I,S)	ESCmi(D,B,I,S, 052)	/*    fst m64real */
+#define   FSTPLm(D,B,I,S)	ESCmi(D,B,I,S, 053)	/*   fstp m64real */
+#define   FILDWm(D,B,I,S)	ESCmi(D,B,I,S, 070)	/*   fild m16int  */
+#define FISTTPQm(D,B,I,S)	ESCmi(D,B,I,S, 071)	/* fisttp m64int  */
+#define   FISTWm(D,B,I,S)	ESCmi(D,B,I,S, 072)	/*   fist m16int  */
+#define  FISTPWm(D,B,I,S)	ESCmi(D,B,I,S, 073)	/*  fistp m16int  */
+#define   FILDQm(D,B,I,S)	ESCmi(D,B,I,S, 075)	/*   fild m64int  */
+#define  FISTPQm(D,B,I,S)	ESCmi(D,B,I,S, 077)	/*  fistp m64int  */
+
+#define  FADDrr(RS,RD)		ESCrri(RS,RD, 000)
+#define  FMULrr(RS,RD)		ESCrri(RS,RD, 001)
+#define  FSUBrr(RS,RD)		ESCrri(RS,RD, 004)
+#define FSUBRrr(RS,RD)		ESCrri(RS,RD, 005)
+#define  FDIVrr(RS,RD)		ESCrri(RS,RD, 006)
+#define FDIVRrr(RS,RD)		ESCrri(RS,RD, 007)
+
+#define     FLDr(RD)		ESCri(RD, 010)		/* ST(0) = ST(RD) */
+#define    FXCHr(RD)		ESCri(RD, 011)
+#define   FFREEr(RD)		ESCri(RD, 050)
+#define     FSTr(RD)		ESCri(RD, 052)
+#define    FSTPr(RD)		ESCri(RD, 053)
+#define    FCOMr(RD)		ESCri(RD, 002)
+#define   FCOMPr(RD)		ESCri(RD, 003)
+#define   FCOMIr(RD)		ESCri(RD, 036)
+#define  FCOMIPr(RD)		ESCri(RD, 076)
+#define   FUCOMr(RD)		ESCri(RD, 054)
+#define  FUCOMPr(RD)		ESCri(RD, 055)
+#define  FUCOMIr(RD)		ESCri(RD, 035)
+#define FUCOMIPr(RD)		ESCri(RD, 075)
+#define   FADDPr(RD)		ESCri(RD, 060)
+#define   FMULPr(RD)		ESCri(RD, 061)
+#define   FSUBPr(RD)		ESCri(RD, 064)
+#define  FSUBRPr(RD)		ESCri(RD, 065)
+#define   FDIVPr(RD)		ESCri(RD, 066)
+#define  FDIVRPr(RD)		ESCri(RD, 067)
+
+/* Clear exceptions */
+#define FNCLEX_()		_OO(0xdbe2)
+
+#define FCLEX_()		(_O(0x9b), FNCLEX_())
+
+/* Complement sign of ST(0) */
+#define FCHS_()			_OO(0xd9e0)
+
+/* Set ST(0) to its absolute value */
+#define FABS_()			_OO(0xd9e1)
+
+/* Compare ST(0) with 0.0 */
+#define FTST_()			_OO(0xd9e4)
+
+/* Classify ST(0) */
+#define FXAM_()			_OO(0xd9e5)
+
+/* Round ST(0) to an integer accordingly to rounding mode */
+#define FRNDINT_()		_OO(0xd9fc)
+
+/* Subtract ST(1) from ST(0) and pop x87 stack */
+#define FSUBRP_()		_OO(0xdee1)
+
+/* Subtract ST(0) from ST(1) and pop x87 stack */
+#define FSUBP_()		_OO(0xdee9)
+
+/* Push +1.0 to the x87 stack */
+#define FLD1_()			_OO(0xd9e8)
+
+/* Push log2(10) */
+#define FLDL2T_()		_OO(0xd9e9)
+
+/* Push log2(e) */
+#define FLDL2E_()		_OO(0xd9ea)
+
+/* Push PI */
+#define FLDPI_()		_OO(0xd9eb)
+
+/* Push log10(2) */
+#define FLDLG2_()		_OO(0xd9ec)
+
+/* Push log(2) */
+#define FLDLN2_()		_OO(0xd9ed)
+
+/* Push +0.0 */
+#define FLDZ_()			_OO(0xd9ee)
+
+/* ST(O) = pow(2, ST(0)) - 1 */
+#define F2XM1_()		_OO(0xd9f0)
+
+/* pop/rotate x87 stack */
+#define FDECSTP_()		_OO(0xd9f6)
+
+/* pop/rotate x87 stack */
+#define FINCSTP_()		_OO(0xd9f7)
+
+/* ST(0) *= * pow(2, ST(1)) */
+#define FSCALE_()		_OO(0xd9fd)
 
 #define FNSTSWr(RD)							\
-    ((RD == _RAX) ? _OO (0xdfe0) : JITFAIL ("RAX expected"))
+    ((RD == _RAX) ? _OO(0xdfe0) : JITFAIL ("RAX expected"))
+
 /* N byte NOPs */
 #define NOPi(N)		(((  (N)    >= 8) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00),_jit_B(0x90)) : (void) 0), \
 			 (( ((N)&7) == 7) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00)) : \
