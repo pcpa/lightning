@@ -859,6 +859,8 @@ jit_eqr_d(jit_gpr_t r0, int f0, int f1)
 	label = _jit.x.pc;
 	SETCCir(X86_CC_E, reg);
 	jit_patch_rel_char_at(label, _jit.x.pc);
+	if (!rc)
+	    XCHGLrr(_RAX, r0);
     }
     else
 	_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, -X86_CC_E);
@@ -901,7 +903,7 @@ jit_ner_d(jit_gpr_t r0, int f0, int f1)
 	    MOVLrr(_RAX, r0);
 	    reg = _RAX;
 	}
-	MOVILir(1, reg);
+	MOVLir(1, reg);
 	if (f0 == 0)
 	    FUCOMIr(f1);
 	else {
@@ -912,6 +914,8 @@ jit_ner_d(jit_gpr_t r0, int f0, int f1)
 	label = _jit.x.pc;
 	SETCCir(X86_CC_NE, reg);
 	jit_patch_rel_char_at(label, _jit.x.pc);
+	if (!rc)
+	    XCHGLrr(_RAX, r0);
     }
     else
 	_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, -X86_CC_NE);
