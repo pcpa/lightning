@@ -1391,12 +1391,6 @@ enum {
 /* Round ST(0) to an integer accordingly to rounding mode */
 #define FRNDINT_()		_OO(0xd9fc)
 
-/* Subtract ST(1) from ST(0) and pop x87 stack */
-#define FSUBRP_()		_OO(0xdee1)
-
-/* Subtract ST(0) from ST(1) and pop x87 stack */
-#define FSUBP_()		_OO(0xdee9)
-
 /* Push +1.0 to the x87 stack */
 #define FLD1_()			_OO(0xd9e8)
 

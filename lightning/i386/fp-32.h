@@ -729,17 +729,6 @@ jit_ceilr_d_i(jit_gpr_t r0, int f0)
 	_safe_ceilr_d_i(r0, f0);
 }
 
-#define jit_fp_btest(d, s1, s2, n, _and, cmp, res)             \
-       (((s1) == 0 ? FUCOMr((s2)) : (FLDr((s1)), FUCOMPr((s2) + 1))),    \
-        PUSHLr(_RAX),                                          \
-        FNSTSWr(_RAX),                                         \
-        SHRLir(n, _RAX),                                       \
-        ((_and) ? ANDLir ((_and), _RAX) : 0),                  \
-        ((cmp) ? CMPLir ((cmp), _RAX) : 0),                    \
-        POPLr(_RAX),                                           \
-        res ((d)),					       \
-	_jit.x.pc)
-
 /* After FNSTSW we have 1 if <, 40 if =, 0 if >, 45 if unordered.  Here
    is how to map the values of the status word's high byte to the
    conditions.
@@ -798,11 +787,10 @@ _i386_fp_cmp(jit_gpr_t r0, int f0, int f1, int shift, int and, int code)
 }
 
 __jit_inline void
-_i686_fp_cmp(jit_gpr_t r0, int f0, int f1, int code, int ord)
+_i686_fp_cmp(jit_gpr_t r0, int f0, int f1, int code)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    jit_insn	*label;
 
     if ((rc = jit_check8(r0)))
 	reg = r0;
@@ -811,216 +799,449 @@ _i686_fp_cmp(jit_gpr_t r0, int f0, int f1, int code, int ord)
 	reg = _RAX;
     }
 
-    if (ord != X86_CC_PE || code == X86_CC_E)
-	XORLrr(reg, reg);
-    else
-	MOVLir(1, reg);
-
+    XORLrr(reg, reg);
     if (f0 == 0)
 	FUCOMIr(f1);
     else {
 	FLDr(f0);
 	FUCOMIPr(f1 + 1);
     }
-    if (ord) {
-	JCCSim(ord, (long)(_jit.x.pc + 3));
-	label = _jit.x.pc;
-    }
     SETCCir(code, reg);
-    if (ord)
-	jit_patch_rel_char_at(label, _jit.x.pc);
     if (!rc)
 	XCHGLrr(_RAX, r0);
 }
 
-#define jit_ltr_f(r0, f0, f1)		jit_ltr_d(r0, f0, f1)
 #define jit_ltr_d(r0, f0, f1)		jit_ltr_d(r0, f0, f1)
 __jit_inline void
 jit_ltr_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_A, 0);
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_A);
     else
 	_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_Z);
 }
 
-#define jit_ler_f(r0, f0, f1)		jit_ler_d(r0, f0, f1)
 #define jit_ler_d(r0, f0, f1)		jit_ler_d(r0, f0, f1)
 __jit_inline void
 jit_ler_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_AE, 0);
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_AE);
     else
 	_i386_fp_cmp(r0, f1, f0,	9, 0, -1);
 }
 
-#define jit_eqr_f(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
 #define jit_eqr_d(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
 __jit_inline void
 jit_eqr_d(jit_gpr_t r0, int f0, int f1)
 {
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
     if (jit_i686()) {
-	if (f1 == 0)
-	    _i686_fp_cmp(r0, f1, f0,	X86_CC_E, X86_CC_PE);
-	else
-	    _i686_fp_cmp(r0, f0, f1,	X86_CC_E, X86_CC_PE);
+	int		 rc;
+	int		 reg;
+	jit_insn	*label;
+	if ((rc = jit_check8(r0)))
+	    reg = r0;
+	else {
+	    MOVLrr(_RAX, r0);
+	    reg = _RAX;
+	}
+	XORLrr(reg, reg);
+	if (f0 == 0)
+	    FUCOMIr(f1);
+	else {
+	    FLDr(f0);
+	    FUCOMIPr(f1 + 1);
+	}
+	JPESm((long)(_jit.x.pc + 3));
+	label = _jit.x.pc;
+	SETCCir(X86_CC_E, reg);
+	jit_patch_rel_char_at(label, _jit.x.pc);
     }
-    else if (f1 == 0)
-	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_E);
     else
-	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_E);
+	_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, -X86_CC_E);
 }
 
-#define jit_ger_f(r0, f0, f1)		jit_ger_d(r0, f0, f1)
 #define jit_ger_d(r0, f0, f1)		jit_ger_d(r0, f0, f1)
 __jit_inline void
 jit_ger_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f0, f1,	X86_CC_AE, 0);
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_AE);
     else
 	_i386_fp_cmp(r0, f0, f1,	9, 0, -1);
 }
 
-#define jit_gtr_f(r0, f0, f1)		jit_gtr_d(r0, f0, f1)
 #define jit_gtr_d(r0, f0, f1)		jit_gtr_d(r0, f0, f1)
 __jit_inline void
 jit_gtr_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f0, f1,	X86_CC_A, 0);
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_A);
     else
 	_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_Z);
 }
 
-#define jit_ner_f(r0, f0, f1)		jit_ner_d(r0, f0, f1)
 #define jit_ner_d(r0, f0, f1)		jit_ner_d(r0, f0, f1)
 __jit_inline void
 jit_ner_d(jit_gpr_t r0, int f0, int f1)
 {
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
     if (jit_i686()) {
-	if (f1 == 0)
-	    _i686_fp_cmp(r0, f1, f0,	X86_CC_NE, X86_CC_PE);
-	else
-	    _i686_fp_cmp(r0, f0, f1,	X86_CC_NE, X86_CC_PE);
+	int		 rc;
+	int		 reg;
+	jit_insn	*label;
+	if ((rc = jit_check8(r0)))
+	    reg = r0;
+	else {
+	    MOVLrr(_RAX, r0);
+	    reg = _RAX;
+	}
+	MOVILir(1, reg);
+	if (f0 == 0)
+	    FUCOMIr(f1);
+	else {
+	    FLDr(f0);
+	    FUCOMIPr(f1 + 1);
+	}
+	JPESm((long)(_jit.x.pc + 3));
+	label = _jit.x.pc;
+	SETCCir(X86_CC_NE, reg);
+	jit_patch_rel_char_at(label, _jit.x.pc);
     }
-    else if (f1 == 0)
-	_i386_fp_cmp(r0, f1, f0,	8, 0x45, -X86_CC_NE);
     else
-	_i386_fp_cmp(r0, f0, f1,	8, 0x45, -X86_CC_NE);
+	_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, -X86_CC_NE);
 }
 
-#define jit_unltr_f(r0, f0, f1)		jit_unltr_d(r0, f0, f1)
 #define jit_unltr_d(r0, f0, f1)		jit_unltr_d(r0, f0, f1)
 __jit_inline void
 jit_unltr_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f0, f1,	X86_CC_NAE, 0);
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_NAE);
     else
 	_i386_fp_cmp(r0, f0, f1,	9, 0, 0);
 }
 
-#define jit_unler_f(r0, f0, f1)		jit_unler_d(r0, f0, f1)
 #define jit_unler_d(r0, f0, f1)		jit_unler_d(r0, f0, f1)
 __jit_inline void
 jit_unler_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f0, f1,	X86_CC_NA, 0);
+	_i686_fp_cmp(r0, f0, f1,	X86_CC_NA);
     else
 	_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_NZ);
 }
 
-#define jit_ltgtr_f(r0, f0, f1)		jit_ltgtr_d(r0, f0, f1)
 #define jit_ltgtr_d(r0, f0, f1)		jit_ltgtr_d(r0, f0, f1)
 __jit_inline void
 jit_ltgtr_d(jit_gpr_t r0, int f0, int f1)
 {
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_NE, 0);
+	_i686_fp_cmp(r0, fr0, fr1,	X86_CC_NE);
     else
-	_i386_fp_cmp(r0, f0, f1,	15, 0, -1);
+	_i386_fp_cmp(r0, fr0, fr1,	15, 0, -1);
 }
 
-#define jit_uneqr_f(r0, f0, f1)		jit_uneqr_d(r0, f0, f1)
 #define jit_uneqr_d(r0, f0, f1)		jit_uneqr_d(r0, f0, f1)
 __jit_inline void
 jit_uneqr_d(jit_gpr_t r0, int f0, int f1)
 {
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_E, 0);
+	_i686_fp_cmp(r0, fr0, fr1,	X86_CC_E);
     else
-	_i386_fp_cmp(r0, f0, f1,	15, 0, 0);
+	_i386_fp_cmp(r0, fr0, fr1,	15, 0, 0);
 }
 
-#define jit_unger_f(r0, f0, f1)		jit_unger_d(r0, f0, f1)
 #define jit_unger_d(r0, f0, f1)		jit_unger_d(r0, f0, f1)
 __jit_inline void
 jit_unger_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_NA, 0);
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_NA);
     else
 	_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_NZ);
 }
 
-#define jit_ungtr_f(r0, f0, f1)		jit_ungtr_d(r0, f0, f1)
 #define jit_ungtr_d(r0, f0, f1)		jit_ungtr_d(r0, f0, f1)
 __jit_inline void
 jit_ungtr_d(jit_gpr_t r0, int f0, int f1)
 {
     if (jit_i686())
-	_i686_fp_cmp(r0, f1, f0,	X86_CC_NAE, 0);
+	_i686_fp_cmp(r0, f1, f0,	X86_CC_NAE);
     else
 	_i386_fp_cmp(r0, f1, f0,	9, 0, 0);
 }
 
-#define jit_ordr_f(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
 #define jit_ordr_d(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
 __jit_inline void
 jit_ordr_d(jit_gpr_t r0, int f0, int f1)
 {
-    if (jit_i686()) {
-	if (f1 == 0)
-	    _i686_fp_cmp(r0, f1, f0,	X86_CC_NP, 0);
-	else
-	    _i686_fp_cmp(r0, f0, f1,	X86_CC_NP, 0);
-    }
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_cmp(r0, fr0, fr1,	X86_CC_NP);
     else
-	_i386_fp_cmp(r0, f0, f1,	11, 0, -1);
+	_i386_fp_cmp(r0, fr0, fr1,	11, 0, -1);
 }
 
-#define jit_unordr_f(r0, f0, f1)	jit_unordr_d(r0, f0, f1)
 #define jit_unordr_d(r0, f0, f1)	jit_unordr_d(r0, f0, f1)
 __jit_inline void
 jit_unordr_d(jit_gpr_t r0, int f0, int f1)
 {
-    if (jit_i686()) {
-	if (f1 == 0)
-	    _i686_fp_cmp(r0, f1, f0,	X86_CC_P, 0);
-	else
-	    _i686_fp_cmp(r0, f0, f1,	X86_CC_P, 0);
-    }
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_cmp(r0, fr0, fr1,	X86_CC_P);
     else
-	_i386_fp_cmp(r0, f0, f1,	11, 0, 0);
+	_i386_fp_cmp(r0, fr0, fr1,	11, 0, 0);
 }
 
-#define jit_bgtr_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 8, 0x45, 0, JZm)
-#define jit_bger_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 9, 0, 0, JNCm)
-#define jit_bunler_d(d, s1, s2)         jit_fp_btest((d), (s1), (s2), 8, 0x45, 0, JNZm)
-#define jit_bunltr_d(d, s1, s2)         jit_fp_btest((d), (s1), (s2), 9, 0, 0, JCm)
-#define jit_bltr_d(d, s1, s2)           jit_fp_btest((d), (s2), (s1), 8, 0x45, 0, JZm)
-#define jit_bler_d(d, s1, s2)           jit_fp_btest((d), (s2), (s1), 9, 0, 0, JNCm)
-#define jit_bunger_d(d, s1, s2)         jit_fp_btest((d), (s2), (s1), 8, 0x45, 0, JNZm)
-#define jit_bungtr_d(d, s1, s2)         jit_fp_btest((d), (s2), (s1), 9, 0, 0, JCm)
-#define jit_beqr_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 8, 0x45, 0x40, JZm)
-#define jit_bner_d(d, s1, s2)           jit_fp_btest((d), (s1), (s2), 8, 0x45, 0x40, JNZm)
-#define jit_bltgtr_d(d, s1, s2)         jit_fp_btest((d), (s1), (s2), 15, 0, 0, JNCm)
-#define jit_buneqr_d(d, s1, s2)         jit_fp_btest((d), (s1), (s2), 15, 0, 0, JCm)
-#define jit_bordr_d(d, s1, s2)          jit_fp_btest((d), (s1), (s2), 11, 0, 0, JNCm)
-#define jit_bunordr_d(d, s1, s2)        jit_fp_btest((d), (s1), (s2), 11, 0, 0, JCm)
+__jit_inline void
+_i386_fp_bcmp(jit_insn *label, int f0, int f1,
+	      int shift, int and, int cmp, int code)
+{
+    if (f0 == 0)
+	FUCOMr(f1);
+    else {
+	FLDr(f0);
+	FUCOMPr(f1 + 1);
+    }
+    jit_pushr_i(_RAX);
+    FNSTSWr(_RAX);
+    SHRLir(shift, _RAX);
+    if (and)
+	ANDLir(and, _RAX);
+    if (cmp)
+	CMPLir(cmp, _RAX);
+    jit_popr_i(_RAX);
+    JCCim(code, label);
+}
+
+__jit_inline void
+_i686_fp_bcmp(jit_insn *label, int f0, int f1, int code)
+{
+    if (f0 == 0)
+	FUCOMIr(f1);
+    else {
+	FLDr(f0);
+	FUCOMIPr(f1 + 1);
+    }
+    JCCim(code, label);
+}
+
+#define jit_bltr_d(label, f0, f1)	jit_bltr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltr_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f1, f0,	X86_CC_A);
+    else
+	_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_Z);
+    return (_jit.x.pc);
+}
+
+#define jit_bler_d(label, f0, f1)	jit_bler_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bler_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f1, f0,	X86_CC_AE);
+    else
+	_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_NC);
+    return (_jit.x.pc);
+}
+
+#define jit_beqr_d(label, f0, f1)	jit_beqr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_beqr_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686()) {
+	jit_insn	*jp_label;
+	if (fr0 == 0)
+	    FUCOMIr(fr1);
+	else {
+	    FLDr(fr0);
+	    FUCOMIPr(fr1 + 1);
+	}
+	/* jump past user jump if unordered */
+	JPESm((long)_jit.x.pc);
+	jp_label = _jit.x.pc;
+	JCCim(X86_CC_E, label);
+	jit_patch_rel_char_at(jp_label, _jit.x.pc);
+    }
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_Z);
+    return (_jit.x.pc);
+}
+
+#define jit_bger_d(label, f0, f1)	jit_bger_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bger_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f0, f1,	X86_CC_AE);
+    else
+	_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_NC);
+    return (_jit.x.pc);
+}
+
+#define jit_bgtr_d(label, f0, f1)	jit_bgtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bgtr_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f0, f1,	X86_CC_A);
+    else
+	_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_Z);
+    return (_jit.x.pc);
+}
+
+#define jit_bner_d(label, f0, f1)	jit_bner_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bner_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686()) {
+	jit_insn	*jp_label;
+	jit_insn	*jz_label;
+	if (fr0 == 0)
+	    FUCOMIr(fr1);
+	else {
+	    FLDr(fr0);
+	    FUCOMIPr(fr1 + 1);
+	}
+	/* jump to user jump if unordered */
+	JPESm((long)_jit.x.pc);
+	jp_label = _jit.x.pc;
+	/* jump past user jump if equal */
+	JZSm((long)_jit.x.pc);
+	jz_label = _jit.x.pc;
+	jit_patch_rel_char_at(jp_label, _jit.x.pc);
+	JMPm((long)label);
+	jit_patch_rel_char_at(jz_label, _jit.x.pc);
+    }
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_NZ);
+    return (_jit.x.pc);
+}
+
+#define jit_bunltr_d(label, f0, f1)	jit_bunltr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunltr_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f0, f1,	X86_CC_NAE);
+    else
+	_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_C);
+    return (_jit.x.pc);
+}
+
+#define jit_bunler_d(label, f0, f1)	jit_bunler_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunler_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f0, f1,	X86_CC_NA);
+    else
+	_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_NZ);
+    return (_jit.x.pc);
+}
+
+#define jit_bltgtr_d(label, f0, f1)	jit_bltgtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltgtr_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NE);
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_NC);
+    return (_jit.x.pc);
+}
+
+#define jit_buneqr_d(label, f0, f1)	jit_buneqr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_buneqr_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_bcmp(label, fr0, fr1,	X86_CC_E);
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_C);
+    return (_jit.x.pc);
+}
+
+#define jit_bunger_d(label, f0, f1)	jit_bunger_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunger_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f1, f0,	X86_CC_NA);
+    else
+	_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_NZ);
+    return (_jit.x.pc);
+}
+
+#define jit_bungtr_d(label, f0, f1)	jit_bungtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bungtr_d(jit_insn *label, int f0, int f1)
+{
+    if (jit_i686())
+	_i686_fp_bcmp(label, f1, f0,	X86_CC_NAE);
+    else
+	_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_C);
+    return (_jit.x.pc);
+}
+
+#define jit_bordr_d(label, f0, f1)	jit_bordr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bordr_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NP);
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_NC);
+    return (_jit.x.pc);
+}
+
+#define jit_bunordr_d(label, f0, f1)	jit_bunordr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunordr_d(jit_insn *label, int f0, int f1)
+{
+    int			fr0, fr1;
+    if (f1 == 0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686())
+	_i686_fp_bcmp(label, fr0, fr1,	X86_CC_P);
+    else
+	_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_C);
+    return (_jit.x.pc);
+}
 
 #define jit_pusharg_d(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(double)), jit_str_d(JIT_SP,(rs)))
 #define jit_pusharg_f(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(float)), jit_str_f(JIT_SP,(rs)))
