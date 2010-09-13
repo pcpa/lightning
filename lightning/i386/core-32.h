@@ -116,11 +116,11 @@ jit_prepare_i(int ni)
 	SUBLir(4 * (_jitl.argssize - ni), JIT_SP);
 }
 
-#define jit_calli(i0)			jit_calli(i0)
+#define jit_calli(p0)			jit_calli(p0)
 __jit_inline jit_insn *
-jit_calli(void *i0)
+jit_calli(void *p0)
 {
-    CALLm((_ul)i0);
+    CALLm((_ul)p0);
     return (_jitl.label = _jit.x.pc);
 }
 
@@ -138,11 +138,11 @@ jit_patch_calli(jit_insn *call, jit_insn *label)
     jit_patch_at(call, label);
 }
 
-#define jit_finish(label)		jit_finish(label)
+#define jit_finish(p0)			jit_finish(p0)
 __jit_inline jit_insn *
-jit_finish(jit_insn *label)
+jit_finish(void *p0)
 {
-    jit_calli(label);
+    jit_calli(p0);
     ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
     _jitl.argssize = 0;
 

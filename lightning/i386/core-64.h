@@ -131,11 +131,11 @@ jit_ret(void)
     RET_();
 }
 
-#define jit_calli(address)		jit_calli(address)
+#define jit_calli(p0)			jit_calli(p0)
 __jit_inline jit_insn *
-jit_calli(void *address)
+jit_calli(void *p0)
 {
-    MOVQir((long)address, JIT_REXTMP);
+    MOVQir((long)p0, JIT_REXTMP);
     _jitl.label = _jit.x.pc;
     CALLsr(JIT_REXTMP);
     return (_jitl.label);
@@ -181,9 +181,9 @@ jit_pusharg_i(jit_gpr_t r0)
 	MOVQrr(r0, jit_arg_reg_order[_jitl.nextarg_puti]);
 }
 
-#define jit_finish(label)		jit_finish(label)
+#define jit_finish(p0)			jit_finish(p0)
 __jit_inline jit_insn *
-jit_finish(jit_insn *label)
+jit_finish(void *p0)
 {
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _RAX);
@@ -195,7 +195,7 @@ jit_finish(jit_insn *label)
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
-    jit_calli(label);
+    jit_calli(p0);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
 	_jitl.argssize = 0;
