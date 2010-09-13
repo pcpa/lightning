@@ -1259,6 +1259,18 @@ enum {
 
 #define NOP_()								_O		(0x90								)
 
+/* N byte NOPs */
+#define NOPi(N)		(((  (N)    >= 8) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00),_jit_B(0x90)) : (void) 0), \
+			 (( ((N)&7) == 7) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00)) : \
+			  ( ((N)&7) == 6) ? (_jit_B(0x8d),_jit_B(0xb6),_jit_I(0x00)) : \
+			  ( ((N)&7) == 5) ? (_jit_B(0x90),_jit_B(0x8d),_jit_B(0x74),_jit_B(0x26),_jit_B(0x00)) : \
+/* leal 0(,%esi), %esi */ ( ((N)&7) == 4) ? (_jit_B(0x8d),_jit_B(0x74),_jit_B(0x26),_jit_B(0x00)) : \
+/* leal (,%esi), %esi */  ( ((N)&7) == 3) ? (_jit_B(0x8d),_jit_B(0x76),_jit_B(0x00)) : \
+/* movl %esi, %esi */	  ( ((N)&7) == 2) ? (_jit_B(0x89),_jit_B(0xf6)) : \
+			  ( ((N)&7) == 1) ? (_jit_B(0x90)) : \
+			  ( ((N)&7) == 0) ? 0 : \
+			  JITFAIL(".align argument too large")))
+
 /* x87 instructions -- yay, we found a use for octal constants :-) */
 
 enum {
@@ -1334,6 +1346,7 @@ enum {
 
 /* (p6 or newer) */
 #define FISTTPLm(D,B,I,S)	ESCmi(D,B,I,S, 031)	/* fisttp m32int  */
+
 #define   FISTLm(D,B,I,S)	ESCmi(D,B,I,S, 032)	/*   fist m32int  */
 #define  FISTPLm(D,B,I,S)	ESCmi(D,B,I,S, 033)	/*  fistp m32int  */
 #define    FLDTm(D,B,I,S)	ESCmi(D,B,I,S, 035)	/*    fld m80real */
@@ -1379,10 +1392,11 @@ enum {
 /* st(0) = st(rs) if not below or equal (cf=0 and zf=0) (p6 or newer) */
 #define FCMOVNBE(RS)		ESCri(RS, 032)
 
-/* st(0) = st(rs) if not unordered (pf=0) */
+/* st(0) = st(rs) if not unordered (pf=0) (p6 or newer) */
 #define  FCMOVNU(RS)		ESCri(RS, 033)
 
-#define     FLDr(RD)		ESCri(RD, 010)		/* ST(0) = ST(RD) */
+/* *push*, st(0) = st(rd+1) */
+#define     FLDr(RD)		ESCri(RD, 010)
 #define    FXCHr(RD)		ESCri(RD, 011)
 #define   FFREEr(RD)		ESCri(RD, 050)
 #define     FSTr(RD)		ESCri(RD, 052)
@@ -1419,100 +1433,88 @@ enum {
 #define FCLEX_()		(_O(0x9b), FNCLEX_())
 
 /* st(0) = -st(0) */
-#define FCHS_()			_OO(0xd9e0)
+#define FCHS_()			_OO(0xd9e0)	/* ESCri(0, 014) */
 
 /* st(0) = fabs(st(0)) */
-#define FABS_()			_OO(0xd9e1)
+#define FABS_()			_OO(0xd9e1)	/* ESCri(1, 014) */
 
 /* Compare st(0) with 0.0 */
-#define FTST_()			_OO(0xd9e4)
+#define FTST_()			_OO(0xd9e4)	/* ESCri(4, 014) */
 
 /* Classify ST(0) */
-#define FXAM_()			_OO(0xd9e5)
+#define FXAM_()			_OO(0xd9e5)	/* ESCri(5, 014) */
 
 /* Push +1.0 to the x87 stack */
-#define FLD1_()			_OO(0xd9e8)
+#define FLD1_()			_OO(0xd9e8)	/* ESCri(0, 015) */
 
 /* Push log2(10) */
-#define FLDL2T_()		_OO(0xd9e9)
+#define FLDL2T_()		_OO(0xd9e9)	/* ESCri(1, 015) */
 
 /* Push log2(e) */
-#define FLDL2E_()		_OO(0xd9ea)
+#define FLDL2E_()		_OO(0xd9ea)	/* ESCri(2, 015) */
 
 /* Push PI */
-#define FLDPI_()		_OO(0xd9eb)
+#define FLDPI_()		_OO(0xd9eb)	/* ESCri(3, 015) */
 
 /* Push log10(2) */
-#define FLDLG2_()		_OO(0xd9ec)
+#define FLDLG2_()		_OO(0xd9ec)	/* ESCri(4, 015) */
 
 /* Push log(2) */
-#define FLDLN2_()		_OO(0xd9ed)
+#define FLDLN2_()		_OO(0xd9ed)	/* ESCri(5, 015) */
 
 /* Push +0.0 */
-#define FLDZ_()			_OO(0xd9ee)
+#define FLDZ_()			_OO(0xd9ee)	/* ESCri(6, 015) */
 
 /* st(0) = pow(2, st(0)) - 1 */
-#define F2XM1_()		_OO(0xd9f0)
+#define F2XM1_()		_OO(0xd9f0)	/* ESCri(0, 016) */
 
 /* temp = st(1) * log2(st(0)) => *pop*,  st(0) = temp */
-#define FYL2X_()		_OO(0xd9f1)
+#define FYL2X_()		_OO(0xd9f1)	/* ESCri(1, 016) */
 
 /* temp = tangent(st(0)) => *push*, st(0) = 1.0, st(1) = temp */
-#define FPTAN_()		_OO(0xd9f2)
+#define FPTAN_()		_OO(0xd9f2)	/* ESCri(2, 016) */
 
 /* temp = arctan(st(1)/st(0)) => *pop*, st(0) = temp */
-#define FPATAN_()		_OO(0xd9f3)
+#define FPATAN_()		_OO(0xd9f3)	/* ESCri(3, 016) */
 
 /* temp = st(0)	 => st(0) = significand(temp), st(1) = exponent(temp) */
-#define FXTRACT_()		_OO(0xd9f4)
+#define FXTRACT_()		_OO(0xd9f4)	/* ESCri(4, 016) */
 
 /* ST(0) = rem(ST(0)/ST(1)) - IEEE spec */
-#define FPREM1_()		_OO(0xd9f5)
+#define FPREM1_()		_OO(0xd9f5)	/* ESCri(5, 016) */
 
 /* pop/rotate x87 stack */
-#define FDECSTP_()		_OO(0xd9f6)
+#define FDECSTP_()		_OO(0xd9f6)	/* ESCri(6, 016) */
 
 /* pop/rotate x87 stack */
-#define FINCSTP_()		_OO(0xd9f7)
+#define FINCSTP_()		_OO(0xd9f7)	/* ESCri(7, 016) */
 
 /* st(0) = rem(st(0)/st(1)) - compat with 8087/80287 */
-#define FPREM_()		_OO(0xd9f8)
+#define FPREM_()		_OO(0xd9f8)	/* ESCri(0, 017) */
 
 /* temp = st(1) * log2(st(0) + 1) => *pop*,  st(0) = temp */
-#define FYL2XP1_()		_OO(0xd9f9)
+#define FYL2XP1_()		_OO(0xd9f9)	/* ESCri(1, 017) */
 
 /* st(0) = sqrt(st(0)) */
-#define FSQRT_()		_OO(0xd9fa)
+#define FSQRT_()		_OO(0xd9fa)	/* ESCri(2, 017) */
 
 /* (sin,cos) = sincos(st(0)) => *push*, st(0) = cos, st(1) = sin */
-#define FSINCOS_()		_OO(0xd9fb)
+#define FSINCOS_()		_OO(0xd9fb)	/* ESCri(3, 017) */
 
 /* Round st(0) to an integer accordingly to rounding mode */
-#define FRNDINT_()		_OO(0xd9fc)
+#define FRNDINT_()		_OO(0xd9fc)	/* ESCri(4, 017) */
 
 /* st(0) *= * pow(2, st(1)) */
-#define FSCALE_()		_OO(0xd9fd)
+#define FSCALE_()		_OO(0xd9fd)	/* ESCri(5, 017) */
 
 /* st(0) = sin(st(0)) */
-#define FSIN_()			_OO(0xd9fe)
+#define FSIN_()			_OO(0xd9fe)	/* ESCri(6, 017) */
 
 /* st(0) = cos(st(0)) */
-#define FCOS_()			_OO(0xd9ff)
+#define FCOS_()			_OO(0xd9ff)	/* ESCri(7, 017) */
 
 #define FNSTSWr(RD)							\
     ((RD == _RAX) ? _OO(0xdfe0) : JITFAIL ("RAX expected"))
-
-/* N byte NOPs */
-#define NOPi(N)		(((  (N)    >= 8) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00),_jit_B(0x90)) : (void) 0), \
-			 (( ((N)&7) == 7) ? (_jit_B(0x8d),_jit_B(0xb4),_jit_B(0x26),_jit_I(0x00)) : \
-			  ( ((N)&7) == 6) ? (_jit_B(0x8d),_jit_B(0xb6),_jit_I(0x00)) : \
-			  ( ((N)&7) == 5) ? (_jit_B(0x90),_jit_B(0x8d),_jit_B(0x74),_jit_B(0x26),_jit_B(0x00)) : \
-/* leal 0(,%esi), %esi */ ( ((N)&7) == 4) ? (_jit_B(0x8d),_jit_B(0x74),_jit_B(0x26),_jit_B(0x00)) : \
-/* leal (,%esi), %esi */  ( ((N)&7) == 3) ? (_jit_B(0x8d),_jit_B(0x76),_jit_B(0x00)) : \
-/* movl %esi, %esi */	  ( ((N)&7) == 2) ? (_jit_B(0x89),_jit_B(0xf6)) : \
-			  ( ((N)&7) == 1) ? (_jit_B(0x90)) : \
-			  ( ((N)&7) == 0) ? 0 : \
-			  JITFAIL(".align argument too large")))
 
 
 /* --- Media 128-bit instructions ------------------------------------------ */

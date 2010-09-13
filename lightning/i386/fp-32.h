@@ -345,104 +345,104 @@ jit_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_sti_f(void *i0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTSm((long)i0, 0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTSm((long)i0, 0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTSm((long)i0, 0, 0, 0);
 }
 
 #define jit_str_f(i0, f0)		jit_str_f(i0, f0)
 __jit_inline void
 jit_str_f(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTSm(0, r0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTSm(0, r0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTSm(0, r0, 0, 0);
 }
 
 #define jit_stxi_f(i0, r0, f0)		jit_stxi_f(i0, r0, f0)
 __jit_inline void
 jit_stxi_f(int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTSm(i0, r0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTSm(i0, r0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTSm(i0, r0, 0, 0);
 }
 
 #define jit_stxr_f(r0, r1, f0)		jit_stxr_f(r0, r1, f0)
 __jit_inline void
 jit_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTSm(0, r0, r1, 1);
+    else {
 	FXCHr(f0);
 	FSTSm(0, r0, r1, 1);
 	FXCHr(f0);
     }
-    else
-	FSTSm(0, r0, r1, 1);
 }
 
 #define jit_sti_d(i0, f0)		jit_sti_d(i0, f0)
 __jit_inline void
 jit_sti_d(void *i0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTLm((long)i0, 0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTLm((long)i0, 0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTLm((long)i0, 0, 0, 0);
 }
 
 #define jit_str_d(i0, f0)		jit_str_d(i0, f0)
 __jit_inline void
 jit_str_d(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTLm(0, r0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTLm(0, r0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTLm(0, r0, 0, 0);
 }
 
 #define jit_stxi_d(i0, r0, f0)		jit_stxi_d(i0, r0, f0)
 __jit_inline void
 jit_stxi_d(int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTLm(i0, r0, 0, 0);
+    else {
 	FXCHr(f0);
 	FSTLm(i0, r0, 0, 0);
 	FXCHr(f0);
     }
-    else
-	FSTLm(i0, r0, 0, 0);
 }
 
 #define jit_stxr_d(r0, r1, f0)		jit_stxr_d(r0, r1, f0)
 __jit_inline void
 jit_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-    if (f0 != _ST0) {
+    if (f0 == _ST0)
+	FSTLm(0, r0, r1, 1);
+    else {
 	FXCHr(f0);
 	FSTLm(0, r0, r1, 1);
 	FXCHr(f0);
     }
-    else
-	FSTLm(0, r0, r1, 1);
 }
 
 #define jit_movi_f(f0, i0)		jit_movi_f(f0, i0)
@@ -577,12 +577,14 @@ __jit_inline void
 jit_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
-    if (f0)
-	FXCHr(f0);
     /* store integer using current rounding mode */
-    FISTLm(0, _RSP, 0, 0);
-    if (f0)
+    if (f0 == _ST0)
+	FISTLm(0, _RSP, 0, 0);
+    else {
 	FXCHr(f0);
+	FISTLm(0, _RSP, 0, 0);
+	FXCHr(f0);
+    }
     jit_popr_i(r0);
 }
 
@@ -787,11 +789,13 @@ _i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
     FLDCWm(0, _RSP, 0, 0);
-    if (f0)
+    if (f0 == _ST0)
+	FISTLm(0, _RSP, 0, 0);
+    else {
 	FXCHr(f0);
-    FISTLm(0, _RSP, 0, 0);
-    if (f0)
+	FISTLm(0, _RSP, 0, 0);
 	FXCHr(f0);
+    }
 
     /* load result and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
@@ -842,11 +846,14 @@ _safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
     FLDCWm(0, _RSP, 0, 0);
-    if (f0)
+
+    if (f0 == _ST0)
+	FISTLm(0, _RSP, 0, 0);
+    else {
 	FXCHr(f0);
-    FISTLm(0, _RSP, 0, 0);
-    if (f0)
+	FISTLm(0, _RSP, 0, 0);
 	FXCHr(f0);
+    }
 
     /* load integer and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
@@ -941,11 +948,13 @@ _safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
     FLDCWm(0, _RSP, 0, 0);
-    if (f0)
+    if (f0 == _ST0)
+	FISTLm(0, _RSP, 0, 0);
+    else {
 	FXCHr(f0);
-    FISTLm(0, _RSP, 0, 0);
-    if (f0)
+	FISTLm(0, _RSP, 0, 0);
 	FXCHr(f0);
+    }
 
     /* load integer and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
@@ -1609,9 +1618,9 @@ jit_arg_d(void)
 			 FLD1_(), 			/* fld1 */ \
 			 FADDPr(_ST1), 			/* faddp */ \
 			 FSCALE_(), 			/* fscale */ \
-			 FSTPr(1))			/* fstp st(1) */
+			 FSTPr(_ST1))			/* fstp st(1) */
 #define jit_log()	(FLDLN2_(), 			/* fldln2 */ \
-			 FXCHr(1), 			/* fxch st(1) */ \
+			 FXCHr(_ST1), 			/* fxch st(1) */ \
 			 FYL2X_())			/* fyl2x */
 #endif
 
