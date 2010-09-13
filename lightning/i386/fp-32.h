@@ -650,7 +650,7 @@ _i386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if (st(f0+2) is positive, do not change sign of -0.5 */
     ANDWir(FPSW_COND, _RAX);
     TESTWrr(_RAX, _RAX);
-    JZSm((long)(_jit.x.pc + 4));
+    JZSm((long)(_jit.x.pc + 2));
     label = _jit.x.pc;
     FCHS_();
     jit_patch_rel_char_at(label, _jit.x.pc);
@@ -672,7 +672,7 @@ _i386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if operation did not result in zero, can round to near */
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_EQ, _RAX);
-    JNESm((long)(_jit.x.pc + 4));
+    JNESm((long)(_jit.x.pc + 2));
     label = _jit.x.pc;
 
     /* adjust for round, st(0) = st(0) - *0.5 */
@@ -735,7 +735,7 @@ _safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if negative keep sign of -0.5 */
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_LT, _RAX);
-    JESm((long)(_jit.x.pc + 4));
+    JESm((long)(_jit.x.pc + 2));
     label = _jit.x.pc;
     FCHS_();
     jit_patch_rel_char_at(label, _jit.x.pc);
@@ -904,7 +904,7 @@ _i686_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* store integer */
     FISTPLm(0, _RSP, 0, 0);
     jit_popr_i(r0);
-    JPESm((long)(_jit.x.pc + 4));
+    JPESm((long)(_jit.x.pc + 3));
     label = _jit.x.pc;
     /* subtract 1 if carry */
     SBBLir(0, r0);
@@ -1380,7 +1380,7 @@ jit_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	    FUCOMIPr(fr1 + 1);
 	}
 	/* jump past user jump if unordered */
-	JPESm((long)_jit.x.pc);
+	JPESm((long)(_jit.x.pc + 6));
 	jp_label = _jit.x.pc;
 	JCCim(X86_CC_E, label);
 	jit_patch_rel_char_at(jp_label, _jit.x.pc);
@@ -1429,10 +1429,10 @@ jit_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	    FUCOMIPr(fr1 + 1);
 	}
 	/* jump to user jump if unordered */
-	JPESm((long)_jit.x.pc);
+	JPESm((long)(_jit.x.pc + 2));
 	jp_label = _jit.x.pc;
 	/* jump past user jump if equal */
-	JZSm((long)_jit.x.pc);
+	JZSm((long)(_jit.x.pc + 5));
 	jz_label = _jit.x.pc;
 	jit_patch_rel_char_at(jp_label, _jit.x.pc);
 	JMPm((long)label);
