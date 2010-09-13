@@ -106,14 +106,16 @@ typedef enum {
 #define _XMM14		0x7e
 #define _XMM15		0x7f
 
-#define _ST0		0
-#define _ST1		1
-#define _ST2		2
-#define _ST3		3
-#define _ST4		4
-#define _ST5		5
-#define _ST6		6
-#define _ST7		7
+typedef enum {
+    _ST0	= 0,
+    _ST1	= 1,
+    _ST2	= 2,
+    _ST3	= 3,
+    _ST4	= 4,
+    _ST5	= 5,
+    _ST6	= 6,
+    _ST7	= 7,
+} jit_fpr_t;
 
 #define _r0P(R)		((int)(R) == (int)_NOREG)
 #define _rIP(R)		((int)(R) == (int)_RIP)
@@ -1260,22 +1262,22 @@ enum {
 /* x87 instructions -- yay, we found a use for octal constants :-) */
 
 enum {
-    FPCW_MCW_PC	    = 0x300,	/* Precision control mask */
-    FPCW_64	    = 0x300,	/* 64-bit precision */
-    FPCW_53	    = 0x200,	/* 53-bit precision */
-    FPCW_24	    = 0x000,	/* 24-bit precision */
-    FPCW_MCW_RC	    = 0xc00,	/* Rounding control mask */
-    FPCW_CHOP	    = 0xc00,	/* Truncate */
-    FPCW_UP	    = 0x800,	/* Round up */
-    FPCW_DOWN	    = 0x400,	/* Round down */
-    FPCW_NEAR	    = 0x000,	/* Round to nearest */
-    FPCW_MCW_EM	    = 0x03f,	/* Exception mask */
-    FPCW_INVALID    = 0x001,	/* Allow invalid numbers */
-    FPCW_DENORMAL   = 0x002,	/* Allow denormals (very small numbers) */
-    FPCW_ZERODIVIDE = 0x004,	/* Allow divide by zero */
-    FPCW_OVERFLOW   = 0x008,	/* Allow overflow */
-    FPCW_UNDERFLOW  = 0x010,	/* Allow underflow */
-    FPCW_INEXACT    = 0x020,	/* Allow inexact precision */
+    FPCW_MCW_PC		= 0x300,	/* Precision control mask */
+    FPCW_64		= 0x300,	/* 64-bit precision */
+    FPCW_53		= 0x200,	/* 53-bit precision */
+    FPCW_24		= 0x000,	/* 24-bit precision */
+    FPCW_MCW_RC		= 0xc00,	/* Rounding control mask */
+    FPCW_CHOP		= 0xc00,	/* Truncate */
+    FPCW_UP		= 0x800,	/* Round up */
+    FPCW_DOWN		= 0x400,	/* Round down */
+    FPCW_NEAR		= 0x000,	/* Round to nearest */
+    FPCW_MCW_EM		= 0x03f,	/* Exception mask */
+    FPCW_INVALID	= 0x001,	/* Allow invalid numbers */
+    FPCW_DENORMAL	= 0x002,	/* Allow denormals */
+    FPCW_ZERODIVIDE	= 0x004,	/* Allow divide by zero */
+    FPCW_OVERFLOW	= 0x008,	/* Allow overflow */
+    FPCW_UNDERFLOW	= 0x010,	/* Allow underflow */
+    FPCW_INEXACT	= 0x020,	/* Allow inexact precision */
 };
 
 enum {
@@ -1477,7 +1479,7 @@ enum {
 #define FPREM_()		_OO(0xd9f8)
 
 /* temp = st(1) * log2(st(0) + 1) => *pop*,  st(0) = temp */
-#define FYL2X_()		_OO(0xd9f1)
+#define FYL2XP1_()		_OO(0xd9f9)
 
 /* st(0) = sqrt(st(0)) */
 #define FSQRT_()		_OO(0xd9fa)
