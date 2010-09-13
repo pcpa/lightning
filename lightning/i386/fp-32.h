@@ -61,32 +61,197 @@
  * version, but works regardless of rounding mode */
 #define jit_always_round_to_nearest()	1
 
-#define jit_fxch(rs, op)       (((rs) != 0 ? FXCHr(rs) : 0),   \
-                                op, ((rs) != 0 ? FXCHr(rs) : 0))
+#define jit_absr_d(f0, f1)		jit_absr_d(f0, f1)
+__jit_inline void
+jit_absr_d(int f0, int f1)
+{
+    if (f0 == f1) {
+	if (f0 == 0)
+	    FABS_();
+	else {
+	    FXCHr(f0);
+	    FABS_();
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FABS_();
+	FSTPr(f0 + 1);
+    }
+}
 
-#define jit_fp_unary(rd, s1, op)                       \
-       ((rd) == (s1) ? jit_fxch ((rd), op)             \
-        : (rd) == 0 ? (FSTPr (0), FLDr ((s1)-1), op)   \
-        : (FLDr ((s1)), op, FSTPr ((rd) + 1)))
+#define jit_negr_d(f0, f1)		jit_negr_d(f0, f1)
+__jit_inline void
+jit_negr_d(int f0, int f1)
+{
+    if (f0 == f1) {
+	if (f0 == 0)
+	    FCHS_();
+	else {
+	    FXCHr(f0);
+	    FCHS_();
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FCHS_();
+	FSTPr(f0 + 1);
+    }
+}
 
-#define jit_fp_binary(rd, s1, s2, op, opr)             \
-       ((rd) == (s1) ?                                 \
-          ((s2) == 0 ? opr(0, (rd))                    \
-           : (s2) == (s1) ? jit_fxch((rd), op(0, 0))   \
-           : jit_fxch((rd), op((s2), 0)))              \
-        : (rd) == (s2) ?			       \
-	  ((s1) == 0 ? op(0, (rd))		       \
-	   : jit_fxch((rd), opr((s1), 0)))	       \
-        : (FLDr (s1), op((s2)+1, 0), FSTPr((rd)+1)))
+#define jit_sqrtr_d(f0, f1)		jit_sqrtr_d(f0, f1)
+__jit_inline void
+jit_sqrtr_d(int f0, int f1)
+{
+    if (f0 == f1) {
+	if (f0 == 0)
+	    FSQRT_();
+	else {
+	    FXCHr(f0);
+	    FSQRT_();
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FSQRT_();
+	FSTPr(f0 + 1);
+    }
+}
 
-#define jit_addr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FADDrr,FADDrr)
-#define jit_subr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FSUBrr,FSUBRrr)
-#define jit_mulr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FMULrr,FMULrr)
-#define jit_divr_d(rd,s1,s2)    jit_fp_binary((rd),(s1),(s2),FDIVrr,FDIVRrr)
+#define jit_addr_d(f0, f1, f2)		jit_addr_d(f0, f1, f2)
+__jit_inline void
+jit_addr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1) {
+	if (f2 == 0)
+	    FADDrr(0, f0);
+	else if (f0 == 0)
+	    FADDrr(f2, 0);
+	else {
+	    FXCHr(f0);
+	    FADDrr(f2, 0);
+	    FXCHr(f0);
+	}
+    }
+    else if (f0 == f2) {
+	if (f1 == 0)
+	    FADDrr(0, f0);
+	else if (f0 == 0)
+	    FADDrr(f1, 0);
+	else {
+	    FXCHr(f0);
+	    FADDrr(f1, 0);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FADDrr(f2 + 1, 0);
+	FSTPr(f0 + 1);
+    }
+}
 
-#define jit_abs_d(rd,rs)       jit_fp_unary ((rd), (rs), FABS_())
-#define jit_negr_d(rd,rs)      jit_fp_unary ((rd), (rs), FCHS_())
-#define jit_sqrt_d(rd,rs)      jit_fp_unary ((rd), (rs), _OO (0xd9fa))
+#define jit_subr_d(f0, f1, f2)		jit_subr_d(f0, f1, f2)
+__jit_inline void
+jit_subr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1) {
+	if (f2 == 0)
+	    FSUBRrr(0, f0);
+	else if (f0 == 0)
+	    FSUBrr(f2, 0);
+	else {
+	    FXCHr(f0);
+	    FSUBrr(f2, 0);
+	    FXCHr(f0);
+	}
+    }
+    else if (f0 == f2) {
+	if (f1 == 0)
+	    FSUBrr(0, f0);
+	else if (f0 == 0)
+	    FSUBRrr(f1, 0);
+	else {
+	    FXCHr(f0);
+	    FSUBRrr(f1, 0);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FSUBrr(f2 + 1, 0);
+	FSTPr(f0 + 1);
+    }
+}
+
+#define jit_mulr_d(f0, f1, f2)		jit_mulr_d(f0, f1, f2)
+__jit_inline void
+jit_mulr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1) {
+	if (f2 == 0)
+	    FMULrr(0, f0);
+	else if (f0 == 0)
+	    FMULrr(f2, 0);
+	else {
+	    FXCHr(f0);
+	    FMULrr(f2, 0);
+	    FXCHr(f0);
+	}
+    }
+    else if (f0 == f2) {
+	if (f1 == 0)
+	    FMULrr(0, f0);
+	else if (f0 == 0)
+	    FMULrr(f1, 0);
+	else {
+	    FXCHr(f0);
+	    FMULrr(f1, 0);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FMULrr(f2 + 1, 0);
+	FSTPr(f0 + 1);
+    }
+}
+
+#define jit_divr_d(f0, f1, f2)		jit_divr_d(f0, f1, f2)
+__jit_inline void
+jit_divr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1) {
+	if (f2 == 0)
+	    FDIVRrr(0, f0);
+	else if (f0 == 0)
+	    FDIVrr(f2, 0);
+	else {
+	    FXCHr(f0);
+	    FDIVrr(f2, 0);
+	    FXCHr(f0);
+	}
+    }
+    else if (f0 == f2) {
+	if (f1 == 0)
+	    FDIVrr(0, f0);
+	else if (f0 == 0)
+	    FDIVRrr(f1, 0);
+	else {
+	    FXCHr(f0);
+	    FDIVRrr(f1, 0);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FDIVrr(f2 + 1, 0);
+	FSTPr(f0 + 1);
+    }
+}
 
 /* - moves:
 
@@ -118,83 +283,64 @@
 __jit_inline void
 jit_ldi_f(int f0, void *i0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDSm((long)i0, 0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldr_f(f0, r0)		jit_ldr_f(f0, r0)
 __jit_inline void
 jit_ldr_f(int f0, jit_gpr_t r0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDSm(0, r0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldxi_f(f0, r0, i0)		jit_ldxi_f(f0, r0, i0)
 __jit_inline void
 jit_ldxi_f(int f0, jit_gpr_t r0, int i0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDSm(i0, r0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldxr_f(f0, r0, i0)		jit_ldxr_f(f0, r0, i0)
 __jit_inline void
 jit_ldxr_f(int f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDSm(0, r0, r1, 1);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldi_d(f0, i0)		jit_ldi_d(f0, i0)
 __jit_inline void
 jit_ldi_d(int f0, void *i0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDLm((long)i0, 0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldr_d(f0, r0)		jit_ldr_d(f0, r0)
 __jit_inline void
 jit_ldr_d(int f0, jit_gpr_t r0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDLm(0, r0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldxi_d(f0, r0, i0)		jit_ldxi_d(f0, r0, i0)
 __jit_inline void
 jit_ldxi_d(int f0, jit_gpr_t r0, int i0)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDLm(i0, r0, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
+    FSTPr(f0 + 1);
 }
 
 #define jit_ldxr_d(f0, r0, i0)		jit_ldxr_d(f0, r0, i0)
 __jit_inline void
 jit_ldxr_d(int f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (f0 == 0)	FSTPr(0);
     FLDLm(0, r0, r1, 1);
-    if (f0 != 0)	FSTPr(f0 + 1);
-}
-
-#define jit_extr_i_d(f0, r0)		jit_extr_i_d(f0, r0)
-__jit_inline void
-jit_extr_i_d(int f0, jit_gpr_t r0)
-{
-    PUSHLr(r0);
-    if (f0 == 0)	FSTPr(0);
-    FILDLm(0, _RSP, 0, 0);
-    if (f0 != 0)	FSTPr(f0 + 1);
-    POPLr(r0);
+    FSTPr(f0 + 1);
 }
 
 #define jit_sti_f(i0, f0)		jit_sti_f(i0, f0)
@@ -321,6 +467,8 @@ jit_movi_f(int f0, float i0)
     }
     else if (data.f == 1.0)
 	FLD1_();
+    /* these should be optional for the reproducibly tests
+     * (load of truncated value) */
     else if (data.f == 3.3219280948873623478703195458468f)
 	FLDL2T_();
     else if (data.f == 1.4426950408889634073599246886656f)
@@ -363,6 +511,8 @@ jit_movi_d(int f0, double i0)
     }
     else if (data.d == 1.0)
 	FLD1_();
+    /* these should be optional for the reproducibly tests
+     * (load of truncated value) */
     else if (data.d == 3.3219280948873623478703195458468)
 	FLDL2T_();
     else if (data.d == 1.4426950408889634073599246886656)
@@ -404,8 +554,15 @@ jit_movr_d(int f0, int f1)
     }
 }
 
-/* ABI */
-#define jit_retval_d(rd)		FSTPr((rd) + 1)
+#define jit_extr_i_d(f0, r0)		jit_extr_i_d(f0, r0)
+__jit_inline void
+jit_extr_i_d(int f0, jit_gpr_t r0)
+{
+    PUSHLr(r0);
+    FILDLm(0, _RSP, 0, 0);
+    FSTPr(f0 + 1);
+    POPLr(r0);
+}
 
 #define jit_rintr_d_i(r0, f0)		jit_rintr_d_i(r0, f0)
 __jit_inline void
@@ -1412,9 +1569,63 @@ jit_bunordr_d(jit_insn *label, int f0, int f1)
     return (_jit.x.pc);
 }
 
-#define jit_pusharg_d(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(double)), jit_str_d(JIT_SP,(rs)))
-#define jit_pusharg_f(rs)            (jit_subi_i(JIT_SP,JIT_SP,sizeof(float)), jit_str_f(JIT_SP,(rs)))
+/* ABI */
+#define jit_retval_d(f0)		jit_retval_d(f0)
+__jit_inline void
+jit_retval_d(int f0)
+{
+    FSTPr(f0 + 1);
+}
 
+#define jit_pusharg_f(f0)		jit_pusharg_f(f0)
+__jit_inline void
+jit_pusharg_f(int f0)
+{
+    jit_subi_i(JIT_SP, JIT_SP, sizeof(float));
+    jit_str_f(JIT_SP, f0);
+}
+
+#define jit_pusharg_d(f0)		jit_pusharg_d(f0)
+__jit_inline void
+jit_pusharg_d(int f0)
+{
+    jit_subi_i(JIT_SP, JIT_SP, sizeof(double));
+    jit_str_d(JIT_SP, f0);
+}
+
+#define jit_prepare_f(nf)		jit_prepare_f(nf)
+__jit_inline void
+jit_prepare_f(int nf)
+{
+    _jitl.argssize += nf;
+}
+
+#define jit_prepare_d(nd)		jit_prepare_d(nd)
+__jit_inline void
+jit_prepare_d(int nd)
+{
+    _jitl.argssize += nd << 1;
+}
+
+#define jit_arg_f			jit_arg_f
+__jit_inline int
+jit_arg_f(void)
+{
+    int		off;
+    off = _jitl.framesize;
+    _jitl.framesize += sizeof(float);
+    return (off);
+}
+
+#define jit_arg_d			jit_arg_d
+__jit_inline int
+jit_arg_d(void)
+{
+    int		off;
+    off = _jitl.framesize;
+    _jitl.framesize += sizeof(double);
+    return (off);
+}
 
 #if 0
 #define jit_sin()	_OO(0xd9fe)			/* fsin */
@@ -1438,10 +1649,5 @@ jit_bunordr_d(jit_insn *label, int f0, int f1)
 			 FXCHr(1), 			/* fxch st(1) */ \
 			 _OO(0xd9f1))			/* fyl2x */
 #endif
-
-#define jit_prepare_f(nf)       (_jitl.argssize += (nf))
-#define jit_prepare_d(nd)       (_jitl.argssize += 2 * (nd))
-#define jit_arg_f()             ((_jitl.framesize += sizeof(float)) - sizeof(float))
-#define jit_arg_d()             ((_jitl.framesize += sizeof(double)) - sizeof(double))
 
 #endif /* __lightning_fp_h */

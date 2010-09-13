@@ -1329,6 +1329,8 @@ enum {
     (_REXLrm(0,B,I), _OO_r_X(0x9bd9,7,D,B,I,S))		/*  fstcw m16int  */
 #define  FNSTCWm(D,B,I,S)	ESCmi(D,B,I,S, 017)	/* fnstcw m16int  */
 #define   FILDLm(D,B,I,S)	ESCmi(D,B,I,S, 030)	/*   fild m32int  */
+
+/* (p6 or newer) */
 #define FISTTPLm(D,B,I,S)	ESCmi(D,B,I,S, 031)	/* fisttp m32int  */
 #define   FISTLm(D,B,I,S)	ESCmi(D,B,I,S, 032)	/*   fist m32int  */
 #define  FISTPLm(D,B,I,S)	ESCmi(D,B,I,S, 033)	/*  fistp m32int  */
@@ -1338,7 +1340,10 @@ enum {
 #define    FSTLm(D,B,I,S)	ESCmi(D,B,I,S, 052)	/*    fst m64real */
 #define   FSTPLm(D,B,I,S)	ESCmi(D,B,I,S, 053)	/*   fstp m64real */
 #define   FILDWm(D,B,I,S)	ESCmi(D,B,I,S, 070)	/*   fild m16int  */
+
+/* (p6 or newer) */
 #define FISTTPQm(D,B,I,S)	ESCmi(D,B,I,S, 071)	/* fisttp m64int  */
+
 #define   FISTWm(D,B,I,S)	ESCmi(D,B,I,S, 072)	/*   fist m16int  */
 #define  FISTPWm(D,B,I,S)	ESCmi(D,B,I,S, 073)	/*  fistp m16int  */
 #define   FILDQm(D,B,I,S)	ESCmi(D,B,I,S, 075)	/*   fild m64int  */
@@ -1351,19 +1356,54 @@ enum {
 #define  FDIVrr(RS,RD)		ESCrri(RS,RD, 006)
 #define FDIVRrr(RS,RD)		ESCrri(RS,RD, 007)
 
+/* st(0) = st(rs) if below (cf=1) (p6 or newer) */
+#define   FCMOVB(RS)		ESCri(RS, 020)
+
+/* st(0) = st(rs) if equal (zf=1) (p6 or newer) */
+#define   FCMOVE(RS)		ESCri(RS, 021)
+
+/* st(0) = st(rs) if below or equal (cf=1 or zf=1) (p6 or newer) */
+#define  FCMOVBE(RS)		ESCri(RS, 022)
+
+/* st(0) = st(rs) if unordered (pf=1) (p6 or newer) */
+#define   FCMOVU(RS)		ESCri(RS, 023)
+
+/* st(0) = st(rs) if not below (cf=0) (p6 or newer) */
+#define  FCMOVNB(RS)		ESCri(RS, 030)
+
+/* st(0) = st(rs) if not equal (zf=0) (p6 or newer) */
+#define  FCMOVNE(RS)		ESCri(RS, 031)
+
+/* st(0) = st(rs) if not below or equal (cf=0 and zf=0) (p6 or newer) */
+#define FCMOVNBE(RS)		ESCri(RS, 032)
+
+/* st(0) = st(rs) if not unordered (pf=0) */
+#define  FCMOVNU(RS)		ESCri(RS, 033)
+
 #define     FLDr(RD)		ESCri(RD, 010)		/* ST(0) = ST(RD) */
 #define    FXCHr(RD)		ESCri(RD, 011)
 #define   FFREEr(RD)		ESCri(RD, 050)
 #define     FSTr(RD)		ESCri(RD, 052)
 #define    FSTPr(RD)		ESCri(RD, 053)
-#define    FCOMr(RD)		ESCri(RD, 002)
-#define   FCOMPr(RD)		ESCri(RD, 003)
-#define   FCOMIr(RD)		ESCri(RD, 036)
-#define  FCOMIPr(RD)		ESCri(RD, 076)
-#define   FUCOMr(RD)		ESCri(RD, 054)
-#define  FUCOMPr(RD)		ESCri(RD, 055)
-#define  FUCOMIr(RD)		ESCri(RD, 035)
-#define FUCOMIPr(RD)		ESCri(RD, 075)
+
+/* Compare st(0) with st(rs) */
+#define    FCOMr(RS)		ESCri(RS, 002)
+#define   FCOMPr(RS)		ESCri(RS, 003)
+
+/* Compare st(0) with st(rd) and set eflags (p6 or newer)
+   (raise invalid operation if unordered argument) */
+#define  FUCOMIr(RS)		ESCri(RS, 035)
+#define FUCOMIPr(RS)		ESCri(RS, 075)
+
+/* Compare st(0) with st(rs) and set eflags (p6 or newer)
+   (does not raise invalid operation if unordered argument) */
+#define   FCOMIr(RS)		ESCri(RS, 036)
+#define  FCOMIPr(RS)		ESCri(RS, 076)
+
+/* Compare st(0) with st(rs) */
+#define   FUCOMr(RS)		ESCri(RS, 054)
+#define  FUCOMPr(RS)		ESCri(RS, 055)
+
 #define   FADDPr(RD)		ESCri(RD, 060)
 #define   FMULPr(RD)		ESCri(RD, 061)
 #define   FSUBPr(RD)		ESCri(RD, 064)
@@ -1376,20 +1416,17 @@ enum {
 
 #define FCLEX_()		(_O(0x9b), FNCLEX_())
 
-/* Complement sign of ST(0) */
+/* st(0) = -st(0) */
 #define FCHS_()			_OO(0xd9e0)
 
-/* Set ST(0) to its absolute value */
+/* st(0) = fabs(st(0)) */
 #define FABS_()			_OO(0xd9e1)
 
-/* Compare ST(0) with 0.0 */
+/* Compare st(0) with 0.0 */
 #define FTST_()			_OO(0xd9e4)
 
 /* Classify ST(0) */
 #define FXAM_()			_OO(0xd9e5)
-
-/* Round ST(0) to an integer accordingly to rounding mode */
-#define FRNDINT_()		_OO(0xd9fc)
 
 /* Push +1.0 to the x87 stack */
 #define FLD1_()			_OO(0xd9e8)
@@ -1412,8 +1449,23 @@ enum {
 /* Push +0.0 */
 #define FLDZ_()			_OO(0xd9ee)
 
-/* ST(O) = pow(2, ST(0)) - 1 */
+/* st(0) = pow(2, st(0)) - 1 */
 #define F2XM1_()		_OO(0xd9f0)
+
+/* temp = st(1) * log2(st(0)) => *pop*,  st(0) = temp */
+#define FYL2X_()		_OO(0xd9f1)
+
+/* temp = tangent(st(0)) => *push*, st(0) = 1.0, st(1) = temp */
+#define FPTAN_()		_OO(0xd9f2)
+
+/* temp = arctan(st(1)/st(0)) => *pop*, st(0) = temp */
+#define FPATAN_()		_OO(0xd9f3)
+
+/* temp = st(0)	 => st(0) = significand(temp), st(1) = exponent(temp) */
+#define FXTRACT_()		_OO(0xd9f4)
+
+/* ST(0) = rem(ST(0)/ST(1)) - IEEE spec */
+#define FPREM1_()		_OO(0xd9f5)
 
 /* pop/rotate x87 stack */
 #define FDECSTP_()		_OO(0xd9f6)
@@ -1421,8 +1473,29 @@ enum {
 /* pop/rotate x87 stack */
 #define FINCSTP_()		_OO(0xd9f7)
 
-/* ST(0) *= * pow(2, ST(1)) */
+/* st(0) = rem(st(0)/st(1)) - compat with 8087/80287 */
+#define FPREM_()		_OO(0xd9f8)
+
+/* temp = st(1) * log2(st(0) + 1) => *pop*,  st(0) = temp */
+#define FYL2X_()		_OO(0xd9f1)
+
+/* st(0) = sqrt(st(0)) */
+#define FSQRT_()		_OO(0xd9fa)
+
+/* (sin,cos) = sincos(st(0)) => *push*, st(0) = cos, st(1) = sin */
+#define FSINCOS_()		_OO(0xd9fb)
+
+/* Round st(0) to an integer accordingly to rounding mode */
+#define FRNDINT_()		_OO(0xd9fc)
+
+/* st(0) *= * pow(2, st(1)) */
 #define FSCALE_()		_OO(0xd9fd)
+
+/* st(0) = sin(st(0)) */
+#define FSIN_()			_OO(0xd9fe)
+
+/* st(0) = cos(st(0)) */
+#define FCOS_()			_OO(0xd9ff)
 
 #define FNSTSWr(RD)							\
     ((RD == _RAX) ? _OO(0xdfe0) : JITFAIL ("RAX expected"))
