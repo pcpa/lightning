@@ -77,6 +77,12 @@ jit_pushr_i(jit_gpr_t r0)
 }
 
 __jit_inline void
+jit_pushi_i(int i0)
+{
+    PUSHLi(i0);
+}
+
+__jit_inline void
 jit_popr_i(jit_gpr_t r0)
 {
     POPLr(r0);
@@ -97,6 +103,12 @@ __jit_inline void
 jit_pushr_i(jit_gpr_t r0)
 {
     PUSHQr(r0);
+}
+
+__jit_inline void
+jit_pushi_i(long i0)
+{
+    PUSHQi(i0);
 }
 
 #define jit_popr_l(r0)			jit_popr_i(r0)

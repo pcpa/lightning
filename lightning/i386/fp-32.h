@@ -485,9 +485,9 @@ jit_movi_f(int f0, float i0)
     if (c)
 	FSTPr(f0 + 1);
     else {
-	PUSHLi(data.i);
+	jit_pushi_i(data.i);
 	jit_ldr_f(f0, _RSP);
-	ADDLir(4, _RSP);
+	ADDLir(sizeof(long), _RSP);
     }
 }
 
@@ -497,6 +497,7 @@ jit_movi_d(int f0, double i0)
 {
     union {
 	int	i[2];
+	long	l;
 	double	d;
     } data;
     int		c;
@@ -504,8 +505,13 @@ jit_movi_d(int f0, double i0)
     c = 1;
     data.d = i0;
     if (data.d == 0.0) {
+#if __WORDSIZE == 64
+	if (data.l & 0x8000000000000000)
+	    c = 0;
+#else
 	if (data.i[1] & 0x80000000)
 	    c = 0;
+#endif
 	else
 	    FLDZ_();
     }
@@ -529,8 +535,12 @@ jit_movi_d(int f0, double i0)
     if (c)
 	FSTPr(f0 + 1);
     else {
+#if __WORDSIZE == 64
+	PUSHQi(data.l);
+#else
 	PUSHLi(data.i[1]);
 	PUSHLi(data.i[0]);
+#endif
 	jit_ldr_d(f0, _RSP);
 	ADDLir(8, _RSP);
     }
@@ -558,24 +568,24 @@ jit_movr_d(int f0, int f1)
 __jit_inline void
 jit_extr_i_d(int f0, jit_gpr_t r0)
 {
-    PUSHLr(r0);
+    jit_pushr_i(r0);
     FILDLm(0, _RSP, 0, 0);
     FSTPr(f0 + 1);
-    POPLr(r0);
+    jit_popr_i(r0);
 }
 
 #define jit_rintr_d_i(r0, f0)		jit_rintr_d_i(r0, f0)
 __jit_inline void
 jit_rintr_d_i(jit_gpr_t r0, int f0)
 {
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     if (f0)
 	FXCHr(f0);
     /* store integer using current rounding mode */
     FISTLm(0, _RSP, 0, 0);
     if (f0)
 	FXCHr(f0);
-    POPLr(r0);
+    jit_popr_i(r0);
 }
 
 /* This looks complex/slow, but actually is quite faster than
@@ -587,7 +597,7 @@ _i386_roundr_d_i(jit_gpr_t r0, int f0)
     jit_insn	*label;
 
     /* make room on stack */
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
 
@@ -678,7 +688,7 @@ _i386_roundr_d_i(jit_gpr_t r0, int f0)
 
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
-    POPLr(r0);
+    jit_popr_i(r0);
 }
 
 __jit_inline void
@@ -687,7 +697,7 @@ _safe_roundr_d_i(jit_gpr_t r0, int f0)
     jit_insn	*label;
 
     /* make room on stack and save %rax */
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
 
@@ -699,7 +709,7 @@ _safe_roundr_d_i(jit_gpr_t r0, int f0)
     /* load control word */
     jit_ldr_s(_RAX, _RSP);
     /* make copy */
-    jit_stxi_s(4, _RSP, _RAX);
+    jit_stxi_s(sizeof(long), _RSP, _RAX);
 
     /* clear top bits and select chop (truncate mode) */
     MOVZBLrr(_RAX, _RAX);
@@ -737,11 +747,11 @@ _safe_roundr_d_i(jit_gpr_t r0, int f0)
     FISTPLm(0, _RSP, 0, 0);
 
     /* load result and restore state */
-    FLDCWm(4, _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, 0, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(8, _RSP);
+    ADDLir(sizeof(long) << 1, _RSP);
 }
 
 #define jit_roundr_d_i(r0, f0)		jit_roundr_d_i(r0, f0)
@@ -758,10 +768,10 @@ __jit_inline void
 _i386_truncr_d_i(jit_gpr_t r0, int f0)
 {
     /* make room, store control word and copy */
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
-    jit_stxi_s(4, _RSP, r0);
+    jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select chop (round towards zero) */
     if (jit_check8(r0))
@@ -773,8 +783,6 @@ _i386_truncr_d_i(jit_gpr_t r0, int f0)
 #if __WORDSIZE == 32
     ORWir(FPCW_CHOP, r0);
 #else
-    /* FIXME not only this for x86_64
-     * (push/pop and stack aligned at 8 bytes) */
     ORLir(FPCW_CHOP, r0);
 #endif
 
@@ -788,18 +796,18 @@ _i386_truncr_d_i(jit_gpr_t r0, int f0)
 	FXCHr(f0);
 
     /* load result and restore state */
-    FLDCWm(4, _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(8, _RSP);
+    ADDLir(sizeof(long) << 1, _RSP);
 }
 
 __jit_inline void
 _i686_truncr_d_i(jit_gpr_t r0, int f0)
 {
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     FLDr(f0);
     FISTTPLm(0, _RSP, 0, 0);
-    POPLr(r0);
+    jit_popr_i(r0);
 }
 
 #define jit_truncr_d_i(r0, f0)		jit_truncr_d_i(r0, f0)
@@ -817,10 +825,10 @@ __jit_inline void
 _safe_floorr_d_i(jit_gpr_t r0, int f0)
 {
     /* make room, store control word and copy */
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
-    jit_stxi_s(4, _RSP, r0);
+    jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select down (round towards minus infinity) */
     if (jit_check8(r0))
@@ -843,9 +851,9 @@ _safe_floorr_d_i(jit_gpr_t r0, int f0)
 	FXCHr(f0);
 
     /* load integer and restore state */
-    FLDCWm(4, _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(8, _RSP);
+    ADDLir(sizeof(long) << 1, _RSP);
 }
 
 __jit_inline void
@@ -856,7 +864,7 @@ _i386_floorr_d_i(jit_gpr_t r0, int f0)
 #if 1
     jit_insn	*label;
 
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
     FLDr(f0);
@@ -873,23 +881,23 @@ _i386_floorr_d_i(jit_gpr_t r0, int f0)
     FISTPLm(0, _RSP, 0, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
-    POPLr(r0);
+    jit_popr_i(r0);
 #else
     /* original code */
     jit_gpr_t	 aux = r0 == _RDX ? _RAX : _RDX;
 
-    PUSHLr(aux);
+    jit_pushr_i(aux);
     FLDr(f0);
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     FISTLm(0, _RSP, 0, 0);
     FILDLm(0, _RSP, 0, 0);
     FSUBRPr(1);
-    FSTPSm(4, _RSP, 0, 0);
+    FSTPSm(sizeof(long), _RSP, 0, 0);
     POPLr(r0);
     POPLr(aux);
     ADDLir(0x7FFFFFFF, aux);
     SBBLir(0, r0);
-    POPLr(aux);
+    jit_popr_i(aux);
 #endif
 }
 
@@ -899,7 +907,7 @@ _i686_floorr_d_i(jit_gpr_t r0, int f0)
     jit_insn	*label;
 
     /* make room */
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     /* push value */
     FLDr(f0);
     /* round to nearest */
@@ -910,7 +918,7 @@ _i686_floorr_d_i(jit_gpr_t r0, int f0)
     FXCHr(f0 + 1);
     /* store integer */
     FISTPLm(0, _RSP, 0, 0);
-    POPLr(r0);
+    jit_popr_i(r0);
     JPESm((long)(_jit.x.pc + 4));
     label = _jit.x.pc;
     /* subtract 1 if carry */
@@ -936,10 +944,10 @@ __jit_inline void
 _safe_ceilr_d_i(jit_gpr_t r0, int f0)
 {
     /* make room, store control word and copy */
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
-    jit_stxi_s(4, _RSP, r0);
+    jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select up (round towards positive infinity) */
     if (jit_check8(r0))
@@ -962,9 +970,9 @@ _safe_ceilr_d_i(jit_gpr_t r0, int f0)
 	FXCHr(f0);
 
     /* load integer and restore state */
-    FLDCWm(4, _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(8, _RSP);
+    ADDLir(sizeof(long) << 1, _RSP);
 }
 
 __jit_inline void
@@ -975,7 +983,7 @@ _i386_ceilr_d_i(jit_gpr_t r0, int f0)
 #if 1
     jit_insn	*label;
 
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
     FLDr(f0);
@@ -992,25 +1000,25 @@ _i386_ceilr_d_i(jit_gpr_t r0, int f0)
     FISTPLm(0, _RSP, 0, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
-    POPLr(r0);
+    jit_popr_i(r0);
 #else
     /* original code */
     jit_gpr_t	aux = r0 == _RDX ? _RAX : _RDX;
 
-    PUSHLr(aux);
+    jit_pushr_i(aux);
     FLDr(f0);
-    SUBLir(8, _RSP);
+    SUBLir(sizeof(long) << 1, _RSP);
     FISTLm(0, _RSP, 0, 0);
     FILDLm(0, _RSP, 0, 0);
     FSUBRPr(1);
-    FSTPSm(4, _RSP, 0, 0);
-    POPLr(r0);
-    POPLr(aux);
+    FSTPSm(sizeof(long), _RSP, 0, 0);
+    jit_popr_i(r0);
+    jit_popr_i(aux);
     TESTLrr(aux, aux);
     SETGr(aux);
     SHRLir(1, aux);
     ADCLir(0, r0);
-    POPLr(aux);
+    jit_popr_i(aux);
 #endif
 }
 
@@ -1020,7 +1028,7 @@ _i686_ceilr_d_i(jit_gpr_t r0, int f0)
     jit_insn	*label;
 
     /* make room */
-    PUSHLr(_RAX);
+    jit_pushr_i(_RAX);
     /* push value */
     FLDr(f0);
     /* round to nearest */
@@ -1029,7 +1037,7 @@ _i686_ceilr_d_i(jit_gpr_t r0, int f0)
     FCOMIr(f0 + 1);
     /* store integer */
     FISTPLm(0, _RSP, 0, 0);
-    POPLr(r0);
+    jit_popr_i(r0);
     JPESm((long)(_jit.x.pc + 4));
     label = _jit.x.pc;
     /* add 1 if carry */
