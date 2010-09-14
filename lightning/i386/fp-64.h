@@ -92,147 +92,121 @@
        or pcmpeqd %RD, %RD / psrld $1, %RD / andps %RS, %RD (if RS != RD) */
 #define _jit_abs_f(rd,cnst,rs)						\
 	(PCMPEQDrr((cnst), (cnst)), PSRLDir (1, (cnst)), ANDPSrr ((rs), (rd)))
-#define _jit_neg_f(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSLLDir (31, (cnst)), XORPSrr ((rs), (rd)))
 #define jit_abs_f(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_f)
-#define jit_neg_f(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_neg_f)
-
-/*
-jit_negr_f(rd, rs) {
-    PUSHQi(0x80000000);
-    if (rd == rs) {
-	jit_ldr_f(JIT_FPRTMP, _RSP);
-	XORPSrr(JIT_FPRTMP, rd);
-    }
-    else {
-	jit_ldr_f(rd, _RSP);
-	XORPSrr(rs, rd);
-    }
-    ADDQir(8, _RSP);
-}
- */
-#define jit_negr_f(rd, rs)						\
-    (PUSHQi(0x80000000),						\
-     (((rd) == (rs))							\
-	? (jit_ldr_f(JIT_FPTMP, _RSP),					\
-	   XORPSrr(JIT_FPTMP, (rd)))					\
-	: (jit_ldr_f((rd), _RSP),					\
-	   XORPSrr((rs), (rd)))),					\
-     ADDQir(8, _RSP))
-
-#define _jit_abs_d(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
-#define _jit_neg_d(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSLLQir (63, (cnst)), XORPDrr ((rs), (rd)))
-#define jit_abs_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_d)
-#define jit_neg_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_neg_d)
-
-/*
-jit_negr_d(rd, rs) {
-    MOVQir(0x8000000000000000, JIT_REXTMP);
-    PUSHQr(JIT_REXTMP);
-    if (rd == rs) {
-	jit_ldr_d(JIT_FPRTMP, _RSP);
-	XORPDrr(JIT_FPRTMP, rd);
-    }
-    else {
-	jit_ldr_d(rd, _RSP);
-	XORPDrr(rs, rd);
-    }
-    ADDQir(8, _RSP);
-}
- */
-#define jit_negr_d(rd, rs)						\
-    (MOVQir(0x8000000000000000, JIT_REXTMP),				\
-     PUSHQr(JIT_REXTMP),						\
-     (((rd) == (rs))							\
-	? (jit_ldr_d(JIT_FPTMP, _RSP),					\
-	   XORPDrr(JIT_FPTMP, (rd)))					\
-	: (jit_ldr_d((rd), _RSP),					\
-	   XORPDrr((rs), (rd)))),					\
-     ADDQir(8, _RSP))
 
 #define jit_sqrt_d(rd,rs)	SQRTSSrr((rs), (rd))
 #define jit_sqrt_f(rd,rs)	SQRTSDrr((rs), (rd))
 
-#define _jit_ldi_f(d, is)               MOVSSmr((is), 0,    0,    0,  (d))
 #define _jit_ldxi_f(d, rs, is)          MOVSSmr((is), (rs), 0,    0,  (d))
 #define jit_ldr_f(d, rs)                MOVSSmr(0,    (rs), 0,    0,  (d))
 #define jit_ldxr_f(d, s1, s2)           MOVSSmr(0,    (s1), (s2), 1,  (d))
 
-#define _jit_sti_f(id, rs)              MOVSSrm((rs), (id), 0,    0,    0)
 #define _jit_stxi_f(id, rd, rs)         MOVSSrm((rs), (id), (rd), 0,    0)
 #define jit_str_f(rd, rs)               MOVSSrm((rs), 0,    (rd), 0,    0)
 #define jit_stxr_f(d1, d2, rs)          MOVSSrm((rs), 0,    (d1), (d2), 1)
 
-#define jit_ldi_f(d, is)                (_u32P((long)(is)) ? _jit_ldi_f((d), (is)) : (jit_movi_l(JIT_REXTMP, (is)), jit_ldr_f((d), JIT_REXTMP)))
-#define jit_sti_f(id, rs)               (_u32P((long)(id)) ? _jit_sti_f((id), (rs)) : (jit_movi_l(JIT_REXTMP, (id)), jit_str_f (JIT_REXTMP, (rs))))
 #define jit_ldxi_f(d, rs, is)           (_u32P((long)(is)) ? _jit_ldxi_f((d), (rs), (is)) : (jit_movi_l(JIT_REXTMP, (is)), jit_ldxr_f((d), (rs), JIT_REXTMP)))
 #define jit_stxi_f(id, rd, rs)          (_u32P((long)(id)) ? _jit_stxi_f((id), (rd), (rs)) : (jit_movi_l(JIT_REXTMP, (id)), jit_stxr_f (JIT_REXTMP, (rd), (rs))))
 
-#define _jit_ldi_d(d, is)               MOVSDmr((is), 0,    0,    0,  (d))
 #define _jit_ldxi_d(d, rs, is)          MOVSDmr((is), (rs), 0,    0,  (d))
 #define jit_ldr_d(d, rs)                MOVSDmr(0,    (rs), 0,    0,  (d))
 #define jit_ldxr_d(d, s1, s2)           MOVSDmr(0,    (s1), (s2), 1,  (d))
 
-#define _jit_sti_d(id, rs)              MOVSDrm((rs), (id), 0,    0,    0)
 #define _jit_stxi_d(id, rd, rs)         MOVSDrm((rs), (id), (rd), 0,    0)
 #define jit_str_d(rd, rs)               MOVSDrm((rs), 0,    (rd), 0,    0)
 #define jit_stxr_d(d1, d2, rs)          MOVSDrm((rs), 0,    (d1), (d2), 1)
 
-#define jit_ldi_d(d, is)                (_u32P((long)(is)) ? _jit_ldi_d((d), (is)) : (jit_movi_l(JIT_REXTMP, (is)), jit_ldr_d((d), JIT_REXTMP)))
-#define jit_sti_d(id, rs)               (_u32P((long)(id)) ? _jit_sti_d((id), (rs)) : (jit_movi_l(JIT_REXTMP, (id)), jit_str_d (JIT_REXTMP, (rs))))
+#define jit_ldi_f(f0, i0)		jit_ldi_f(f0, i0)
+__jit_inline void
+jit_ldi_f(int f0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSSmr((long)i0, 0, 0, 0, f0);
+    else {
+	jit_movi_l((long)i0, JIT_REXTMP);
+	jit_ldr_f(f0, JIT_REXTMP);
+    }
+}
+
+#define jit_sti_f(i0, f0)		jit_sti_f(i0, f0)
+__jit_inline void
+jit_sti_f(void *i0, int f0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSSrm(f0, (long)i0, 0, 0, 0);
+    else {
+	jit_movi_l((long)i0, JIT_REXTMP);
+	jit_str_f(JIT_REXTMP, f0);
+    }
+}
+
+#define jit_ldi_d(f0, i0)		jit_ldi_d(f0, i0)
+__jit_inline void
+jit_ldi_d(int f0, void *i0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSDmr((long)i0, 0, 0, 0, f0);
+    else {
+	jit_movi_l((long)i0, JIT_REXTMP);
+	jit_ldr_d(f0, JIT_REXTMP);
+    }
+}
+
+#define jit_sti_d(i0, f0)		jit_sti_d(i0, f0)
+__jit_inline void
+jit_sti_d(void *i0, int f0)
+{
+    if (jit_can_sign_extend_int_p((long)i0))
+	MOVSDrm(f0, (long)i0, 0, 0, 0);
+    else {
+	jit_movi_l((long)i0, JIT_REXTMP);
+	jit_str_d(JIT_REXTMP, f0);
+    }
+}
+
 #define jit_ldxi_d(d, rs, is)           (_u32P((long)(is)) ? _jit_ldxi_d((d), (rs), (is)) : (jit_movi_l(JIT_REXTMP, (is)), jit_ldxr_d((d), (rs), JIT_REXTMP)))
 #define jit_stxi_d(id, rd, rs)          (_u32P((long)(id)) ? _jit_stxi_d((id), (rd), (rs)) : (jit_movi_l(JIT_REXTMP, (id)), jit_stxr_d (JIT_REXTMP, (rd), (rs))))
 
-/*
-jit_movi_f(rd, immf) {
-    _jitl.data.f = immf;
-    if (_jitl.data.f == 0.0 && !signbit(_jitl.data.f))
-	XORPSrr(rd, rd);
+#define jit_movi_f(f0, i0)		jit_movi_f(f0, i0)
+__jit_inline void
+jit_movi_f(int f0, float i0)
+{
+    union {
+	int	i;
+	float	f;
+    } data;
+    data.f = i0;
+    if (data.f == 0.0 && !(data.i & 0x80000000))
+	XORPSrr(f0, f0);
     else {
-	PUSHQi(_jitl.data.i);
-	jit_ldr_f(rd, _RSP);
+	PUSHQi(data.i);
+	jit_ldr_f(f0, _RSP);
 	ADDQir(8, _RSP);
     }
 }
- */
-#define jit_movi_f(rd, immf)						\
-    (_jitl.data.f = (immf),						\
-     ((_jitl.data.f == 0.0 && !(_jitl.data.i & 0x80000000))		\
-	? XORPSrr((rd), (rd))						\
-	: (PUSHQi(_jitl.data.i),					\
-	   jit_ldr_f((rd), _RSP),					\
-	   ADDQir(8, _RSP))))
 
-/*
-jit_movi_d(rd, immd) {
-    _jitl.data.d = immd;
-    if (immd == 0.0 && !signbit(immd))
-	XORPDrr(rd, rd);
+#define jit_movi_d(f0, i0)		jit_movi_d(f0, i0)
+__jit_inline void
+jit_movi_d(int f0, double i0)
+{
+    union {
+	long	l;
+	double	d;
+    } data;
+    data.d = i0;
+    if (data.d == 0.0 && !(data.l & 0x8000000000000000))
+	XORPDrr(f0, f0);
     else {
-	if (safe_int32_p(_jitl.data.l))
-	    PUSHQi(_jitl.data.l);
+	if (jit_can_sign_extend_int_p(data.l))
+	    PUSHQi(data.l);
 	else {
-	    MOVQir(_jitl.data.l, JIT_REXTMP);
+	    MOVQir(data.l, JIT_REXTMP);
 	    PUSHQr(JIT_REXTMP);
 	}
-	jit_ldr_d(rd, _RSP);
+	jit_ldr_d(f0, _RSP);
 	ADDQir(8, _RSP);
     }
 }
- */
-#define jit_movi_d(rd, immd)						\
-    (_jitl.data.d = (immd),						\
-     ((_jitl.data.d == 0.0 && !(_jitl.data.l & 0x8000000000000000))	\
-	? XORPDrr((rd), (rd))						\
-	: ((((_jitl.data.l <= 0 && _s32P(_jitl.data.l)) ||		\
-	     (_jitl.data.l > 0 && _uiP(31, _jitl.data.l)))		\
-	    ? PUSHQi(_jitl.data.l)					\
-	    : (MOVQir(_jitl.data.l, JIT_REXTMP),			\
-	       PUSHQr(JIT_REXTMP))),					\
-	   jit_ldr_d((rd), _RSP),					\
-	   ADDQir(8, _RSP))))
 
 #define jit_extr_i_d(rd, rs)	CVTSI2SDLrr((rs), (rd))
 #define jit_extr_i_f(rd, rs)	CVTSI2SSLrr((rs), (rd))
@@ -241,21 +215,103 @@ jit_movi_d(rd, immd) {
 #define jit_extr_f_d(rd, rs)	CVTSS2SDrr((rs), (rd))
 #define jit_extr_d_f(rd, rs)	CVTSD2SSrr((rs), (rd))
 
-#define jit_rintr_d_i(rd, rs)	CVTSD2SILrr((rs), (rd))
-#define jit_rintr_f_i(rd, rs)	CVTSS2SILrr((rs), (rd))
-#define jit_rintr_d_l(rd, rs)	CVTSD2SIQrr((rs), (rd))
-#define jit_rintr_f_l(rd, rs)	CVTSS2SIQrr((rs), (rd))
+#define jit_negr_f(f0, f1)		jit_negr_f(f0, f1)
+__jit_inline void
+jit_negr_f(int f0, int f1)
+{
+    PUSHQi(0x80000000);
+    if (f0 == f1) {
+	jit_ldr_f(JIT_FPTMP, _RSP);
+	XORPSrr(JIT_FPTMP, f0);
+    }
+    else {
+	jit_ldr_f(f0, _RSP);
+	XORPSrr(f1, f0);
+    }
+    ADDQir(8, _RSP);
+}
+
+#define _jit_abs_d(rd,cnst,rs)						\
+	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
+#define jit_abs_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_d)
+
+#define jit_negr_d(f0, f1)		jit_negr_d(f0, f1)
+__jit_inline void
+jit_negr_d(int f0, int f1)
+{
+    MOVQir(0x8000000000000000, JIT_REXTMP);
+    PUSHQr(JIT_REXTMP);
+    if (f0 == f1) {
+	jit_ldr_d(JIT_FPTMP, _RSP);
+	XORPDrr(JIT_FPTMP, f0);
+    }
+    else {
+	jit_ldr_d(f0, _RSP);
+	XORPDrr(f1, f0);
+    }
+    ADDQir(8, _RSP);
+}
+
+#define jit_rintr_f_i(r0, f0)		jit_rintr_f_i(r0, f0)
+__jit_inline void
+jit_rintr_f_i(jit_gpr_t r0, int f0)
+{
+    CVTSS2SILrr(f0, r0);
+}
+
+#define jit_rintr_f_l(r0, f0)		jit_rintr_f_l(r0, f0)
+__jit_inline void
+jit_rintr_f_l(jit_gpr_t r0, int f0)
+{
+    CVTSS2SIQrr(f0, r0);
+}
+
+#define jit_rintr_d_i(r0, f0)		jit_rintr_d_i(r0, f0)
+__jit_inline void
+jit_rintr_d_i(jit_gpr_t r0, int f0)
+{
+    CVTSD2SILrr(f0, r0);
+}
+
+#define jit_rintr_d_l(r0, f0)		jit_rintr_d_l(r0, f0)
+__jit_inline void
+jit_rintr_d_l(jit_gpr_t r0, int f0)
+{
+    CVTSD2SIQrr(f0, r0);
+}
 
 #define jit_roundr_d_i(rd, rs)	CVTSD2SILrr((rs), (rd))
 #define jit_roundr_f_i(rd, rs)	CVTSS2SILrr((rs), (rd))
 #define jit_roundr_d_l(rd, rs)	CVTSD2SIQrr((rs), (rd))
 #define jit_roundr_f_l(rd, rs)	CVTSS2SIQrr((rs), (rd))
 
-#define jit_truncr_d_i(rd, rs)	CVTTSD2SILrr((rs), (rd))
-#define jit_truncr_f_i(rd, rs)	CVTTSS2SILrr((rs), (rd))
-#define jit_truncr_d_l(rd, rs)	CVTTSD2SIQrr((rs), (rd))
-#define jit_truncr_f_l(rd, rs)	CVTTSS2SIQrr((rs), (rd))
+#define jit_truncr_f_i(r0, f0)		jit_truncr_f_i(r0, f0)
+__jit_inline void
+jit_truncr_f_i(jit_gpr_t r0, int f0)
+{
+    CVTTSS2SILrr(f0, r0);
+}
 
+#define jit_truncr_f_l(r0, f0)		jit_truncr_f_l(r0, f0)
+__jit_inline void
+jit_truncr_f_l(jit_gpr_t r0, int f0)
+{
+    CVTTSS2SIQrr(f0, r0);
+}
+
+#define jit_truncr_d_i(r0, f0)		jit_truncr_d_i(r0, f0)
+__jit_inline void
+jit_truncr_d_i(jit_gpr_t r0, int f0)
+{
+    CVTTSD2SILrr(f0, r0);
+}
+
+#define jit_truncr_d_l(r0, f0)		jit_truncr_d_l(r0, f0)
+__jit_inline void
+jit_truncr_d_l(jit_gpr_t r0, int f0)
+{
+    CVTTSD2SIQrr(f0, r0);
+}
 
 #define jit_ceilr_f_i(rd, rs) do {			\
 	jit_roundr_f_i ((rd), (rs));		\

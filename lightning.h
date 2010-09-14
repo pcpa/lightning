@@ -69,13 +69,6 @@ struct jit_local_state {
     int		 alloca_offset;
     int		 alloca_slack;
     jit_insn	*label;
-    union {
-	int	 i;
-	long	 l;
-	float	 f;
-	double	 d;
-	void	*p;
-    } data;
 };
 #elif defined(__ppc__)
 struct jit_local_state {

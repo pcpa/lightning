@@ -1529,6 +1529,7 @@ enum {
   X86_SSE_CVTSI  = 0x2d,
   X86_SSE_UCOMI  = 0x2e,
   X86_SSE_COMI   = 0x2f,
+  X86_SSE_ROUND  = 0x3a,
   X86_SSE_SQRT   = 0x51,
   X86_SSE_RSQRT  = 0x52,
   X86_SSE_RCP    = 0x53,
@@ -1545,6 +1546,30 @@ enum {
   X86_SSE_DIV    = 0x5e,
   X86_SSE_MAX    = 0x5f,
   X86_SSE_MOV2   = 0xd6
+};
+
+enum {
+    MXCSR_INV_EXCPT	= 0x0001,
+    MXCSR_DENORM_EXCPT	= 0x0002,
+    MXCSR_ZERODIV_EXCPT	= 0x0004,
+    MXCSR_OVER_EXCPT	= 0x0008,
+    MXCSR_UNDER_EXCPT	= 0x0010,
+    MXCSR_PREC_EXCPT	= 0x0020,
+    MXCSR_DENORMISZERO	= 0x0040,
+    MXCSR_INV_MASK	= 0x0080,
+    MXCSR_DENORM_MASK	= 0x0100,
+    MXCSR_ZERODIV_MASK	= 0x0200,
+    MXCSR_OVER_MASK	= 0x0400,
+    MXCSR_UNDER_MASK	= 0x0800,
+    MXCSR_PREC_MASK	= 0x1000,
+
+    MXCSR_RND_MASK	= 0x6000,	/* Round mode mask */
+    MXCSR_RND_NEAR	= 0x0000,	/* Round to nearest */
+    MXCSR_RND_DOWN	= 0x2000,	/* Round toward -oo */
+    MXCSR_RND_UP	= 0x4000,	/* Round toward +oo */
+    MXCSR_RND_CHOP	= 0x6000,	/* Truncate to zero */
+
+    MXCSR_FLUSHTOZERO	= 0x8000
 };
 
 /*										_format		Opcd		,Mod ,r	     ,m		,mem=dsp+sib	,imm... */
