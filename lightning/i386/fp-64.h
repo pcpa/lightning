@@ -89,9 +89,6 @@
 #define jit_mulr_d(rd,s1,s2)	jit_3opc_d((rd), (s1), (s2), MULSDrr)
 #define jit_divr_d(rd,s1,s2)	jit_3op_d((rd), (s1), (s2), DIVSDrr)
 
-#define jit_movr_f(rd,rs)	MOVSSrr((rs), (rd))
-#define jit_movr_d(rd,rs)	MOVSDrr((rs), (rd))
-
 /* either pcmpeqd %xmm7, %xmm7 / psrld $1, %xmm7 / andps %xmm7, %RD (if RS = RD)
        or pcmpeqd %RD, %RD / psrld $1, %RD / andps %RS, %RD (if RS != RD) */
 #define _jit_abs_f(rd,cnst,rs)						\
@@ -253,6 +250,20 @@ jit_stxi_d(long i0, jit_gpr_t r0, int f0)
     }
 }
 
+#define jit_movr_f(f0, f1)		jit_movr_f(f0, f1)
+__jit_inline void
+jit_movr_f(int f0, int f1)
+{
+    MOVSSrr(f1, f0);
+}
+
+#define jit_movr_d(f0, f1)		jit_movr_d(f0, f1)
+__jit_inline void
+jit_movr_d(int f0, int f1)
+{
+    MOVSDrr(f1, f0);
+}
+
 #define jit_movi_f(f0, i0)		jit_movi_f(f0, i0)
 __jit_inline void
 jit_movi_f(int f0, float i0)
@@ -294,12 +305,47 @@ jit_movi_d(int f0, double i0)
     }
 }
 
-#define jit_extr_i_d(rd, rs)	CVTSI2SDLrr((rs), (rd))
-#define jit_extr_i_f(rd, rs)	CVTSI2SSLrr((rs), (rd))
-#define jit_extr_l_d(rd, rs)	CVTSI2SDQrr((rs), (rd))
-#define jit_extr_l_f(rd, rs)	CVTSI2SSQrr((rs), (rd))
-#define jit_extr_f_d(rd, rs)	CVTSS2SDrr((rs), (rd))
-#define jit_extr_d_f(rd, rs)	CVTSD2SSrr((rs), (rd))
+#define jit_extr_i_f(f0, r0)		jit_extr_i_f(f0, r0)
+__jit_inline void
+jit_extr_i_f(int f0, jit_gpr_t r0)
+{
+    CVTSI2SSLrr(r0, f0);
+}
+
+#define jit_extr_i_d(f0, r0)		jit_extr_i_d(f0, r0)
+__jit_inline void
+jit_extr_i_d(int f0, jit_gpr_t r0)
+{
+    CVTSI2SDLrr(r0, f0);
+}
+
+#define jit_extr_l_f(f0, r0)		jit_extr_l_f(f0, r0)
+__jit_inline void
+jit_extr_l_f(int f0, jit_gpr_t r0)
+{
+    CVTSI2SSQrr(r0, f0);
+}
+
+#define jit_extr_l_d(f0, r0)		jit_extr_l_d(f0, r0)
+__jit_inline void
+jit_extr_l_d(int f0, jit_gpr_t r0)
+{
+    CVTSI2SDQrr(r0, f0);
+}
+
+#define jit_extr_f_d(f0, f1)		jit_extr_f_d(f0, f1)
+__jit_inline void
+jit_extr_f_d(int f0, int f1)
+{
+    CVTSS2SDrr(f1, f0);
+}
+
+#define jit_extr_d_f(f0, f1)		jit_extr_d_f(f0, f1)
+__jit_inline void
+jit_extr_d_f(int f0, int f1)
+{
+    CVTSD2SSrr(f1, f0);
+}
 
 #define jit_negr_f(f0, f1)		jit_negr_f(f0, f1)
 __jit_inline void
