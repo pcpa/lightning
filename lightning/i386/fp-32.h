@@ -485,7 +485,7 @@ jit_movi_f(jit_fpr_t f0, float i0)
     else {
 	jit_pushi_i(data.i);
 	jit_ldr_f(f0, _RSP);
-	ADDLir(sizeof(long), _RSP);
+	jit_addi_l(_RSP, _RSP, sizeof(long));
     }
 }
 
@@ -540,7 +540,7 @@ jit_movi_d(jit_fpr_t f0, double i0)
 	PUSHLi(data.i[0]);
 #endif
 	jit_ldr_d(f0, _RSP);
-	ADDLir(8, _RSP);
+	jit_addi_l(_RSP, _RSP, 8);
     }
 }
 
@@ -696,7 +696,7 @@ _safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     jit_insn	*label;
 
     /* make room on stack and save %rax */
-    SUBLir(sizeof(long) << 1, _RSP);
+    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
 
@@ -750,7 +750,7 @@ _safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(sizeof(long) << 1, _RSP);
+    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
 
 #define jit_roundr_d_i(r0, f0)		jit_roundr_d_i(r0, f0)
@@ -767,7 +767,7 @@ __jit_inline void
 _i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    SUBLir(sizeof(long) << 1, _RSP);
+    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
@@ -799,7 +799,7 @@ _i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load result and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(sizeof(long) << 1, _RSP);
+    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -826,7 +826,7 @@ __jit_inline void
 _safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    SUBLir(sizeof(long) << 1, _RSP);
+    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
@@ -857,7 +857,7 @@ _safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load integer and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(sizeof(long) << 1, _RSP);
+    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -928,7 +928,7 @@ __jit_inline void
 _safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    SUBLir(sizeof(long) << 1, _RSP);
+    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
     FSTCWm(0, _RSP, 0, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
@@ -958,7 +958,7 @@ _safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* load integer and restore state */
     FLDCWm(sizeof(long), _RSP, 0, 0);
     jit_ldr_i(r0, _RSP);
-    ADDLir(sizeof(long) << 1, _RSP);
+    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
 
 __jit_inline void
