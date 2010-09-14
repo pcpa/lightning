@@ -35,10 +35,11 @@
 
 #include <float.h>
 
-#define JIT_FPR_NUM	7
+#define JIT_FPR_NUM	6
 #define JIT_FPRET	_XMM0
 #define JIT_FPR(i)	(_XMM8 + (i))
-#define JIT_FPTMP	_XMM15
+#define JIT_FPTMP0	_XMM14
+#define JIT_FPTMP1	_XMM15
 
 #define jit_sse4_1()			0
 
@@ -48,7 +49,7 @@
    or use RD as the temporary register and to the AND/OR/XOR with RS.  */
 #define jit_unop_tmp(rd, rs, op)		\
 	( (rs) == (rd)				\
-	 ? op((rd), JIT_FPTMP, JIT_FPTMP))	\
+	 ? op((rd), JIT_FPTMP0, JIT_FPTMP0))	\
 	 : op((rd), (rd), (rs)))
 
 #define jit_unop_f(rd, rs, op)						\
@@ -70,13 +71,13 @@
 #define jit_3op_f(rd, s1, s2, op)				\
 	( (s1) == (rd) ? op((s2), (rd))				\
 	  : ((s2) == (rd)					\
-	     ? (MOVSSrr ((rd), JIT_FPTMP), MOVSSrr ((s1), (rd)), op(JIT_FPTMP, (rd)))	\
+	     ? (MOVSSrr ((rd), JIT_FPTMP0), MOVSSrr ((s1), (rd)), op(JIT_FPTMP0, (rd)))	\
 	     : (MOVSSrr ((s1), (rd)), op((s2), (rd)))))
 
 #define jit_3op_d(rd, s1, s2, op)				\
 	( (s1) == (rd) ? op((s2), (rd))				\
 	  : ((s2) == (rd) 					\
-	     ? (MOVSDrr ((rd), JIT_FPTMP), MOVSDrr ((s1), (rd)), op(JIT_FPTMP, (rd)))	\
+	     ? (MOVSDrr ((rd), JIT_FPTMP0), MOVSDrr ((s1), (rd)), op(JIT_FPTMP0, (rd)))	\
 	     : (MOVSDrr ((s1), (rd)), op((s2), (rd)))))
 
 #define jit_addr_f(rd,s1,s2)	jit_3opc_f((rd), (s1), (s2), ADDSSrr)
@@ -353,8 +354,8 @@ jit_negr_f(int f0, int f1)
 {
     PUSHQi(0x80000000);
     if (f0 == f1) {
-	jit_ldr_f(JIT_FPTMP, _RSP);
-	XORPSrr(JIT_FPTMP, f0);
+	jit_ldr_f(JIT_FPTMP0, _RSP);
+	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
 	jit_ldr_f(f0, _RSP);
@@ -374,8 +375,8 @@ jit_negr_d(int f0, int f1)
     MOVQir(0x8000000000000000, JIT_REXTMP);
     PUSHQr(JIT_REXTMP);
     if (f0 == f1) {
-	jit_ldr_d(JIT_FPTMP, _RSP);
-	XORPDrr(JIT_FPTMP, f0);
+	jit_ldr_d(JIT_FPTMP0, _RSP);
+	XORPDrr(JIT_FPTMP0, f0);
     }
     else {
 	jit_ldr_d(f0, _RSP);
@@ -412,10 +413,135 @@ jit_rintr_d_l(jit_gpr_t r0, int f0)
     CVTSD2SIQrr(f0, r0);
 }
 
-#define jit_roundr_d_i(rd, rs)	CVTSD2SILrr((rs), (rd))
-#define jit_roundr_f_i(rd, rs)	CVTSS2SILrr((rs), (rd))
-#define jit_roundr_d_l(rd, rs)	CVTSD2SIQrr((rs), (rd))
-#define jit_roundr_f_l(rd, rs)	CVTSS2SIQrr((rs), (rd))
+#define jit_roundr_f_i(r0, f0)		jit_roundr_f_i(r0, f0)
+__jit_inline void
+jit_roundr_f_i(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
+    /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
+    MOVLir(0xbf000000, r0);
+    XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
+    /* invert negative */
+    UCOMISSrr(JIT_FPTMP0, f0);
+    JAESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    XORLir(0x80000000, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_pushr_i(r0);
+    /* round */
+    jit_rintr_f_i(r0, f0);
+    jit_extr_i_f(JIT_FPTMP0, r0);
+    /* check difference of fractional part with value in stack */
+    SUBSSrr(f0, JIT_FPTMP0);
+    UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    /* if not zero round is already correct */
+    JNESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    /* adjust and round again */
+    jit_movr_f(JIT_FPTMP0, f0);
+    SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    jit_rintr_f_i(r0, JIT_FPTMP0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    ADDQir(8, _RSP);
+}
+
+#define jit_roundr_f_l(r0, f0)		jit_roundr_f_l(r0, f0)
+__jit_inline void
+jit_roundr_f_l(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
+    /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
+    MOVLir(0xbf000000, r0);
+    XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
+    /* invert negative */
+    UCOMISSrr(JIT_FPTMP0, f0);
+    JAESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    XORLir(0x80000000, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_pushr_i(r0);
+    /* round */
+    jit_rintr_f_l(r0, f0);
+    jit_extr_l_f(JIT_FPTMP0, r0);
+    /* check difference of fractional part with value in stack */
+    SUBSSrr(f0, JIT_FPTMP0);
+    UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    /* if not zero round is already correct */
+    JNESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    /* adjust and round again */
+    jit_movr_f(JIT_FPTMP0, f0);
+    SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    jit_rintr_f_l(r0, JIT_FPTMP0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    ADDQir(8, _RSP);
+}
+
+#define jit_roundr_d_i(r0, f0)		jit_roundr_d_i(r0, f0)
+__jit_inline void
+jit_roundr_d_i(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
+    /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
+    MOVLir(0xbfe00000, r0);
+    XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
+    /* invert negative */
+    UCOMISDrr(JIT_FPTMP0, f0);
+    JAESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    XORLir(0x80000000, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    SHLQir(32, r0);
+    jit_pushr_l(r0);
+    /* round */
+    jit_rintr_d_i(r0, f0);
+    jit_extr_i_d(JIT_FPTMP0, r0);
+    /* check difference of fractional part with value in stack */
+    SUBSDrr(f0, JIT_FPTMP0);
+    UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    /* if not zero round is already correct */
+    JNESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    /* adjust and round again */
+    jit_movr_d(JIT_FPTMP0, f0);
+    SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    jit_rintr_d_i(r0, JIT_FPTMP0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    ADDQir(8, _RSP);
+}
+
+#define jit_roundr_d_l(r0, f0)		jit_roundr_d_l(r0, f0)
+__jit_inline void
+jit_roundr_d_l(jit_gpr_t r0, int f0)
+{
+    jit_insn	*label;
+    /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
+    MOVLir(0xbfe00000, r0);
+    XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
+    /* invert negative */
+    UCOMISDrr(JIT_FPTMP0, f0);
+    JAESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    XORLir(0x80000000, r0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    SHLQir(32, r0);
+    jit_pushr_l(r0);
+    /* round */
+    jit_rintr_d_l(r0, f0);
+    jit_extr_l_d(JIT_FPTMP0, r0);
+    /* check difference of fractional part with value in stack */
+    SUBSDrr(f0, JIT_FPTMP0);
+    UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    /* if not zero round is already correct */
+    JNESm((long)_jit.x.pc);
+    label = _jit.x.pc;
+    /* adjust and round again */
+    jit_movr_d(JIT_FPTMP0, f0);
+    SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+    jit_rintr_d_l(r0, JIT_FPTMP0);
+    jit_patch_rel_char_at(label, _jit.x.pc);
+    ADDQir(8, _RSP);
+}
 
 #define jit_truncr_f_i(r0, f0)		jit_truncr_f_i(r0, f0)
 __jit_inline void
@@ -471,13 +597,13 @@ __jit_inline void
 jit_floorr_f_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
-	CVTSS2SILrr(JIT_FPTMP, r0);
+	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
+	CVTSS2SILrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_f(JIT_FPTMP, -0.5);
-	ADDSSrr(f0, JIT_FPTMP);
-	jit_rintr_f_i(r0, JIT_FPTMP);
+	jit_movi_f(JIT_FPTMP0, -0.5);
+	ADDSSrr(f0, JIT_FPTMP0);
+	jit_rintr_f_i(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -491,13 +617,13 @@ __jit_inline void
 jit_floorr_f_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
-	CVTSS2SIQrr(JIT_FPTMP, r0);
+	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
+	CVTSS2SIQrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_f(JIT_FPTMP, -0.5);
-	ADDSSrr(f0, JIT_FPTMP);
-	jit_rintr_f_l(r0, JIT_FPTMP);
+	jit_movi_f(JIT_FPTMP0, -0.5);
+	ADDSSrr(f0, JIT_FPTMP0);
+	jit_rintr_f_l(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -511,13 +637,13 @@ __jit_inline void
 jit_floorr_d_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
-	CVTSD2SILrr(JIT_FPTMP, r0);
+	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
+	CVTSD2SILrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_d(JIT_FPTMP, -0.5);
-	ADDSDrr(f0, JIT_FPTMP);
-	jit_rintr_d_i(r0, JIT_FPTMP);
+	jit_movi_d(JIT_FPTMP0, -0.5);
+	ADDSDrr(f0, JIT_FPTMP0);
+	jit_rintr_d_i(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -531,13 +657,13 @@ __jit_inline void
 jit_floorr_d_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
-	CVTSD2SIQrr(JIT_FPTMP, r0);
+	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
+	CVTSD2SIQrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_d(JIT_FPTMP, -0.5);
-	ADDSDrr(f0, JIT_FPTMP);
-	jit_rintr_d_l(r0, JIT_FPTMP);
+	jit_movi_d(JIT_FPTMP0, -0.5);
+	ADDSDrr(f0, JIT_FPTMP0);
+	jit_rintr_d_l(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -551,13 +677,13 @@ __jit_inline void
 jit_ceilr_f_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
-	CVTSS2SILrr(JIT_FPTMP, r0);
+	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
+	CVTSS2SILrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_f(JIT_FPTMP, 0.5);
-	ADDSSrr(f0, JIT_FPTMP);
-	jit_rintr_f_i(r0, JIT_FPTMP);
+	jit_movi_f(JIT_FPTMP0, 0.5);
+	ADDSSrr(f0, JIT_FPTMP0);
+	jit_rintr_f_i(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -571,13 +697,13 @@ __jit_inline void
 jit_ceilr_f_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
-	CVTSS2SIQrr(JIT_FPTMP, r0);
+	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
+	CVTSS2SIQrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_f(JIT_FPTMP, 0.5);
-	ADDSSrr(f0, JIT_FPTMP);
-	jit_rintr_f_l(r0, JIT_FPTMP);
+	jit_movi_f(JIT_FPTMP0, 0.5);
+	ADDSSrr(f0, JIT_FPTMP0);
+	jit_rintr_f_l(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -591,13 +717,13 @@ __jit_inline void
 jit_ceilr_d_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
-	CVTSD2SILrr(JIT_FPTMP, r0);
+	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
+	CVTSD2SILrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_d(JIT_FPTMP, 0.5);
-	ADDSDrr(f0, JIT_FPTMP);
-	jit_rintr_d_i(r0, JIT_FPTMP);
+	jit_movi_d(JIT_FPTMP0, 0.5);
+	ADDSDrr(f0, JIT_FPTMP0);
+	jit_rintr_d_i(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -611,13 +737,13 @@ __jit_inline void
 jit_ceilr_d_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
-	CVTSD2SIQrr(JIT_FPTMP, r0);
+	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
+	CVTSD2SIQrr(JIT_FPTMP0, r0);
     }
     else if (jit_round_to_nearest()) {
-	jit_movi_d(JIT_FPTMP, 0.5);
-	ADDSDrr(f0, JIT_FPTMP);
-	jit_rintr_d_l(r0, JIT_FPTMP);
+	jit_movi_d(JIT_FPTMP0, 0.5);
+	ADDSDrr(f0, JIT_FPTMP0);
+	jit_rintr_d_l(r0, JIT_FPTMP0);
     }
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
