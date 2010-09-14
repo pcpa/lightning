@@ -788,9 +788,365 @@ jit_ceilr_d_l(jit_gpr_t r0, int f0)
     }
 }
 
-#define jit_bltr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAm ((d)), _jit.x.pc)
-#define jit_bler_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAEm ((d)), _jit.x.pc)
-#define jit_beqr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), _OO (0x7a06), JEm ((d)), _jit.x.pc)
+#define jit_ltr_f(r0, f0, f1)		jit_ltr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ltr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ler_f(r0, f0, f1)		jit_ler_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ler_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_eqr_f(r0, f0, f1)		jit_eqr_f(r0, f0, f1)
+__jit_inline void
+jit_eqr_f(int r0, int f0, int f1)
+{
+    /* set register to zero */
+    XORLrr(r0, r0);
+    /* compare operands */
+    UCOMISSrr(f0, f1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if equal */
+    SETEr(r0);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_ger_f(r0, f0, f1)		jit_ger_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ger_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f1, f0);
+    SETAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_gtr_f(r0, f0, f1)		jit_gtr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_gtr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f1, f0);
+    SETAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ner_f(r0, f0, f1)		jit_ner_f(r0, f0, f1)
+__jit_inline void
+jit_ner_f(int r0, int f0, int f1)
+{
+    /* set register to one */
+    MOVLir(1, r0);
+    /* compare operands */
+    UCOMISSrr(f0, f1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if not equal */
+    SETNEr(r0);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_unltr_f(r0, f0, f1)		jit_unltr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unltr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f1, f0);
+    SETNAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unler_f(r0, f0, f1)		jit_unler_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unler_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f1, f0);
+    SETNAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_uneqr_f(r0, f0, f1)		jit_uneqr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_uneqr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unger_f(r0, f0, f1)		jit_unger_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unger_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETNAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ungtr_f(r0, f0, f1)		jit_ungtr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ungtr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETNAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ltgtr_f(r0, f0, f1)		jit_ltgtr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ltgtr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETNEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ordr_f(r0, f0, f1)		jit_ordr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ordr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETNPr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unordr_f(r0, f0, f1)	jit_unordr_f(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unordr_f(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISSrr(f0, f1);
+    SETPr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ltr_d(r0, f0, f1)		jit_ltr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ltr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ler_d(r0, f0, f1)		jit_ler_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ler_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_eqr_d(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
+__jit_inline void
+jit_eqr_d(int r0, int f0, int f1)
+{
+    /* set register to zero */
+    XORLrr(r0, r0);
+    /* compare operands */
+    UCOMISDrr(f0, f1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if equal */
+    SETEr(r0);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_ger_d(r0, f0, f1)		jit_ger_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ger_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f1, f0);
+    SETAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_gtr_d(r0, f0, f1)		jit_gtr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_gtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f1, f0);
+    SETAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ner_d(r0, f0, f1)		jit_ner_d(r0, f0, f1)
+__jit_inline void
+jit_ner_d(int r0, int f0, int f1)
+{
+    /* set register to one */
+    MOVLir(1, r0);
+    /* compare operands */
+    UCOMISDrr(f0, f1);
+    /* jump if parity (unordered) */
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    /* set register if not equal */
+    SETNEr(r0);
+    /* was unordered */
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+}
+
+#define jit_unltr_d(r0, f0, f1)		jit_unltr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unltr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f1, f0);
+    SETNAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unler_d(r0, f0, f1)		jit_unler_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unler_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f1, f0);
+    SETNAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_uneqr_d(r0, f0, f1)		jit_uneqr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_uneqr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unger_d(r0, f0, f1)		jit_unger_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unger_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETNAr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ungtr_d(r0, f0, f1)		jit_ungtr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ungtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETNAEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ltgtr_d(r0, f0, f1)		jit_ltgtr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ltgtr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETNEr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_ordr_d(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_ordr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETNPr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_unordr_d(r0, f0, f1)	jit_unordr_d(r0, f0, f1)
+__jit_inline jit_insn *
+jit_unordr_d(jit_gpr_t r0, int f0, int f1)
+{
+    XORLrr(r0, r0);
+    UCOMISDrr(f0, f1);
+    SETPr(r0);
+    return (_jit.x.pc);
+}
+
+#define jit_bltr_f(label, f0, f1)	jit_bltr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JAm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bler_f(label, f0, f1)	jit_bler_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bler_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_beqr_f(label, f0, f1)	jit_beqr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_beqr_f(jit_insn *label, int f0, int f1)
+{
+    jit_insn	*jp_label;
+
+    UCOMISSrr(f0, f1);
+    /* jump after user jump if (unordered) */
+    JPSm((long)(_jit.x.pc + 5));
+    jp_label = _jit.x.pc;
+    JEm(label);
+    jit_patch_rel_char_at(jp_label, _jit.x.pc);
+    return (_jit.x.pc);
+}
+
+#define jit_bger_f(label, f0, f1)	jit_bger_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bger_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f1, f0);
+    JAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bgtr_f(label, f0, f1)	jit_bgtr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bgtr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f1, f0);
+    JAm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_bner_f(label, f0, f1)	jit_bner_f(label, f0, f1)
 __jit_inline jit_insn *
 jit_bner_f(jit_insn *label, int f0, int f1)
@@ -810,8 +1166,7 @@ jit_bner_f(jit_insn *label, int f0, int f1)
     jit_patch_rel_char_at(jz_label, _jit.x.pc);
     return (_jit.x.pc);
 }
-#define jit_bger_f(d, s1, s2)            (UCOMISSrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
-#define jit_bgtr_f(d, s1, s2)            (UCOMISSrr ((s2), (s1)), JAm ((d)), _jit.x.pc)
+
 #define jit_bunltr_f(label, f0, f1)	jit_bunltr_f(label, f0, f1)
 __jit_inline jit_insn *
 jit_bunltr_f(jit_insn *label, int f0, int f1)
@@ -820,17 +1175,121 @@ jit_bunltr_f(jit_insn *label, int f0, int f1)
     JNAEm(label);
     return (_jit.x.pc);
 }
-#define jit_bunler_f(d, s1, s2)          (UCOMISSrr ((s2), (s1)), JNAm ((d)), _jit.x.pc)
-#define jit_buneqr_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JEm ((d)), _jit.x.pc)
-#define jit_bltgtr_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JNEm ((d)), _jit.x.pc)
-#define jit_bunger_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JNAm ((d)), _jit.x.pc)
-#define jit_bungtr_f(d, s1, s2)          (UCOMISSrr ((s1), (s2)), JNAEm ((d)), _jit.x.pc)
-#define jit_bordr_f(d, s1, s2)           (UCOMISSrr ((s1), (s2)), JNPm ((d)), _jit.x.pc)
-#define jit_bunordr_f(d, s1, s2)         (UCOMISSrr ((s1), (s2)), JPm ((d)), _jit.x.pc)
 
-#define jit_bltr_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), JAm ((d)), _jit.x.pc)
-#define jit_bler_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), JAEm ((d)), _jit.x.pc)
-#define jit_beqr_d(d, s1, s2)            (UCOMISDrr ((s1), (s2)), _OO (0x7a06), JEm ((d)), _jit.x.pc)
+#define jit_bunler_f(label, f0, f1)	jit_bunler_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunler_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f1, f0);
+    JNAm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_buneqr_f(label, f0, f1)	jit_buneqr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_buneqr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bunger_f(label, f0, f1)	jit_bunger_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunger_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JNAm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bungtr_f(label, f0, f1)	jit_bungtr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bungtr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JNAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bltgtr_f(label, f0, f1)	jit_bltgtr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltgtr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JNEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bordr_f(label, f0, f1)	jit_bordr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bordr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JNPm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bunordr_f(label, f0, f1)	jit_bunordr_f(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunordr_f(jit_insn *label, int f0, int f1)
+{
+    UCOMISSrr(f0, f1);
+    JPm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bltr_d(label, f0, f1)	jit_bltr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JAm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bler_d(label, f0, f1)	jit_bler_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bler_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_beqr_d(label, f0, f1)	jit_beqr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_beqr_d(jit_insn *label, int f0, int f1)
+{
+    jit_insn	*jp_label;
+
+    UCOMISDrr(f0, f1);
+    /* jump after user jump if (unordered) */
+    JPSm((long)(_jit.x.pc + 5));
+    jp_label = _jit.x.pc;
+    JEm(label);
+    jit_patch_rel_char_at(jp_label, _jit.x.pc);
+    return (_jit.x.pc);
+}
+
+#define jit_bger_d(label, f0, f1)	jit_bger_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bger_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f1, f0);
+    JAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bgtr_d(label, f0, f1)	jit_bgtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bgtr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f1, f0);
+    JAm(label);
+    return (_jit.x.pc);
+}
+
 #define jit_bner_d(label, f0, f1)	jit_bner_d(label, f0, f1)
 __jit_inline jit_insn *
 jit_bner_d(jit_insn *label, int f0, int f1)
@@ -850,8 +1309,7 @@ jit_bner_d(jit_insn *label, int f0, int f1)
     jit_patch_rel_char_at(jz_label, _jit.x.pc);
     return (_jit.x.pc);
 }
-#define jit_bger_d(d, s1, s2)            (UCOMISDrr ((s2), (s1)), JAEm ((d)), _jit.x.pc)
-#define jit_bgtr_d(d, s1, s2)            (UCOMISDrr ((s2), (s1)), JAm ((d)), _jit.x.pc)
+
 #define jit_bunltr_d(label, f0, f1)	jit_bunltr_d(label, f0, f1)
 __jit_inline jit_insn *
 jit_bunltr_d(jit_insn *label, int f0, int f1)
@@ -860,105 +1318,69 @@ jit_bunltr_d(jit_insn *label, int f0, int f1)
     JNAEm(label);
     return (_jit.x.pc);
 }
-#define jit_bunler_d(d, s1, s2)          (UCOMISDrr ((s2), (s1)), JNAm ((d)), _jit.x.pc)
-#define jit_buneqr_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JEm ((d)), _jit.x.pc)
-#define jit_bltgtr_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JNEm ((d)), _jit.x.pc)
-#define jit_bunger_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JNAm ((d)), _jit.x.pc)
-#define jit_bungtr_d(d, s1, s2)          (UCOMISDrr ((s1), (s2)), JNAEm ((d)), _jit.x.pc)
-#define jit_bordr_d(d, s1, s2)           (UCOMISDrr ((s1), (s2)), JNPm ((d)), _jit.x.pc)
-#define jit_bunordr_d(d, s1, s2)         (UCOMISDrr ((s1), (s2)), JPm ((d)), _jit.x.pc)
 
-#define jit_ltr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAr ((d)))
-#define jit_ler_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETAEr ((d)))
-#define jit_eqr_f(r0, f0, f1)		jit_eqr_f(r0, f0, f1)
-__jit_inline void
-jit_eqr_f(int r0, int f0, int f1)
+#define jit_bunler_d(label, f0, f1)	jit_bunler_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunler_d(jit_insn *label, int f0, int f1)
 {
-    /* set register to zero */
-    XORLrr(r0, r0);
-    /* compare operands */
-    UCOMISSrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if equal */
-    SETEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    UCOMISDrr(f1, f0);
+    JNAm(label);
+    return (_jit.x.pc);
 }
 
-#define jit_ner_f(r0, f0, f1)		jit_ner_f(r0, f0, f1)
-__jit_inline void
-jit_ner_f(int r0, int f0, int f1)
+#define jit_buneqr_d(label, f0, f1)	jit_buneqr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_buneqr_d(jit_insn *label, int f0, int f1)
 {
-    /* set register to one */
-    MOVLir(1, r0);
-    /* compare operands */
-    UCOMISSrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if not equal */
-    SETNEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
-}
-#define jit_ger_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAEr ((d)))
-#define jit_gtr_f(d, s1, s2)            (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETAr ((d)))
-#define jit_unltr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAEr ((d)))
-#define jit_unler_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s2), (s1)), SETNAr ((d)))
-#define jit_uneqr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETEr ((d)))
-#define jit_ltgtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNEr ((d)))
-#define jit_unger_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAr ((d)))
-#define jit_ungtr_f(d, s1, s2)          (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNAEr ((d)))
-#define jit_ordr_f(d, s1, s2)           (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETNPr ((d)))
-#define jit_unordr_f(d, s1, s2)         (XORLrr ((d), (d)), UCOMISSrr ((s1), (s2)), SETPr ((d)))
-
-#define jit_ltr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAr ((d)))
-#define jit_ler_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETAEr ((d)))
-#define jit_eqr_d(r0, f0, f1)		jit_eqr_d(r0, f0, f1)
-__jit_inline void
-jit_eqr_d(int r0, int f0, int f1)
-{
-    /* set register to zero */
-    XORLrr(r0, r0);
-    /* compare operands */
     UCOMISDrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if equal */
-    SETEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    JEm(label);
+    return (_jit.x.pc);
 }
 
-#define jit_ner_d(r0, f0, f1)		jit_ner_d(r0, f0, f1)
-__jit_inline void
-jit_ner_d(int r0, int f0, int f1)
+#define jit_bunger_d(label, f0, f1)	jit_bunger_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunger_d(jit_insn *label, int f0, int f1)
 {
-    /* set register to one */
-    MOVLir(1, r0);
-    /* compare operands */
     UCOMISDrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if not equal */
-    SETNEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    JNAm(label);
+    return (_jit.x.pc);
 }
-#define jit_ger_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAEr ((d)))
-#define jit_gtr_d(d, s1, s2)            (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETAr ((d)))
-#define jit_unltr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAEr ((d)))
-#define jit_unler_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s2), (s1)), SETNAr ((d)))
-#define jit_uneqr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETEr ((d)))
-#define jit_ltgtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNEr ((d)))
-#define jit_unger_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAr ((d)))
-#define jit_ungtr_d(d, s1, s2)          (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNAEr ((d)))
-#define jit_ordr_d(d, s1, s2)           (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETNPr ((d)))
-#define jit_unordr_d(d, s1, s2)         (XORLrr ((d), (d)), UCOMISDrr ((s1), (s2)), SETPr ((d)))
+
+#define jit_bungtr_d(label, f0, f1)	jit_bungtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bungtr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JNAEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bltgtr_d(label, f0, f1)	jit_bltgtr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bltgtr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JNEm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bordr_d(label, f0, f1)	jit_bordr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bordr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JNPm(label);
+    return (_jit.x.pc);
+}
+
+#define jit_bunordr_d(label, f0, f1)	jit_bunordr_d(label, f0, f1)
+__jit_inline jit_insn *
+jit_bunordr_d(jit_insn *label, int f0, int f1)
+{
+    UCOMISDrr(f0, f1);
+    JPm(label);
+    return (_jit.x.pc);
+}
 
 #define jit_prolog_f(num)						\
     /* Update counter. Have float arguments on stack? */		\
