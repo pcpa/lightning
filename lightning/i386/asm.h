@@ -1612,6 +1612,11 @@ enum {
 #define _SSESDrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0xf2, OP, RS,_rX, MD, MB, MI, MS)
 #define _SSESD1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0xf2, OP, RS,_rX, MD, MB, MI, MS)
 
+#define LDMXCSRmr(MD, MB, MI, MS)					\
+    _REXLmr(MB, MI, 0), _OO_r_X(0x0fae, 2, MD, MB, MI, MS)
+#define STMXCSRrm(MD, MB, MI, MS)					\
+    _REXLrm(0, MI, MB), _OO_r_X(0x0fae, 3, MD, MB, MI, MS)
+
 #define ADDPSrr(RS, RD)			_SSEPSrr(X86_SSE_ADD, RS, RD)
 #define ADDPSmr(MD, MB, MI, MS, RD)	_SSEPSmr(X86_SSE_ADD, MD, MB, MI, MS, RD)
 #define ADDPDrr(RS, RD)			_SSEPDrr(X86_SSE_ADD, RS, RD)

@@ -42,6 +42,8 @@
 
 #define jit_sse4_1()			0
 
+#define jit_round_to_nearest()		1
+
 /* Either use a temporary register that is finally AND/OR/XORed with RS = RD,
    or use RD as the temporary register and to the AND/OR/XOR with RS.  */
 #define jit_unop_tmp(rd, rs, op)		\
@@ -397,18 +399,44 @@ jit_truncr_d_l(jit_gpr_t r0, int f0)
     CVTTSD2SIQrr(f0, r0);
 }
 
+__jit_inline void
+_jit_sse_rnd_enter(jit_gpr_t r0, int mode)
+{
+    SUBQir(8, _RSP);
+    STMXCSRrm(0, _RSP, 0, 0);
+    jit_ldr_i(r0, _RSP);
+    jit_stxi_i(4, _RSP, r0);
+    jit_andi_i(r0, r0, ~MXCSR_RND_MASK);
+    if (mode)
+	jit_ori_i(r0, r0, mode);
+    jit_str_i(_RSP, r0);
+    LDMXCSRmr(0, _RSP, 0, 0);
+}
+
+__jit_inline void
+_jit_sse_rnd_leave(void)
+{
+    LDMXCSRmr(4, _RSP, 0, 0);
+    ADDQir(8, _RSP);
+}
+
 #define jit_floorr_f_i(r0, f0)		jit_floorr_f_i(r0, f0)
 __jit_inline void
 jit_floorr_f_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
 	CVTSS2SILrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_f(JIT_FPTMP, -0.5);
 	ADDSSrr(f0, JIT_FPTMP);
 	jit_rintr_f_i(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
+	jit_rintr_f_i(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -417,13 +445,18 @@ __jit_inline void
 jit_floorr_f_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
 	CVTSS2SIQrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_f(JIT_FPTMP, -0.5);
 	ADDSSrr(f0, JIT_FPTMP);
 	jit_rintr_f_l(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
+	jit_rintr_f_l(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -432,13 +465,18 @@ __jit_inline void
 jit_floorr_d_i(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
 	CVTSD2SILrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_d(JIT_FPTMP, -0.5);
 	ADDSDrr(f0, JIT_FPTMP);
 	jit_rintr_d_i(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
+	jit_rintr_d_i(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -447,13 +485,18 @@ __jit_inline void
 jit_floorr_d_l(jit_gpr_t r0, int f0)
 {
     if (jit_sse4_1()) {
-	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_DOWN >> 13);
 	CVTSD2SIQrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_d(JIT_FPTMP, -0.5);
 	ADDSDrr(f0, JIT_FPTMP);
 	jit_rintr_d_l(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
+	jit_rintr_d_l(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -465,10 +508,15 @@ jit_ceilr_f_i(jit_gpr_t r0, int f0)
 	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
 	CVTSS2SILrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_f(JIT_FPTMP, 0.5);
 	ADDSSrr(f0, JIT_FPTMP);
 	jit_rintr_f_i(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
+	jit_rintr_f_i(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -480,10 +528,15 @@ jit_ceilr_f_l(jit_gpr_t r0, int f0)
 	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
 	CVTSS2SIQrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_f(JIT_FPTMP, 0.5);
 	ADDSSrr(f0, JIT_FPTMP);
 	jit_rintr_f_l(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
+	jit_rintr_f_l(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -495,10 +548,15 @@ jit_ceilr_d_i(jit_gpr_t r0, int f0)
 	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
 	CVTSD2SILrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_d(JIT_FPTMP, 0.5);
 	ADDSDrr(f0, JIT_FPTMP);
 	jit_rintr_d_i(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
+	jit_rintr_d_i(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
@@ -510,10 +568,15 @@ jit_ceilr_d_l(jit_gpr_t r0, int f0)
 	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
 	CVTSD2SIQrr(JIT_FPTMP, r0);
     }
-    else {
+    else if (jit_round_to_nearest()) {
 	jit_movi_d(JIT_FPTMP, 0.5);
 	ADDSDrr(f0, JIT_FPTMP);
 	jit_rintr_d_l(r0, JIT_FPTMP);
+    }
+    else {
+	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
+	jit_rintr_d_l(r0, f0);
+	_jit_sse_rnd_leave();
     }
 }
 
