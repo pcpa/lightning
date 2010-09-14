@@ -385,6 +385,27 @@ jit_negr_d(int f0, int f1)
     ADDQir(8, _RSP);
 }
 
+__jit_inline void
+_jit_sse_rnd_enter(jit_gpr_t r0, int mode)
+{
+    SUBQir(8, _RSP);
+    STMXCSRrm(0, _RSP, 0, 0);
+    jit_ldr_i(r0, _RSP);
+    jit_stxi_i(4, _RSP, r0);
+    jit_andi_i(r0, r0, ~MXCSR_RND_MASK);
+    if (mode)
+	jit_ori_i(r0, r0, mode);
+    jit_str_i(_RSP, r0);
+    LDMXCSRmr(0, _RSP, 0, 0);
+}
+
+__jit_inline void
+_jit_sse_rnd_leave(int extra)
+{
+    LDMXCSRmr(4, _RSP, 0, 0);
+    ADDQir(8 + extra, _RSP);
+}
+
 #define jit_rintr_f_i(r0, f0)		jit_rintr_f_i(r0, f0)
 __jit_inline void
 jit_rintr_f_i(jit_gpr_t r0, int f0)
@@ -421,7 +442,7 @@ jit_roundr_f_i(jit_gpr_t r0, int f0)
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
     MOVLir(0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
-    /* invert negative */
+    /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
@@ -429,20 +450,29 @@ jit_roundr_f_i(jit_gpr_t r0, int f0)
     jit_patch_rel_char_at(label, _jit.x.pc);
     jit_pushr_i(r0);
     /* round */
-    jit_rintr_f_i(r0, f0);
-    jit_extr_i_f(JIT_FPTMP0, r0);
-    /* check difference of fractional part with value in stack */
-    SUBSSrr(f0, JIT_FPTMP0);
-    UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    /* if not zero round is already correct */
-    JNESm((long)_jit.x.pc);
-    label = _jit.x.pc;
-    /* adjust and round again */
-    jit_movr_f(JIT_FPTMP0, f0);
-    SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    jit_rintr_f_i(r0, JIT_FPTMP0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
-    ADDQir(8, _RSP);
+    if (jit_round_to_nearest()) {
+	jit_rintr_f_i(r0, f0);
+	jit_extr_i_f(JIT_FPTMP0, r0);
+	/* check difference of fractional part with value in stack */
+	SUBSSrr(f0, JIT_FPTMP0);
+	UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	/* if not zero round is already correct */
+	JNESm((long)_jit.x.pc);
+	label = _jit.x.pc;
+	/* adjust and round again */
+	jit_movr_f(JIT_FPTMP0, f0);
+	SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	jit_rintr_f_i(r0, JIT_FPTMP0);
+	jit_patch_rel_char_at(label, _jit.x.pc);
+	ADDQir(8, _RSP);
+    }
+    else {
+	jit_movr_f(JIT_FPTMP0, f0);
+	SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	_jit_sse_rnd_enter(r0, MXCSR_RND_CHOP);
+	jit_rintr_f_i(r0, JIT_FPTMP0);
+	_jit_sse_rnd_leave(8);
+    }
 }
 
 #define jit_roundr_f_l(r0, f0)		jit_roundr_f_l(r0, f0)
@@ -453,7 +483,7 @@ jit_roundr_f_l(jit_gpr_t r0, int f0)
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
     MOVLir(0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
-    /* invert negative */
+    /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
@@ -461,20 +491,29 @@ jit_roundr_f_l(jit_gpr_t r0, int f0)
     jit_patch_rel_char_at(label, _jit.x.pc);
     jit_pushr_i(r0);
     /* round */
-    jit_rintr_f_l(r0, f0);
-    jit_extr_l_f(JIT_FPTMP0, r0);
-    /* check difference of fractional part with value in stack */
-    SUBSSrr(f0, JIT_FPTMP0);
-    UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    /* if not zero round is already correct */
-    JNESm((long)_jit.x.pc);
-    label = _jit.x.pc;
-    /* adjust and round again */
-    jit_movr_f(JIT_FPTMP0, f0);
-    SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    jit_rintr_f_l(r0, JIT_FPTMP0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
-    ADDQir(8, _RSP);
+    if (jit_round_to_nearest()) {
+	jit_rintr_f_l(r0, f0);
+	jit_extr_l_f(JIT_FPTMP0, r0);
+	/* check difference of fractional part with value in stack */
+	SUBSSrr(f0, JIT_FPTMP0);
+	UCOMISSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	/* if not zero round is already correct */
+	JNESm((long)_jit.x.pc);
+	label = _jit.x.pc;
+	/* adjust and round again */
+	jit_movr_f(JIT_FPTMP0, f0);
+	SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	jit_rintr_f_l(r0, JIT_FPTMP0);
+	jit_patch_rel_char_at(label, _jit.x.pc);
+	ADDQir(8, _RSP);
+    }
+    else {
+	jit_movr_f(JIT_FPTMP0, f0);
+	SUBSSmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	_jit_sse_rnd_enter(r0, MXCSR_RND_CHOP);
+	jit_rintr_f_l(r0, JIT_FPTMP0);
+	_jit_sse_rnd_leave(8);
+    }
 }
 
 #define jit_roundr_d_i(r0, f0)		jit_roundr_d_i(r0, f0)
@@ -485,7 +524,7 @@ jit_roundr_d_i(jit_gpr_t r0, int f0)
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
     MOVLir(0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
-    /* invert negative */
+    /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
@@ -494,20 +533,29 @@ jit_roundr_d_i(jit_gpr_t r0, int f0)
     SHLQir(32, r0);
     jit_pushr_l(r0);
     /* round */
-    jit_rintr_d_i(r0, f0);
-    jit_extr_i_d(JIT_FPTMP0, r0);
-    /* check difference of fractional part with value in stack */
-    SUBSDrr(f0, JIT_FPTMP0);
-    UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    /* if not zero round is already correct */
-    JNESm((long)_jit.x.pc);
-    label = _jit.x.pc;
-    /* adjust and round again */
-    jit_movr_d(JIT_FPTMP0, f0);
-    SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    jit_rintr_d_i(r0, JIT_FPTMP0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
-    ADDQir(8, _RSP);
+    if (jit_round_to_nearest()) {
+	jit_rintr_d_i(r0, f0);
+	jit_extr_i_d(JIT_FPTMP0, r0);
+	/* check difference of fractional part with value in stack */
+	SUBSDrr(f0, JIT_FPTMP0);
+	UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	/* if not zero round is already correct */
+	JNESm((long)_jit.x.pc);
+	label = _jit.x.pc;
+	/* adjust and round again */
+	jit_movr_d(JIT_FPTMP0, f0);
+	SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	jit_rintr_d_i(r0, JIT_FPTMP0);
+	jit_patch_rel_char_at(label, _jit.x.pc);
+	ADDQir(8, _RSP);
+    }
+    else {
+	jit_movr_d(JIT_FPTMP0, f0);
+	SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	_jit_sse_rnd_enter(r0, MXCSR_RND_CHOP);
+	jit_rintr_d_i(r0, JIT_FPTMP0);
+	_jit_sse_rnd_leave(8);
+    }
 }
 
 #define jit_roundr_d_l(r0, f0)		jit_roundr_d_l(r0, f0)
@@ -518,7 +566,7 @@ jit_roundr_d_l(jit_gpr_t r0, int f0)
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
     MOVLir(0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
-    /* invert negative */
+    /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
@@ -527,20 +575,29 @@ jit_roundr_d_l(jit_gpr_t r0, int f0)
     SHLQir(32, r0);
     jit_pushr_l(r0);
     /* round */
-    jit_rintr_d_l(r0, f0);
-    jit_extr_l_d(JIT_FPTMP0, r0);
-    /* check difference of fractional part with value in stack */
-    SUBSDrr(f0, JIT_FPTMP0);
-    UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    /* if not zero round is already correct */
-    JNESm((long)_jit.x.pc);
-    label = _jit.x.pc;
-    /* adjust and round again */
-    jit_movr_d(JIT_FPTMP0, f0);
-    SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
-    jit_rintr_d_l(r0, JIT_FPTMP0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
-    ADDQir(8, _RSP);
+    if (jit_round_to_nearest()) {
+	jit_rintr_d_l(r0, f0);
+	jit_extr_l_d(JIT_FPTMP0, r0);
+	/* check difference of fractional part with value in stack */
+	SUBSDrr(f0, JIT_FPTMP0);
+	UCOMISDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	/* if not zero round is already correct */
+	JNESm((long)_jit.x.pc);
+	label = _jit.x.pc;
+	/* adjust and round again */
+	jit_movr_d(JIT_FPTMP0, f0);
+	SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	jit_rintr_d_l(r0, JIT_FPTMP0);
+	jit_patch_rel_char_at(label, _jit.x.pc);
+	ADDQir(8, _RSP);
+    }
+    else {
+	jit_movr_d(JIT_FPTMP0, f0);
+	SUBSDmr(0, _RSP, 0, 0, JIT_FPTMP0);
+	_jit_sse_rnd_enter(r0, MXCSR_RND_CHOP);
+	jit_rintr_d_l(r0, JIT_FPTMP0);
+	_jit_sse_rnd_leave(8);
+    }
 }
 
 #define jit_truncr_f_i(r0, f0)		jit_truncr_f_i(r0, f0)
@@ -571,27 +628,6 @@ jit_truncr_d_l(jit_gpr_t r0, int f0)
     CVTTSD2SIQrr(f0, r0);
 }
 
-__jit_inline void
-_jit_sse_rnd_enter(jit_gpr_t r0, int mode)
-{
-    SUBQir(8, _RSP);
-    STMXCSRrm(0, _RSP, 0, 0);
-    jit_ldr_i(r0, _RSP);
-    jit_stxi_i(4, _RSP, r0);
-    jit_andi_i(r0, r0, ~MXCSR_RND_MASK);
-    if (mode)
-	jit_ori_i(r0, r0, mode);
-    jit_str_i(_RSP, r0);
-    LDMXCSRmr(0, _RSP, 0, 0);
-}
-
-__jit_inline void
-_jit_sse_rnd_leave(void)
-{
-    LDMXCSRmr(4, _RSP, 0, 0);
-    ADDQir(8, _RSP);
-}
-
 #define jit_floorr_f_i(r0, f0)		jit_floorr_f_i(r0, f0)
 __jit_inline void
 jit_floorr_f_i(jit_gpr_t r0, int f0)
@@ -608,7 +644,7 @@ jit_floorr_f_i(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
 	jit_rintr_f_i(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -628,7 +664,7 @@ jit_floorr_f_l(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
 	jit_rintr_f_l(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -648,7 +684,7 @@ jit_floorr_d_i(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
 	jit_rintr_d_i(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -668,7 +704,7 @@ jit_floorr_d_l(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_DOWN);
 	jit_rintr_d_l(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -688,7 +724,7 @@ jit_ceilr_f_i(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
 	jit_rintr_f_i(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -708,7 +744,7 @@ jit_ceilr_f_l(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
 	jit_rintr_f_l(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -728,7 +764,7 @@ jit_ceilr_d_i(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
 	jit_rintr_d_i(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
@@ -748,7 +784,7 @@ jit_ceilr_d_l(jit_gpr_t r0, int f0)
     else {
 	_jit_sse_rnd_enter(r0, MXCSR_RND_UP);
 	jit_rintr_d_l(r0, f0);
-	_jit_sse_rnd_leave();
+	_jit_sse_rnd_leave(0);
     }
 }
 
