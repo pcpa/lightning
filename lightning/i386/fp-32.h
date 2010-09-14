@@ -601,7 +601,6 @@ _i386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
 
-    /* st(0) = rint(f0) */
     FLDr(f0);
 
     /* status test(st(0), 0.0) in %ax to know if positive */

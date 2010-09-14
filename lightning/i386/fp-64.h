@@ -40,6 +40,8 @@
 #define JIT_FPR(i)	(_XMM8 + (i))
 #define JIT_FPTMP	_XMM15
 
+#define jit_sse4_1()			0
+
 /* Either use a temporary register that is finally AND/OR/XORed with RS = RD,
    or use RD as the temporary register and to the AND/OR/XOR with RS.  */
 #define jit_unop_tmp(rd, rs, op)		\
@@ -395,61 +397,125 @@ jit_truncr_d_l(jit_gpr_t r0, int f0)
     CVTTSD2SIQrr(f0, r0);
 }
 
-#define jit_ceilr_f_i(rd, rs) do {			\
-	jit_roundr_f_i ((rd), (rs));		\
-	jit_extr_i_f (JIT_FPTMP, (rd));			\
-	UCOMISSrr ((rs), JIT_FPTMP);			\
-	ADCLir (0, (rd));				\
-  } while (0)
+#define jit_floorr_f_i(r0, f0)		jit_floorr_f_i(r0, f0)
+__jit_inline void
+jit_floorr_f_i(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSS2SILrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_f(JIT_FPTMP, -0.5);
+	ADDSSrr(f0, JIT_FPTMP);
+	jit_rintr_f_i(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_ceilr_d_i(rd, rs) do {			\
-	jit_roundr_d_i ((rd), (rs));		\
-	jit_extr_i_d (JIT_FPTMP, (rd));			\
-	UCOMISDrr ((rs), JIT_FPTMP);			\
-	ADCLir (0, (rd));				\
-  } while (0)
+#define jit_floorr_f_l(r0, f0)		jit_floorr_f_l(r0, f0)
+__jit_inline void
+jit_floorr_f_l(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSS2SIQrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_f(JIT_FPTMP, -0.5);
+	ADDSSrr(f0, JIT_FPTMP);
+	jit_rintr_f_l(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_ceilr_f_l(rd, rs) do {			\
-	jit_roundr_f_l ((rd), (rs));		\
-	jit_extr_l_f (JIT_FPTMP, (rd));			\
-	UCOMISSrr ((rs), JIT_FPTMP);			\
-	ADCQir (0, (rd));				\
-  } while (0)
+#define jit_floorr_d_i(r0, f0)		jit_floorr_d_i(r0, f0)
+__jit_inline void
+jit_floorr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSD2SILrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_d(JIT_FPTMP, -0.5);
+	ADDSDrr(f0, JIT_FPTMP);
+	jit_rintr_d_i(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_ceilr_d_l(rd, rs) do {			\
-	jit_roundr_d_l ((rd), (rs));		\
-	jit_extr_l_d (JIT_FPTMP, (rd));			\
-	UCOMISDrr ((rs), JIT_FPTMP);			\
-	ADCQir (0, (rd));				\
-  } while (0)
+#define jit_floorr_d_l(r0, f0)		jit_floorr_d_l(r0, f0)
+__jit_inline void
+jit_floorr_d_l(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSD2SIQrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_d(JIT_FPTMP, -0.5);
+	ADDSDrr(f0, JIT_FPTMP);
+	jit_rintr_d_l(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_floorr_f_i(rd, rs) do {			\
-	jit_roundr_f_i ((rd), (rs));		\
-	jit_extr_i_f (JIT_FPTMP, (rd));			\
-	UCOMISSrr (JIT_FPTMP, (rs));			\
-	SBBLir (0, (rd));				\
-  } while (0)
+#define jit_ceilr_f_i(r0, f0)		jit_ceilr_f_i(r0, f0)
+__jit_inline void
+jit_ceilr_f_i(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSS2SILrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_f(JIT_FPTMP, 0.5);
+	ADDSSrr(f0, JIT_FPTMP);
+	jit_rintr_f_i(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_floorr_d_i(rd, rs) do {			\
-	jit_roundr_d_i ((rd), (rs));		\
-	jit_extr_i_d (JIT_FPTMP, (rd));			\
-	UCOMISDrr (JIT_FPTMP, (rs));			\
-	SBBLir (0, (rd));				\
-  } while (0)
+#define jit_ceilr_f_l(r0, f0)		jit_ceilr_f_l(r0, f0)
+__jit_inline void
+jit_ceilr_f_l(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSSrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSS2SIQrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_f(JIT_FPTMP, 0.5);
+	ADDSSrr(f0, JIT_FPTMP);
+	jit_rintr_f_l(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_floorr_f_l(rd, rs) do {			\
-	jit_roundr_f_l ((rd), (rs));		\
-	jit_extr_l_f (JIT_FPTMP, (rd));			\
-	UCOMISSrr (JIT_FPTMP, (rs));			\
-	SBBQir (0, (rd));				\
-  } while (0)
+#define jit_ceilr_d_i(r0, f0)		jit_ceilr_d_i(r0, f0)
+__jit_inline void
+jit_ceilr_d_i(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSD2SILrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_d(JIT_FPTMP, 0.5);
+	ADDSDrr(f0, JIT_FPTMP);
+	jit_rintr_d_i(r0, JIT_FPTMP);
+    }
+}
 
-#define jit_floorr_d_l(rd, rs) do {			\
-	jit_roundr_d_l ((rd), (rs));		\
-	jit_extr_l_d (JIT_FPTMP, (rd));			\
-	UCOMISDrr (JIT_FPTMP, (rs));			\
-	SBBQir (0, (rd));				\
-  } while (0)
+#define jit_ceilr_d_l(r0, f0)		jit_ceilr_d_l(r0, f0)
+__jit_inline void
+jit_ceilr_d_l(jit_gpr_t r0, int f0)
+{
+    if (jit_sse4_1()) {
+	ROUNDSDrri(f0, JIT_FPTMP, MXCSR_RND_UP >> 13);
+	CVTSD2SIQrr(JIT_FPTMP, r0);
+    }
+    else {
+	jit_movi_d(JIT_FPTMP, 0.5);
+	ADDSDrr(f0, JIT_FPTMP);
+	jit_rintr_d_l(r0, JIT_FPTMP);
+    }
+}
 
 #define jit_bltr_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAm ((d)), _jit.x.pc)
 #define jit_bler_f(d, s1, s2)            (UCOMISSrr ((s1), (s2)), JAEm ((d)), _jit.x.pc)

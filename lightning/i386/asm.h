@@ -1572,17 +1572,25 @@ enum {
     MXCSR_FLUSHTOZERO	= 0x8000
 };
 
-/*										_format		Opcd		,Mod ,r	     ,m		,mem=dsp+sib	,imm... */
+/*	_format	Opcd,	Mod,	r,	m,	mem=dsp+sib,	imm... */
 
-#define __SSELrr(OP,RS,RSA,RD,RDA)		(_REXLrr(RD, RS),		_OO_Mrm		(0x0f00|(OP)	,_b11,RDA(RD),RSA(RS)				))
-#define __SSELmr(OP,MD,MB,MI,MS,RD,RDA)		(_REXLmr(MB, MI, RD),		_OO_r_X		(0x0f00|(OP)	     ,RDA(RD)		,MD,MB,MI,MS		))
-#define __SSELrm(OP,RS,RSA,MD,MB,MI,MS)		(_REXLrm(RS, MB, MI),		_OO_r_X		(0x0f00|(OP)	     ,RSA(RS)		,MD,MB,MI,MS		))
-#define __SSEL1rm(OP,RS,RSA,MD,MB,MI,MS)	(_REXLrm(RS, MB, MI),		_OO_r_X		(0x0f01|(OP)	     ,RSA(RS)		,MD,MB,MI,MS		))
+#define __SSELrr(OP,RS,RSA,RD,RDA)					\
+    (_REXLrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, RDA(RD), RSA(RS)))
+#define __SSELmr(OP,MD,MB,MI,MS,RD,RDA)					\
+    (_REXLmr(MB, MI, RD), _OO_r_X(0x0f00|(OP), RDA(RD), MD, MB, MI, MS))
+#define __SSELrm(OP,RS,RSA,MD,MB,MI,MS)					\
+    (_REXLrm(RS, MB, MI), _OO_r_X(0x0f00|(OP), RSA(RS), MD, MB, MI, MS))
+#define __SSEL1rm(OP,RS,RSA,MD,MB,MI,MS)				\
+    (_REXLrm(RS, MB, MI), _OO_r_X(0x0f01|(OP), RSA(RS), MD, MB, MI, MS))
 
-#define _SSELrr(PX,OP,RS,RSA,RD,RDA)					(_jit_B(PX), __SSELrr(OP, RS, RSA, RD, RDA))
-#define _SSELmr(PX,OP,MD,MB,MI,MS,RD,RDA)				(_jit_B(PX), __SSELmr(OP, MD, MB, MI, MS, RD, RDA))
-#define _SSELrm(PX,OP,RS,RSA,MD,MB,MI,MS)				(_jit_B(PX), __SSELrm(OP, RS, RSA, MD, MB, MI, MS))
-#define _SSEL1rm(PX,OP,RS,RSA,MD,MB,MI,MS)				(_jit_B(PX), __SSEL1rm(OP, RS, RSA, MD, MB, MI, MS))
+#define _SSELrr(PX,OP,RS,RSA,RD,RDA)					\
+    (_jit_B(PX), __SSELrr(OP, RS, RSA, RD, RDA))
+#define _SSELmr(PX,OP,MD,MB,MI,MS,RD,RDA)				\
+    (_jit_B(PX), __SSELmr(OP, MD, MB, MI, MS, RD, RDA))
+#define _SSELrm(PX,OP,RS,RSA,MD,MB,MI,MS)				\
+    (_jit_B(PX), __SSELrm(OP, RS, RSA, MD, MB, MI, MS))
+#define _SSEL1rm(PX,OP,RS,RSA,MD,MB,MI,MS)				\
+    (_jit_B(PX), __SSEL1rm(OP, RS, RSA, MD, MB, MI, MS))
 
 #define _SSEPSrr(OP,RS,RD)		__SSELrr (      OP, RS,_rX, RD,_rX)
 #define _SSEPSmr(OP,MD,MB,MI,MS,RD)	__SSELmr (      OP, MD, MB, MI, MS, RD,_rX)
@@ -1821,6 +1829,14 @@ enum {
 #define MOVLPDrm(RS, MD, MB, MI, MS)	 _SSEL1rm(0x66, X86_SSE_MOVLP, RS,_rX, MD, MB, MI, MS)
 #define MOVLPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVLP, MD, MB, MI, MS, RD,_rX)
 #define MOVLPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVLP, RS,_rX, MD, MB, MI, MS)
+
+/* SSE4.1 */
+#define ROUNDSSrri(RS, RD, IM)						\
+    (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
+     _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
+#define ROUNDSDrri(RS, RD, IM)						\
+    (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0a),	\
+     _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
 
 /*** References:										*/
 /*												*/
