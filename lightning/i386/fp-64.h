@@ -51,45 +51,6 @@
 	( (rs) == (rd)				\
 	 ? op((rd), JIT_FPTMP0, JIT_FPTMP0))	\
 	 : op((rd), (rd), (rs)))
-
-#define jit_unop_f(rd, rs, op)						\
-	((rs) == (rd) ? op((rd)) : (MOVSSrr ((rs), (rd)), op((rd))))
-
-#define jit_unop_d(rd, rs, op)					\
-	((rs) == (rd) ? op((rd)) : (MOVSDrr ((rs), (rd)), op((rd))))
-
-#define jit_3opc_f(rd, s1, s2, op)				\
-	( (s1) == (rd) ? op((s2), (rd))				\
-	  : ((s2) == (rd) ? op((s1), (rd))			\
-	     : (MOVSSrr ((s1), (rd)), op((s2), (rd)))))
-
-#define jit_3opc_d(rd, s1, s2, op)				\
-	( (s1) == (rd) ? op((s2), (rd))				\
-	  : ((s2) == (rd) ? op((s1), (rd))			\
-	     : (MOVSDrr ((s1), (rd)), op((s2), (rd)))))
-
-#define jit_3op_f(rd, s1, s2, op)				\
-	( (s1) == (rd) ? op((s2), (rd))				\
-	  : ((s2) == (rd)					\
-	     ? (MOVSSrr ((rd), JIT_FPTMP0), MOVSSrr ((s1), (rd)), op(JIT_FPTMP0, (rd)))	\
-	     : (MOVSSrr ((s1), (rd)), op((s2), (rd)))))
-
-#define jit_3op_d(rd, s1, s2, op)				\
-	( (s1) == (rd) ? op((s2), (rd))				\
-	  : ((s2) == (rd) 					\
-	     ? (MOVSDrr ((rd), JIT_FPTMP0), MOVSDrr ((s1), (rd)), op(JIT_FPTMP0, (rd)))	\
-	     : (MOVSDrr ((s1), (rd)), op((s2), (rd)))))
-
-#define jit_addr_f(rd,s1,s2)	jit_3opc_f((rd), (s1), (s2), ADDSSrr)
-#define jit_subr_f(rd,s1,s2)	jit_3op_f((rd), (s1), (s2), SUBSSrr)
-#define jit_mulr_f(rd,s1,s2)	jit_3opc_f((rd), (s1), (s2), MULSSrr)
-#define jit_divr_f(rd,s1,s2)	jit_3op_f((rd), (s1), (s2), DIVSSrr)
-
-#define jit_addr_d(rd,s1,s2)	jit_3opc_d((rd), (s1), (s2), ADDSDrr)
-#define jit_subr_d(rd,s1,s2)	jit_3op_d((rd), (s1), (s2), SUBSDrr)
-#define jit_mulr_d(rd,s1,s2)	jit_3opc_d((rd), (s1), (s2), MULSDrr)
-#define jit_divr_d(rd,s1,s2)	jit_3op_d((rd), (s1), (s2), DIVSDrr)
-
 /* either pcmpeqd %xmm7, %xmm7 / psrld $1, %xmm7 / andps %xmm7, %RD (if RS = RD)
        or pcmpeqd %RD, %RD / psrld $1, %RD / andps %RS, %RD (if RS != RD) */
 #define _jit_abs_f(rd,cnst,rs)						\
@@ -101,6 +62,130 @@
 
 #define jit_sqrt_d(rd,rs)	SQRTSSrr((rs), (rd))
 #define jit_sqrt_f(rd,rs)	SQRTSDrr((rs), (rd))
+
+#define jit_addr_f(f0, f1, f2)		jit_addr_f(f0, f1, f2)
+__jit_inline void
+jit_addr_f(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	ADDSSrr(f2, f0);
+    else if (f0 == f2)
+	ADDSSrr(f1, f0);
+    else {
+	MOVSSrr(f1, f0);
+	ADDSSrr(f2, f0);
+    }
+}
+
+#define jit_subr_f(f0, f1, f2)		jit_subr_f(f0, f1, f2)
+__jit_inline void
+jit_subr_f(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	SUBSSrr(f2, f0);
+    else if (f0 == f2) {
+	MOVSSrr(f0, JIT_FPTMP0);
+	MOVSSrr(f1, f0);
+	SUBSSrr(JIT_FPTMP0, f0);
+    }
+    else {
+	MOVSSrr(f1, f0);
+	SUBSSrr(f2, f0);
+    }
+}
+
+#define jit_mulr_f(f0, f1, f2)		jit_mulr_f(f0, f1, f2)
+__jit_inline void
+jit_mulr_f(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	MULSSrr(f2, f0);
+    else if (f0 == f2)
+	MULSSrr(f1, f0);
+    else {
+	MOVSSrr(f1, f0);
+	MULSSrr(f2, f0);
+    }
+}
+
+#define jit_divr_f(f0, f1, f2)		jit_divr_f(f0, f1, f2)
+__jit_inline void
+jit_divr_f(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	DIVSSrr(f2, f0);
+    else if (f0 == f2) {
+	MOVSSrr(f0, JIT_FPTMP0);
+	MOVSSrr(f1, f0);
+	DIVSSrr(JIT_FPTMP0, f0);
+    }
+    else {
+	MOVSSrr(f1, f0);
+	DIVSSrr(f2, f0);
+    }
+}
+
+#define jit_addr_d(f0, f1, f2)		jit_addr_d(f0, f1, f2)
+__jit_inline void
+jit_addr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	ADDSDrr(f2, f0);
+    else if (f0 == f2)
+	ADDSDrr(f1, f0);
+    else {
+	MOVSDrr(f1, f0);
+	ADDSDrr(f2, f0);
+    }
+}
+
+#define jit_subr_d(f0, f1, f2)		jit_subr_d(f0, f1, f2)
+__jit_inline void
+jit_subr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	SUBSDrr(f2, f0);
+    else if (f0 == f2) {
+	MOVSDrr(f0, JIT_FPTMP0);
+	MOVSDrr(f1, f0);
+	SUBSDrr(JIT_FPTMP0, f0);
+    }
+    else {
+	MOVSDrr(f1, f0);
+	SUBSDrr(f2, f0);
+    }
+}
+
+#define jit_mulr_d(f0, f1, f2)		jit_mulr_d(f0, f1, f2)
+__jit_inline void
+jit_mulr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	MULSDrr(f2, f0);
+    else if (f0 == f2)
+	MULSDrr(f1, f0);
+    else {
+	MOVSDrr(f1, f0);
+	MULSDrr(f2, f0);
+    }
+}
+
+#define jit_divr_d(f0, f1, f2)		jit_divr_d(f0, f1, f2)
+__jit_inline void
+jit_divr_d(int f0, int f1, int f2)
+{
+    if (f0 == f1)
+	DIVSDrr(f2, f0);
+    else if (f0 == f2) {
+	MOVSDrr(f0, JIT_FPTMP0);
+	MOVSDrr(f1, f0);
+	DIVSDrr(JIT_FPTMP0, f0);
+    }
+    else {
+	MOVSDrr(f1, f0);
+	DIVSDrr(f2, f0);
+    }
+}
 
 #define jit_ldr_f(f0, r0)		jit_ldr_f(f0, r0)
 __jit_inline void
@@ -258,14 +343,16 @@ jit_stxi_d(long i0, jit_gpr_t r0, int f0)
 __jit_inline void
 jit_movr_f(int f0, int f1)
 {
-    MOVSSrr(f1, f0);
+    if (f0 != f1)
+	MOVSSrr(f1, f0);
 }
 
 #define jit_movr_d(f0, f1)		jit_movr_d(f0, f1)
 __jit_inline void
 jit_movr_d(int f0, int f1)
 {
-    MOVSDrr(f1, f0);
+    if (f0 != f1)
+	MOVSDrr(f1, f0);
 }
 
 #define jit_movi_f(f0, i0)		jit_movi_f(f0, i0)
