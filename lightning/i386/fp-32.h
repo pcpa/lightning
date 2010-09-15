@@ -85,6 +85,7 @@
  * version, but works regardless of rounding mode */
 #define jit_round_to_nearest_p()	1
 
+#define jit_absr_f(f0, f1)		jit_absr_d(f0, f1)
 #define jit_absr_d(f0, f1)		jit_absr_d(f0, f1)
 __jit_inline void
 jit_absr_d(jit_fpr_t f0, jit_fpr_t f1)
@@ -125,6 +126,7 @@ jit_negr_d(jit_fpr_t f0, jit_fpr_t f1)
     }
 }
 
+#define jit_sqrtr_f(f0, f1)		jit_sqrtr_d(f0, f1)
 #define jit_sqrtr_d(f0, f1)		jit_sqrtr_d(f0, f1)
 __jit_inline void
 jit_sqrtr_d(jit_fpr_t f0, jit_fpr_t f1)

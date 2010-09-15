@@ -1835,6 +1835,45 @@ enum {
 #define MOVLPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVLP, MD, MB, MI, MS, RD,_rX)
 #define MOVLPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVLP, RS,_rX, MD, MB, MI, MS)
 
+#define PCMPEQBrr(RS, RD)						\
+    _SSELrr(0x66, 0x74, RS,_rX, RD,_rX)
+#define PCMPEQBrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0x74, MD, MB, MI, MS, RD,_rX)
+
+#define PCMPEQWrr(RS, RD)						\
+    _SSELrr(0x66, 0x75, RS,_rX, RD,_rX)
+#define PCMPEQWrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0x75, MD, MB, MI, MS, RD,_rX)
+
+#define PCMPEQLrr(RS, RD)						\
+    _SSELrr(0x66, 0x76, RS,_rX, RD,_rX)
+#define PCMPEQLrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0x76, MD, MB, MI, MS, RD,_rX)
+
+#define PSRLWrr(RS, RD)							\
+    _SSELrr(0x66, 0xd1, RS,_rX, RD,_rX)
+#define PSRLWrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0xd1, MD, MB, MI, MS, RD,_rX)
+#define PSRLWir(IM, RD)							\
+    (_O(0x66), _REXLrr(0, RD),						\
+     _OO_Mrm(0x0f71, _b11, 2, _rX(RD)), _O(IM))
+
+#define PSRLLrr(RS, RD)							\
+    _SSELrr(0x66, 0xd2, RS,_rX, RD,_rX)
+#define PSRLLrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0xd2, MD, MB, MI, MS, RD,_rX)
+#define PSRLLir(IM, RD)							\
+    (_O(0x66), _REXLrr(0, RD),						\
+     _OO_Mrm(0x0f72, _b11, 2, _rX(RD)), _O(IM))
+
+#define PSRLQrr(RS, RD)							\
+    _SSELrr(0x66, 0xd3, RS,_rX, RD,_rX)
+#define PSRLQrm(RS, MD, MB, MI, MS)					\
+    _SSELmr(0x66, 0xd3, MD, MB, MI, MS, RD,_rX)
+#define PSRLQir(IM, RD)							\
+    (_O(0x66), _REXLrr(0, RD),						\
+     _OO_Mrm(0x0f73, _b11, 2, _rX(RD)), _O(IM))
+
 /* SSE4.1 */
 #define ROUNDSSrri(RS, RD, IM)						\
     (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
@@ -1842,6 +1881,9 @@ enum {
 #define ROUNDSDrri(RS, RD, IM)						\
     (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0a),	\
      _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
+#define PCMPEQQrr(RS, RD)						\
+    (_O(0x66), _REXLrr(RD, RS), _OO(0xf0038), _O(0x29),			\
+     _Mrm(_b11, _rX(RS), _rX(RD)))
 
 /*** References:										*/
 /*												*/

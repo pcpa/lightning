@@ -35,33 +35,15 @@
 
 #include <float.h>
 
-#define JIT_FPR_NUM	6
-#define JIT_FPRET	_XMM0
-#define JIT_FPR(i)	(_XMM8 + (i))
-#define JIT_FPTMP0	_XMM14
-#define JIT_FPTMP1	_XMM15
+#define JIT_FPR_NUM			6
+#define JIT_FPRET			_XMM0
+#define JIT_FPR(i)			(_XMM8 + (i))
+#define JIT_FPTMP0			_XMM14
+#define JIT_FPTMP1			_XMM15
 
 #define jit_sse4_1_p()			0
 
 #define jit_round_to_nearest_p()	1
-
-/* Either use a temporary register that is finally AND/OR/XORed with RS = RD,
-   or use RD as the temporary register and to the AND/OR/XOR with RS.  */
-#define jit_unop_tmp(rd, rs, op)		\
-	( (rs) == (rd)				\
-	 ? op((rd), JIT_FPTMP0, JIT_FPTMP0))	\
-	 : op((rd), (rd), (rs)))
-/* either pcmpeqd %xmm7, %xmm7 / psrld $1, %xmm7 / andps %xmm7, %RD (if RS = RD)
-       or pcmpeqd %RD, %RD / psrld $1, %RD / andps %RS, %RD (if RS != RD) */
-#define _jit_abs_f(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSRLDir (1, (cnst)), ANDPSrr ((rs), (rd)))
-#define jit_abs_f(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_f)
-#define _jit_abs_d(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
-#define jit_abs_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_d)
-
-#define jit_sqrt_d(rd,rs)	SQRTSSrr((rs), (rd))
-#define jit_sqrt_f(rd,rs)	SQRTSDrr((rs), (rd))
 
 #define jit_addr_f(f0, f1, f2)		jit_addr_f(f0, f1, f2)
 __jit_inline void
@@ -429,6 +411,52 @@ __jit_inline void
 jit_extr_d_f(int f0, int f1)
 {
     CVTSD2SSrr(f1, f0);
+}
+
+#define jit_absr_f(f0, f1)		jit_absr_f(f0, f1)
+__jit_inline void
+jit_absr_f(int f0, int f1)
+{
+    if (f0 == f1) {
+	PCMPEQLrr(JIT_FPTMP0, JIT_FPTMP0);
+	PSRLLir(1, JIT_FPTMP0);
+	ANDPSrr(JIT_FPTMP0, f0);
+    }
+    else {
+	PCMPEQLrr(f0, f0);
+	PSRLLir(1, f0);
+	ANDPSrr(f1, f0);
+    }
+}
+
+#define jit_absr_d(f0, f1)		jit_absr_d(f0, f1)
+__jit_inline void
+jit_absr_d(int f0, int f1)
+{
+    if (f0 == f1) {
+	PCMPEQLrr(JIT_FPTMP0, JIT_FPTMP0);
+	PSRLQir(1, JIT_FPTMP0);
+	ANDPDrr(JIT_FPTMP0, f0);
+    }
+    else {
+	PCMPEQLrr(f0, f0);
+	PSRLQir(1, f0);
+	ANDPDrr(f1, f0);
+    }
+}
+
+#define jit_sqrtr_f(f0, f1)		jit_sqrtr_f(f0, f1)
+__jit_inline void
+jit_sqrtr_f(int f0, int f1)
+{
+    SQRTSSrr(f1, f0);
+}
+
+#define jit_sqrtr_d(f0, f1)		jit_sqrtr_d(f0, f1)
+__jit_inline void
+jit_sqrtr_d(int f0, int f1)
+{
+    SQRTSDrr(f1, f0);
 }
 
 #define jit_negr_f(f0, f1)		jit_negr_f(f0, f1)
