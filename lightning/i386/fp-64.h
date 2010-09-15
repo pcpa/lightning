@@ -95,6 +95,9 @@
 #define _jit_abs_f(rd,cnst,rs)						\
 	(PCMPEQDrr((cnst), (cnst)), PSRLDir (1, (cnst)), ANDPSrr ((rs), (rd)))
 #define jit_abs_f(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_f)
+#define _jit_abs_d(rd,cnst,rs)						\
+	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
+#define jit_abs_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_d)
 
 #define jit_sqrt_d(rd,rs)	SQRTSSrr((rs), (rd))
 #define jit_sqrt_f(rd,rs)	SQRTSDrr((rs), (rd))
@@ -363,10 +366,6 @@ jit_negr_f(int f0, int f1)
     }
     ADDQir(8, _RSP);
 }
-
-#define _jit_abs_d(rd,cnst,rs)						\
-	(PCMPEQDrr((cnst), (cnst)), PSRLQir (1, (cnst)), ANDPDrr ((rs), (rd)))
-#define jit_abs_d(rd,rs)	jit_unop_tmp ((rd), (rs), _jit_abs_d)
 
 #define jit_negr_d(f0, f1)		jit_negr_d(f0, f1)
 __jit_inline void
@@ -1382,71 +1381,111 @@ jit_bunordr_d(jit_insn *label, int f0, int f1)
     return (_jit.x.pc);
 }
 
-#define jit_prolog_f(num)						\
-    /* Update counter. Have float arguments on stack? */		\
-    (((_jitl.nextarg_putfp += (num)) > JIT_FP_ARG_MAX)			\
-	/* Yes. Stack appears to be padded? */				\
-	? ((_jitl.argssize & 1)						\
-	    /* Yes. Update number of stack arguments */			\
-	    ? (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)	\
-				? _jitl.nextarg_puti - JIT_ARG_MAX	\
-				: 0) + _jitl.nextarg_putfp		\
-				     - JIT_FP_ARG_MAX,			\
-		/* Stack still appears to be padded? */			\
-		((_jitl.argssize & 1)					\
-		    /* Yes. Do nothing */				\
-		    ? 0							\
-		    /* No. Update state for aligned stack */		\
-		    : (_jitl.framesize -= sizeof(double))))		\
-	    /* No. Update number of stack arguments */			\
-	    : (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)	\
-				? _jitl.nextarg_puti - JIT_ARG_MAX	\
-				: 0) + _jitl.nextarg_putfp		\
-				     - JIT_FP_ARG_MAX,			\
-		/* Stack appears to be padded now? */			\
-		((_jitl.argssize & 1)					\
-		    /* Yes. Update state for padded stack */		\
-		    ? (_jitl.framesize += sizeof(double))		\
-		    /* No. Do nothing */				\
-		    : 0)))						\
-	/* No. Do nothing as there are no known floats on stack */	\
-	: 0)
-#define jit_prolog_d(num)		jit_prolog_f(num)
+#define jit_prolog_d(nf)		jit_prolog_f(nf)
+#define jit_prolog_f(nf)		jit_prolog_f(nf)
+__jit_inline void
+jit_prolog_f(int nf)
+{
+    /* update counter of float arguments */
+    if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
+	/* need float arguments on stack */
+	int	argssize;
 
-#define jit_prepare_f(num)						\
-    /* Update counter. Need stack for float arguments? */		\
-    (((_jitl.nextarg_putfp += num) > JIT_FP_ARG_MAX)			\
-	/* Yes. Update counter of stack arguments */			\
-	? (_jitl.argssize = ((_jitl.nextarg_puti > JIT_ARG_MAX)		\
-			    ? _jitl.nextarg_puti - JIT_ARG_MAX		\
-			    : 0) + _jitl.nextarg_putfp			\
-				 - JIT_FP_ARG_MAX,			\
-	   /* Update counter of float registers */			\
-	   _jitl.fprssize = JIT_FP_ARG_MAX)				\
-	: (_jitl.fprssize += (num)))
-#define jit_prepare_d(num)		jit_prepare_f(num)
+	if ((argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
+	    argssize = 0;
+	argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
+	if (_jitl.argssize & 1)	{
+	    /* stack appears to be padded */
+	    _jitl.argssize = argssize;
+	    /* stack still appears to be padded? */
+	    if (!(_jitl.argssize & 1))
+		/* update state for aligned stack */
+		_jitl.framesize -= sizeof(double);
+	}
+	else {
+	    _jitl.argssize = argssize;
+	    /* stack appears to be padded now? */
+	    if (_jitl.argssize & 1)
+		/* update state for padded stack */
+		_jitl.framesize += sizeof(double);
+	}
+    }
+}
 
-#define jit_arg_f()							\
-     /* There are still free float registers? */			\
-    (_jitl.nextarg_getfp < JIT_FP_ARG_MAX				\
-	  /* Yes. Return the register offset */				\
-	? _jitl.nextarg_getfp++						\
-	  /* No. Return the stack offset */				\
-	: ((_jitl.framesize += sizeof(double)) - sizeof(double)))
-#define jit_arg_d()			jit_arg_f()
+#define jit_prepare_d(nf)		jit_prepare_f(nf)
+#define jit_prepare_f(nf)		jit_prepare_f(nf)
+__jit_inline void
+jit_prepare_f(int nf)
+{
+    if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
+	/* need floats on stack */
+	if ((_jitl.argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
+	    _jitl.argssize = 0;
+	_jitl.argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
+	_jitl.fprssize = JIT_FP_ARG_MAX;
+    }
+    else
+	/* update counter of float argument registers */
+	_jitl.fprssize += nf;
+}
 
-#define jit_getarg_f(reg, ofs)		((ofs) < JIT_FP_ARG_MAX \
-					 ? jit_movr_f((reg), _XMM0 + (ofs)) \
-					 : jit_ldxi_f((reg), JIT_FP, (ofs)))
-#define jit_getarg_d(reg, ofs)		((ofs) < JIT_FP_ARG_MAX \
-					 ? jit_movr_d((reg), _XMM0 + (ofs)) \
-					 : jit_ldxi_d((reg), JIT_FP, (ofs)))
+#define jit_arg_d			jit_arg_f
+#define jit_arg_f			jit_arg_f
+__jit_inline int
+jit_arg_f(void)
+{
+    int		ofs;
+    if (_jitl.nextarg_getfp < JIT_FP_ARG_MAX)
+	ofs = _jitl.nextarg_getfp++;
+    else {
+	ofs = _jitl.framesize;
+	_jitl.framesize += sizeof(double);
+    }
+    return (ofs);
+}
 
-#define jit_pusharg_f(rs)		(--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX \
-					 ? (SUBQir(sizeof(double), JIT_SP), jit_str_f(JIT_SP,(rs))) \
-					 : jit_movr_f(_XMM0 + _jitl.nextarg_putfp, (rs)))
-#define jit_pusharg_d(rs)		(--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX \
-					 ? (SUBQir(sizeof(double), JIT_SP), jit_str_d(JIT_SP,(rs))) \
-					 : jit_movr_d(_XMM0 + _jitl.nextarg_putfp, (rs)))
+#define jit_getarg_f(f0, ofs)		jit_getarg_f(f0, ofs)
+__jit_inline void
+jit_getarg_f(int f0, int ofs)
+{
+    if (ofs < JIT_FP_ARG_MAX)
+	jit_movr_f(f0, _XMM0 + ofs);
+    else
+	jit_ldxi_f(f0, JIT_FP, ofs);
+}
+
+#define jit_getarg_d(f0, ofs)		jit_getarg_d(f0, ofs)
+__jit_inline void
+jit_getarg_d(int f0, int ofs)
+{
+    if (ofs < JIT_FP_ARG_MAX)
+	jit_movr_d(f0, _XMM0 + ofs);
+    else
+	jit_ldxi_d(f0, JIT_FP, ofs);
+}
+
+#define jit_pusharg_f(f0)		jit_pusharg_f(f0)
+__jit_inline void
+jit_pusharg_f(int f0)
+{
+    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
+	jit_str_f(JIT_SP, f0);
+    }
+    else
+	jit_movr_f(_XMM0 + _jitl.nextarg_putfp, f0);
+}
+
+#define jit_pusharg_d(f0)		jit_pusharg_d(f0)
+__jit_inline void
+jit_pusharg_d(int f0)
+{
+    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
+	jit_str_d(JIT_SP, f0);
+    }
+    else
+	jit_movr_d(_XMM0 + _jitl.nextarg_putfp, f0);
+}
 
 #endif /* __lightning_fp_h */
