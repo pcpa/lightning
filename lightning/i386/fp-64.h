@@ -367,9 +367,8 @@ jit_movi_f(int f0, float i0)
     if (data.f == 0.0 && !(data.i & 0x80000000))
 	XORPSrr(f0, f0);
     else {
-	jit_pushi_i(data.i);
-	jit_ldr_f(f0, _RSP);
-	ADDQir(8, _RSP);
+	jit_movi_i(JIT_REXTMP, data.i);
+	MOVDLXrr(JIT_REXTMP, f0);
     }
 }
 
@@ -385,14 +384,8 @@ jit_movi_d(int f0, double i0)
     if (data.d == 0.0 && !(data.l & 0x8000000000000000))
 	XORPDrr(f0, f0);
     else {
-	if (jit_can_sign_extend_int_p(data.l))
-	    jit_pushi_i(data.l);
-	else {
-	    jit_movi_l(JIT_REXTMP, data.l);
-	    jit_pushr_i(JIT_REXTMP);
-	}
-	jit_ldr_d(f0, _RSP);
-	ADDQir(8, _RSP);
+	jit_movi_l(JIT_REXTMP, data.l);
+	MOVDQXrr(JIT_REXTMP, f0);
     }
 }
 
@@ -442,16 +435,15 @@ jit_extr_d_f(int f0, int f1)
 __jit_inline void
 jit_negr_f(int f0, int f1)
 {
-    jit_pushi_i(0x80000000);
+    jit_movi_i(JIT_REXTMP, 0x80000000);
     if (f0 == f1) {
-	jit_ldr_f(JIT_FPTMP0, _RSP);
+	MOVDLXrr(JIT_REXTMP, JIT_FPTMP0);
 	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
-	jit_ldr_f(f0, _RSP);
+	MOVDLXrr(JIT_REXTMP, f0);
 	XORPSrr(f1, f0);
     }
-    jit_addi_l(_RSP, _RSP, sizeof(long));
 }
 
 #define jit_negr_d(f0, f1)		jit_negr_d(f0, f1)
@@ -459,16 +451,14 @@ __jit_inline void
 jit_negr_d(int f0, int f1)
 {
     jit_movi_l(JIT_REXTMP, 0x8000000000000000);
-    jit_pushr_i(JIT_REXTMP);
     if (f0 == f1) {
-	jit_ldr_d(JIT_FPTMP0, _RSP);
+	MOVDQXrr(JIT_REXTMP, JIT_FPTMP0);
 	XORPDrr(JIT_FPTMP0, f0);
     }
     else {
-	jit_ldr_d(f0, _RSP);
+	MOVDQXrr(JIT_REXTMP, f0);
 	XORPDrr(f1, f0);
     }
-    jit_addi_l(_RSP, _RSP, sizeof(double));
 }
 
 __jit_inline void
