@@ -61,6 +61,7 @@
 
 #define jit_movr_i(r0, r1)		jit_movr_i(r0, r1)
 #define jit_pushr_i(r0)			jit_pushr_i(r0)
+#define jit_pushi_i(i0)			jit_pushi_i(i0)
 #define jit_popr_i(r0)			jit_popr_i(r0)
 #if __WORDSIZE == 32
 __jit_inline void
