@@ -40,6 +40,14 @@
 extern "C" {
 #endif
 
+#if __GNUC__
+#  define __jit_constructor	__attribute__((constructor))
+# define __jit_inline		inline static
+#else
+#  define __jit_constructor	/**/
+# define __jit_inline		static
+#endif
+
 typedef signed char		_sc;
 typedef unsigned char		_uc, jit_insn;
 typedef unsigned short		_us;
@@ -47,6 +55,52 @@ typedef unsigned int		_ui;
 typedef long			_sl;
 typedef unsigned long		_ul;
 typedef struct jit_local_state	jit_local_state;
+
+#if defined(__i386__) || defined(__x86_64__)
+struct {
+    /* x87 present */
+    _ui		fpu		: 1;
+    /* cmpxchg8b instruction */
+    _ui		cmpxchg8b	: 1;
+    /* cmov and fcmov branchless conditional mov */
+    _ui		cmov		: 1;
+    /* mmx registers/instructions available */
+    _ui		mmx		: 1;
+    /* sse registers/instructions available */
+    _ui		sse		: 1;
+    /* sse2 registers/instructions available */
+    _ui		sse2		: 1;
+    /* sse3 instructions available */
+    _ui		sse3		: 1;
+    /* pcmulqdq instruction */
+    _ui		pclmulqdq	: 1;
+    /* ssse3 suplemental sse3 instructions available */
+    _ui		ssse3		: 1;
+    /* fused multiply/add using ymm state */
+    _ui		fma		: 1;
+    /* cmpxchg16b instruction */
+    _ui		cmpxchg16b	: 1;
+    /* sse4.1 instructions available */
+    _ui		sse4_1		: 1;
+    /* sse4.2 instructions available */
+    _ui		sse4_2		: 1;
+    /* movbe instruction available */
+    _ui		movbe		: 1;
+    /* popcnt instruction available */
+    _ui		popcnt		: 1;
+    /* aes instructions available */
+    _ui		aes		: 1;
+    /* avx instructions available */
+    _ui		avx		: 1;
+    /* lahf/sahf available in 64 bits mode */
+    _ui		lahf		: 1;
+} jit_cpu;
+
+struct {
+    /* round to nearest? */
+    _ui		rnd_near	: 1;
+} jit_flags;
+#endif
 
 #if defined(__i386__) && !defined(__x86_64__)
 struct jit_local_state {
@@ -114,7 +168,6 @@ jit_state		_jit;
 #endif
 
 #define _jitl		_jit.jitl
-#define __jit_inline	inline static
 
 #include <lightning/asm-common.h>
 

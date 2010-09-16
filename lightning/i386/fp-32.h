@@ -36,15 +36,10 @@
 #define JIT_FPR_NUM			6
 #define JIT_FPRET			_ST0
 
-#if jit_sse_p()
-#  define JIT_FPR(i)			(_XMM0 + i)
-#  define JIT_FPTMP0			_XMM6
-#  define JIT_FPTMP1			_XMM7
-#  include "fp-sse.h"
-#else
-#  define JIT_FPR(i)			(_ST0 + i)
-#endif
-
+#define JIT_FPR(i)			((jit_sse_p() ? _XMM0 : _ST0) + i)
+#define JIT_FPTMP0			_XMM6
+#define JIT_FPTMP1			_XMM7
+#include "fp-sse.h"
 #include "fp-x87.h"
 
 #define jit_absr_f(f0, f1)		jit_absr_f(f0, f1)

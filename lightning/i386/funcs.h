@@ -89,4 +89,153 @@ jit_flush_code(void *dest, void *end)
 #endif
 }
 
+#define jit_get_cpu			jit_get_cpu
+__jit_constructor static void
+jit_get_cpu(void)
+{
+    union {
+	struct {
+	    _ui sse3:		1;
+	    _ui pclmulqdq:	1;
+	    _ui dtes64:		1;	/* amd reserved */
+	    _ui monitor:	1;
+	    _ui ds_cpl:		1;	/* amd reserved */
+	    _ui vmx:		1;	/* amd reserved */
+	    _ui smx:		1;	/* amd reserved */
+	    _ui est:		1;	/* amd reserved */
+	    _ui tm2:		1;	/* amd reserved */
+	    _ui ssse3:		1;
+	    _ui cntx_id:	1;	/* amd reserved */
+	    _ui __reserved0:	1;
+	    _ui fma:		1;
+	    _ui cmpxchg16b:	1;
+	    _ui xtpr:		1;	/* amd reserved */
+	    _ui pdcm:		1;	/* amd reserved */
+	    _ui __reserved1:	1;
+	    _ui pcid:		1;	/* amd reserved */
+	    _ui dca:		1;	/* amd reserved */
+	    _ui sse4_1:		1;
+	    _ui sse4_2:		1;
+	    _ui x2apic:		1;	/* amd reserved */
+	    _ui movbe:		1;	/* amd reserved */
+	    _ui popcnt:		1;
+	    _ui tsc:		1;	/* amd reserved */
+	    _ui aes:		1;
+	    _ui xsave:		1;
+	    _ui osxsave:	1;
+	    _ui avx:		1;
+	    _ui __reserved2:	1;	/* amd F16C */
+	    _ui __reserved3:	1;
+	    _ui __alwayszero:	1;	/* amd RAZ */
+	} bits;
+	_ui	cpuid;
+    } ecx;
+    union {
+	struct {
+	    _ui fpu:		1;
+	    _ui vme:		1;
+	    _ui de:		1;
+	    _ui pse:		1;
+	    _ui tsc:		1;
+	    _ui msr:		1;
+	    _ui pae:		1;
+	    _ui mce:		1;
+	    _ui cmpxchg8b:	1;
+	    _ui apic:		1;
+	    _ui __reserved0:	1;
+	    _ui sep:		1;
+	    _ui mtrr:		1;
+	    _ui pge:		1;
+	    _ui mca:		1;
+	    _ui cmov:		1;
+	    _ui pat:		1;
+	    _ui pse36:		1;
+	    _ui psn:		1;	/* amd reserved */
+	    _ui clfsh:		1;
+	    _ui __reserved1:	1;
+	    _ui ds:		1;	/* amd reserved */
+	    _ui acpi:		1;	/* amd reserved */
+	    _ui mmx:		1;
+	    _ui fxsr:		1;
+	    _ui sse:		1;
+	    _ui sse2:		1;
+	    _ui ss:		1;	/* amd reserved */
+	    _ui htt:		1;
+	    _ui tm:		1;	/* amd reserved */
+	    _ui __reserved2:	1;
+	    _ui pbe:		1;	/* amd reserved */
+	} bits;
+	_ui	cpuid;
+    } edx;
+#if __WORDSIZE == 32
+    int		ac, flags;
+#endif
+    _ui		eax, ebx;
+    static int	initialized;
+
+    /* may need to be called explicitly if not using gcc */
+    if (initialized)
+	return;
+    initialized = 1;
+
+#if __WORDSIZE == 32
+    /* adapted from glibc __sysconf */
+    __asm__ volatile ("pushfl;\n\t"
+		      "popl %0;\n\t"
+		      "movl $0x240000, %1;\n\t"
+		      "xorl %0, %1;\n\t"
+		      "pushl %1;\n\t"
+		      "popfl;\n\t"
+		      "pushfl;\n\t"
+		      "popl %1;\n\t"
+		      "xorl %0, %1;\n\t"
+		      "pushl %0;\n\t"
+		      "popfl"
+		      : "=r" (flags), "=r" (ac));
+
+    /* i386 or i486 without cpuid */
+    if ((ac & (1 << 21)) == 0)
+	/* probably without x87 as well */
+	return;
+#endif
+
+    /* query %eax = 1 function */
+    __asm__ volatile ("xchgl %%ebx, %1; cpuid; xchgl %%ebx, %1"
+		      : "=a" (eax), "=r" (ebx),
+		      "=c" (ecx.cpuid), "=d" (edx.cpuid)
+		      : "0" (1));
+
+    /* check only what is useful for lightning and/or
+     * what is the same for AMD and Intel processors */
+    jit_cpu.fpu		= edx.bits.fpu;
+    jit_cpu.cmpxchg8b	= edx.bits.cmpxchg8b;
+    jit_cpu.cmov	= edx.bits.cmov;
+    jit_cpu.mmx		= edx.bits.mmx;
+    jit_cpu.sse		= edx.bits.sse;
+    jit_cpu.sse2	= edx.bits.sse2;
+    jit_cpu.sse3	= ecx.bits.sse3;
+    jit_cpu.pclmulqdq	= ecx.bits.pclmulqdq;
+    jit_cpu.ssse3	= ecx.bits.sse3;
+    jit_cpu.fma		= ecx.bits.fma;
+    jit_cpu.cmpxchg16b	= ecx.bits.cmpxchg16b;
+    jit_cpu.sse4_1	= ecx.bits.sse4_1;
+    jit_cpu.sse4_2	= ecx.bits.sse4_2;
+    jit_cpu.movbe	= ecx.bits.movbe;
+    jit_cpu.popcnt	= ecx.bits.popcnt;
+    jit_cpu.aes		= ecx.bits.aes;
+    jit_cpu.avx		= ecx.bits.avx;
+
+#if __WORDSIZE == 64
+    /* query %eax = 0x80000001 function */
+    __asm__ volatile ("xchgl %%ebx, %1; cpuid; xchgl %%ebx, %1"
+		      : "=a" (eax), "=r" (ebx),
+		      "=c" (ecx.cpuid), "=d" (edx.cpuid)
+		      : "0" (0x80000001));
+    jit_cpu.lahf	= ecx.cpuid & 1;
+#endif
+
+    /* default to round to nearest */
+    jit_flags.rnd_near	= 1;
+}
+
 #endif /* __lightning_funcs_h */

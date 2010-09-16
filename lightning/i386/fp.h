@@ -34,10 +34,10 @@
 #ifndef __lightning_fp_i386_h
 #define __lightning_fp_i386_h
 
-#define jit_sse_p()			1
-#define jit_sse4_1_p()			0
-#define jit_i686_p()			1
-#define jit_round_to_nearest_p()	1
+#define jit_sse_p()			jit_cpu.sse
+#define jit_sse4_1_p()			jit_cpu.sse4_1
+#define jit_i686_p()			jit_cpu.cmov
+#define jit_round_to_nearest_p()	jit_flags.rnd_near
 #define jit_x87_reg_p(reg)		((reg) >= _ST0 && (reg) <= _ST7)
 
 #if LIGHTNING_CROSS \
