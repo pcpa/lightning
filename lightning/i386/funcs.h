@@ -215,7 +215,7 @@ jit_get_cpu(void)
     jit_cpu.sse2	= edx.bits.sse2;
     jit_cpu.sse3	= ecx.bits.sse3;
     jit_cpu.pclmulqdq	= ecx.bits.pclmulqdq;
-    jit_cpu.ssse3	= ecx.bits.sse3;
+    jit_cpu.ssse3	= ecx.bits.ssse3;
     jit_cpu.fma		= ecx.bits.fma;
     jit_cpu.cmpxchg16b	= ecx.bits.cmpxchg16b;
     jit_cpu.sse4_1	= ecx.bits.sse4_1;
