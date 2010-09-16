@@ -269,7 +269,7 @@ x87_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
 }
 
 __jit_inline void
-x87_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, int i0)
+x87_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDSm(i0, r0, 0, 0);
     FSTPr(f0 + 1);
@@ -297,7 +297,7 @@ x87_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 }
 
 __jit_inline void
-x87_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, int i0)
+x87_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDLm(i0, r0, 0, 0);
     FSTPr(f0 + 1);
@@ -335,7 +335,7 @@ x87_str_f(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxi_f(int i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(i0, r0, 0, 0);
@@ -383,7 +383,7 @@ x87_str_d(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxi_d(int i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(i0, r0, 0, 0);
