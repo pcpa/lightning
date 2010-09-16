@@ -38,13 +38,16 @@
 #define jit_sse4_1_p()			0
 #define jit_i686_p()			1
 #define jit_round_to_nearest_p()	1
+#define jit_x87_reg_p(reg)		((reg) >= _ST0 && (reg) <= _ST7)
 
 #if LIGHTNING_CROSS \
 	? LIGHTNING_TARGET == LIGHTNING_X86_64 \
 	: defined (__x86_64__)
-#include "fp-64.h"
+#  define jit_sse_reg_p(reg)		((reg) >= _XMM0 && (reg) <= _XMM15)
+#  include "fp-64.h"
 #else
-#include "fp-32.h"
+#  define jit_sse_reg_p(reg)		((reg) >= _XMM0 && (reg) <= _XMM7)
+#  include "fp-32.h"
 #endif
 
 #endif /* __lightning_fp_i386_h */

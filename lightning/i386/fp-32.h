@@ -190,7 +190,7 @@ jit_divr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 __jit_inline void
 jit_ldi_f(jit_fpr_t f0, void *i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldi_f(f0, i0);
     else
 	x87_ldi_f(f0, i0);
@@ -200,7 +200,7 @@ jit_ldi_f(jit_fpr_t f0, void *i0)
 __jit_inline void
 jit_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldr_f(f0, r0);
     else
 	x87_ldr_f(f0, r0);
@@ -210,7 +210,7 @@ jit_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 jit_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, int i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldxi_f(f0, r0, i0);
     else
 	x87_ldxi_f(f0, r0, i0);
@@ -220,7 +220,7 @@ jit_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, int i0)
 __jit_inline void
 jit_ldxr_f(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldxr_f(f0, r0, r1);
     else
 	x87_ldxr_f(f0, r0, r1);
@@ -230,7 +230,7 @@ jit_ldxr_f(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldi_d(jit_fpr_t f0, void *i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldi_d(f0, i0);
     else
 	x87_ldi_d(f0, i0);
@@ -240,7 +240,7 @@ jit_ldi_d(jit_fpr_t f0, void *i0)
 __jit_inline void
 jit_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldr_d(f0, r0);
     else
 	x87_ldr_d(f0, r0);
@@ -250,7 +250,7 @@ jit_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 jit_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, jit_idx_t i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldxi_d(f0, r0, i0);
     else
 	x87_ldxi_d(f0, r0, i0);
@@ -260,7 +260,7 @@ jit_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, jit_idx_t i0)
 __jit_inline void
 jit_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ldxr_d(f0, r0, r1);
     else
 	x87_ldxr_d(f0, r0, r1);
@@ -270,7 +270,7 @@ jit_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_sti_f(void *i0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_sti_f(i0, f0);
     else
 	x87_sti_f(i0, f0);
@@ -280,7 +280,7 @@ jit_sti_f(void *i0, jit_fpr_t f0)
 __jit_inline void
 jit_str_f(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_str_f(r0, f0);
     else
 	x87_str_f(r0, f0);
@@ -290,7 +290,7 @@ jit_str_f(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_stxi_f(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_stxi_f(i0, r0, f0);
     else
 	x87_stxi_f(i0, r0, f0);
@@ -300,7 +300,7 @@ jit_stxi_f(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_stxr_f(r0, r1, f0);
     else
 	x87_stxr_f(r0, r1, f0);
@@ -310,7 +310,7 @@ jit_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 __jit_inline void
 jit_sti_d(void *i0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_sti_d(i0, f0);
     else
 	x87_sti_d(i0, f0);
@@ -320,7 +320,7 @@ jit_sti_d(void *i0, jit_fpr_t f0)
 __jit_inline void
 jit_str_d(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_str_d(r0, f0);
     else
 	x87_str_d(r0, f0);
@@ -330,7 +330,7 @@ jit_str_d(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_stxi_d(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_stxi_d(i0, r0, f0);
     else
 	x87_stxi_d(i0, r0, f0);
@@ -340,7 +340,7 @@ jit_stxi_d(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_stxr_d(r0, r1, f0);
     else
 	x87_stxr_d(r0, r1, f0);
@@ -350,7 +350,7 @@ jit_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 __jit_inline void
 jit_movi_f(jit_fpr_t f0, float i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_movi_f(f0, i0);
     else
 	x87_movi_f(f0, i0);
@@ -360,7 +360,7 @@ jit_movi_f(jit_fpr_t f0, float i0)
 __jit_inline void
 jit_movi_d(jit_fpr_t f0, double i0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_movi_d(f0, i0);
     else
 	x87_movi_d(f0, i0);
@@ -370,49 +370,51 @@ jit_movi_d(jit_fpr_t f0, double i0)
 __jit_inline void
 jit_movr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p()) {
-	if (f0 == JIT_FPRET) {
-	    jit_subi_l(_RSP, _RSP, sizeof(float));
+    if (jit_sse_reg_p(f0) && jit_sse_reg_p(f1))
+	sse_movr_f(f0, f1);
+    else if (jit_x87_reg_p(f0) && jit_x87_reg_p(f1))
+	x87_movr_d(f0, f1);
+    else {
+	jit_subi_l(_RSP, _RSP, sizeof(float));
+	if (jit_x87_reg_p(f0)) {
 	    sse_str_f(_RSP, f1);
 	    x87_ldr_f(f0, _RSP);
-	    jit_addi_l(_RSP, _RSP, sizeof(float));
- 	}
-	/* should (must?) use retval */
-	else if (f1 == JIT_FPRET)
-	    jit_retval_f(f0);
-	else
-	    sse_movr_f(f0, f1);
+	}
+	else {
+	    x87_str_f(_RSP, f1);
+	    sse_ldr_f(f0, _RSP);
+	}
+	jit_addi_l(_RSP, _RSP, sizeof(float));
     }
-    else
-	x87_movr_d(f0, f1);
 }
 
 #define jit_movr_d(f0, f1)		jit_movr_d(f0, f1)
 __jit_inline void
 jit_movr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p()) {
-	if (f0 == JIT_FPRET) {
-	    jit_subi_l(_RSP, _RSP, sizeof(double));
+    if (jit_sse_reg_p(f0) && jit_sse_reg_p(f1))
+	sse_movr_d(f0, f1);
+    else if (jit_x87_reg_p(f0) && jit_x87_reg_p(f1))
+	x87_movr_d(f0, f1);
+    else {
+	jit_subi_l(_RSP, _RSP, sizeof(double));
+	if (jit_x87_reg_p(f0)) {
 	    sse_str_d(_RSP, f1);
 	    x87_ldr_d(f0, _RSP);
-	    jit_addi_l(_RSP, _RSP, sizeof(double));
- 	}
-	/* should (must?) use retval */
-	else if (f1 == JIT_FPRET)
-	    jit_retval_d(f0);
-	else
-	    sse_movr_d(f0, f1);
+	}
+	else {
+	    x87_str_d(_RSP, f1);
+	    sse_ldr_d(f0, _RSP);
+	}
+	jit_addi_l(_RSP, _RSP, sizeof(double));
     }
-    else
-	x87_movr_d(f0, f1);
 }
 
 #define jit_extr_i_f(f0, r0)		jit_extr_i_f(f0, r0)
 __jit_inline void
 jit_extr_i_f(jit_fpr_t f0, jit_gpr_t r0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_extr_i_f(f0, r0);
     else
 	x87_extr_i_d(f0, r0);
@@ -422,7 +424,7 @@ jit_extr_i_f(jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 jit_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_extr_i_d(f0, r0);
     else
 	x87_extr_i_d(f0, r0);
@@ -432,7 +434,7 @@ jit_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 jit_extr_f_d(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_extr_f_d(f0, f1);
     else
 	x87_movr_d(f0, f1);
@@ -442,7 +444,7 @@ jit_extr_f_d(jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 jit_extr_d_f(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_extr_d_f(f0, f1);
     else
 	x87_movr_d(f0, f1);
@@ -452,7 +454,7 @@ jit_extr_d_f(jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 jit_rintr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_rintr_f_i(r0, f0);
     else
 	x87_rintr_d_i(r0, f0);
@@ -462,7 +464,7 @@ jit_rintr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_rintr_d_i(r0, f0);
     else
 	x87_rintr_d_i(r0, f0);
@@ -472,7 +474,7 @@ jit_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_roundr_f_i(r0, f0);
     else
 	x87_roundr_d_i(r0, f0);
@@ -482,7 +484,7 @@ jit_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_roundr_d_i(r0, f0);
     else
 	x87_roundr_d_i(r0, f0);
@@ -492,7 +494,7 @@ jit_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_truncr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_truncr_f_i(r0, f0);
     else
 	x87_truncr_d_i(r0, f0);
@@ -502,7 +504,7 @@ jit_truncr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_truncr_d_i(r0, f0);
     else
 	x87_truncr_d_i(r0, f0);
@@ -512,7 +514,7 @@ jit_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_floorr_f_i(r0, f0);
     else
 	x87_floorr_d_i(r0, f0);
@@ -522,7 +524,7 @@ jit_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_floorr_d_i(r0, f0);
     else
 	x87_floorr_d_i(r0, f0);
@@ -532,7 +534,7 @@ jit_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ceilr_f_i(r0, f0);
     else
 	x87_ceilr_d_i(r0, f0);
@@ -542,7 +544,7 @@ jit_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 jit_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_sse_p())
+    if (jit_sse_reg_p(f0))
 	sse_ceilr_d_i(r0, f0);
     else
 	x87_ceilr_d_i(r0, f0);
