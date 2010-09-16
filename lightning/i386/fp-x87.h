@@ -462,13 +462,8 @@ x87_movi_d(jit_fpr_t f0, double i0)
     c = 1;
     data.d = i0;
     if (data.d == 0.0) {
-#if __WORDSIZE == 64
-	if (data.l & 0x8000000000000000)
-	    c = 0;
-#else
 	if (data.i[1] & 0x80000000)
 	    c = 0;
-#endif
 	else
 	    FLDZ_();
     }

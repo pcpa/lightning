@@ -246,15 +246,6 @@ typedef union jit_code {
 # endif /* !JIT_RZERO */
 #endif /* !jit_negr_i */
 
-/* RSB is not mandatory */
-#ifndef jit_rsbi_i
-# define jit_rsbi_i(d, rs, is)		(jit_subi_i((d), (rs), (is)), jit_negr_i((d), (d)))
-
-# ifndef jit_rsbi_l
-#  define jit_rsbi_l(d, rs, is)		(jit_subi_l((d), (rs), (is)), jit_negr_l((d), (d)))
-# endif
-#endif
-
 /* Common 'shortcut' implementations */
 #define jit_subi_i(d, rs, is)		jit_addi_i((d), (rs), -(is))
 #define jit_subi_l(d, rs, is)		jit_addi_l((d), (rs), -(is))
@@ -662,5 +653,14 @@ typedef union jit_code {
 
 #  define jit_retval_l(rd)		jit_retval_i((rd))
 #endif	/* __WORDSIZE == 32 */
+
+/* RSB is not mandatory */
+#ifndef jit_rsbi_i
+# define jit_rsbi_i(d, rs, is)		(jit_subi_i((d), (rs), (is)), jit_negr_i((d), (d)))
+
+# ifndef jit_rsbi_l
+#  define jit_rsbi_l(d, rs, is)		(jit_subi_l((d), (rs), (is)), jit_negr_l((d), (d)))
+# endif
+#endif
 
 #endif /* __lightning_core_common_h_ */

@@ -34,6 +34,11 @@
 #ifndef __lightning_fp_i386_h
 #define __lightning_fp_i386_h
 
+#define jit_sse_p()			1
+#define jit_sse4_1_p()			0
+#define jit_i686_p()			1
+#define jit_round_to_nearest_p()	1
+
 #if LIGHTNING_CROSS \
 	? LIGHTNING_TARGET == LIGHTNING_X86_64 \
 	: defined (__x86_64__)

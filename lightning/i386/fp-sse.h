@@ -164,23 +164,27 @@ sse_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 sse_ldi_f(jit_fpr_t f0, void *i0)
 {
-    if (jit_can_sign_extend_int_p((long)i0))
-	MOVSSmr((long)i0, 0, 0, 0, f0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p((long)i0)) {
 	jit_movi_l((long)i0, JIT_REXTMP);
 	sse_ldr_f(f0, JIT_REXTMP);
     }
+    else
+#endif
+	MOVSSmr((long)i0, 0, 0, 0, f0);
 }
 
 __jit_inline void
 sse_ldi_d(jit_fpr_t f0, void *i0)
 {
-    if (jit_can_sign_extend_int_p((long)i0))
-	MOVSDmr((long)i0, 0, 0, 0, f0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p((long)i0)) {
 	jit_movi_l((long)i0, JIT_REXTMP);
 	sse_ldr_d(f0, JIT_REXTMP);
     }
+    else
+#endif
+	MOVSDmr((long)i0, 0, 0, 0, f0);
 }
 
 __jit_inline void
@@ -196,25 +200,29 @@ sse_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 }
 
 __jit_inline void
-sse_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, long i0)
+sse_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, jit_idx_t i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	MOVSSmr(i0, r0, 0, 0, f0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p(i0)) {
 	jit_movi_l(i0, JIT_REXTMP);
 	sse_ldxr_f(f0, r0, JIT_REXTMP);
     }
+    else
+#endif
+	MOVSSmr(i0, r0, 0, 0, f0);
 }
 
 __jit_inline void
 sse_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	MOVSDmr(i0, r0, 0, 0, f0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p(i0)) {
 	jit_movi_l(i0, JIT_REXTMP);
 	sse_ldxr_d(f0, r0, JIT_REXTMP);
     }
+    else
+#endif
+	MOVSDmr(i0, r0, 0, 0, f0);
 }
 
 __jit_inline void
@@ -232,23 +240,27 @@ sse_str_d(jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 sse_sti_f(void *i0, jit_fpr_t f0)
 {
-    if (jit_can_sign_extend_int_p((long)i0))
-	MOVSSrm(f0, (long)i0, 0, 0, 0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p((long)i0)) {
 	jit_movi_l((long)i0, JIT_REXTMP);
 	sse_str_f(JIT_REXTMP, f0);
     }
+    else
+#endif
+	MOVSSrm(f0, (long)i0, 0, 0, 0);
 }
 
 __jit_inline void
 sse_sti_d(void *i0, jit_fpr_t f0)
 {
-    if (jit_can_sign_extend_int_p((long)i0))
-	MOVSDrm(f0, (long)i0, 0, 0, 0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p((long)i0)) {
 	jit_movi_l((long)i0, JIT_REXTMP);
 	sse_str_d(JIT_REXTMP, f0);
     }
+    else
+#endif
+	MOVSDrm(f0, (long)i0, 0, 0, 0);
 }
 
 __jit_inline void
@@ -264,25 +276,29 @@ sse_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 }
 
 __jit_inline void
-sse_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
+sse_stxi_f(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	MOVSSrm(f0, i0, r0, 0, 0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p(i0)) {
 	jit_movi_l(i0, JIT_REXTMP);
 	sse_stxr_f(JIT_REXTMP, r0, f0);
     }
+    else
+#endif
+	MOVSSrm(f0, i0, r0, 0, 0);
 }
 
 __jit_inline void
-sse_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
+sse_stxi_d(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (jit_can_sign_extend_int_p(i0))
-	MOVSDrm(f0, i0, r0, 0, 0);
-    else {
+#if __WORDSIZE == 64
+    if (!jit_can_sign_extend_int_p(i0)) {
 	jit_movi_l(i0, JIT_REXTMP);
 	sse_stxr_d(JIT_REXTMP, r0, f0);
     }
+    else
+#endif
+	MOVSDrm(f0, i0, r0, 0, 0);
 }
 
 __jit_inline void
@@ -296,8 +312,14 @@ sse_movi_f(jit_fpr_t f0, float i0)
     if (data.f == 0.0 && !(data.i & 0x80000000))
 	XORPSrr(f0, f0);
     else {
+#if __WORDSIZE == 32
+	jit_pushi_i(data.i);
+	sse_ldr_f(f0, _RSP);
+	jit_addi_l(_RSP, _RSP, sizeof(long));
+#else
 	jit_movi_i(JIT_REXTMP, data.i);
 	MOVDLXrr(JIT_REXTMP, f0);
+#endif
     }
 }
 
@@ -305,15 +327,23 @@ __jit_inline void
 sse_movi_d(jit_fpr_t f0, double i0)
 {
     union {
+	int	i[2];
 	long	l;
 	double	d;
     } data;
     data.d = i0;
-    if (data.d == 0.0 && !(data.l & 0x8000000000000000))
+    if (data.d == 0.0 && !(data.i[1] & 0x80000000))
 	XORPDrr(f0, f0);
     else {
+#if __WORDSIZE == 32
+	jit_pushi_i(data.i[1]);
+	jit_pushi_i(data.i[0]);
+	sse_ldr_d(f0, _RSP);
+	jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+#else
 	jit_movi_l(JIT_REXTMP, data.l);
 	MOVDQXrr(JIT_REXTMP, f0);
+#endif
     }
 }
 
@@ -343,6 +373,7 @@ sse_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
     CVTSI2SDLrr(r0, f0);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_extr_l_f(jit_fpr_t f0, jit_gpr_t r0)
 {
@@ -354,6 +385,7 @@ sse_extr_l_d(jit_fpr_t f0, jit_gpr_t r0)
 {
     CVTSI2SDQrr(r0, f0);
 }
+#endif
 
 __jit_inline void
 sse_extr_f_d(jit_fpr_t f0, jit_fpr_t f1)
@@ -412,6 +444,18 @@ sse_sqrtr_d(jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 sse_negr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
+#if __WORDSIZE == 32
+    jit_pushi_i(0x80000000);
+    if (f0 == f1) {
+	sse_ldr_f(JIT_FPTMP0, _RSP);
+	XORPSrr(JIT_FPTMP0, f0);
+    }
+    else {
+	sse_ldr_f(f0, _RSP);
+	XORPSrr(f1, f0);
+    }
+    jit_addi_l(_RSP, _RSP, sizeof(long));
+#else
     jit_movi_i(JIT_REXTMP, 0x80000000);
     if (f0 == f1) {
 	MOVDLXrr(JIT_REXTMP, JIT_FPTMP0);
@@ -421,11 +465,25 @@ sse_negr_f(jit_fpr_t f0, jit_fpr_t f1)
 	MOVDLXrr(JIT_REXTMP, f0);
 	XORPSrr(f1, f0);
     }
+#endif
 }
 
 __jit_inline void
 sse_negr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
+#if __WORDSIZE == 32
+    jit_pushi_i(0x80000000);
+    jit_pushi_i(0);
+    if (f0 == f1) {
+	sse_ldr_d(JIT_FPTMP0, _RSP);
+	XORPSrr(JIT_FPTMP0, f0);
+    }
+    else {
+	sse_ldr_d(f0, _RSP);
+	XORPSrr(f1, f0);
+    }
+    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+#else
     jit_movi_l(JIT_REXTMP, 0x8000000000000000);
     if (f0 == f1) {
 	MOVDQXrr(JIT_REXTMP, JIT_FPTMP0);
@@ -435,6 +493,7 @@ sse_negr_d(jit_fpr_t f0, jit_fpr_t f1)
 	MOVDQXrr(JIT_REXTMP, f0);
 	XORPDrr(f1, f0);
     }
+#endif
 }
 
 __jit_inline void
@@ -464,11 +523,13 @@ sse_rintr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     CVTSS2SILrr(f0, r0);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_rintr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSS2SIQrr(f0, r0);
 }
+#endif
 
 __jit_inline void
 sse_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -476,11 +537,13 @@ sse_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     CVTSD2SILrr(f0, r0);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_rintr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSD2SIQrr(f0, r0);
 }
+#endif
 
 __jit_inline void
 sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -522,6 +585,7 @@ sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -561,6 +625,7 @@ sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(sizeof(long));
     }
 }
+#endif
 
 __jit_inline void
 sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -608,6 +673,7 @@ sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -621,13 +687,8 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
     label = _jit.x.pc;
     XORLir(0x80000000, r0);
     jit_patch_rel_char_at(label, _jit.x.pc);
-#if __WORDSIZE == 32
-    jit_pushr_i(r0);
-    jit_pushi_i(0);
-#else
     SHLQir(32, r0);
     jit_pushr_l(r0);
-#endif
     /* round */
     if (jit_round_to_nearest_p()) {
 	sse_rintr_d_l(r0, f0);
@@ -653,6 +714,7 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(sizeof(double));
     }
 }
+#endif
 
 __jit_inline void
 sse_truncr_f_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -660,11 +722,13 @@ sse_truncr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     CVTTSS2SILrr(f0, r0);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_truncr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSS2SIQrr(f0, r0);
 }
+#endif
 
 __jit_inline void
 sse_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -672,11 +736,13 @@ sse_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     CVTTSD2SILrr(f0, r0);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_truncr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSD2SIQrr(f0, r0);
 }
+#endif
 
 __jit_inline void
 sse_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -704,6 +770,7 @@ sse_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_floorr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -729,6 +796,7 @@ sse_floorr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(0);
     }
 }
+#endif
 
 __jit_inline void
 sse_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -756,6 +824,7 @@ sse_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_floorr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -781,6 +850,7 @@ sse_floorr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(0);
     }
 }
+#endif
 
 __jit_inline void
 sse_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -808,6 +878,7 @@ sse_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_ceilr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -833,6 +904,7 @@ sse_ceilr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(0);
     }
 }
+#endif
 
 __jit_inline void
 sse_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
@@ -860,6 +932,7 @@ sse_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     }
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 sse_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
@@ -885,261 +958,270 @@ sse_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	_sse_rnd_leave(0);
     }
 }
+#endif
+
+__jit_inline void
+_sse_fp_cmp_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
+{
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    XORLrr(reg, reg);
+    UCOMISSrr(f0, f1);
+    SETCCir(code, reg);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
+}
+
+__jit_inline void
+_sse_fp_cmp_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
+{
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    XORLrr(reg, reg);
+    UCOMISDrr(f0, f1);
+    SETCCir(code, reg);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
+}
 
 __jit_inline void
 sse_ltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETAr(r0);
-}
-
-__jit_inline void
-sse_ler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETAEr(r0);
-}
-
-__jit_inline void
-sse_eqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    /* set register to zero */
-    XORLrr(r0, r0);
-    /* compare operands */
-    UCOMISSrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if equal */
-    SETEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
-}
-
-__jit_inline void
-sse_ger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f1, f0);
-    SETAEr(r0);
-}
-
-__jit_inline void
-sse_gtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f1, f0);
-    SETAr(r0);
-}
-
-__jit_inline void
-sse_ner_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    /* set register to one */
-    MOVLir(1, r0);
-    /* compare operands */
-    UCOMISSrr(f0, f1);
-    /* jump if parity (unordered) */
-    JPESm((long)(_jit.x.pc + 3));
-    _jitl.label = _jit.x.pc;
-    /* set register if not equal */
-    SETNEr(r0);
-    /* was unordered */
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
-}
-
-__jit_inline void
-sse_unltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f1, f0);
-    SETNAEr(r0);
-}
-
-__jit_inline void
-sse_unler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f1, f0);
-    SETNAr(r0);
-}
-
-__jit_inline void
-sse_uneqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETEr(r0);
-}
-
-__jit_inline void
-sse_unger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETNAr(r0);
-}
-
-__jit_inline void
-sse_ungtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETNAEr(r0);
-}
-
-__jit_inline void
-sse_ltgtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETNEr(r0);
-}
-
-__jit_inline void
-sse_ordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETNPr(r0);
-}
-
-__jit_inline void
-sse_unordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    XORLrr(r0, r0);
-    UCOMISSrr(f0, f1);
-    SETPr(r0);
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_A);
 }
 
 __jit_inline void
 sse_ltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETAr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_A);
+}
+
+__jit_inline void
+sse_ler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_AE);
 }
 
 __jit_inline void
 sse_ler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETAEr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_AE);
+}
+
+__jit_inline void
+sse_eqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    XORLrr(reg, reg);
+    UCOMISSrr(f0, f1);
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    SETEr(reg);
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
 }
 
 __jit_inline void
 sse_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    /* set register to zero */
-    XORLrr(r0, r0);
-    /* compare operands */
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    XORLrr(reg, reg);
     UCOMISDrr(f0, f1);
-    /* jump if parity (unordered) */
     JPESm((long)(_jit.x.pc + 3));
     _jitl.label = _jit.x.pc;
-    /* set register if equal */
-    SETEr(r0);
-    /* was unordered */
+    SETEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
+}
+
+__jit_inline void
+sse_ger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f1, f0, X86_CC_AE);
 }
 
 __jit_inline void
 sse_ger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f1, f0);
-    SETAEr(r0);
+    _sse_fp_cmp_d(r0, f1, f0, X86_CC_AE);
+}
+
+__jit_inline void
+sse_gtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f1, f0, X86_CC_A);
 }
 
 __jit_inline void
 sse_gtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f1, f0);
-    SETAr(r0);
+    _sse_fp_cmp_d(r0, f1, f0, X86_CC_A);
+}
+
+__jit_inline void
+sse_ner_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    MOVLir(1, reg);
+    UCOMISSrr(f0, f1);
+    JPESm((long)(_jit.x.pc + 3));
+    _jitl.label = _jit.x.pc;
+    SETNEr(reg);
+    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
 }
 
 __jit_inline void
 sse_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    /* set register to one */
-    MOVLir(1, r0);
-    /* compare operands */
+    int		 rc;
+    jit_gpr_t	 reg;
+    if ((rc = jit_check8(r0)))
+	reg = r0;
+    else {
+	MOVLrr(_RAX, r0);
+	reg = _RAX;
+    }
+    MOVLir(1, reg);
     UCOMISDrr(f0, f1);
-    /* jump if parity (unordered) */
     JPESm((long)(_jit.x.pc + 3));
     _jitl.label = _jit.x.pc;
-    /* set register if not equal */
-    SETNEr(r0);
-    /* was unordered */
+    SETNEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    if (!rc)
+	XCHGLrr(_RAX, r0);
+}
+
+__jit_inline void
+sse_unltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f1, f0, X86_CC_NAE);
 }
 
 __jit_inline void
 sse_unltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f1, f0);
-    SETNAEr(r0);
+    _sse_fp_cmp_d(r0, f1, f0, X86_CC_NAE);
+}
+
+__jit_inline void
+sse_unler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f1, f0, X86_CC_NA);
 }
 
 __jit_inline void
 sse_unler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f1, f0);
-    SETNAr(r0);
+    _sse_fp_cmp_d(r0, f1, f0, X86_CC_NA);
+}
+
+__jit_inline void
+sse_uneqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_E);
 }
 
 __jit_inline void
 sse_uneqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETEr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_E);
+}
+
+__jit_inline void
+sse_unger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_NA);
 }
 
 __jit_inline void
 sse_unger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETNAr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_NA);
+}
+
+__jit_inline void
+sse_ungtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_NAE);
 }
 
 __jit_inline void
 sse_ungtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETNAEr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_NAE);
+}
+
+__jit_inline void
+sse_ltgtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_NE);
 }
 
 __jit_inline void
 sse_ltgtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETNEr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_NE);
+}
+
+__jit_inline void
+sse_ordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_NP);
 }
 
 __jit_inline void
 sse_ordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETNPr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_NP);
+}
+
+__jit_inline void
+sse_unordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _sse_fp_cmp_f(r0, f0, f1, X86_CC_P);
 }
 
 __jit_inline void
 sse_unordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    XORLrr(r0, r0);
-    UCOMISDrr(f0, f1);
-    SETPr(r0);
+    _sse_fp_cmp_d(r0, f0, f1, X86_CC_P);
 }
 
 __jit_inline jit_insn *

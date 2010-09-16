@@ -39,10 +39,6 @@
 #define JIT_FPTMP0			_XMM14
 #define JIT_FPTMP1			_XMM15
 
-#define jit_sse4_1_p()			0
-
-#define jit_round_to_nearest_p()	1
-
 #include "fp-sse.h"
 
 #define jit_addr_f(f0, f1, f2)		jit_addr_f(f0, f1, f2)
@@ -466,14 +462,14 @@ jit_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 #define jit_ltr_f(r0, f0, f1)		jit_ltr_f(r0, f0, f1)
-__jit_inline jit_insn *
+__jit_inline void
 jit_ltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     sse_ltr_f(r0, f0, f1);
 }
 
 #define jit_ler_f(r0, f0, f1)		jit_ler_f(r0, f0, f1)
-__jit_inline jit_insn *
+__jit_inline void
 jit_ler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     sse_ler_f(r0, f0, f1);
@@ -648,7 +644,7 @@ jit_ltgtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 #define jit_ordr_d(r0, f0, f1)		jit_ordr_d(r0, f0, f1)
-__jit_inline jit_insn *
+__jit_inline void
 jit_ordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     sse_ordr_d(r0, f0, f1);

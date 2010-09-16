@@ -33,20 +33,17 @@
 #ifndef __lightning_fp_h
 #define __lightning_fp_h
 
-#define jit_sse_p()			0
-
 #define JIT_FPR_NUM			6
 #define JIT_FPRET			_ST0
 
 #if jit_sse_p()
 #  define JIT_FPR(i)			(_XMM0 + i)
+#  define JIT_FPTMP0			_XMM6
+#  define JIT_FPTMP1			_XMM7
+#  include "fp-sse.h"
 #else
 #  define JIT_FPR(i)			(_ST0 + i)
 #endif
-
-#define jit_i686_p()			1
-
-#define jit_round_to_nearest_p()	1
 
 #include "fp-x87.h"
 
@@ -373,8 +370,19 @@ jit_movi_d(jit_fpr_t f0, double i0)
 __jit_inline void
 jit_movr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p())
-	sse_movr_f(f0, f1);
+    if (jit_sse_p()) {
+	if (f0 == JIT_FPRET) {
+	    jit_subi_l(_RSP, _RSP, sizeof(float));
+	    sse_str_f(_RSP, f1);
+	    x87_ldr_f(f0, _RSP);
+	    jit_addi_l(_RSP, _RSP, sizeof(float));
+ 	}
+	/* should (must?) use retval */
+	else if (f1 == JIT_FPRET)
+	    jit_retval_f(f0);
+	else
+	    sse_movr_f(f0, f1);
+    }
     else
 	x87_movr_d(f0, f1);
 }
@@ -383,8 +391,19 @@ jit_movr_f(jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 jit_movr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_sse_p())
-	sse_movr_d(f0, f1);
+    if (jit_sse_p()) {
+	if (f0 == JIT_FPRET) {
+	    jit_subi_l(_RSP, _RSP, sizeof(double));
+	    sse_str_d(_RSP, f1);
+	    x87_ldr_d(f0, _RSP);
+	    jit_addi_l(_RSP, _RSP, sizeof(double));
+ 	}
+	/* should (must?) use retval */
+	else if (f1 == JIT_FPRET)
+	    jit_retval_d(f0);
+	else
+	    sse_movr_d(f0, f1);
+    }
     else
 	x87_movr_d(f0, f1);
 }
@@ -407,6 +426,26 @@ jit_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 	sse_extr_i_d(f0, r0);
     else
 	x87_extr_i_d(f0, r0);
+}
+
+#define jit_extr_f_d(f0, f1)		jit_extr_f_d(f0, f1)
+__jit_inline void
+jit_extr_f_d(jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_sse_p())
+	sse_extr_f_d(f0, f1);
+    else
+	x87_movr_d(f0, f1);
+}
+
+#define jit_extr_d_f(f0, f1)		jit_extr_d_f(f0, f1)
+__jit_inline void
+jit_extr_d_f(jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_sse_p())
+	sse_extr_d_f(f0, f1);
+    else
+	x87_movr_d(f0, f1);
 }
 
 #define jit_rintr_f_i(r0, f0)		jit_rintr_f_i(r0, f0)
@@ -1042,19 +1081,43 @@ jit_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 /* ABI */
+#define jit_retval_f(f0)		jit_retval_f(f0)
+__jit_inline void
+jit_retval_f(jit_fpr_t f0)
+{
+    if (f0 != JIT_FPRET) {
+	if (jit_sse_p()) {
+	    jit_subi_l(_RSP, _RSP, sizeof(float));
+	    x87_str_f(_RSP, JIT_FPRET);
+	    sse_ldr_f(f0, _RSP);
+	    jit_addi_l(_RSP, _RSP, sizeof(float));
+	}
+	else
+	    FSTPr(f0 + 1);
+    }
+}
+
 #define jit_retval_d(f0)		jit_retval_d(f0)
 __jit_inline void
 jit_retval_d(jit_fpr_t f0)
 {
-    if (f0 != _ST0)
-	FSTPr(f0 + 1);
+    if (f0 != JIT_FPRET) {
+	if (jit_sse_p()) {
+	    jit_subi_l(_RSP, _RSP, sizeof(double));
+	    x87_str_d(_RSP, JIT_FPRET);
+	    sse_ldr_d(f0, _RSP);
+	    jit_addi_l(_RSP, _RSP, sizeof(double));
+	}
+	else
+	    FSTPr(f0 + 1);
+    }
 }
 
 #define jit_pusharg_f(f0)		jit_pusharg_f(f0)
 __jit_inline void
 jit_pusharg_f(jit_fpr_t f0)
 {
-    jit_subi_i(JIT_SP, JIT_SP, sizeof(float));
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(float));
     jit_str_f(JIT_SP, f0);
 }
 
@@ -1062,7 +1125,7 @@ jit_pusharg_f(jit_fpr_t f0)
 __jit_inline void
 jit_pusharg_d(jit_fpr_t f0)
 {
-    jit_subi_i(JIT_SP, JIT_SP, sizeof(double));
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
     jit_str_d(JIT_SP, f0);
 }
 
@@ -1084,20 +1147,32 @@ jit_prepare_d(int nd)
 __jit_inline int
 jit_arg_f(void)
 {
-    int		off;
-    off = _jitl.framesize;
+    int		ofs = _jitl.framesize;
     _jitl.framesize += sizeof(float);
-    return (off);
+    return (ofs);
 }
 
 #define jit_arg_d			jit_arg_d
 __jit_inline int
 jit_arg_d(void)
 {
-    int		off;
-    off = _jitl.framesize;
+    int		ofs = _jitl.framesize;
     _jitl.framesize += sizeof(double);
-    return (off);
+    return (ofs);
+}
+
+#define jit_getarg_f(f0, ofs)		jit_getarg_f(f0, ofs)
+__jit_inline void
+jit_getarg_f(jit_fpr_t f0, int ofs)
+{
+    jit_ldxi_f(f0, JIT_FP, ofs);
+}
+
+#define jit_getarg_d(f0, ofs)		jit_getarg_d(f0, ofs)
+__jit_inline void
+jit_getarg_d(jit_fpr_t f0, int ofs)
+{
+    jit_ldxi_d(f0, JIT_FP, ofs);
 }
 
 #endif /* __lightning_fp_h */
