@@ -80,32 +80,6 @@ typedef enum {
 #define _NOREG		0
 #define _RIP		-2
 
-#define _MM0		0x60
-#define _MM1		0x61
-#define _MM2		0x62
-#define _MM3		0x63
-#define _MM4		0x64
-#define _MM5		0x65
-#define _MM6		0x66
-#define _MM7		0x67
-
-#define _XMM0		0x70
-#define _XMM1		0x71
-#define _XMM2		0x72
-#define _XMM3		0x73
-#define _XMM4		0x74
-#define _XMM5		0x75
-#define _XMM6		0x76
-#define _XMM7		0x77
-#define _XMM8		0x78
-#define _XMM9		0x79
-#define _XMM10		0x7a
-#define _XMM11		0x7b
-#define _XMM12		0x7c
-#define _XMM13		0x7d
-#define _XMM14		0x7e
-#define _XMM15		0x7f
-
 typedef enum {
     _ST0	= 0,
     _ST1	= 1,
@@ -115,6 +89,22 @@ typedef enum {
     _ST5	= 5,
     _ST6	= 6,
     _ST7	= 7,
+    _XMM0	= 0x60,
+    _XMM1	= 0x61,
+    _XMM2	= 0x62,
+    _XMM3	= 0x63,
+    _XMM4	= 0x64,
+    _XMM5	= 0x65,
+    _XMM6	= 0x66,
+    _XMM7	= 0x67,
+    _XMM8	= 0x68,
+    _XMM9	= 0x69,
+    _XMM10	= 0x6a,
+    _XMM11	= 0x6b,
+    _XMM12	= 0x6c,
+    _XMM13	= 0x6d,
+    _XMM14	= 0x6e,
+    _XMM15	= 0x6f,
 } jit_fpr_t;
 
 #define _r0P(R)		((int)(R) == (int)_NOREG)

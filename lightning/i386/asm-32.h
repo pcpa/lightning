@@ -66,13 +66,13 @@
 #  define _r8(R)							\
 	JITFAIL("bad 64-bit register " #R)
 #  define _rM(R)							\
-    /* Valid MMX register? */						\
-    ((!((R) & ~0x67) && _rC(R) == 0x60)					\
-	? _rN(R) : JITFAIL("bad MMX register " #R))
+    (((R) >= _XMM0 && (R) <= _XMM7)					\
+	? _rN(R)							\
+	: JITFAIL("bad MMX register " #R))
 #  define _rX(R)							\
-    /* Valid SSE register? */						\
-    ((!((R) & ~0x77) && _rC(R) == 0x70)					\
-	? _rN(R) : JITFAIL("bad SSE register " #R))
+    (((R) >= _XMM0 && (R) <= _XMM7)					\
+	? _rN(R)							\
+	: JITFAIL("bad SSE register " #R))
 #endif
 
 #define _rA(R)			_r4(R)

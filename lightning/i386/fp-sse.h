@@ -34,7 +34,7 @@
 #define __lightning_fp_sse_h
 
 __jit_inline void
-sse_addr_f(int f0, int f1, int f2)
+sse_addr_f(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	ADDSSrr(f2, f0);
@@ -47,7 +47,7 @@ sse_addr_f(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_addr_d(int f0, int f1, int f2)
+sse_addr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	ADDSDrr(f2, f0);
@@ -60,7 +60,7 @@ sse_addr_d(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_subr_f(int f0, int f1, int f2)
+sse_subr_f(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	SUBSSrr(f2, f0);
@@ -76,7 +76,7 @@ sse_subr_f(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_subr_d(int f0, int f1, int f2)
+sse_subr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	SUBSDrr(f2, f0);
@@ -92,7 +92,7 @@ sse_subr_d(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_mulr_f(int f0, int f1, int f2)
+sse_mulr_f(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	MULSSrr(f2, f0);
@@ -105,7 +105,7 @@ sse_mulr_f(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_mulr_d(int f0, int f1, int f2)
+sse_mulr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	MULSDrr(f2, f0);
@@ -118,7 +118,7 @@ sse_mulr_d(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_divr_f(int f0, int f1, int f2)
+sse_divr_f(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	DIVSSrr(f2, f0);
@@ -134,7 +134,7 @@ sse_divr_f(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_divr_d(int f0, int f1, int f2)
+sse_divr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1)
 	DIVSDrr(f2, f0);
@@ -150,19 +150,19 @@ sse_divr_d(int f0, int f1, int f2)
 }
 
 __jit_inline void
-sse_ldr_f(int f0, jit_gpr_t r0)
+sse_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
 {
     MOVSSmr(0, r0, 0, 0, f0);
 }
 
 __jit_inline void
-sse_ldr_d(int f0, jit_gpr_t r0)
+sse_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 {
     MOVSDmr(0, r0, 0, 0, f0);
 }
 
 __jit_inline void
-sse_ldi_f(int f0, void *i0)
+sse_ldi_f(jit_fpr_t f0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
 	MOVSSmr((long)i0, 0, 0, 0, f0);
@@ -173,7 +173,7 @@ sse_ldi_f(int f0, void *i0)
 }
 
 __jit_inline void
-sse_ldi_d(int f0, void *i0)
+sse_ldi_d(jit_fpr_t f0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
 	MOVSDmr((long)i0, 0, 0, 0, f0);
@@ -184,19 +184,19 @@ sse_ldi_d(int f0, void *i0)
 }
 
 __jit_inline void
-sse_ldxr_f(int f0, jit_gpr_t r0, jit_gpr_t r1)
+sse_ldxr_f(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVSSmr(0, r0, r1, 1, f0);
 }
 
 __jit_inline void
-sse_ldxr_d(int f0, jit_gpr_t r0, jit_gpr_t r1)
+sse_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVSDmr(0, r0, r1, 1, f0);
 }
 
 __jit_inline void
-sse_ldxi_f(int f0, jit_gpr_t r0, long i0)
+sse_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
 	MOVSSmr(i0, r0, 0, 0, f0);
@@ -207,7 +207,7 @@ sse_ldxi_f(int f0, jit_gpr_t r0, long i0)
 }
 
 __jit_inline void
-sse_ldxi_d(int f0, jit_gpr_t r0, long i0)
+sse_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
 	MOVSDmr(i0, r0, 0, 0, f0);
@@ -218,19 +218,19 @@ sse_ldxi_d(int f0, jit_gpr_t r0, long i0)
 }
 
 __jit_inline void
-sse_str_f(jit_gpr_t r0, int f0)
+sse_str_f(jit_gpr_t r0, jit_fpr_t f0)
 {
     MOVSSrm(f0, 0, r0, 0, 0);
 }
 
 __jit_inline void
-sse_str_d(jit_gpr_t r0, int f0)
+sse_str_d(jit_gpr_t r0, jit_fpr_t f0)
 {
     MOVSDrm(f0, 0, r0, 0, 0);
 }
 
 __jit_inline void
-sse_sti_f(void *i0, int f0)
+sse_sti_f(void *i0, jit_fpr_t f0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
 	MOVSSrm(f0, (long)i0, 0, 0, 0);
@@ -241,7 +241,7 @@ sse_sti_f(void *i0, int f0)
 }
 
 __jit_inline void
-sse_sti_d(void *i0, int f0)
+sse_sti_d(void *i0, jit_fpr_t f0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
 	MOVSDrm(f0, (long)i0, 0, 0, 0);
@@ -252,19 +252,19 @@ sse_sti_d(void *i0, int f0)
 }
 
 __jit_inline void
-sse_stxr_f(jit_gpr_t r0, jit_gpr_t r1, int f0)
+sse_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     MOVSSrm(f0, 0, r0, r1, 1);
 }
 
 __jit_inline void
-sse_stxr_d(jit_gpr_t r0, jit_gpr_t r1, int f0)
+sse_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     MOVSDrm(f0, 0, r0, r1, 1);
 }
 
 __jit_inline void
-sse_stxi_f(long i0, jit_gpr_t r0, int f0)
+sse_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_can_sign_extend_int_p(i0))
 	MOVSSrm(f0, i0, r0, 0, 0);
@@ -275,7 +275,7 @@ sse_stxi_f(long i0, jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_stxi_d(long i0, jit_gpr_t r0, int f0)
+sse_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_can_sign_extend_int_p(i0))
 	MOVSDrm(f0, i0, r0, 0, 0);
@@ -286,7 +286,7 @@ sse_stxi_d(long i0, jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_movi_f(int f0, float i0)
+sse_movi_f(jit_fpr_t f0, float i0)
 {
     union {
 	int	i;
@@ -302,7 +302,7 @@ sse_movi_f(int f0, float i0)
 }
 
 __jit_inline void
-sse_movi_d(int f0, double i0)
+sse_movi_d(jit_fpr_t f0, double i0)
 {
     union {
 	long	l;
@@ -318,57 +318,57 @@ sse_movi_d(int f0, double i0)
 }
 
 __jit_inline void
-sse_movr_f(int f0, int f1)
+sse_movr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 != f1)
 	MOVSSrr(f1, f0);
 }
 
 __jit_inline void
-sse_movr_d(int f0, int f1)
+sse_movr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 != f1)
 	MOVSDrr(f1, f0);
 }
 
 __jit_inline void
-sse_extr_i_f(int f0, jit_gpr_t r0)
+sse_extr_i_f(jit_fpr_t f0, jit_gpr_t r0)
 {
     CVTSI2SSLrr(r0, f0);
 }
 
 __jit_inline void
-sse_extr_i_d(int f0, jit_gpr_t r0)
+sse_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 {
     CVTSI2SDLrr(r0, f0);
 }
 
 __jit_inline void
-sse_extr_l_f(int f0, jit_gpr_t r0)
+sse_extr_l_f(jit_fpr_t f0, jit_gpr_t r0)
 {
     CVTSI2SSQrr(r0, f0);
 }
 
 __jit_inline void
-sse_extr_l_d(int f0, jit_gpr_t r0)
+sse_extr_l_d(jit_fpr_t f0, jit_gpr_t r0)
 {
     CVTSI2SDQrr(r0, f0);
 }
 
 __jit_inline void
-sse_extr_f_d(int f0, int f1)
+sse_extr_f_d(jit_fpr_t f0, jit_fpr_t f1)
 {
     CVTSS2SDrr(f1, f0);
 }
 
 __jit_inline void
-sse_extr_d_f(int f0, int f1)
+sse_extr_d_f(jit_fpr_t f0, jit_fpr_t f1)
 {
     CVTSD2SSrr(f1, f0);
 }
 
 __jit_inline void
-sse_absr_f(int f0, int f1)
+sse_absr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	PCMPEQLrr(JIT_FPTMP0, JIT_FPTMP0);
@@ -383,7 +383,7 @@ sse_absr_f(int f0, int f1)
 }
 
 __jit_inline void
-sse_absr_d(int f0, int f1)
+sse_absr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	PCMPEQLrr(JIT_FPTMP0, JIT_FPTMP0);
@@ -398,19 +398,19 @@ sse_absr_d(int f0, int f1)
 }
 
 __jit_inline void
-sse_sqrtr_f(int f0, int f1)
+sse_sqrtr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
     SQRTSSrr(f1, f0);
 }
 
 __jit_inline void
-sse_sqrtr_d(int f0, int f1)
+sse_sqrtr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
     SQRTSDrr(f1, f0);
 }
 
 __jit_inline void
-sse_negr_f(int f0, int f1)
+sse_negr_f(jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_movi_i(JIT_REXTMP, 0x80000000);
     if (f0 == f1) {
@@ -424,7 +424,7 @@ sse_negr_f(int f0, int f1)
 }
 
 __jit_inline void
-sse_negr_d(int f0, int f1)
+sse_negr_d(jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_movi_l(JIT_REXTMP, 0x8000000000000000);
     if (f0 == f1) {
@@ -459,31 +459,31 @@ _sse_rnd_leave(int extra)
 }
 
 __jit_inline void
-sse_rintr_f_i(jit_gpr_t r0, int f0)
+sse_rintr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSS2SILrr(f0, r0);
 }
 
 __jit_inline void
-sse_rintr_f_l(jit_gpr_t r0, int f0)
+sse_rintr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSS2SIQrr(f0, r0);
 }
 
 __jit_inline void
-sse_rintr_d_i(jit_gpr_t r0, int f0)
+sse_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSD2SILrr(f0, r0);
 }
 
 __jit_inline void
-sse_rintr_d_l(jit_gpr_t r0, int f0)
+sse_rintr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTSD2SIQrr(f0, r0);
 }
 
 __jit_inline void
-sse_roundr_f_i(jit_gpr_t r0, int f0)
+sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
@@ -523,7 +523,7 @@ sse_roundr_f_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_roundr_f_l(jit_gpr_t r0, int f0)
+sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
@@ -563,7 +563,7 @@ sse_roundr_f_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_roundr_d_i(jit_gpr_t r0, int f0)
+sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
@@ -609,7 +609,7 @@ sse_roundr_d_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_roundr_d_l(jit_gpr_t r0, int f0)
+sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
@@ -655,31 +655,31 @@ sse_roundr_d_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_truncr_f_i(jit_gpr_t r0, int f0)
+sse_truncr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSS2SILrr(f0, r0);
 }
 
 __jit_inline void
-sse_truncr_f_l(jit_gpr_t r0, int f0)
+sse_truncr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSS2SIQrr(f0, r0);
 }
 
 __jit_inline void
-sse_truncr_d_i(jit_gpr_t r0, int f0)
+sse_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSD2SILrr(f0, r0);
 }
 
 __jit_inline void
-sse_truncr_d_l(jit_gpr_t r0, int f0)
+sse_truncr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     CVTTSD2SIQrr(f0, r0);
 }
 
 __jit_inline void
-sse_floorr_f_i(jit_gpr_t r0, int f0)
+sse_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
@@ -705,7 +705,7 @@ sse_floorr_f_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_floorr_f_l(jit_gpr_t r0, int f0)
+sse_floorr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
@@ -731,7 +731,7 @@ sse_floorr_f_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_floorr_d_i(jit_gpr_t r0, int f0)
+sse_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
@@ -757,7 +757,7 @@ sse_floorr_d_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_floorr_d_l(jit_gpr_t r0, int f0)
+sse_floorr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_DOWN >> 13);
@@ -783,7 +783,7 @@ sse_floorr_d_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_ceilr_f_i(jit_gpr_t r0, int f0)
+sse_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
@@ -809,7 +809,7 @@ sse_ceilr_f_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_ceilr_f_l(jit_gpr_t r0, int f0)
+sse_ceilr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSSrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
@@ -835,7 +835,7 @@ sse_ceilr_f_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_ceilr_d_i(jit_gpr_t r0, int f0)
+sse_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
@@ -861,7 +861,7 @@ sse_ceilr_d_i(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_ceilr_d_l(jit_gpr_t r0, int f0)
+sse_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_sse4_1_p()) {
 	ROUNDSDrri(f0, JIT_FPTMP0, MXCSR_RND_UP >> 13);
@@ -887,7 +887,7 @@ sse_ceilr_d_l(jit_gpr_t r0, int f0)
 }
 
 __jit_inline void
-sse_ltr_f(jit_gpr_t r0, int f0, int f1)
+sse_ltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -895,7 +895,7 @@ sse_ltr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ler_f(jit_gpr_t r0, int f0, int f1)
+sse_ler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -903,7 +903,7 @@ sse_ler_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_eqr_f(int r0, int f0, int f1)
+sse_eqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     /* set register to zero */
     XORLrr(r0, r0);
@@ -919,7 +919,7 @@ sse_eqr_f(int r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ger_f(jit_gpr_t r0, int f0, int f1)
+sse_ger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f1, f0);
@@ -927,7 +927,7 @@ sse_ger_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_gtr_f(jit_gpr_t r0, int f0, int f1)
+sse_gtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f1, f0);
@@ -935,7 +935,7 @@ sse_gtr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ner_f(int r0, int f0, int f1)
+sse_ner_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     /* set register to one */
     MOVLir(1, r0);
@@ -951,7 +951,7 @@ sse_ner_f(int r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unltr_f(jit_gpr_t r0, int f0, int f1)
+sse_unltr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f1, f0);
@@ -959,7 +959,7 @@ sse_unltr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unler_f(jit_gpr_t r0, int f0, int f1)
+sse_unler_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f1, f0);
@@ -967,7 +967,7 @@ sse_unler_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_uneqr_f(jit_gpr_t r0, int f0, int f1)
+sse_uneqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -975,7 +975,7 @@ sse_uneqr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unger_f(jit_gpr_t r0, int f0, int f1)
+sse_unger_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -983,7 +983,7 @@ sse_unger_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ungtr_f(jit_gpr_t r0, int f0, int f1)
+sse_ungtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -991,7 +991,7 @@ sse_ungtr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ltgtr_f(jit_gpr_t r0, int f0, int f1)
+sse_ltgtr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -999,7 +999,7 @@ sse_ltgtr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ordr_f(jit_gpr_t r0, int f0, int f1)
+sse_ordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -1007,7 +1007,7 @@ sse_ordr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unordr_f(jit_gpr_t r0, int f0, int f1)
+sse_unordr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISSrr(f0, f1);
@@ -1015,7 +1015,7 @@ sse_unordr_f(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ltr_d(jit_gpr_t r0, int f0, int f1)
+sse_ltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1023,7 +1023,7 @@ sse_ltr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ler_d(jit_gpr_t r0, int f0, int f1)
+sse_ler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1031,7 +1031,7 @@ sse_ler_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_eqr_d(int r0, int f0, int f1)
+sse_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     /* set register to zero */
     XORLrr(r0, r0);
@@ -1047,7 +1047,7 @@ sse_eqr_d(int r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ger_d(jit_gpr_t r0, int f0, int f1)
+sse_ger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f1, f0);
@@ -1055,7 +1055,7 @@ sse_ger_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_gtr_d(jit_gpr_t r0, int f0, int f1)
+sse_gtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f1, f0);
@@ -1063,7 +1063,7 @@ sse_gtr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ner_d(int r0, int f0, int f1)
+sse_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     /* set register to one */
     MOVLir(1, r0);
@@ -1079,7 +1079,7 @@ sse_ner_d(int r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unltr_d(jit_gpr_t r0, int f0, int f1)
+sse_unltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f1, f0);
@@ -1087,7 +1087,7 @@ sse_unltr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unler_d(jit_gpr_t r0, int f0, int f1)
+sse_unler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f1, f0);
@@ -1095,7 +1095,7 @@ sse_unler_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_uneqr_d(jit_gpr_t r0, int f0, int f1)
+sse_uneqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1103,7 +1103,7 @@ sse_uneqr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unger_d(jit_gpr_t r0, int f0, int f1)
+sse_unger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1111,7 +1111,7 @@ sse_unger_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ungtr_d(jit_gpr_t r0, int f0, int f1)
+sse_ungtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1119,7 +1119,7 @@ sse_ungtr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ltgtr_d(jit_gpr_t r0, int f0, int f1)
+sse_ltgtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1127,7 +1127,7 @@ sse_ltgtr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_ordr_d(jit_gpr_t r0, int f0, int f1)
+sse_ordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1135,7 +1135,7 @@ sse_ordr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline void
-sse_unordr_d(jit_gpr_t r0, int f0, int f1)
+sse_unordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     XORLrr(r0, r0);
     UCOMISDrr(f0, f1);
@@ -1143,7 +1143,7 @@ sse_unordr_d(jit_gpr_t r0, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bltr_f(jit_insn *label, int f0, int f1)
+sse_bltr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JAm(label);
@@ -1151,7 +1151,7 @@ sse_bltr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bler_f(jit_insn *label, int f0, int f1)
+sse_bler_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JAEm(label);
@@ -1159,7 +1159,7 @@ sse_bler_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_beqr_f(jit_insn *label, int f0, int f1)
+sse_beqr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_insn	*jp_label;
     UCOMISSrr(f0, f1);
@@ -1172,7 +1172,7 @@ sse_beqr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bger_f(jit_insn *label, int f0, int f1)
+sse_bger_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JAEm(label);
@@ -1180,7 +1180,7 @@ sse_bger_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bgtr_f(jit_insn *label, int f0, int f1)
+sse_bgtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JAm(label);
@@ -1188,7 +1188,7 @@ sse_bgtr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bner_f(jit_insn *label, int f0, int f1)
+sse_bner_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_insn	*jp_label;
     jit_insn	*jz_label;
@@ -1206,7 +1206,7 @@ sse_bner_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunltr_f(jit_insn *label, int f0, int f1)
+sse_bunltr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JNAEm(label);
@@ -1214,7 +1214,7 @@ sse_bunltr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunler_f(jit_insn *label, int f0, int f1)
+sse_bunler_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JNAm(label);
@@ -1222,7 +1222,7 @@ sse_bunler_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_buneqr_f(jit_insn *label, int f0, int f1)
+sse_buneqr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JEm(label);
@@ -1230,7 +1230,7 @@ sse_buneqr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunger_f(jit_insn *label, int f0, int f1)
+sse_bunger_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNAm(label);
@@ -1238,7 +1238,7 @@ sse_bunger_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bungtr_f(jit_insn *label, int f0, int f1)
+sse_bungtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNAEm(label);
@@ -1246,7 +1246,7 @@ sse_bungtr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bltgtr_f(jit_insn *label, int f0, int f1)
+sse_bltgtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNEm(label);
@@ -1254,7 +1254,7 @@ sse_bltgtr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bordr_f(jit_insn *label, int f0, int f1)
+sse_bordr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNPm(label);
@@ -1262,7 +1262,7 @@ sse_bordr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunordr_f(jit_insn *label, int f0, int f1)
+sse_bunordr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JPm(label);
@@ -1270,7 +1270,7 @@ sse_bunordr_f(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bltr_d(jit_insn *label, int f0, int f1)
+sse_bltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JAm(label);
@@ -1278,7 +1278,7 @@ sse_bltr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bler_d(jit_insn *label, int f0, int f1)
+sse_bler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JAEm(label);
@@ -1286,7 +1286,7 @@ sse_bler_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_beqr_d(jit_insn *label, int f0, int f1)
+sse_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_insn	*jp_label;
     UCOMISDrr(f0, f1);
@@ -1299,7 +1299,7 @@ sse_beqr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bger_d(jit_insn *label, int f0, int f1)
+sse_bger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JAEm(label);
@@ -1307,7 +1307,7 @@ sse_bger_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bgtr_d(jit_insn *label, int f0, int f1)
+sse_bgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JAm(label);
@@ -1315,7 +1315,7 @@ sse_bgtr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bner_d(jit_insn *label, int f0, int f1)
+sse_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_insn	*jp_label;
     jit_insn	*jz_label;
@@ -1333,7 +1333,7 @@ sse_bner_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunltr_d(jit_insn *label, int f0, int f1)
+sse_bunltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JNAEm(label);
@@ -1341,7 +1341,7 @@ sse_bunltr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunler_d(jit_insn *label, int f0, int f1)
+sse_bunler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JNAm(label);
@@ -1349,7 +1349,7 @@ sse_bunler_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_buneqr_d(jit_insn *label, int f0, int f1)
+sse_buneqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JEm(label);
@@ -1357,7 +1357,7 @@ sse_buneqr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunger_d(jit_insn *label, int f0, int f1)
+sse_bunger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNAm(label);
@@ -1365,7 +1365,7 @@ sse_bunger_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bungtr_d(jit_insn *label, int f0, int f1)
+sse_bungtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNAEm(label);
@@ -1373,7 +1373,7 @@ sse_bungtr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bltgtr_d(jit_insn *label, int f0, int f1)
+sse_bltgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNEm(label);
@@ -1381,7 +1381,7 @@ sse_bltgtr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bordr_d(jit_insn *label, int f0, int f1)
+sse_bordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNPm(label);
@@ -1389,7 +1389,7 @@ sse_bordr_d(jit_insn *label, int f0, int f1)
 }
 
 __jit_inline jit_insn *
-sse_bunordr_d(jit_insn *label, int f0, int f1)
+sse_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JPm(label);
