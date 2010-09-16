@@ -477,7 +477,8 @@ jit_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 jit_retval_d(jit_fpr_t f0)
 {
-    FSTPr(f0 + 1);
+    if (f0 != _ST0)
+	FSTPr(f0 + 1);
 }
 
 #define jit_pusharg_f(f0)		jit_pusharg_f(f0)
