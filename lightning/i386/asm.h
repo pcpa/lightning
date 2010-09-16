@@ -107,6 +107,8 @@ typedef enum {
     _XMM15	= 0x6f,
 } jit_fpr_t;
 
+typedef long	jit_idx_t;
+
 #define _r0P(R)		((int)(R) == (int)_NOREG)
 #define _rIP(R)		((int)(R) == (int)_RIP)
 

@@ -145,7 +145,7 @@ jit_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 
 #define jit_ldxi_d(f0, r0, i0)		jit_ldxi_d(f0, r0, i0)
 __jit_inline void
-jit_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, int i0)
+jit_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, jit_idx_t i0)
 {
     x87_ldxi_d(f0, r0, i0);
 }
@@ -173,7 +173,7 @@ jit_str_f(jit_gpr_t r0, jit_fpr_t f0)
 
 #define jit_stxi_f(i0, r0, f0)		jit_stxi_f(i0, r0, f0)
 __jit_inline void
-jit_stxi_f(int i0, jit_gpr_t r0, jit_fpr_t f0)
+jit_stxi_f(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     x87_stxi_f(i0, r0, f0);
 }
@@ -201,7 +201,7 @@ jit_str_d(jit_gpr_t r0, jit_fpr_t f0)
 
 #define jit_stxi_d(i0, r0, f0)		jit_stxi_d(i0, r0, f0)
 __jit_inline void
-jit_stxi_d(int i0, jit_gpr_t r0, jit_fpr_t f0)
+jit_stxi_d(jit_idx_t i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     x87_stxi_d(i0, r0, f0);
 }

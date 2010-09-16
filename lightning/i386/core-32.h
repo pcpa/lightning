@@ -222,7 +222,7 @@ jit_ldi_c(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_c(r0, r1, i0)		jit_ldxi_c(r0, r1, i0)
 __jit_inline void
-jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, long i0)
+jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 {
     MOVSBLmr(i0, r1, 0, 0, r0);
 }
@@ -236,7 +236,7 @@ jit_ldi_uc(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_uc(r0, r1, i0)		jit_ldxi_uc(r0, r1, i0)
 __jit_inline void
-jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, long i0)
+jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 {
     MOVZBLmr(i0, r1, 0, 0, r0);
 }
@@ -256,7 +256,7 @@ jit_sti_c(void *i0, jit_gpr_t r0)
 
 #define jit_stxi_c(i0, r0, r1)		jit_stxi_c(i0, r0, r1)
 __jit_inline void
-jit_stxi_c(long i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_c(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
@@ -348,7 +348,7 @@ jit_ldi_s(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_s(r0, r1, i0)		jit_ldxi_s(r0, r1, i0)
 __jit_inline void
-jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, long i0)
+jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 {
     MOVSWLmr(i0, r1, 0, 0, r0);
 }
@@ -362,7 +362,7 @@ jit_ldi_us(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_us(r0, r1, i0)		jit_ldxi_us(r0, r1, i0)
 __jit_inline void
-jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, long i0)
+jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 {
     MOVZWLmr(i0, r1, 0, 0, r0);
 }
@@ -376,7 +376,7 @@ jit_sti_s(void *i0, jit_gpr_t r0)
 
 #define jit_stxi_s(i0, r0, r1)		jit_stxi_s(i0, r0, r1)
 __jit_inline void
-jit_stxi_s(long i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_s(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVWrm(r1, i0, r0, 0, 0);
 }
@@ -390,7 +390,7 @@ jit_ldi_i(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_i(r0, r1, i0)		jit_ldxi_i(r0, r1, i0)
 __jit_inline void
-jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, long i0)
+jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 {
     MOVLmr(i0, r1, 0, 0, r0);
 }
@@ -418,7 +418,7 @@ jit_sti_i(void *i0, jit_gpr_t r0)
 
 #define jit_stxi_i(i0, r0, r1)		jit_stxi_i(i0, r0, r1)
 __jit_inline void
-jit_stxi_i(long i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_i(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVLrm(r1, i0, r0, 0, 0);
 }
