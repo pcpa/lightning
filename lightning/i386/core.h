@@ -242,7 +242,7 @@ jit_addci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
     if (r0 == r1)
 	ADDLir((int)i0, r0);
     else {
-	MOVLir((int)i0, r0);
+	MOVLir(i0, r0);
 	ADDLrr(r1, r0);
     }
 }
@@ -268,7 +268,7 @@ jit_addxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
     if (r0 == r1)
 	ADCLir((int)i0, r0);
     else {
-	MOVLir((int)i0, r0);
+	MOVLir(i0, r0);
 	ADCLrr(r1, r0);
     }
 }
@@ -293,7 +293,7 @@ jit_subci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
     if (r0 == r1)
 	SUBLir((int)i0, r0);
     else {
-	MOVLir((int)i0, r0);
+	MOVLir(i0, r0);
 	SUBLrr(r1, r0);
     }
 }
@@ -317,7 +317,7 @@ jit_subxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
     if (r0 == r1)
 	SBBLir((int)i0, r0);
     else {
-	MOVLir((int)i0, r0);
+	MOVLir(i0, r0);
 	SBBLrr(r1, r0);
     }
 }
@@ -370,7 +370,7 @@ jit_ori_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
     if (i0 == 0)
 	jit_movr_i(r0, r1);
     else if (i0 == -1)
-	MOVLir(-1, r0);
+	MOVLir(0xffffffff, r0);
     else {
 	jit_movr_i(r0, r1);
 	if (jit_check8(r0) && jit_can_sign_extend_char_p(i0))
@@ -453,11 +453,11 @@ __jit_inline void
 jit_muli_i_(jit_gpr_t r0, int i0)
 {
     if (r0 == _RAX) {
-	MOVLir(i0, _RDX);
+	MOVLir((unsigned)i0, _RDX);
 	IMULLr(_RDX);
     }
     else {
-	MOVLir(i0, _RAX);
+	MOVLir((unsigned)i0, _RAX);
 	IMULLr(r0);
     }
 }
@@ -535,11 +535,11 @@ __jit_inline void
 jit_muli_ui_(jit_gpr_t r0, unsigned int i0)
 {
     if (r0 == _RAX) {
-	MOVLir((int)i0, _RDX);
+	MOVLir(i0, _RDX);
 	MULLr(_RDX);
     }
     else {
-	MOVLir((int)i0, _RAX);
+	MOVLir(i0, _RAX);
 	MULLr(r0);
     }
 }
@@ -663,7 +663,7 @@ jit_divi_i_(jit_gpr_t r0, jit_gpr_t r1, int i0, int is_signed, int is_divide)
 	jit_pushr_i(div);
     if (r1 != _RAX)
 	MOVLrr(r1, _RAX);
-    MOVLir(i0, div);
+    MOVLir((unsigned)i0, div);
 
     if (is_signed) {
 	CDQ_();

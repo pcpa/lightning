@@ -550,7 +550,7 @@ sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir((int)0xbf000000, r0);
+    MOVLir(0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
@@ -591,7 +591,7 @@ sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir((int)0xbf000000, r0);
+    MOVLir(0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
@@ -632,7 +632,7 @@ sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir((int)0xbfe00000, r0);
+    MOVLir(0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
@@ -679,7 +679,7 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir((int)0xbfe00000, r0);
+    MOVLir(0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);

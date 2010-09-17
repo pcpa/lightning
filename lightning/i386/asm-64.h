@@ -229,11 +229,30 @@
 
 #define LEAQmr(MD, MB, MI, MS, RD)	(_REXQmr(MB, MI, RD),		_O_r_X		(0x8d		     ,_r8(RD)		,MD,MB,MI,MS		))
 
-#define MOVQrr(RS, RD)			(_REXQrr(RS, RD),		_O_Mrm		(0x89		,_b11,_r8(RS),_r8(RD)				))
-#define MOVQmr(MD, MB, MI, MS, RD)	(_REXQmr(MB, MI, RD),		_O_r_X		(0x8b		     ,_r8(RD)		,MD,MB,MI,MS		))
-#define MOVQrm(RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_O_r_X		(0x89		     ,_r8(RS)		,MD,MB,MI,MS		))
-#define MOVQir(IM,  R)			(_REXQrr(0, R),			_Or_Q		(0xb8,_r8(R)						,IM	))
-#define MOVQim(IM, MD, MB, MI, MS)	(_REXQrm(0, MB, MI),		_O_X_L		(0xc7					,MD,MB,MI,MS	,IM	))
+#define MOVQrr(RS, RD)							\
+	(_REXQrr(RS, RD),						\
+	 _O_Mrm(0x89,							\
+		_b11, _r8(RS), _r8(RD)))
+#define MOVQmr(MD, MB, MI, MS, RD)					\
+	(_REXQmr(MB, MI, RD),						\
+	 _O_r_X(0x8b,							\
+		_r8(RD),						\
+		MD,MB,MI,MS))
+#define MOVQrm(RS, MD, MB, MI, MS)					\
+	(_REXQrm(RS, MB, MI),						\
+	 _O_r_X(0x89,							\
+		_r8(RS),						\
+		MD, MB, MI, MS))
+#define MOVQir(IM,  R)							\
+	(_REXQrr(0, R),							\
+	 _Or_Q(0xb8,							\
+		_r8(R),							\
+		IM))
+#define MOVQim(IM, MD, MB, MI, MS)					\
+	(_REXQrm(0, MB, MI),						\
+	 _O_X_L(0xc7,							\
+		MD, MB, MI, MS,						\
+		_s32(IM)))
 
 #define NOTQr(RS)			_UNARYQr(X86_NOT, RS)
 #define NOTQm(MD, MB, MI, MS)		_UNARYQm(X86_NOT, MD, MB, MI, MS)
@@ -291,14 +310,8 @@
 #define TESTQrr(RS, RD)			(_REXQrr(RS, RD),		_O_Mrm		(0x85		,_b11,_r8(RS),_r8(RD)				))
 #define TESTQrm(RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_O_r_X		(0x85		     ,_r8(RS)		,MD,MB,MI,MS		))
 #define TESTQir(IM, RD)							\
-    /* Immediate fits in 32 bits? */					\
-    (_s32P((long)(IM))							\
-     /* Yes. Immediate does not fit in 8 bits and reg is %rax? */	\
-     ? (!_s8P(IM) && (RD) == _RAX					\
-	? (_REXQrr(0, RD), _O_L(0xa9, IM))				\
-	: (_REXQrr(0, RD), _O_Mrm_L(0xf7, _b11, _b000, _r8(RD), IM)))	\
-     /* No. Need immediate in a register */				\
-     : (MOVQir(IM, JIT_REXTMP), TESTQrr(JIT_REXTMP, RD)))
+	(_REXQrr(0, RD),						\
+	 _TEST_ir(IM, RD))
 #define TESTQim(IM, MD, MB, MI, MS)	(_REXQrm(0, MB, MI),		_O_r_X_L	(0xf7		     ,_b000		,MD,MB,MI,MS	,IM	))
 
 #define CMPXCHGQrr(RS, RD)		(_REXQrr(RS, RD),		_OO_Mrm		(0x0fb1		,_b11,_r8(RS),_r8(RD)				))
