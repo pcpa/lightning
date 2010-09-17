@@ -557,50 +557,42 @@ _ALULim(int op, long im, int md, int mb, int mi, int ms)
     _alu_il_im(op, im, md, mb, mi, ms);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 _ALUQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
 {
-#if __WORDSIZE == 64
     _REXQrr(rs, rd);
-#endif
     _alu_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
 _ALUQmr(int op, int md, int mb, int mi, int ms, jit_gpr_t rd)
 {
-#if __WORDSIZE == 64
     _REXQmr(mb, mi, rd);
-#endif
     _alu_il_mr(op, md, mb, mi, ms, rd);
 }
 
 __jit_inline void
 _ALUQrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
 {
-#if __WORDSIZE == 64
     _REXQrm(rs, mb, mi);
-#endif
     _alu_il_rm(op, rs, md, mb, mi, ms);
 }
 
 __jit_inline void
 _ALUQir(int op, long im, jit_gpr_t rd)
 {
-#if __WORDSIZE == 64
     _REXQrr(0, rd);
-#endif
     _alu_il_ir(op, im, rd);
 }
 
 __jit_inline void
 _ALUQim(int op, long im, int md, int mb, int mi, int ms)
 {
-#if __WORDSIZE == 64
     _REXQrm(0, mb, mi);
-#endif
     _alu_il_im(op, im, md, mb, mi, ms);
 }
+#endif
 
 #define ADCBrr(RS, RD)			_ALUBrr(X86_ADC, RS, RD)
 #define ADCBmr(MD, MB, MI, MS, RD)	_ALUBmr(X86_ADC, MD, MB, MI, MS, RD)
@@ -971,41 +963,35 @@ _ROTSHILrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
     _rotsh_sil_rm(op, rs, md, mb, mi, ms);
 }
 
+#if __WORDSIZE == 64
 __jit_inline void
 _ROTSHIQir(int op, long im, jit_gpr_t rd)
 {
-#if __WORDSIZE == 64
     _REXQrr(0, rd);
-#endif
     _rotsh_sil_ir(op, im, rd);
 }
 
 __jit_inline void
 _ROTSHIQim(int op, long im, int md, int mb, int mi, int ms)
 {
-#if __WORDSIZE == 64
     _REXQrm(0, mb, mi);
-#endif
     _rotsh_sil_im(op, im, md, mb, mi, ms);
 }
 
 __jit_inline void
 _ROTSHIQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
 {
-#if __WORDSIZE == 64
     _REXQrr(rs, rd);
-#endif
     _rotsh_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
 _ROTSHIQrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
 {
-#if __WORDSIZE == 64
     _REXQrm(rs, mb, mi);
-#endif
     _rotsh_sil_rm(op, rs, md, mb, mi, ms);
 }
+#endif
 
 #define ROLBir(IM, RD)			_ROTSHIBir(X86_ROL, IM, RD)
 #define ROLBim(IM, MD, MB, MI, MS)	_ROTSHIBim(X86_ROL, IM, MD, MB, MI, MS)
@@ -1145,65 +1131,143 @@ enum {
   X86_BTC	= 7,
 };
 
-#define BT_ir(OP, IM, RD)						\
-	(_OO_Mrm(0x0fba,						\
-		_b11, OP, _rA(RD)),					\
-	 _jit_B(_u8(IM)))
-#define _BT_im(OP, IM, MD, MB, MI, MS)					\
-	(_OO_r_X(0x0fba,						\
-		OP,							\
-		MD, MB, MI, MS),					\
-	 _jit_B(_u8(IM)))
-#define _BT_rr(OP, RS, RD)						\
-	_OO_Mrm(0x0f83 | ((OP) << 3),					\
-		_b11,_r2(RS),_rA(RD))
-#define _BT_rm(OP, RS, MD, MB, MI, MS)					\
-	_OO_r_X(0x0f83 | ((OP)<<3),					\
-		_rA(RS),						\
-		MD, MB, MI, MS)
+__jit_inline void
+_bt_sil_ir(int op, long im, jit_gpr_t rd)
+{
+    _OO(0x0fba);
+    _Mrm(_b11, op, _rA(rd));
+    _jit_B(_u8(im));
+}
 
-#define _BTWir(OP, IM, RD)						\
-	(_d16(),							\
-	 _REXLrr(0, RD),						\
-	 _BT_ir(OP, IM, RD))
-#define _BTWim(OP, IM, MD, MB, MI, MS)					\
-	(_d16(),							\
-	 _REXLrm(0, MB, MI),						\
-	 _BT_im(OP, IM, MD, MB, MI, MS))
-#define _BTWrr(OP, RS, RD)						\
-	(_d16(),							\
-	 _REXLrr(RS, RD),						\
-	 _BT_rr(OP, RS, RD))
-#define _BTWrm(OP, RS, MD, MB, MI, MS)					\
-	(_d16(),							\
-	 _REXLrm(RS, MB, MI),						\
-	 _BT_rm(OP, RS, MD, MB, MI, MS))
+__jit_inline void
+_bt_sil_im(int op, long im, int md, int mb, int mi, int ms)
+{
+    _OO(0x0fba);
+    _r_X(op, md, mb, mi, ms, 0);
+    _jit_B(_u8(im));
+}
 
-#define _BTLir(OP, IM, RD)						\
-	(_REXLrr(0, RD),						\
-	 _BT_ir(OP, IM, RD))
-#define _BTLim(OP, IM, MD, MB, MI, MS)					\
-	(_REXLrm(0, MB, MI),						\
-	 _BT_im(OP, IM, MD, MB, MI, MS))
-#define _BTLrr(OP, RS, RD)						\
-	(_REXLrr(RS, RD),						\
-	 _BT_rr(OP, RS, RD))
-#define _BTLrm(OP, RS, MD, MB, MI, MS)					\
-	(_REXLrm(RS, MB, MI),						\
-	 _BT_rm(OP, RS, MD, MB, MI, MS))
+__jit_inline void
+_bt_sil_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+{
+    _OO(0x0f83 | (op << 3));
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
 
-#define _BTQir(OP, IM, RD)						\
-	(_REXQrr(0, RD),						\
-	 _BT_ir(OP, IM, RD))
-#define _BTQim(OP, IM, MD, MB, MI, MS)					\
-	(_REXQrm(0, MB, MI),						\
-	 _BT_im(OP, IM, MD, MB, MI, MS))
-#define _BTQrr(OP, RS, RD)						\
-	(_REXQrr(RS, RD),						\
-	 _BT_rr(OP, RS, RD))
-#define _BTQrm(OP, RS, MD, MB, MI, MS)					\
-	(_REXQrm(RS, MB, MI),						\
-	 _BT_rm(OP, RS, MD, MB, MI, MS))
+__jit_inline void
+_bt_sil_rm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _OO(0x0f83 | (op << 3));
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+_BTWir(int op, long im, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _bt_sil_ir(op, im, rd);
+}
+
+__jit_inline void
+_BTWim(int op, long im, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _bt_sil_im(op, im, md, mb, mi, ms);
+}
+
+__jit_inline void
+_BTWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _bt_sil_rr(op, rs, rd);
+}
+
+__jit_inline void
+_BTWrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _bt_sil_rm(op, rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+_BTLir(int op, long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _bt_sil_ir(op, im, rd);
+}
+
+__jit_inline void
+_BTLim(int op, long im, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _bt_sil_im(op, im, md, mb, mi, ms);
+}
+
+__jit_inline void
+_BTLrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _bt_sil_rr(op, rs, rd);
+}
+
+__jit_inline void
+_BTLrm(int long op, jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _bt_sil_rm(op, rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+_BTQir(int op, long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXQrr(0, rd);
+#endif
+    _bt_sil_ir(op, im, rd);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+_BTQim(int op, long im, int md, int mb, int mi, int ms)
+{
+    _REXQrm(0, mb, mi);
+    _bt_sil_im(op, im, md, mb, mi, ms);
+}
+
+__jit_inline void
+_BTQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _bt_sil_rr(op, rs, rd);
+}
+
+__jit_inline void
+_BTQrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _bt_sil_rm(op, rs, md, mb, mi, ms);
+}
+#endif
 
 #define BTWir(IM, RD)			_BTWir(X86_BT, IM, RD)
 #define BTWim(IM, MD, MB, MI, MS)	_BTWim(X86_BT, IM, MD, MI, MS)
@@ -1252,45 +1316,247 @@ enum {
 
 /* --- Move instructions --------------------------------------------------- */
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_mov_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x88);
+    _Mrm(_b11, _r1(rs), _r1(rd));
+}
 
-#define MOVBrr(RS, RD)			(_REXBrr(RS, RD),		_O_Mrm		(0x88		,_b11,_r1(RS),_r1(RD)				))
-#define MOVBmr(MD, MB, MI, MS, RD)	(_REXBmr(MB, MI, RD),		_O_r_X		(0x8a		     ,_r1(RD)		,MD,MB,MI,MS		))
-#define MOVBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(0x88		     ,_r1(RS)		,MD,MB,MI,MS		))
-#define MOVBir(IM,  R)			(_REXBrr(0, R),			_Or_B		(0xb0,_r1(R)						,_s8(IM)))
-#define MOVBim(IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_X_B		(0xc6					,MD,MB,MI,MS	,_s8(IM)))
+__jit_inline void
+_mov_c_mr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _O(0x8a);
+    _r_X(_r1(rd), md, mb, mi, ms, 0);
+}
 
-#define MOVWrr(RS, RD)			(_d16(), _REXLrr(RS, RD),	_O_Mrm		(0x89		,_b11,_r2(RS),_r2(RD)				))
-#define MOVWmr(MD, MB, MI, MS, RD)	(_d16(), _REXLmr(MB, MI, RD),	_O_r_X		(0x8b		     ,_r2(RD)		,MD,MB,MI,MS		))
-#define MOVWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(0x89		     ,_r2(RS)		,MD,MB,MI,MS		))
-#define MOVWir(IM,  R)			(_d16(), _REXLrr(0, R),		_Or_W		(0xb8,_r2(R)						,_s16(IM)))
-#define MOVWim(IM, MD, MB, MI, MS)	(_d16(), _REXLrm(0, MB, MI),	_O_X_W		(0xc7					,MD,MB,MI,MS	,_s16(IM)))
+__jit_inline void
+_mov_c_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x88);
+    _r_X(_r1(rs), md, mb, mi, ms, 0);
+}
 
-#define MOVLrr(RS, RD)							\
-	(_REXLrr(RS, RD),						\
-	 _O_Mrm(0x89,							\
-		_b11, _r4(RS), _r4(RD)))
-#define MOVLmr(MD, MB, MI, MS, RD)					\
-	(_REXLmr(MB, MI, RD),						\
-	 _O_r_X(0x8b,							\
-		_r4(RD),						\
-		MD, MB, MI, MS))
-#define MOVLrm(RS, MD, MB, MI, MS)					\
-	(_REXLrm(RS, MB, MI),						\
-	 _O_r_X(0x89,							\
-		_r4(RS),						\
-		MD, MB, MI, MS))
-#define MOVLir(IM,  R)							\
-	(_REXLrr(0, R),							\
-	 _Or_L(0xb8,							\
-		_r4(R),							\
-		_u32(IM)))
-#define MOVLim(IM, MD, MB, MI, MS)					\
-	(_REXLrm(0, MB, MI),						\
-		_O_X_L(0xc7,						\
-		MD, MB, MI, MS,						\
-		_s32(IM)))
+__jit_inline void
+_mov_c_ir(long im, jit_gpr_t rd)
+{
+    _Or(0xb0, _r1(rd));
+    _jit_B(_s8(im));
+}
 
+__jit_inline void
+_mov_c_im(long im, int md, int mb, int mi, int ms)
+{
+    _r_X(0, md, mb, mi, ms, 0);
+    _jit_B(_s8(im));
+}
+
+__jit_inline void
+_mov_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x89);
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
+
+__jit_inline void
+_mov_sil_mr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _O(0x8b);
+    _r_X(_rA(rd), md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+_mov_sil_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x89);
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+MOVBrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(rs, rd);
+#endif
+    _mov_c_rr(rs, rd);
+}
+
+__jit_inline void
+MOVBmr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBmr(mb, mi, rd);
+#endif
+    _mov_c_mr(md, mb, mi, ms, rd);
+}
+
+__jit_inline void
+MOVBrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(rs, mb, mi);
+#endif
+    _mov_c_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+MOVBir(long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(0, rd);
+#endif
+    _mov_c_ir(im, rd);
+}
+
+__jit_inline void
+MOVBim(long im, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _O(0xc6);
+#endif
+    _mov_c_im(im, md, mb, mi, ms);
+}
+
+__jit_inline void
+MOVWrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _mov_sil_rr(rs, rd);
+}
+
+__jit_inline void
+MOVWmr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLmr(mb, mi, rd);
+#endif
+    _mov_sil_mr(md, mb, mi, ms, rd);
+}
+
+__jit_inline void
+MOVWrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _mov_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+MOVWir(long im, int rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _Or(0xb8, _r2(rd));
+    _jit_W(_s16(im));
+}
+
+__jit_inline void
+MOVWim(long im, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _O(0xc7);
+    _r_X(0, md, mb, mi, ms, 0);
+    _jit_W(_s16(im));
+}
+
+__jit_inline void
+MOVLrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _mov_sil_rr(rs, rd);
+}
+
+__jit_inline void
+MOVLmr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLmr(mb, mi, rd);
+#endif
+    _mov_sil_mr(md, mb, mi, ms, rd);
+}
+
+__jit_inline void
+MOVLrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _mov_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+MOVLir(long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _Or(0xb8, _r4(rd));
+    _jit_I(_u32(im));
+}
+
+__jit_inline void
+MOVLim(long im, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _O(0xc7);
+    _r_X(0, md, mb, mi, ms, 0);
+    _jit_I(_s32(im));
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+MOVQrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _mov_sil_rr(rs, rd);
+}
+
+__jit_inline void
+MOVQmr(int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _REXQmr(mb, mi, rd);
+    _mov_sil_mr(md, mb, mi, ms, rd);
+}
+
+__jit_inline void
+MOVQrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _mov_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+MOVQir(long im, jit_gpr_t rd)
+{
+    _REXQrr(0, rd);
+    _Or(0xb8, _r8(rd));
+    _jit_L(im);
+}
+
+__jit_inline void
+MOVQim(long im, int md, int mb, int mi, int ms)
+{
+    _REXQrm(0, mb, mi);
+    _O(0xc7);
+    _r_X(0, md, mb, mi, ms, 0);
+    _jit_I(_s32(im));
+}
+#endif
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
 
