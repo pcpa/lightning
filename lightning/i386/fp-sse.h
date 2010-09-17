@@ -550,13 +550,13 @@ sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir(0xbf000000, r0);
+    MOVLir((int)0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
-    XORLir(0x80000000, r0);
+    XORLir((int)0x80000000, r0);
     jit_patch_rel_char_at(label, _jit.x.pc);
     jit_pushr_i(r0);
     /* round */
@@ -591,13 +591,13 @@ sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir(0xbf000000, r0);
+    MOVLir((int)0xbf000000, r0);
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
-    XORLir(0x80000000, r0);
+    XORLir((int)0x80000000, r0);
     jit_patch_rel_char_at(label, _jit.x.pc);
     jit_pushr_i(r0);
     /* round */
@@ -632,13 +632,13 @@ sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir(0xbfe00000, r0);
+    MOVLir((int)0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
-    XORLir(0x80000000, r0);
+    XORLir((int)0x80000000, r0);
     jit_patch_rel_char_at(label, _jit.x.pc);
 #if __WORDSIZE == 32
     jit_pushr_i(r0);
@@ -679,13 +679,13 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
     /* load stack with -0.5 if f0 >= 0, else load stack with 0.5 */
-    MOVLir(0xbfe00000, r0);
+    MOVLir((int)0xbfe00000, r0);
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
     JAESm((long)_jit.x.pc);
     label = _jit.x.pc;
-    XORLir(0x80000000, r0);
+    XORLir((int)0x80000000, r0);
     jit_patch_rel_char_at(label, _jit.x.pc);
     SHLQir(32, r0);
     jit_pushr_l(r0);

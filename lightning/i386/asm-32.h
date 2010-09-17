@@ -77,8 +77,7 @@
 
 #define _rA(R)			_r4(R)
 
-#define jit_check8(rs)							\
-    ((rs) == _RAX || (rs) == _RCX || (rs) == _RDX)
+#define jit_check8(rs)		((rs) >= _RAX && (rs) <= _RBX)
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? _r_D   (R,D                ) : \

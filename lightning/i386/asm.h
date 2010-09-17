@@ -159,15 +159,15 @@ typedef long	jit_idx_t;
 /* memory subformats - urgh! */
 
 /* _r_D() is RIP addressing mode if X86_TARGET_64BIT, use _r_DSIB() instead */
-#define _r_D(	R, D	  )	(_Mrm(_b00,_rN(R),_b101 )		             ,_jit_I((long)(D)))
-#define _r_DSIB(R, D      )	(_Mrm(_b00,_rN(R),_b100 ),_SIB(_SCL(1),_b100 ,_b101 ),_jit_I((long)(D)))
+#define _r_D(	R, D	  )	(_Mrm(_b00,_rN(R),_b101 )		             ,_jit_I(_s32(D)))
+#define _r_DSIB(R, D      )	(_Mrm(_b00,_rN(R),_b100 ),_SIB(_SCL(1),_b100 ,_b101 ),_jit_I(_s32(D)))
 #define _r_0B(	R,   B    )	(_Mrm(_b00,_rN(R),_rA(B))			                   )
 #define _r_0BIS(R,   B,I,S)	(_Mrm(_b00,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_rA(B))              )
-#define _r_1B(	R, D,B    )	(_Mrm(_b01,_rN(R),_rA(B))		             ,_jit_B((long)(D)))
-#define _r_1BIS(R, D,B,I,S)	(_Mrm(_b01,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_rA(B)),_jit_B((long)(D)))
-#define _r_4B(	R, D,B    )	(_Mrm(_b10,_rN(R),_rA(B))		             ,_jit_I((long)(D)))
-#define _r_4IS( R, D,I,S)	(_Mrm(_b00,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_b101 ),_jit_I((long)(D)))
-#define _r_4BIS(R, D,B,I,S)	(_Mrm(_b10,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_rA(B)),_jit_I((long)(D)))
+#define _r_1B(	R, D,B    )	(_Mrm(_b01,_rN(R),_rA(B))		             ,_jit_B(_s32(D)))
+#define _r_1BIS(R, D,B,I,S)	(_Mrm(_b01,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_rA(B)),_jit_B(_s32(D)))
+#define _r_4B(	R, D,B    )	(_Mrm(_b10,_rN(R),_rA(B))		             ,_jit_I(_s32(D)))
+#define _r_4IS( R, D,I,S)	(_Mrm(_b00,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_b101 ),_jit_I(_s32(D)))
+#define _r_4BIS(R, D,B,I,S)	(_Mrm(_b10,_rN(R),_b100 ),_SIB(_SCL(S),_rA(I),_rA(B)),_jit_I(_s32(D)))
 
 #define _r_DB(  R, D,B    )	((_s0P(D) && (!_rbp13P(B)) ? _r_0B  (R,  B    ) : (_s8P(D) ? _r_1B(  R,D,B    ) : _r_4B(  R,D,B    ))))
 #define _r_DBIS(R, D,B,I,S)	((_s0P(D) && (!_rbp13P(B)) ? _r_0BIS(R,  B,I,S) : (_s8P(D) ? _r_1BIS(R,D,B,I,S) : _r_4BIS(R,D,B,I,S))))
@@ -272,64 +272,176 @@ typedef long	jit_idx_t;
 /* --- ALU instructions ---------------------------------------------------- */
 
 enum {
-  X86_ADD = 0,
-  X86_OR  = 1,
-  X86_ADC = 2,
-  X86_SBB = 3,
-  X86_AND = 4,
-  X86_SUB = 5,
-  X86_XOR = 6,
-  X86_CMP = 7,
+    X86_ADD	= 0,
+    X86_OR	= 1,
+    X86_ADC	= 2,
+    X86_SBB	= 3,
+    X86_AND	= 4,
+    X86_SUB	= 5,
+    X86_XOR	= 6,
+    X86_CMP	= 7,
 };
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+#define _ALUBrr(OP, RS, RD)						\
+	(_REXBrr(RS, RD),						\
+	 _O_Mrm(((OP) << 3),						\
+		_b11, _r1(RS), _r1(RD)))
 
-#define _ALUBrr(OP,RS, RD)		(_REXBrr(RS, RD),		_O_Mrm		(((OP) << 3)	,_b11,_r1(RS),_r1(RD)				))
-#define _ALUBmr(OP, MD, MB, MI, MS, RD)	(_REXBmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 2,_r1(RD)		,MD,MB,MI,MS		))
-#define _ALUBrm(OP, RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(((OP) << 3)	,    ,_r1(RS)		,MD,MB,MI,MS		))
-#define _ALUBir(OP, IM, RD)		((RD) == _RAX ? \
-					(_REXBrr(0, RD),		_O_B		(((OP) << 3) + 4					,_su8(IM))) : \
-					(_REXBrr(0, RD),		_O_Mrm_B	(0x80		,_b11,OP     ,_r1(RD)			,_su8(IM))) )
-#define _ALUBim(OP, IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_r_X_B	(0x80		     ,OP		,MD,MB,MI,MS	,_su8(IM)))
+#define _ALUBmr(OP, MD, MB, MI, MS, RD)					\
+	(_REXBmr(MB, MI, RD),						\
+	 _O_r_X(((OP) << 3) + 2,					\
+		_r1(RD),						\
+		MD, MB, MI, MS))
 
-#define _ALUWrr(OP, RS, RD)		(_d16(), _REXLrr(RS, RD),	_O_Mrm		(((OP) << 3) + 1,_b11,_r2(RS),_r2(RD)				))
-#define _ALUWmr(OP, MD, MB, MI, MS, RD)	(_d16(), _REXLmr(MB, MI, RD),	_O_r_X		(((OP) << 3) + 3     ,_r2(RD)		,MD,MB,MI,MS		))
-#define _ALUWrm(OP, RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(((OP) << 3) + 1     ,_r2(RS)		,MD,MB,MI,MS		))
-#define _ALUWir(OP, IM, RD)		((RD) == _RAX ? \
-					(_d16(), _REXLrr(0, RD),	_O_W		(((OP) << 3) + 5					,_su16(IM))) : \
-					(_d16(), _REXLrr(0, RD),	_Os_Mrm_sW	(0x81		,_b11,OP     ,_r2(RD)			,_su16(IM))) )
-#define _ALUWim(OP, IM, MD, MB, MI, MS)	(_d16(), _REXLrm(0, MB, MI),	_Os_r_X_sW	(0x81		     ,OP		,MD,MB,MI,MS	,_su16(IM)))
+#define _ALUBrm(OP, RS, MD, MB, MI, MS)					\
+	(_REXBrm(RS, MB, MI),						\
+	 _O_r_X(((OP) << 3),						\
+		_r1(RS),						\
+		MD, MB, MI, MS))
 
-#define _ALULrr(OP, RS, RD)		(_REXLrr(RS, RD),		_O_Mrm		(((OP) << 3) + 1,_b11,_r4(RS),_r4(RD)				))
-#define _ALULmr(OP, MD, MB, MI, MS, RD)	(_REXLmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 3     ,_r4(RD)		,MD,MB,MI,MS		))
-#define _ALULrm(OP, RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(((OP) << 3) + 1     ,_r4(RS)		,MD,MB,MI,MS		))
+#define _ALUBir(OP, IM, RD)						\
+	(_REXBrr(0, RD),						\
+	 ((RD) == _RAX							\
+		? _O(((OP) << 3) + 4)					\
+		: _O_Mrm(0x80,						\
+			_b11, OP, _r1(RD))),				\
+	 _jit_B(_s8(IM)))
 
-#define _ALULir(OP, IM, RD)		(!_s8P(IM) && (RD) == _RAX ? \
-					(_REXLrr(0, RD),		_O_L		(((OP) << 3) + 5					,IM	)) : \
-					(_REXLrr(0, RD),		_Os_Mrm_sL	(0x81		,_b11,OP     ,_r4(RD)			,IM	)) )
+#define _ALUBim(OP, IM, MD, MB, MI, MS)					\
+	(_REXBrm(0, MB, MI),						\
+	 _O_r_X(0x80,							\
+		OP,							\
+		MD, MB, MI, MS),					\
+	 _jit_B(_s8(IM)))
 
-#define _ALULim(OP, IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_Os_r_X_sL	(0x81		     ,OP		,MD,MB,MI,MS	,IM	))
+#define _ALUWrr(OP, RS, RD)						\
+	(_d16(),							\
+	 _REXLrr(RS, RD),						\
+	 _O_Mrm(((OP) << 3) + 1,					\
+		_b11, _r2(RS), _r2(RD)))
 
-#define _ALUQrr(OP, RS, RD)		(_REXQrr(RS, RD),		_O_Mrm		(((OP) << 3) + 1,_b11,_r8(RS),_r8(RD)				))
-#define _ALUQmr(OP, MD, MB, MI, MS, RD)	(_REXQmr(MB, MI, RD),		_O_r_X		(((OP) << 3) + 3     ,_r8(RD)		,MD,MB,MI,MS		))
-#define _ALUQrm(OP, RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_O_r_X		(((OP) << 3) + 1     ,_r8(RS)		,MD,MB,MI,MS		))
-#if _ASM_SAFETY
-#  define _ALUQir(OP, IM, RD)						\
-    /* Immediate fits in 32 bits? */					\
-    (_s32P((long)(IM))							\
-     /* Yes. Immediate does not fit in 8 bits and reg is %rax? */	\
-     ? (!_s8P(IM) && (RD) == _RAX					\
-	? (_REXQrr(0, RD), _O_L(((OP) << 3) + 5, IM))			\
-	: (_REXQrr(0, RD), _Os_Mrm_sL(0x81, _b11, OP, _r8(RD), IM)))	\
-     /* No. Need immediate in a register */				\
-     : JITFAIL("signed integer `"#IM"' too large for 32-bit field"))
-#else
-#  define _ALUQir(OP, IM, RD)						\
-    (!_s8P(IM) && (RD) == _RAX						\
-	? (_REXQrr(0, RD), _O_L(((OP) << 3) + 5, IM))			\
-	: (_REXQrr(0, RD), _Os_Mrm_sL(0x81, _b11, OP, _r8(RD), IM)))
-#endif
-#define _ALUQim(OP, IM, MD, MB, MI, MS)	(_REXQrm(0, MB, MI),		_Os_r_X_sL	(0x81		     ,OP		,MD,MB,MI,MS	,IM	))
+#define _ALUWmr(OP, MD, MB, MI, MS, RD)					\
+	(_d16(),							\
+	 _REXLmr(MB, MI, RD),						\
+	 _O_r_X(((OP) << 3) + 3,					\
+		_r2(RD),						\
+		MD, MB, MI, MS))
+
+#define _ALUWrm(OP, RS, MD, MB, MI, MS)					\
+	(_d16(),							\
+	 _REXLrm(RS, MB, MI),						\
+	 _O_r_X(((OP) << 3) + 1,					\
+		_r2(RS),						\
+		MD, MB, MI, MS))
+
+#define _ALUWir(OP, IM, RD)						\
+	(_d16(),							\
+	 _REXLrr(0, RD),						\
+	 ((RD) == _RAX							\
+		? _O_W(((OP) << 3) + 5,					\
+			_jit_W(_s16(IM)))				\
+		: (_s8P(IM)						\
+			? (_O_Mrm(0x83,					\
+				_b11, OP, _r2(RD)),			\
+			   _jit_B(IM))					\
+			: (_O_Mrm(0x81,					\
+				_b11, OP, _r2(RD)),			\
+			   _jit_W(_s16(IM))))))
+
+#define _ALUWim(OP, IM, MD, MB, MI, MS)					\
+	(_d16(),							\
+	 _REXLrm(0, MB, MI),						\
+	 (_s8P(IM)							\
+		? (O_r_X(0x83,						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_B(IM))						\
+		: (O_r_X(0x81.						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_W(_s16(IM)))))
+
+#define _ALULrr(OP, RS, RD)						\
+	(_REXLrr(RS, RD),						\
+	 _O_Mrm(((OP) << 3) + 1,					\
+		_b11, _r4(RS), _r4(RD)))
+
+#define _ALULmr(OP, MD, MB, MI, MS, RD)					\
+	(_REXLmr(MB, MI, RD),						\
+	 _O_r_X(((OP) << 3) + 3,					\
+		_r4(RD),						\
+		MD, MB, MI, MS))
+
+#define _ALULrm(OP, RS, MD, MB, MI, MS)					\
+	(_REXLrm(RS, MB, MI),						\
+		_O_r_X(((OP) << 3) + 1,					\
+			_r4(RS),					\
+			MD, MB, MI, MS))
+
+#define _ALULir(OP, IM, RD)						\
+	(_REXLrr(0, RD),						\
+	 (_s8P(IM)							\
+		? (_O_Mrm(0x83,						\
+			_b11, OP, _r4(RD)),				\
+		   _jit_B(IM))						\
+		: (((RD) == _RAX					\
+			? _O(((OP) << 3) + 5)				\
+			: _O_Mrm(0x81,					\
+				_b11, OP, _r4(RD))),			\
+		   _jit_I(_s32(IM)))))
+
+#define _ALULim(OP, IM, MD, MB, MI, MS)					\
+	(_REXLrm(0, MB, MI),						\
+	 (_s8P(IM)							\
+	 	? (_O_r_X(0x83,						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_B(IM))						\
+		: (_O_r_X(0x81,						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_I(_s32(IM)))))
+
+#define _ALUQrr(OP, RS, RD)						\
+	(_REXQrr(RS, RD),						\
+	 _O_Mrm(((OP) << 3) + 1,					\
+		_b11, _r8(RS), _r8(RD)))
+
+#define _ALUQmr(OP, MD, MB, MI, MS, RD)					\
+	(_REXQmr(MB, MI, RD),						\
+	 _O_r_X(((OP) << 3) + 3,					\
+		_r8(RD),						\
+		MD, MB, MI, MS))
+
+#define _ALUQrm(OP, RS, MD, MB, MI, MS)					\
+	(_REXQrm(RS, MB, MI),						\
+	 _O_r_X(((OP) << 3) + 1,					\
+		_r8(RS),						\
+		MD, MB, MI, MS))
+
+#define _ALUQir(OP, IM, RD)						\
+	(_REXQrr(0, RD),						\
+	 (_s8P(IM)							\
+		? (_O_Mrm(0x83,						\
+			_b11, OP, _r4(RD)),				\
+		   _jit_B(IM))						\
+		: (((RD) == _RAX					\
+			? _O(((OP) << 3) + 5)				\
+			: _O_Mrm(0x81,					\
+				_b11, OP, _r8(RD))),			\
+		   _jit_I(_s32(IM)))))
+
+#define _ALUQim(OP, IM, MD, MB, MI, MS)					\
+	(_REXQrm(0, MB, MI),						\
+	 (_s8P(IM)							\
+	 	? (_O_r_X(0x83,						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_B(IM))						\
+		: (_O_r_X(0x81,						\
+			OP,						\
+			MD, MB, MI, MS),				\
+		   _jit_I(_s32(IM)))))
 
 #define ADCBrr(RS, RD)			_ALUBrr(X86_ADC, RS, RD)
 #define ADCBmr(MD, MB, MI, MS, RD)	_ALUBmr(X86_ADC, MD, MB, MI, MS, RD)

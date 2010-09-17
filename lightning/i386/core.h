@@ -240,9 +240,9 @@ __jit_inline void
 jit_addci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
-	ADDLir(i0, r0);
+	ADDLir((int)i0, r0);
     else {
-	MOVLir(i0, r0);
+	MOVLir((int)i0, r0);
 	ADDLrr(r1, r0);
     }
 }
@@ -266,9 +266,9 @@ __jit_inline void
 jit_addxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
-	ADCLir(i0, r0);
+	ADCLir((int)i0, r0);
     else {
-	MOVLir(i0, r0);
+	MOVLir((int)i0, r0);
 	ADCLrr(r1, r0);
     }
 }
@@ -291,9 +291,9 @@ __jit_inline void
 jit_subci_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
-	SUBLir(i0, r0);
+	SUBLir((int)i0, r0);
     else {
-	MOVLir(i0, r0);
+	MOVLir((int)i0, r0);
 	SUBLrr(r1, r0);
     }
 }
@@ -315,9 +315,9 @@ __jit_inline void
 jit_subxi_ui(jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
-	SBBLir(i0, r0);
+	SBBLir((int)i0, r0);
     else {
-	MOVLir(i0, r0);
+	MOVLir((int)i0, r0);
 	SBBLrr(r1, r0);
     }
 }
@@ -535,11 +535,11 @@ __jit_inline void
 jit_muli_ui_(jit_gpr_t r0, unsigned int i0)
 {
     if (r0 == _RAX) {
-	MOVLir(i0, _RDX);
+	MOVLir((int)i0, _RDX);
 	MULLr(_RDX);
     }
     else {
-	MOVLir(i0, _RAX);
+	MOVLir((int)i0, _RAX);
 	MULLr(r0);
     }
 }
@@ -1417,7 +1417,7 @@ jit_bosubr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline jit_insn *
 jit_boaddi_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
-    ADDLir(i0, r0);
+    ADDLir((int)i0, r0);
     JCm(label);
     return (_jit.x.pc);
 }
@@ -1435,7 +1435,7 @@ jit_boaddr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline jit_insn *
 jit_bosubi_ui(jit_insn *label, jit_gpr_t r0, unsigned int i0)
 {
-    SUBLir(i0, r0);
+    SUBLir((int)i0, r0);
     JCm(label);
     return (_jit.x.pc);
 }
