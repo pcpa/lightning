@@ -35,8 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static int jit_fail(const char *, const char*, int, const char *) JIT_UNUSED;
-
 int
 jit_fail(const char *msg, const char *file, int line, const char *function)
 {

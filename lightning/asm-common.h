@@ -60,6 +60,8 @@
 #define JIT_UNUSED
 #endif
 
+static int jit_fail(const char *, const char*, int, const char *) JIT_UNUSED;
+
 
 /* NextStep 2.0 cc is really gcc 1.93 but it defines __GNUC__ = 2 and
    does not implement __extension__.  But that compiler doesn't define
