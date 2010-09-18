@@ -247,20 +247,6 @@
 #define IDIVQr(RS)			_UNARYQr(X86_IDIV, RS)
 #define IDIVQm(MD, MB, MI, MS)		_UNARYQm(X86_IDIV, MD, MB, MI, MS)
 
-#define CMPXCHGQrr(RS, RD)		(_REXQrr(RS, RD),		_OO_Mrm		(0x0fb1		,_b11,_r8(RS),_r8(RD)				))
-#define CMPXCHGQrm(RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_OO_r_X		(0x0fb1		     ,_r8(RS)		,MD,MB,MI,MS		))
-
-#define XADDQrr(RS, RD)			(_REXQrr(RS, RD),		_OO_Mrm		(0x0fc1		,_b11,_r8(RS),_r8(RD)				))
-#define XADDQrm(RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_OO_r_X		(0x0fc1		     ,_r8(RS)		,MD,MB,MI,MS		))
-
-#define XCHGQrr(RS, RD)			(_REXQrr(RS, RD),		_O_Mrm		(0x87		,_b11,_r8(RS),_r8(RD)				))
-#define XCHGQrm(RS, MD, MB, MI, MS)	(_REXQrm(RS, MB, MI),		_O_r_X		(0x87		     ,_r8(RS)		,MD,MB,MI,MS		))
-
-#define DECQm(MD, MB, MI, MS)		(_REXQrm(0, MB, MI),		_O_r_X		(0xff		     ,_b001		,MD,MB,MI,MS		))
-#define DECQr(RD)			(_REXQrr(0, RD),		_O_Mrm		(0xff		,_b11,_b001  ,_r8(RD)				))
-#define INCQm(MD, MB, MI, MS)		(_REXQrm(0, MB, MI),		_O_r_X		(0xff		     ,_b000		,MD,MB,MI,MS		))
-#define INCQr(RD)			(_REXQrr(0, RD),		_O_Mrm		(0xff		,_b11,_b000  ,_r8(RD)				))
-
 #define BSFQrr(RS, RD)			(_REXQrr(RD, RS),		_OO_Mrm		(0x0fbc		,_b11,_r8(RD),_r8(RS)				))
 #define BSFQmr(MD, MB, MI, MS, RD)	(_REXQmr(MB, MI, RD),		_OO_r_X		(0x0fbc		     ,_r8(RD)		,MD,MB,MI,MS		))
 

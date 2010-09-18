@@ -93,10 +93,5 @@
 #define CALLsr(R)			CALLLsr(R)
 #define JMPsr(R)			JMPLsr(R)
 
-#define DECWr(RD)	(_d16(),	_Or		(0x48,_r2(RD)							))
-#define DECLr(RD)		 	_Or		(0x48,_r4(RD)							)
-#define INCWr(RD)	(_d16(),	_Or		(0x40,_r2(RD)							))
-#define INCLr(RD)	 		_Or		(0x40,_r4(RD)							)
-
 #endif
 #endif /* __lightning_asm_h */

@@ -2622,58 +2622,514 @@ TESTQim(long im, int md, int mb, int mi, int ms)
 
 /* --- Exchange instructions ----------------------------------------------- */
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_cmpxchg_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x0f);
+    _O(0xb0);
+    _Mrm(_b11, _r1(rs), _r1(rd));
+}
 
-#define CMPXCHGBrr(RS, RD)		(_REXBrr(RS, RD),		_OO_Mrm		(0x0fb0		,_b11,_r1(RS),_r1(RD)				))
-#define CMPXCHGBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_OO_r_X		(0x0fb0		     ,_r1(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_cmpxchg_c_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x0f);
+    _O(0xb0);
+    _r_X(_r1(rs), md, mb, mi, ms, 0);
+}
 
-#define CMPXCHGWrr(RS, RD)		(_d16(), _REXLrr(RS, RD),	_OO_Mrm		(0x0fb1		,_b11,_r2(RS),_r2(RD)				))
-#define CMPXCHGWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_OO_r_X		(0x0fb1		     ,_r2(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_cmpxchg_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x0f);
+    _O(0xb1);
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
 
-#define CMPXCHGLrr(RS, RD)		(_REXLrr(RS, RD),		_OO_Mrm		(0x0fb1		,_b11,_r4(RS),_r4(RD)				))
-#define CMPXCHGLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_OO_r_X		(0x0fb1		     ,_r4(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_cmpxchg_sil_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x0f);
+    _O(0xb1);
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
 
+__jit_inline void
+_xadd_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x0f);
+    _O(0xc0);
+    _Mrm(_b11, _r1(rs), _r1(rd));
+}
 
-#define XADDBrr(RS, RD)			(_REXBrr(RS, RD),		_OO_Mrm		(0x0fc0		,_b11,_r1(RS),_r1(RD)				))
-#define XADDBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_OO_r_X		(0x0fc0		     ,_r1(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xadd_c_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x0f);
+    _O(0xc0);
+    _r_X(_r1(rs), md, mb, mi, ms, 0);
+}
 
-#define XADDWrr(RS, RD)			(_d16(), _REXLrr(RS, RD),	_OO_Mrm		(0x0fc1		,_b11,_r2(RS),_r2(RD)				))
-#define XADDWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_OO_r_X		(0x0fc1		     ,_r2(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xadd_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x0f);
+    _O(0xc1);
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
 
-#define XADDLrr(RS, RD)			(_REXLrr(RS, RD),		_OO_Mrm		(0x0fc1		,_b11,_r4(RS),_r4(RD)				))
-#define XADDLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_OO_r_X		(0x0fc1		     ,_r4(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xadd_sil_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x0f);
+    _O(0xc1);
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
 
+__jit_inline void
+_xchg_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x86);
+    _Mrm(_b11, _r1(rs), _r1(rd));
+}
 
-#define XCHGBrr(RS, RD)			(_REXBrr(RS, RD),		_O_Mrm		(0x86		,_b11,_r1(RS),_r1(RD)				))
-#define XCHGBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(0x86		     ,_r1(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xchg_c_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x86);
+    _r_X(_r1(rs), md, mb, mi, ms, 0);
+}
 
-#define XCHGWrr(RS, RD)			(_d16(), _REXLrr(RS, RD),	_O_Mrm		(0x87		,_b11,_r2(RS),_r2(RD)				))
-#define XCHGWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(0x87		     ,_r2(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xchg_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x87);
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
 
-#define XCHGLrr(RS, RD)			(_REXLrr(RS, RD),		_O_Mrm		(0x87		,_b11,_r4(RS),_r4(RD)				))
-#define XCHGLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(0x87		     ,_r4(RS)		,MD,MB,MI,MS		))
+__jit_inline void
+_xchg_sil_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x87);
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
 
+__jit_inline void
+CMPXCHGBrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(rs, rd);
+#endif
+    _cmpxchg_c_rr(rs, rd);
+}
+
+__jit_inline void
+CMPXCHGBrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(rs, mb, mi);
+#endif
+    _cmpxchg_c_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+CMPXCHGWrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _cmpxchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+CMPXCHGWrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _cmpxchg_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+CMPXCHGLrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _cmpxchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+CMPXCHGLrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _cmpxchg_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XADDBrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(rs, rd);
+#endif
+    _xadd_c_rr(rs, rd);
+}
+
+__jit_inline void
+XADDBrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(rs, mb, mi);
+#endif
+    _xadd_c_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XADDWrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _xadd_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XADDWrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _xadd_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XADDLrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _xadd_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XADDLrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _xadd_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XCHGBrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(rs, rd);
+#endif
+    _xchg_c_rr(rs, rd);
+}
+
+__jit_inline void
+XCHGBrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(rs, mb, mi);
+#endif
+    _xchg_c_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XCHGWrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _xchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XCHGWrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _xchg_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XCHGLrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _xchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XCHGLrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _xchg_sil_rm(rs, md, mb, mi, ms);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+CMPXCHGQrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _cmpxchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+CMPXCHGQrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _cmpxchg_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XADDQrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _xadd_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XADDQrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _xadd_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+XCHGQrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _xchg_sil_rr(rs, rd);
+}
+
+__jit_inline void
+XCHGQrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _xchg_sil_rm(rs, md, mb, mi, ms);
+}
+#endif
 
 
 /* --- Increment/Decrement instructions ------------------------------------ */
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_dec_c_r(jit_gpr_t rd)
+{
+    _O(0xfe);
+    _Mrm(_b11, _b001, _r1(rd));
+}
 
-#define DECBm(MD, MB, MI, MS)		(_REXBrm(0, MB, MI),		_O_r_X		(0xfe		     ,_b001		,MD,MB,MI,MS		))
-#define DECBr(RD)			(_REXBrr(0, RD),		_O_Mrm		(0xfe		,_b11,_b001  ,_r1(RD)				))
+__jit_inline void
+_inc_c_r(jit_gpr_t rd)
+{
+    _O(0xfe);
+    _Mrm(_b11, _b000, _r1(rd));
+}
 
-#define DECWm(MD, MB, MI, MS)		(_d16(), _REXLrm(0, MB, MI),	_O_r_X		(0xff		     ,_b001		,MD,MB,MI,MS		))
+#if __WORDSIZE == 32
+__jit_inline void
+_dec_si_r(jit_gpr_t rd)
+{
+    _Or(0x48, _r4(rd));
+}
 
-#define DECLm(MD, MB, MI, MS)		(_REXLrm(0, MB, MI),		_O_r_X		(0xff		     ,_b001		,MD,MB,MI,MS		))
+__jit_inline void
+_inc_si_r(jit_gpr_t rd)
+{
+    _Or(0x40, _r4(rd));
+}
+#else
+__jit_inline void
+_dec_l_r(jit_gpr_t rd)
+{
+    _O(0xff);
+    _Mrm(_b11, _b001, _r8(rd));
+}
 
+__jit_inline void
+_inc_l_r(jit_gpr_t rd)
+{
+    _O(0xff);
+    _Mrm(_b11, _b000, _r8(rd));
+}
+#endif
 
-#define INCBm(MD, MB, MI, MS)		(_REXBrm(0, MB, MI),		_O_r_X		(0xfe		     ,_b000		,MD,MB,MI,MS		))
-#define INCBr(RD)			(_REXBrr(0, RD),		_O_Mrm		(0xfe		,_b11,_b000  ,_r1(RD)				))
+__jit_inline void
+_dec_c_m(int md, int mb, int mi, int ms)
+{
+    _O(0xfe);
+    _r_X(_b001, md, mb, mi, ms, 0);
+}
 
-#define INCWm(MD, MB, MI, MS)		(_d16(), _REXLrm(0, MB, MI),	_O_r_X		(0xff		     ,_b000		,MD,MB,MI,MS		))
+__jit_inline void
+_inc_c_m(int md, int mb, int mi, int ms)
+{
+    _O(0xfe);
+    _r_X(_b000, md, mb, mi, ms, 0);
+}
 
-#define INCLm(MD, MB, MI, MS)		(_REXLrm(0, MB, MI),		_O_r_X		(0xff		     ,_b000		,MD,MB,MI,MS		))
+__jit_inline void
+_dec_sil_m(int md, int mb, int mi, int ms)
+{
+    _O(0xff);
+    _r_X(_b001, md, mb, mi, ms, 0);
+}
 
+__jit_inline void
+_inc_sil_m(int md, int mb, int mi, int ms)
+{
+    _O(0xff);
+    _r_X(_b000, md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+DECBr(jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(0, rd);
+#endif
+    _dec_c_r(rd);
+}
+
+__jit_inline void
+DECBm(int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(0, mb, mi);
+#endif
+    _dec_c_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+DECWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _dec_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+DECLm(int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _dec_sil_m(md, mb, mi, ms);
+}
+
+#if __WORDSIZE == 32
+__jit_inline void
+DECWr(jit_gpr_t rd)
+{
+    _d16();
+    _dec_si_r(rd);
+}
+
+__jit_inline void
+DECLr(jit_gpr_t rd)
+{
+    _dec_si_r(rd);
+}
+
+__jit_inline void
+INCWr(jit_gpr_t rd)
+{
+    _d16();
+    _inc_si_r(rd);
+}
+
+__jit_inline void
+INCLr(jit_gpr_t rd)
+{
+    _inc_si_r(rd);
+}
+#endif
+
+__jit_inline void
+INCBr(jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(0, rd);
+#endif
+    _inc_c_r(rd);
+}
+
+__jit_inline void
+INCBm(int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(0, mb, mi);
+#endif
+    _inc_c_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+INCWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _inc_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+INCLm(int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _inc_sil_m(md, mb, mi, ms);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+DECQr(jit_gpr_t rd)
+{
+    _REXQrr(0, rd);
+    _dec_l_r(rd);
+}
+
+__jit_inline void
+DECQm(int md, int mb, int mi, int ms)
+{
+    _REXQrm(0, mb, mi);
+    _dec_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+INCQr(jit_gpr_t rd)
+{
+    _REXQrr(0, rd);
+    _inc_l_r(rd);
+}
+
+__jit_inline void
+INCQm(int md, int mb, int mi, int ms)
+{
+    _REXQrm(0, mb, mi);
+    _inc_sil_m(md, mb, mi, ms);
+}
+#endif
 
 
 /* --- Misc instructions --------------------------------------------------- */
