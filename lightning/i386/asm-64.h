@@ -79,7 +79,7 @@
 
 #define _rA(R)			_r8(R)
 
-#define jit_check8(rs)		1
+#define jit_reg8_p(rs)		1
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #if 0

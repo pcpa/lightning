@@ -373,7 +373,7 @@ jit_ori_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 	MOVLir(0xffffffff, r0);
     else {
 	jit_movr_i(r0, r1);
-	if (jit_check8(r0) && jit_can_sign_extend_char_p(i0))
+	if (jit_reg8_p(r0) && jit_can_sign_extend_char_p(i0))
 	    ORBir(i0, r0);
 #if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
@@ -412,7 +412,7 @@ jit_xori_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
     }
     else {
 	jit_movr_i(r0, r1);
-	if (jit_check8(r0) && jit_can_sign_extend_char_p(i0))
+	if (jit_reg8_p(r0) && jit_can_sign_extend_char_p(i0))
 	    XORBir(i0, r0);
 #if __WORDSIZE == 32
 	else if (jit_can_sign_extend_short_p(i0))
@@ -941,7 +941,7 @@ _jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, int code)
     int		op;
     jit_gpr_t	reg;
 
-    if (jit_check8(r0)) {
+    if (jit_reg8_p(r0)) {
 	if (!(op = r0 == r1))
 	    XORLrr(r0, r0);
 	CMPLir(i0, r1);
@@ -965,7 +965,7 @@ _jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, int code)
     int		op;
     jit_gpr_t	reg;
 
-    if (jit_check8(r0)) {
+    if (jit_reg8_p(r0)) {
 	if (!(op = r0 == r1))
 	    XORLrr(r0, r0);
 	TESTLrr(r1, r1);
@@ -989,7 +989,7 @@ _jit_cmp_rr32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
     int		op;
     jit_gpr_t	reg;
 
-    if (jit_check8(r0)) {
+    if (jit_reg8_p(r0)) {
 	if (!(op = r0 == r1 || r0 == r2))
 	    XORLrr(r0, r0);
 	CMPLrr(r2, r1);
@@ -1451,7 +1451,7 @@ jit_bosubr_ui(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline jit_insn *
 jit_bmsi_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
-    if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
+    if (jit_reg8_p(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, r0);
     /* valid in 64 bits mode */
     else if (jit_can_zero_extend_short_p(i0))
@@ -1475,7 +1475,7 @@ jit_bmsr_i(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline jit_insn *
 jit_bmci_i(jit_insn *label, jit_gpr_t r0, int i0)
 {
-    if (jit_check8(r0) && jit_can_zero_extend_char_p(i0))
+    if (jit_reg8_p(r0) && jit_can_zero_extend_char_p(i0))
 	TESTBir(i0, r0);
     /* valid in 64 bits mode */
     else if (jit_can_zero_extend_short_p(i0))
@@ -1518,7 +1518,7 @@ jit_extr_c_i(jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
-    if (jit_check8(r1))
+    if (jit_reg8_p(r1))
 	MOVSBLrr(r1, r0);
     else {
 	if (r0 == _RAX)
@@ -1545,7 +1545,7 @@ jit_extr_c_ui(jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
-    if (jit_check8(r1))
+    if (jit_reg8_p(r1))
 	MOVZBLrr(r1, r0);
     else {
 	if (r0 == _RAX)

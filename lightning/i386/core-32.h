@@ -245,7 +245,7 @@ jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 __jit_inline void
 jit_sti_c(void *i0, jit_gpr_t r0)
 {
-    if (jit_check8(r0))
+    if (jit_reg8_p(r0))
 	MOVBrm(r0, (long)i0, 0, 0, 0);
     else {
 	XCHGLrr(_RAX, r0);
@@ -260,7 +260,7 @@ jit_stxi_c(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
-    if (jit_check8(r1))
+    if (jit_reg8_p(r1))
 	MOVBrm(r1, i0, r0, 0, 0);
     else {
 	if (r0 == _RAX)
@@ -287,7 +287,7 @@ jit_str_c(jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
-    if (jit_check8(r1))
+    if (jit_reg8_p(r1))
 	MOVBrm(r1, 0, r0, 0, 0);
     else {
 	if (r0 == _RAX)
@@ -314,7 +314,7 @@ jit_stxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     jit_gpr_t	rep;
 
-    if (jit_check8(r2))
+    if (jit_reg8_p(r2))
 	MOVBrm(r2, 0, r0, r1, 1);
     else {
 	if (r0 == _RAX || r1 == _RAX) {

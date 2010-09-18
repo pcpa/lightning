@@ -965,7 +965,7 @@ _sse_fp_cmp_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -983,7 +983,7 @@ _sse_fp_cmp_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -1025,7 +1025,7 @@ sse_eqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -1046,7 +1046,7 @@ sse_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -1091,7 +1091,7 @@ sse_ner_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -1112,7 +1112,7 @@ sse_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     int		 rc;
     jit_gpr_t	 reg;
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);

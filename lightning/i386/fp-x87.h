@@ -723,7 +723,7 @@ _x87_i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select chop (round towards zero) */
-    if (jit_check8(r0))
+    if (jit_reg8_p(r0))
 	/* always the path in 64-bit mode */
 	MOVZBLrr(r0, r0);
     else
@@ -781,7 +781,7 @@ _x87_safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select down (round towards minus infinity) */
-    if (jit_check8(r0))
+    if (jit_reg8_p(r0))
 	MOVZBLrr(r0, r0);
     else
 	ANDWir(0xff, r0);
@@ -882,7 +882,7 @@ _x87_safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     jit_stxi_s(sizeof(long), _RSP, r0);
 
     /* clear top bits and select up (round towards positive infinity) */
-    if (jit_check8(r0))
+    if (jit_reg8_p(r0))
 	MOVZBLrr(r0, r0);
     else
 	ANDWir(0xff, r0);
@@ -1034,7 +1034,7 @@ _x87_i686_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
     int		 rc;
     jit_gpr_t	 reg;
 
-    if ((rc = jit_check8(r0)))
+    if ((rc = jit_reg8_p(r0)))
 	reg = r0;
     else {
 	MOVLrr(_RAX, r0);
@@ -1081,7 +1081,7 @@ x87_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	int		 rc;
 	jit_gpr_t	 reg;
 	jit_insn	*label;
-	if ((rc = jit_check8(r0)))
+	if ((rc = jit_reg8_p(r0)))
 	    reg = r0;
 	else {
 	    MOVLrr(_RAX, r0);
@@ -1133,7 +1133,7 @@ x87_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	int		 rc;
 	jit_gpr_t	 reg;
 	jit_insn	*label;
-	if ((rc = jit_check8(r0)))
+	if ((rc = jit_reg8_p(r0)))
 	    reg = r0;
 	else {
 	    MOVLrr(_RAX, r0);

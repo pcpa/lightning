@@ -64,6 +64,8 @@
 #define _b111		7
 
 typedef enum {
+    _RIP	= -2,
+    _NOREG	= 0,
     _RAX	= 0x50,
     _RCX	= 0x51,
     _RDX	= 0x52,
@@ -81,9 +83,6 @@ typedef enum {
     _R14	= 0x5e,
     _R15	= 0x5f,
 } jit_gpr_t;
-
-#define _NOREG		0
-#define _RIP		-2
 
 typedef enum {
     _ST0	= 0,
