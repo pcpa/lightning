@@ -2060,36 +2060,235 @@ enum {
 
 /* --- Test instructions --------------------------------------------------- */
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_test_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x84);
+    _Mrm(_b11, _r1(rs), _r1(rd));
+}
 
-#define _TEST_ir(IM, RD)						\
-	(((RD) == _RAX							\
-		? _O(0xa9)						\
-		: _O_Mrm(0xf7,						\
-			_b11, _b000, _rA(RD))),				\
-	 _jit_I(_s32(IM)))
+__jit_inline void
+_test_c_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x84);
+    _r_X(_r1(rs), md, mb, mi, ms, 0);
+}
 
-#define TESTBrr(RS, RD)			(_REXBrr(RS, RD),		_O_Mrm		(0x84		,_b11,_r1(RS),_r1(RD)				))
-#define TESTBrm(RS, MD, MB, MI, MS)	(_REXBrm(RS, MB, MI),		_O_r_X		(0x84		     ,_r1(RS)		,MD,MB,MI,MS		))
-#define TESTBir(IM, RD)			((RD) == _RAX ? \
-					(_REXBrr(0, RD),		_O_B		(0xa8							,_u8(IM))) : \
-					(_REXBrr(0, RD),		_O_Mrm_B	(0xf6		,_b11,_b000  ,_r1(RD)			,_u8(IM))) )
-#define TESTBim(IM, MD, MB, MI, MS)	(_REXBrm(0, MB, MI),		_O_r_X_B	(0xf6		     ,_b000		,MD,MB,MI,MS	,_u8(IM)))
+__jit_inline void
+_test_c_ir(long im, jit_gpr_t rd)
+{
+    if (rd == _RAX)
+	_O(0xa8);
+    else {
+	_O(0xf6);
+	_Mrm(_b11, _b000, _r1(rd));
+    }
+    _jit_B(_s8(im));
+}
 
-#define TESTWrr(RS, RD)			(_d16(), _REXLrr(RS, RD),	_O_Mrm		(0x85		,_b11,_r2(RS),_r2(RD)				))
-#define TESTWrm(RS, MD, MB, MI, MS)	(_d16(), _REXLrm(RS, MB, MI),	_O_r_X		(0x85		     ,_r2(RS)		,MD,MB,MI,MS		))
-#define TESTWir(IM, RD)			((RD) == _RAX ? \
-					(_d16(), _REXLrr(0, RD),	_O_W		(0xa9							,_u16(IM))) : \
-					(_d16(), _REXLrr(0, RD),	_O_Mrm_W	(0xf7		,_b11,_b000  ,_r2(RD)			,_u16(IM))) )
-#define TESTWim(IM, MD, MB, MI, MS)	(_d16(), _REXLrm(0, MB, MI),	_O_r_X_W	(0xf7		     ,_b000		,MD,MB,MI,MS	,_u16(IM)))
+__jit_inline void
+_test_c_im(long im, int md, int mb, int mi, int ms)
+{
+    _O(0xf6);
+    _r_X(_b000, md, mb, mi, ms, 1);
+    _jit_B(_s8(im));
+}
 
-#define TESTLrr(RS, RD)			(_REXLrr(RS, RD),		_O_Mrm		(0x85		,_b11,_r4(RS),_r4(RD)				))
-#define TESTLrm(RS, MD, MB, MI, MS)	(_REXLrm(RS, MB, MI),		_O_r_X		(0x85		     ,_r4(RS)		,MD,MB,MI,MS		))
-#define TESTLir(IM, RD)							\
-	(_REXLrr(0, RD),						\
-	 _TEST_ir(IM, RD))
-#define TESTLim(IM, MD, MB, MI, MS)	(_REXLrm(0, MB, MI),		_O_r_X_L	(0xf7		     ,_b000		,MD,MB,MI,MS	,IM	))
+__jit_inline void
+_test_s_ir(long im, jit_gpr_t rd)
+{
+    if (rd == _RAX)
+	_O(0xa9);
+    else {
+	_O(0xf7);
+	_Mrm(_b11, _b000, _r2(rd));
+    }
+    _jit_W(_s16(im));
+}
 
+__jit_inline void
+_test_s_im(long im, int md, int mb, int mi, int ms)
+{
+    _O(0xf7);
+    _r_X(_b000, md, mb, mi, ms, 0);
+    _jit_W(_s16(im));
+}
+
+__jit_inline void
+_test_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x85);
+    _Mrm(_b11, _rA(rs), _rA(rd));
+}
+
+__jit_inline void
+_test_sil_rm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _O(0x85);
+    _r_X(_rA(rs), md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+_test_il_ir(long im, jit_gpr_t rd)
+{
+    if (rd == _RAX)
+	_O(0xa9);
+    else {
+	_O(0xf7);
+	_Mrm(_b11, _b000, _rA(rd));
+    }
+    _jit_I(_s32(im));
+}
+
+__jit_inline void
+_test_il_im(long im, int md, int mb, int mi, int ms)
+{
+    _O(0xf7);
+    _r_X(_b000, md, mb, mi, ms, 0);
+    _jit_I(_s32(im));
+}
+
+__jit_inline void
+TESTBrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(rs, rd);
+#endif
+    _test_c_rr(rs, rd);
+}
+
+__jit_inline void
+TESTBrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(rs, mb, mi);
+#endif
+    _test_c_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTBir(long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(0, rd);
+#endif
+    _test_c_ir(im, rd);
+}
+
+__jit_inline void
+TESTBim(long im, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(0, mb, mi);
+#endif
+    _test_c_im(im, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTWrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _test_sil_rr(rs, rd);
+}
+
+__jit_inline void
+TESTWrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _test_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTWir(long im, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _test_s_ir(im, rd);
+}
+
+__jit_inline void
+TESTWim(long im, int md, int mb, int mi, int ms)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _test_s_im(im, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTLrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rs, rd);
+#endif
+    _test_sil_rr(rs, rd);
+}
+
+__jit_inline void
+TESTLrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(rs, mb, mi);
+#endif
+    _test_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTLir(long im, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(0, rd);
+#endif
+    _test_il_ir(im, rd);
+}
+
+__jit_inline void
+TESTLim(long im, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXLrm(0, mb, mi);
+#endif
+    _test_il_im(im, md, mb, mi, ms);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+TESTQrr(jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rs, rd);
+    _test_sil_rr(rs, rd);
+}
+
+__jit_inline void
+TESTQrm(jit_gpr_t rs, int md, int mb, int mi, int ms)
+{
+    _REXQrm(rs, mb, mi);
+    _test_sil_rm(rs, md, mb, mi, ms);
+}
+
+__jit_inline void
+TESTQir(long im, jit_gpr_t rd)
+{
+    _REXQrr(0, rd);
+    _test_il_ir(im, rd);
+}
+
+__jit_inline void
+TESTQim(long im, int md, int mb, int mi, int ms)
+{
+    _REXQrm(0, mb, mi);
+    _test_il_im(im, md, mb, mi, ms);
+}
+#endif
 
 
 /* --- Exchange instructions ----------------------------------------------- */
