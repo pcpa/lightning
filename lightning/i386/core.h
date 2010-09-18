@@ -618,10 +618,8 @@ jit_muli_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
 	jit_movr_i(r0, r1);
     else if (i0 == -1)
 	jit_negr_i(r0, r1);
-    else if (jit_can_sign_extend_char_p(i0))
-	IMULBLLirr(i0, r1, r0);
     else
-	IMULLLLirr(i0, r1, r0);
+	IMULLirr(i0, r1, r0);
 }
 
 #define jit_mulr_i(r0, r1, r2)		jit_mulr_i(r0, r1, r2)

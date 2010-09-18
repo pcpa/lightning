@@ -576,10 +576,8 @@ jit_muli_l(jit_gpr_t r0, jit_gpr_t r1, long i0)
 	jit_movr_l(r0, r1);
     else if (i0 == -1)
 	jit_negr_l(r0, r1);
-    else if (jit_can_sign_extend_char_p(i0))
-	IMULBQQirr(i0, r1, r0);
     else if (jit_can_sign_extend_int_p(i0))
-	IMULLQQirr(i0, r1, r0);
+	IMULQirr(i0, r1, r0);
     else if (r0 == r1) {
 	MOVQir(i0, JIT_REXTMP);
 	IMULQrr(JIT_REXTMP, r0);
