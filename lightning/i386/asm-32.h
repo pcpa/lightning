@@ -34,7 +34,6 @@
 
 #ifndef __lightning_asm_h
 #define __lightning_asm_h
-
 #ifndef LIGHTNING_DEBUG
 
 /*	OPCODE	+ i		= immediate operand
@@ -43,55 +42,138 @@
  *		+ sr/sm		= a star preceding a register or memory
  */
 
-#if !_ASM_SAFETY
-#  define _r1(R)		_rN(R)
-#  define _r2(R)		_rN(R)
-#  define _r4(R)		_rN(R)
-#  define _r8(R)		_rN(R)
-#  define _rM(R)		_rN(R)
-#  define _rX(R)		_rN(R)
-#else
-#  define _r1(R)							\
-    (((R) >= _RAX && (R) <= _RBX)					\
-	? _rN(R)							\
-	: JITFAIL("bad 8-bit register " #R))
-#  define _r2(R)							\
-    (((R) >= _RAX && (R) <= _RDI)					\
-	? _rN(R)							\
-	: JITFAIL("bad 16-bit register " #R))
-#  define _r4(R)							\
-    (((R) >= _RAX && (R) <= _RDI)					\
-	? _rN(R)							\
-	: JITFAIL("bad 32-bit register " #R))
-#  define _r8(R)							\
-	JITFAIL("bad 64-bit register " #R)
-#  define _rM(R)							\
-    (((R) >= _XMM0 && (R) <= _XMM7)					\
-	? _rN(R)							\
-	: JITFAIL("bad MMX register " #R))
-#  define _rX(R)							\
-    (((R) >= _XMM0 && (R) <= _XMM7)					\
-	? _rN(R)							\
-	: JITFAIL("bad SSE register " #R))
-#endif
-
-#define _rA(R)			_r4(R)
-
-#define jit_reg8_p(rs)		((rs) >= _RAX && (rs) <= _RBX)
-
-/* Use RIP-addressing in 64-bit mode, if possible */
-#define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? _r_D   (R,D                ) : \
-				           (_rsp12P(B) ? _r_DBIS(R,D,_RSP,_RSP,1)   : \
-						         _r_DB  (R,D,     B       )))  : \
-				 (_r0P(B)	       ? _r_4IS (R,D,	         I,S)   : \
-				 (!_rspP(I)            ? _r_DBIS(R,D,     B,     I,S)   : \
-						         JITFAIL("illegal index register: %esp"))))
-#define _m32only(X)		(X)
-#define _m64only(X)		JITFAIL("invalid instruction in 32-bit mode")
-#define _m64(X)			((void)0)
-
 #define CALLsr(R)			CALLLsr(R)
 #define JMPsr(R)			JMPLsr(R)
 
-#endif
-#endif /* __lightning_asm_h */
+/* --- Increment/Decrement instructions ------------------------------------ */
+__jit_inline void
+_dec_sil_r(jit_gpr_t rd)
+{
+    _Or(0x48, _rA(rd));
+}
+
+__jit_inline void
+_inc_sil_r(jit_gpr_t rd)
+{
+    _Or(0x40, _rA(rd));
+}
+
+/* --- REX prefixes -------------------------------------------------------- */
+__jit_inline void
+_REXBrr(jit_gpr_t rr, jit_gpr_t mr)
+{
+}
+
+__jit_inline void
+_REXBmr(int mb, int mi, jit_gpr_t rd)
+{
+}
+
+__jit_inline void
+_REXBrm(jit_gpr_t rs, int mb, int mi)
+{
+}
+
+__jit_inline void
+_REXLr(jit_gpr_t rr)
+{
+}
+
+__jit_inline void
+_REXLm(int mb, int mi)
+{
+}
+
+__jit_inline void
+_REXBLrr(jit_gpr_t rr, jit_gpr_t mr)
+{
+}
+
+__jit_inline void
+_REXLrr(jit_gpr_t rr, jit_gpr_t mr)
+{
+}
+
+__jit_inline void
+_REXLmr(int mb, int mi, jit_gpr_t rd)
+{
+}
+
+__jit_inline void
+_REXLrm(jit_gpr_t rs, int mb, int mi)
+{
+}
+
+/* --- Push/Pop instructions ----------------------------------------------- */
+__jit_inline void
+POPWr(jit_gpr_t rd)
+{
+    _d16();
+    _pop_sil_r(rd);
+}
+
+__jit_inline void
+POPWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+    _pop_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+POPLr(jit_gpr_t rd)
+{
+    _pop_sil_r(rd);
+}
+
+__jit_inline void
+POPLm(int md, int mb, int mi, int ms)
+{
+    _pop_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHWr(jit_gpr_t rs)
+{
+    _d16();
+    _push_sil_r(rs);
+}
+
+__jit_inline void
+PUSHWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+    _push_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHWi(long im)
+{
+    if (_s8P(im))
+	_push_c_i(im);
+    else {
+	_d16();
+	_O(0x68);
+	_jit_W(_s16(im));
+    }
+}
+
+__jit_inline void
+PUSHLr(jit_gpr_t rs)
+{
+    _push_sil_r(rs);
+}
+
+__jit_inline void
+PUSHLm(int md, int mb, int mi, int ms)
+{
+    _push_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHLi(long im)
+{
+    _push_il_i(im);
+}
+
+#endif	/* LIGHTNING_DEBUG */
+#endif	/* __lightning_asm_h */

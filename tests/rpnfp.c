@@ -43,7 +43,7 @@ static jit_insn codeBuffer[1024];
 
 typedef double (*pdfd) (double);	/* Pointer to Double Function of Double */
 
-static int regs[6] = { JIT_FPR0, JIT_FPR1, JIT_FPR2, JIT_FPR3, JIT_FPR4, JIT_FPR5 };
+static int regs[6];
 
 pdfd
 compile_rpn (char *expr)
@@ -113,6 +113,13 @@ main ()
 {
   pdfd c2f, f2c;
   double i;
+
+  regs[0] = JIT_FPR0;
+  regs[1] = JIT_FPR1;
+  regs[2] = JIT_FPR2;
+  regs[3] = JIT_FPR3;
+  regs[4] = JIT_FPR4;
+  regs[5] = JIT_FPR5;
 
   jit_set_ip (codeBuffer);
   c2f = compile_rpn ("9*5/32+");

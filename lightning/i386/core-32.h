@@ -120,7 +120,7 @@ jit_prepare_i(int ni)
 __jit_inline jit_insn *
 jit_calli(void *p0)
 {
-    CALLm((_ul)p0);
+    CALLm(p0);
     return (_jitl.label = _jit.x.pc);
 }
 
