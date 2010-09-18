@@ -129,11 +129,12 @@ typedef long	jit_idx_t;
 
 /*** ASSEMBLER ***/
 
-#define _OFF4(D)        (_jit_UL(D) - _jit_UL(_jit.x.pc))
-#define _CKD8(D)        _ck_d(8, ((_uc) _OFF4(D)) )
+#define _OFF4(D)        (_jit_SL(D) - _jit_SL(_jit.x.pc))
+#define _CKD8(D)        _ck_d(8, ((_sc) _OFF4(D)) )
+#define _CKD32(D)        _ck_d(32, ((int) _OFF4(D)) )
 
 #define _D8(D)          (_jit_B(0), ((*(_PUC(_jit.x.pc)-1))= _CKD8(D)))
-#define _D32(D)         (_jit_I(0), ((*(_PUI(_jit.x.pc)-1))= _OFF4(D)))
+#define _D32(D)         (_jit_I(0), ((*(_PUI(_jit.x.pc)-1))= _CKD32(D)))
 
 #ifndef _ASM_SAFETY
 # define _M(M)		(M)
@@ -1841,56 +1842,141 @@ IMULQirr(long im, jit_gpr_t rs, jit_gpr_t rd)
 /* --- Control Flow related instructions ----------------------------------- */
 
 enum {
-  X86_CC_O   = 0x0,
-  X86_CC_NO  = 0x1,
-  X86_CC_NAE = 0x2,
-  X86_CC_B   = 0x2,
-  X86_CC_C   = 0x2,
-  X86_CC_AE  = 0x3,
-  X86_CC_NB  = 0x3,
-  X86_CC_NC  = 0x3,
-  X86_CC_E   = 0x4,
-  X86_CC_Z   = 0x4,
-  X86_CC_NE  = 0x5,
-  X86_CC_NZ  = 0x5,
-  X86_CC_BE  = 0x6,
-  X86_CC_NA  = 0x6,
-  X86_CC_A   = 0x7,
-  X86_CC_NBE = 0x7,
-  X86_CC_S   = 0x8,
-  X86_CC_NS  = 0x9,
-  X86_CC_P   = 0xa,
-  X86_CC_PE  = 0xa,
-  X86_CC_NP  = 0xb,
-  X86_CC_PO  = 0xb,
-  X86_CC_L   = 0xc,
-  X86_CC_NGE = 0xc,
-  X86_CC_GE  = 0xd,
-  X86_CC_NL  = 0xd,
-  X86_CC_LE  = 0xe,
-  X86_CC_NG  = 0xe,
-  X86_CC_G   = 0xf,
-  X86_CC_NLE = 0xf,
+    X86_CC_O	= 0x0,
+    X86_CC_NO	= 0x1,
+    X86_CC_NAE	= 0x2,
+    X86_CC_B	= 0x2,
+    X86_CC_C	= 0x2,
+    X86_CC_AE	= 0x3,
+    X86_CC_NB	= 0x3,
+    X86_CC_NC	= 0x3,
+    X86_CC_E	= 0x4,
+    X86_CC_Z	= 0x4,
+    X86_CC_NE	= 0x5,
+    X86_CC_NZ	= 0x5,
+    X86_CC_BE	= 0x6,
+    X86_CC_NA	= 0x6,
+    X86_CC_A	= 0x7,
+    X86_CC_NBE	= 0x7,
+    X86_CC_S	= 0x8,
+    X86_CC_NS	= 0x9,
+    X86_CC_P	= 0xa,
+    X86_CC_PE	= 0xa,
+    X86_CC_NP	= 0xb,
+    X86_CC_PO	= 0xb,
+    X86_CC_L	= 0xc,
+    X86_CC_NGE	= 0xc,
+    X86_CC_GE	= 0xd,
+    X86_CC_NL	= 0xd,
+    X86_CC_LE	= 0xe,
+    X86_CC_NG	= 0xe,
+    X86_CC_G	= 0xf,
+    X86_CC_NLE	= 0xf,
 };
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_call_il_sr(jit_gpr_t rs)
+{
+    _O(0xff);
+    _Mrm(_b11, _b010, _rA(rs));
+}
 
-/* FIXME: no prefix is availble to encode a 32-bit operand size in 64-bit
-   mode */
-#define CALLm(M)							_O_D32		(0xe8					,(int)(M)		)
-#define CALLLsr(R)			(_REXLrr(0, R),			_O_Mrm		(0xff		,_b11,_b010,_r4(R)				))
-#define CALLsm(D,B,I,S)			(_REXLrm(0, B, I),		_O_r_X		(0xff		     ,_b010		,(int)(D),B,I,S		))
+__jit_inline void
+_jmp_il_sr(jit_gpr_t rs)
+{
+    _O_Mrm(0xff, _b11, _b100, _rA(rs));
+}
 
-/* FIXME: no prefix is availble to encode a 32-bit operand size in 64-bit
-   mode */
-#define JMPSm(M)							_O_D8		(0xeb					,(int)(M)		)
-#define JMPm(M)								_O_D32		(0xe9					,(int)(M)		)
-#define JMPLsr(R)			(_REXLrr(0, R),			_O_Mrm		(0xff		,_b11,_b100,_r4(R)				))
-#define JMPsm(D,B,I,S)			(_REXLrm(0, B, I),		_O_r_X		(0xff		     ,_b100		,(int)(D),B,I,S		))
+/* 32 bit displacement from %rip */
+__jit_inline void
+CALLm(void *im)
+{
+    _O(0xe8);
+    _D32(im);
+}
 
-/*	_format				Opcd, Mod, r, m, mem=dsp+sib, imm... */
-#define JCCSii(CC, D)			 _O_B(0x70|(CC), (_sc)(int)(D))
-#define JCCSim(CC, D)			_O_D8(0x70|(CC), (int)(D))
+/* call absolute value */
+__jit_inline void
+CALLLsr(jit_gpr_t rs)
+{
+#if __WORDSIZE == 64
+    _REXLrr(0, rs);
+#endif
+    _call_il_sr(rs);
+}
+
+__jit_inline void
+CALLsm(jit_gpr_t rs, int b, int i, int s)
+{
+#if 0	/* FIXME REXQrm if anything? */
+#if __WORDSIZE == 64
+    _REXLrm(0, b, i);
+#endif
+#endif
+    _O(0xff);
+    _r_X(_b010, rs, b, i, s, 0);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+CALLQsr(jit_gpr_t rs)
+{
+    _REXQrr(0, rs);
+    _call_il_sr(rs);
+}
+#endif
+
+__jit_inline void
+JMPSm(void *im)
+{
+    _O(0xeb);
+    _D8(im);
+}
+
+__jit_inline void
+JMPm(void *im)
+{
+    _O(0xe9);
+    _D32(im);
+}
+
+__jit_inline void
+JMPLsr(jit_gpr_t rs)
+{
+#if __WORDSIZE == 64
+    _REXLrr(0, rs);
+#endif
+    _jmp_il_sr(rs);
+}
+
+__jit_inline void
+JMPsm(jit_gpr_t rs, int b, int i, int s)
+{
+#if 0	/* FIXME REXQrm if anything? */
+#if __WORDSIZE == 64
+    _REXLrm(0, b, i);
+#endif
+#endif
+    _O(0xff);
+    _r_X(_b100, rs, b, i, s, 0);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+JMPQsr(jit_gpr_t rs)
+{
+    _REXQrr(0, rs);
+    _jmp_il_sr(rs);
+}
+#endif
+
+__jit_inline void
+JCCSim(int cc, void *im)
+{
+    _O(0x70 | cc);
+    _D8(im);
+}
+
 #define JOSm(D)				JCCSim(X86_CC_O,   D)
 #define JNOSm(D)			JCCSim(X86_CC_NO,  D)
 #define JNAESm(D)			JCCSim(X86_CC_NAE, D)
@@ -1922,8 +2008,14 @@ enum {
 #define JGSm(D)				JCCSim(X86_CC_G,   D)
 #define JNLESm(D)			JCCSim(X86_CC_NLE, D)
 
-/*	_format				Opcd, Mod, r, m, mem=dsp+sib, imm... */
-#define JCCim(CC, D)			_OO_D32(0x0f80|(CC), (long)(D))
+__jit_inline void
+JCCim(int cc, void *im)
+{
+    _O(0x0f);
+    _O(0x80 | cc);
+    _D32(im);
+}
+
 #define JOm(D)				JCCim(X86_CC_O,   D)
 #define JNOm(D)				JCCim(X86_CC_NO,  D)
 #define JNAEm(D)			JCCim(X86_CC_NAE, D)
@@ -1955,9 +2047,17 @@ enum {
 #define JGm(D)				JCCim(X86_CC_G,   D)
 #define JNLEm(D)			JCCim(X86_CC_NLE, D)
 
-/*	_format				Opcd, Mod, r, m, mem=dsp+sib, imm... */
-#define SETCCir(CC, RD)							\
-    (_REXBrr(0, RD), _OO_Mrm(0x0f90|(CC), _b11, _b000, _r1(RD)))
+__jit_inline void
+SETCCir(int cc, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXBrr(0, rd);
+#endif
+    _O(0x0f);
+    _O(0x90 | cc);
+    _Mrm(_b11, _b000, _r1(rd));
+}
+
 #define SETOr(RD)			SETCCir(X86_CC_O,   RD)
 #define SETNOr(RD)			SETCCir(X86_CC_NO,  RD)
 #define SETBr(RD)			SETCCir(X86_CC_B,   RD)
@@ -1988,9 +2088,17 @@ enum {
 #define SETGr(RD)			SETCCir(X86_CC_G,   RD)
 #define SETNLEr(RD)			SETCCir(X86_CC_NLE, RD)
 
-/*	_format				Opcd, Mod, r, m, mem=dsp+sib, imm... */
-#define SETCCim(CC,MD,MB,MI,MS)						\
-    (_REXBrm(0, MB, MI), _OO_r_X(0x0f90|(CC), _b000, MD, MB, MI, MS))
+__jit_inline void
+SETCCim(int cc, int md, int mb, int mi, int ms)
+{
+#if __WORDSIZE == 64
+    _REXBrm(0, mb, mi);
+#endif
+    _O(0x0f);
+    _O(0x90 | cc);
+    _r_X(_b000, md, mb, mi, ms, 0);
+}
+
 #define SETOm(D, B, I, S)		SETCCim(X86_CC_O,   D, B, I, S)
 #define SETNOm(D, B, I, S)		SETCCim(X86_CC_NO,  D, B, I, S)
 #define SETNAEm(D, B, I, S)		SETCCim(X86_CC_NAE, D, B, I, S)
@@ -2021,11 +2129,79 @@ enum {
 #define SETGm(D, B, I, S)		SETCCim(X86_CC_G,   D, B, I, S)
 #define SETNLEm(D, B, I, S)		SETCCim(X86_CC_NLE, D, B, I, S)
 
-/*									_format		Opcd		,Mod ,r	     ,m		,mem=dsp+sib	,imm... */
-#define CMOVWrr(CC,RS,RD)		(_d16(), _REXLrr(RD, RS),	_OO_Mrm		(0x0f40|(CC)	,_b11,_r2(RD),_r2(RS)				))
-#define CMOVWmr(CC,MD,MB,MI,MS,RD)	(_d16(), _REXLmr(MB, MI, RD),	_OO_r_X		(0x0f40|(CC)	     ,_r2(RD)		,MD,MB,MI,MS		))
-#define CMOVLrr(CC,RS,RD)		(_REXLrr(RD, RS),		_OO_Mrm		(0x0f40|(CC)	,_b11,_r4(RD),_r4(RS)				))
-#define CMOVLmr(CC,MD,MB,MI,MS,RD)	(_REXLmr(MB, MI, RD),		_OO_r_X		(0x0f40|(CC)	     ,_r4(RD)		,MD,MB,MI,MS		))
+__jit_inline void
+_cmov_sil_rr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+{
+    _O(0x0f);
+    _O(0x40 | cc);
+    _Mrm(_b11, _rA(rd), _rA(rs));
+}
+
+__jit_inline void
+_cmov_sil_mr(int cc, int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLmr(mb, mi, rd);
+#endif
+    _O(0x0f);
+    _O(0x40 | cc);
+    _r_X(_rA(rd), md, mb, mi, ms, 0);
+}
+
+__jit_inline void
+CMOVWrr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLrr(rd, rs);
+#endif
+    _cmov_sil_rr(cc, rs, rd);
+}
+
+__jit_inline void
+CMOVWmr(int cc, int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _d16();
+#if __WORDSIZE == 64
+    _REXLmr(mb, mi, rd);
+#endif
+    _cmov_sil_mr(cc, md, mb, mi, ms, rd);
+}
+
+__jit_inline void
+CMOVLrr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLrr(rd, rs);
+#endif
+    _cmov_sil_rr(cc, rs, rd);
+}
+
+__jit_inline void
+CMOVLmr(int cc, int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+#if __WORDSIZE == 64
+    _REXLmr(mb, mi, rd);
+#endif
+    _cmov_sil_mr(cc, md, mb, mi, ms, rd);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+CMOVQrr(int cc,jit_gpr_t rs, jit_gpr_t rd)
+{
+    _REXQrr(rd, rs);
+    _cmov_sil_rr(cc, rs, rd);
+}
+
+__jit_inline void
+CMOVQmr(int cc, int md, int mb, int mi, int ms, jit_gpr_t rd)
+{
+    _REXQmr(mb, mi, rd);
+    _cmov_sil_mr(cc, md, mb, mi, ms, rd);
+}
+#endif
 
 
 /* --- Push/Pop instructions ----------------------------------------------- */

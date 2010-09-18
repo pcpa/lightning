@@ -155,7 +155,7 @@ jit_patch_movi(jit_insn *address, jit_insn *label)
 __jit_inline jit_insn *
 jit_jmpi(jit_insn *label)
 {
-    JMPm((_ul)label);
+    JMPm(label);
     return (_jit.x.pc);
 }
 
