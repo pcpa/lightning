@@ -527,7 +527,7 @@ _ALULmr(int op, int md, int mb, int mi, int ms, jit_gpr_t rd)
 #if __WORDSIZE == 64
     _REXLmr(mb, mi, rd);
 #endif
-    _alu_il_mr(op, md, mb, mi, ms, rd);
+    _alu_sil_mr(op, md, mb, mi, ms, rd);
 }
 
 __jit_inline void
@@ -536,7 +536,7 @@ _ALULrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
 #if __WORDSIZE == 64
     _REXLrm(rs, mb, mi);
 #endif
-    _alu_il_rm(op, rs, md, mb, mi, ms);
+    _alu_sil_rm(op, rs, md, mb, mi, ms);
 }
 
 __jit_inline void
@@ -569,14 +569,14 @@ __jit_inline void
 _ALUQmr(int op, int md, int mb, int mi, int ms, jit_gpr_t rd)
 {
     _REXQmr(mb, mi, rd);
-    _alu_il_mr(op, md, mb, mi, ms, rd);
+    _alu_sil_mr(op, md, mb, mi, ms, rd);
 }
 
 __jit_inline void
 _ALUQrm(int op, jit_gpr_t rs, int md, int mb, int mi, int ms)
 {
     _REXQrm(rs, mb, mi);
-    _alu_il_rm(op, rs, md, mb, mi, ms);
+    _alu_sil_rm(op, rs, md, mb, mi, ms);
 }
 
 __jit_inline void
@@ -2030,32 +2030,186 @@ enum {
 
 /* --- Push/Pop instructions ----------------------------------------------- */
 
-/*									_format		Opcd		,Mod ,r	    ,m		,mem=dsp+sib	,imm... */
+__jit_inline void
+_pop_sil_r(jit_gpr_t rd)
+{
+    _Or(0x58, _rA(rd));
+}
 
-#define POPWr(RD)			_m32only((_d16(),		_Or		(0x58,_r2(RD)							)))
-#define POPWm(MD, MB, MI, MS)		_m32only((_d16(),		_O_r_X		(0x8f		     ,_b000		,MD,MB,MI,MS		)))
+__jit_inline void
+_pop_sil_m(int md, int mb, int mi, int ms)
+{
+    _O(0x8f);
+    _r_X(_b000, md, mb, mi, ms, 0);
+}
 
-#define POPLr(RD)			_m32only(			_Or		(0x58,_r4(RD)							))
-#define POPLm(MD, MB, MI, MS)		_m32only(			_O_r_X		(0x8f		     ,_b000		,MD,MB,MI,MS		))
+__jit_inline void
+_push_sil_r(jit_gpr_t rs)
+{
+    _Or(0x50, _rA(rs));
+}
 
+__jit_inline void
+_push_sil_m(int md, int mb, int mi, int ms)
+{
+    _O(0xff);
+    _r_X(_b110, md, mb, mi, ms, 0);
+}
 
-#define PUSHWr(RS)			_m32only((_d16(),		_Or		(0x50,_r2(RS)							)))
-#define PUSHWm(MD, MB, MI, MS)		_m32only((_d16(),		_O_r_X		(0xff,		     ,_b110		,MD,MB,MI,MS		)))
-#define PUSHWi(IM)			_m32only((_d16(),		_Os_sW		(0x68							,IM	)))
+__jit_inline void
+_push_c_i(long im)
+{
+    _O(0x6a);
+    _jit_B(im);
+}
 
-#define PUSHLr(RS)			_m32only(			_Or		(0x50,_r4(RS)							))
-#define PUSHLm(MD, MB, MI, MS)		_m32only(			_O_r_X		(0xff		     ,_b110		,MD,MB,MI,MS		))
-#define PUSHLi(IM)			_m32only(			_Os_sL		(0x68							,IM	))
+__jit_inline void
+_push_il_i(long im)
+{
+    if (_s8P(im))
+	_push_c_i(im);
+    else {
+	_O(0x68);
+	_jit_I(_s32(im));
+    }
+}
 
+/* actually valid in 64 bit mode */
+#if __WORDSIZE == 32
+__jit_inline void
+POPWr(jit_gpr_t rd)
+{
+    _d16();
+    _pop_sil_r(rd);
+}
 
-#define POPA_()				(_d16(),			_O		(0x61								))
-#define POPAD_()							_O		(0x61								)
+__jit_inline void
+POPWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+    _pop_sil_m(md, mb, mi, ms);
+}
 
-#define PUSHA_()			(_d16(),			_O		(0x60								))
-#define PUSHAD_()							_O		(0x60								)
+__jit_inline void
+POPLr(jit_gpr_t rd)
+{
+    _pop_sil_r(rd);
+}
 
-#define POPF_()								_O		(0x9d								)
-#define PUSHF_()							_O		(0x9c								)
+__jit_inline void
+POPLm(int md, int mb, int mi, int ms)
+{
+    _pop_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHWr(jit_gpr_t rs)
+{
+    _d16();
+    _push_sil_r(rs);
+}
+
+__jit_inline void
+PUSHWm(int md, int mb, int mi, int ms)
+{
+    _d16();
+    _push_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHWi(long im)
+{
+    if (_s8P(im))
+	_push_c_i(im);
+    else {
+	_d16();
+	_O(0x68);
+	_jit_W(_s16(im));
+    }
+}
+
+__jit_inline void
+PUSHLr(jit_gpr_t rs)
+{
+    _push_sil_r(rs);
+}
+
+__jit_inline void
+PUSHLm(int md, int mb, int mi, int ms)
+{
+    _push_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHLi(long im)
+{
+    _push_il_i(im);
+}
+#endif
+
+#define POPAD_					POPA_
+__jit_inline void
+POPA_(void)
+{
+    _d16();
+    _O(0x61);
+}
+
+#define PUSHAD_					PUSHA_
+__jit_inline void
+PUSHA_(void)
+{
+    _d16();
+    _O(0x60);
+}
+    
+__jit_inline void
+POPF_(void)
+{
+    _O(0x9d);
+}
+
+__jit_inline void
+PUSHF_(void)
+{
+    _O(0x9c);
+}
+
+#if __WORDSIZE == 64
+__jit_inline void
+POPQr(jit_gpr_t rd)
+{
+    _REXQr(rd);
+    _pop_sil_r(rd);
+}
+
+__jit_inline void
+POPQm(int md, int mb, int mi, int ms)
+{
+    _REXQm(mb, mi);
+    _pop_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHQr(jit_gpr_t rs)
+{
+    _REXQr(rs);
+    _push_sil_r(rs);
+}
+
+__jit_inline void
+PUSHQm(int md, int mb, int mi, int ms)
+{
+    _REXQm(mb, mi);
+    _push_sil_m(md, mb, mi, ms);
+}
+
+__jit_inline void
+PUSHQi(long im)
+{
+    _push_il_i(im);
+}
+#endif
 
 
 /* --- Test instructions --------------------------------------------------- */
