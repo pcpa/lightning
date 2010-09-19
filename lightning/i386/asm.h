@@ -219,18 +219,93 @@ typedef long	jit_idx_t;
 /* memory subformats - urgh! */
 
 /* _r_D() is RIP addressing mode if X86_TARGET_64BIT, use _r_DSIB() instead */
-#define _r_D(	R, D	  )	(_Mrm(_b00, R, _b101),					_jit_I(_s32(D)))
-#define _r_DSIB(R, D      )	(_Mrm(_b00, R, _b100),	_SIB(_SCL(1),_b100 ,_b101),	_jit_I(_s32(D)))
-#define _r_0B(	R,   B    )	(_Mrm(_b00, R, _rA(B)))
-#define _r_0BIS(R,   B,I,S)	(_Mrm(_b00, R, _b100),	_SIB(_SCL(S),_rA(I),_rA(B)))
-#define _r_1B(	R, D,B    )	(_Mrm(_b01, R, _rA(B)),					_jit_B(_s8(D)))
-#define _r_1BIS(R, D,B,I,S)	(_Mrm(_b01, R, _b100),	_SIB(_SCL(S),_rA(I),_rA(B)),	_jit_B(_s8(D)))
-#define _r_4B(	R, D,B    )	(_Mrm(_b10, R, _rA(B)),					_jit_I(_s32(D)))
-#define _r_4IS( R, D,I,S)	(_Mrm(_b00, R, _b100),	_SIB(_SCL(S),_rA(I),_b101 ),	_jit_I(_s32(D)))
-#define _r_4BIS(R, D,B,I,S)	(_Mrm(_b10, R, _b100),	_SIB(_SCL(S),_rA(I),_rA(B)),	_jit_I(_s32(D)))
+__jit_inline void
+_r_D(int rd, long md)
+{
+    _Mrm(_b00, rd, _b101);
+    _jit_I(_s32(md));
+}
 
-#define _r_DB(  R, D,B    )	((_s0P(D) && (!_rbp13P(B)) ? _r_0B  (R,  B    ) : (_s8P(D) ? _r_1B(  R,D,B    ) : _r_4B(  R,D,B    ))))
-#define _r_DBIS(R, D,B,I,S)	((_s0P(D) && (!_rbp13P(B)) ? _r_0BIS(R,  B,I,S) : (_s8P(D) ? _r_1BIS(R,D,B,I,S) : _r_4BIS(R,D,B,I,S))))
+__jit_inline void
+_r_DSIB(int rd, long md)
+{
+    _Mrm(_b00, rd, _b100);
+    _SIB(_SCL(1), _b100, _b101);
+    _jit_I(_s32(md));
+}
+
+__jit_inline void
+_r_0B(int rd, jit_gpr_t rb)
+{
+    _Mrm(_b00, rd, _rA(rb));
+}
+
+__jit_inline void
+_r_0BIS(int rd, jit_gpr_t rb, jit_gpr_t ri, long ms)
+{
+    _Mrm(_b00, rd, _b100);
+    _SIB(_SCL(ms), _rA(ri), _rA(rb));
+}
+
+__jit_inline void
+_r_1B(int rd, long md, jit_gpr_t rb)
+{
+    _Mrm(_b01, rd, _rA(rb));
+    _jit_B(md);
+}
+
+__jit_inline void
+_r_1BIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+{
+    _Mrm(_b01, rd, _b100);
+    _SIB(_SCL(ms), _rA(ri), _rA(rb));
+    _jit_B(md);
+}
+
+__jit_inline void
+_r_4B(int rd, long md, jit_gpr_t rb)
+{
+    _Mrm(_b10, rd, _rA(rb));
+    _jit_I(_s32(md));
+}
+
+__jit_inline void
+_r_4IS(int rd, long md, jit_gpr_t ri, long ms)
+{
+    _Mrm(_b00, rd, _b100);
+    _SIB(_SCL(ms), _rA(ri), _b101);
+    _jit_I(_s32(md));
+}
+
+__jit_inline void
+_r_4BIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+{
+    _Mrm(_b10, rd, _b100);
+    _SIB(_SCL(ms), _rA(ri), _rA(rb));
+    _jit_I(_s32(md));
+}
+
+__jit_inline void
+_r_DB(int rd, long md, jit_gpr_t rb)
+{
+    if (md == 0 && _rN(rb) != _rN(_RBP))
+	_r_0B(rd, rb);
+    else if (_s8P(md))
+	_r_1B(rd, md, rb);
+    else
+	_r_4B(rd, md, rb);
+}
+
+__jit_inline void
+_r_DBIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+{
+    if (md == 0 && _rN(rb) != _rN(_RBP))
+	_r_0BIS(rd, rb, ri, ms);
+    else if (_s8P(md))
+	_r_1BIS(rd, md, rb, ri, ms);
+    else
+	_r_4BIS(rd, md, rb, ri, ms);
+}
 
 /* Use RIP-addressing in 64-bit mode, if possible */
 #if __WORDSIZE == 32
