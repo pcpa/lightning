@@ -59,15 +59,42 @@ _inc_sil_r(jit_gpr_t rd)
 
 /* --- REX prefixes -------------------------------------------------------- */
 #define _BIT(X)			(!!(X))
-#define _d64(W,R,X,B)		(_jit_B(0x40|(W)<<3|(R)<<2|(X)<<1|(B)))
+#define _r1e8lP(R)		((int)(R) >= _RSP && (int)(R) <= _RDX)
 
-#define __REXwrxb(L,W,R,X,B)	((W|R|X|B) || (L) ? (void)_d64(W,R,X,B) : ((void)0))
-#define __REXwrx_(L,W,R,X,MR)	(__REXwrxb(L,W,R,X,_BIT(_rIP(MR)?0:_rXP(MR))))
-#define __REXw_x_(L,W,R,X,MR)	(__REXwrx_(L,W,_BIT(_rXP(R)),X,MR))
-#define __REX_reg(RR)		(__REXwrxb(0,0,0,00,_BIT(_rXP(RR))))
-#define __REX_mem(MB,MI)	(__REXwrxb(0,0,0,_BIT(_rXP(MI)),_BIT(_rXP(MB))))
+__jit_inline void
+__REXwrxb(int l, int w, int r, int x, int b)
+{
+    int		rex = (w << 3) | (r << 2) | (x << 1) | b;
 
-#define _r1e8lP(R)	((int)(R) >= _RSP && (int)(R) <= _RDX)
+    if (rex || l)
+	_jit_B(0x40 | rex);
+}
+
+__jit_inline void
+__REXwrx_(int l, int w, int r, int x, int mr)
+{
+    int		b = mr == _RIP ? 0 : _rXP(mr);
+
+    __REXwrxb(l, w, r, x, _BIT(b));
+}
+
+__jit_inline void
+__REXw_x_(int l, int w, int r, int x, int mr)
+{
+    __REXwrx_(l,w, _BIT(_rXP(r)), x, mr);
+}
+
+__jit_inline void
+__REX_reg(int rr)
+{
+    __REXwrxb(0, 0, 0, 0, _BIT(_rXP(rr)));
+}
+
+__jit_inline void
+__REX_mem(int mb, int mi)
+{
+    __REXwrxb(0, 0, 0, _BIT(_rXP(mi)), _BIT(_rXP(mb)));
+}
 
 __jit_inline void
 _rex_b_rr(int rr, int mr)
