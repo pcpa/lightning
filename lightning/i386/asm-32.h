@@ -65,12 +65,12 @@ _REXBrr(jit_gpr_t rr, jit_gpr_t mr)
 }
 
 __jit_inline void
-_REXBmr(jit_gpr_t mb, jit_gpr_t mi, jit_gpr_t rd)
+_REXBmr(jit_gpr_t rb, jit_gpr_t ri, jit_gpr_t rd)
 {
 }
 
 __jit_inline void
-_REXBrm(jit_gpr_t rs, jit_gpr_t mb, jit_gpr_t mi)
+_REXBrm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
@@ -80,7 +80,7 @@ _REXLr(jit_gpr_t rr)
 }
 
 __jit_inline void
-_REXLm(jit_gpr_t mb, jit_gpr_t mi)
+_REXLm(jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
@@ -95,12 +95,12 @@ _REXLrr(jit_gpr_t rr, jit_gpr_t mr)
 }
 
 __jit_inline void
-_REXLmr(jit_gpr_t mb, jit_gpr_t mi, jit_gpr_t rd)
+_REXLmr(jit_gpr_t rb, jit_gpr_t ri, jit_gpr_t rd)
 {
 }
 
 __jit_inline void
-_REXLrm(jit_gpr_t rs, jit_gpr_t mb, jit_gpr_t mi)
+_REXLrm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
@@ -113,10 +113,10 @@ POPWr(jit_gpr_t rd)
 }
 
 __jit_inline void
-POPWm(int md, jit_gpr_t mb, jit_gpr_t mi, int ms)
+POPWm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
-    _pop_sil_m(md, mb, mi, ms);
+    _pop_sil_m(md, rb, ri, ms);
 }
 
 __jit_inline void
@@ -126,9 +126,9 @@ POPLr(jit_gpr_t rd)
 }
 
 __jit_inline void
-POPLm(int md, jit_gpr_t mb, jit_gpr_t mi, int ms)
+POPLm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _pop_sil_m(md, mb, mi, ms);
+    _pop_sil_m(md, rb, ri, ms);
 }
 
 __jit_inline void
@@ -139,10 +139,10 @@ PUSHWr(jit_gpr_t rs)
 }
 
 __jit_inline void
-PUSHWm(int md, jit_gpr_t mb, jit_gpr_t mi, int ms)
+PUSHWm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
-    _push_sil_m(md, mb, mi, ms);
+    _push_sil_m(md, rb, ri, ms);
 }
 
 __jit_inline void
@@ -164,9 +164,9 @@ PUSHLr(jit_gpr_t rs)
 }
 
 __jit_inline void
-PUSHLm(int md, jit_gpr_t mb, jit_gpr_t mi, int ms)
+PUSHLm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _push_sil_m(md, mb, mi, ms);
+    _push_sil_m(md, rb, ri, ms);
 }
 
 __jit_inline void
