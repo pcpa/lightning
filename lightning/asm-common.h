@@ -165,7 +165,11 @@ static int jit_fail(const char *, const char*, int, const char *) JIT_UNUSED;
 #define _s29(I)         _ck_s(29,I)
 #define _s30(I)         _ck_s(30,I)
 #define _s31(I)         _ck_s(31,I)
-#define _s32(I)         _ck_s(32,I)
+#if __WORDSIZE == 32
+#  define _s32(I)	(I)
+#else
+#  define _s32(I)	_ck_s(32,I)
+#endif
 #define _u1(I)          _ck_u( 1,I)
 #define _u2(I)          _ck_u( 2,I)
 #define _u3(I)          _ck_u( 3,I)
@@ -197,6 +201,10 @@ static int jit_fail(const char *, const char*, int, const char *) JIT_UNUSED;
 #define _u29(I)         _ck_u(29,I)
 #define _u30(I)         _ck_u(30,I)
 #define _u31(I)         _ck_u(31,I)
-#define _u32(I)         _ck_u(32,I)
+#if __WORDSIZE == 32
+#  define _u32(I)	(I)
+#else
+#  define _u32(I)	_ck_u(32,I)
+#endif
 
 #endif /* __lightning_asm_common_h */
