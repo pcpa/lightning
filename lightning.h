@@ -100,6 +100,9 @@ struct {
     /* round to nearest? */
     _ui		rnd_near	: 1;
 } jit_flags;
+#else
+#  define	jit_gpr_t	int
+#  define	jit_fpr_t	int
 #endif
 
 #if defined(__i386__) && !defined(__x86_64__)
