@@ -235,22 +235,34 @@ typedef long	jit_idx_t;
 /* Use RIP-addressing in 64-bit mode, if possible */
 #if __WORDSIZE == 32
 __jit_inline void
-_r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+_i_X(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
 {
     if (ri == _NOREG) {
 	if (rb == _NOREG)
-	    _r_D(rd, md);
+	    _r_D(op, md);
 	else if (_rN(rb) == _rN(_RSP))
-	    _r_DBIS(rd, md, _RSP, _RSP, 1);
+	    _r_DBIS(op, md, _RSP, _RSP, 1);
 	else
-	    _r_DB(rd, md, rb);
+	    _r_DB(op, md, rb);
     }
     else if (rb == _NOREG)
-	_r_4IS(rd, md, ri, ms);
+	_r_4IS(op, md, ri, ms);
     else if (!_rR(ri) != _rR(_RSP))
-	_r_DBIS(rd, md, rb, ri, ms);
+	_r_DBIS(op, md, rb, ri, ms);
     else
 	JITFAIL("illegal index register: %esp");
+}
+
+__jit_inline void
+_r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+{
+    _i_X((int)rd, md, rb, ri, ms, unused);
+}
+
+__jit_inline void
+_f_X(jit_fpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+{
+    _i_X((int)rd, md, rb, ri, ms, unused);
 }
 #else
 #  if 0
@@ -270,24 +282,36 @@ _r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
 						         JITFAIL("illegal index register: %esp"))))
 #  else		/* 0 */
 __jit_inline void
-_r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+_i_X(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
 {
     if (ri == _NOREG) {
 	if (rb == _NOREG)
-	    _r_DSIB(rd, md);
+	    _r_DSIB(op, md);
 	else if (rb == _RIP)
-	    _r_D(rd, md);
+	    _r_D(op, md);
 	else if (_rN(rb) == _rN(_RSP))
-	    _r_DBIS(rd, md, _RSP, _RSP, 1);
+	    _r_DBIS(op, md, _RSP, _RSP, 1);
 	else
-	    _r_DB(rd, md, rb);
+	    _r_DB(op, md, rb);
     }
     else if (rb == _NOREG)
-	_r_4IS(rd, md, ri, ms);
+	_r_4IS(op, md, ri, ms);
     else if (!_rR(ri) != _rR(_RSP))
-	_r_DBIS(rd, md, rb, ri, ms);
+	_r_DBIS(op, md, rb, ri, ms);
     else
 	JITFAIL("illegal index register: %esp");
+}
+
+__jit_inline void
+_r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+{
+    _i_X((int)rd, md, rb, ri, ms, unused);
+}
+
+__jit_inline void
+_f_X(jit_fpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
+{
+    _i_X((int)rd, md, rb, ri, ms, unused);
 }
 #  endif	/* 0 */
 #endif
@@ -329,6 +353,10 @@ _r_X(jit_gpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
 #define	  _Os_Mrm_sL(OP	 ,MO,R,M	    ,L	)  (	    _Os	    (  OP,L),_Mrm(MO,R,M	    ),_sL(L)	  )
 #define	  _O_r_X(    OP	    ,R	,MD,MB,MI,MS	)  (	    _O	    (  OP  ),_r_X(   R	,MD,MB,MI,MS,0)		  )
 #define	 _OO_r_X(    OP	    ,R	,MD,MB,MI,MS	)  (	   _OO	    (  OP  ),_r_X(   R	,MD,MB,MI,MS,0)		  )
+#define	  _O_f_X(    OP	    ,R	,MD,MB,MI,MS	)  (	    _O	    (  OP  ),_f_X(   R	,MD,MB,MI,MS,0)		  )
+#define	 _OO_f_X(    OP	    ,R	,MD,MB,MI,MS	)  (	   _OO	    (  OP  ),_f_X(   R	,MD,MB,MI,MS,0)		  )
+#define	  _O_i_X(    OP	    ,R	,MD,MB,MI,MS	)  (	    _O	    (  OP  ),_i_X(   R	,MD,MB,MI,MS,0)		  )
+#define	 _OO_i_X(    OP	    ,R	,MD,MB,MI,MS	)  (	   _OO	    (  OP  ),_i_X(   R	,MD,MB,MI,MS,0)		  )
 #define	  _O_r_X_B(  OP	    ,R	,MD,MB,MI,MS,B	)  (	    _O	    (  OP  ),_r_X(   R	,MD,MB,MI,MS,1) ,_jit_B(B)	  )
 #define	  _O_r_X_W(  OP	    ,R	,MD,MB,MI,MS,W	)  (	    _O	    (  OP  ),_r_X(   R	,MD,MB,MI,MS,2) ,_jit_W(W)	  )
 #define	  _O_r_X_L(  OP	    ,R	,MD,MB,MI,MS,L	)  (	    _O	    (  OP  ),_r_X(   R	,MD,MB,MI,MS,4) ,_jit_I(L)	  )
@@ -362,14 +390,14 @@ __jit_inline void
 _alu_c_mr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O((op << 3) + 2);
-    _r_X(_r1(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _alu_c_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(op << 3);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -388,7 +416,7 @@ __jit_inline void
 _alu_c_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x80);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
     _jit_B(_s8(im));
 }
 
@@ -416,12 +444,12 @@ _alu_s_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_B(im);
     }
     else {
 	_O(0x81);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_W(_s16(im));
     }
 }
@@ -437,14 +465,14 @@ __jit_inline void
 _alu_sil_mr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O((op << 3) + 3);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _alu_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O((op << 3) + 1);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -471,12 +499,12 @@ _alu_il_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_B(im);
     }
     else {
 	_O(0x81);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_I(_s32(im));
     }
 }
@@ -543,11 +571,11 @@ __jit_inline void
 {
     if (im == 1) {
 	_O(0xd0);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
     }
     else {
 	_O(0xc0);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_B(_u8(im));
     }
 }
@@ -557,11 +585,11 @@ __jit_inline void
 {
     if (im == 1) {
 	_O(0xd1);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
     }
     else {
 	_O(0xc1);
-	_r_X(op, md, rb, ri, ms, 0);
+	_i_X(op, md, rb, ri, ms, 0);
 	_jit_B(_u8(im));
     }
 }
@@ -572,7 +600,7 @@ _rotsh_c_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd2);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -581,7 +609,7 @@ _rotsh_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd3);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
 }
 
 /* --- Bit test instructions ----------------------------------------------- */
@@ -606,7 +634,7 @@ _bt_sil_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xba);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
     _jit_B(_u8(im));
 }
 
@@ -621,7 +649,7 @@ __jit_inline void
 _bt_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _OO(0x0f83 | (op << 3));
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 /* --- Move instructions --------------------------------------------------- */
@@ -636,14 +664,14 @@ __jit_inline void
 _mov_c_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x8a);
-    _r_X(_r1(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _mov_c_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x88);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -656,7 +684,7 @@ _mov_c_ir(long im, jit_gpr_t rd)
 __jit_inline void
 _mov_c_im(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _r_X(0, md, rb, ri, ms, 0);
+    _i_X(0, md, rb, ri, ms, 0);
     _jit_B(_s8(im));
 }
 
@@ -671,14 +699,14 @@ __jit_inline void
 _mov_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x8b);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _mov_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x89);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
@@ -702,7 +730,7 @@ __jit_inline void
 _unary_c_m(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf6);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -716,7 +744,7 @@ __jit_inline void
 _unary_sil_m(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf7);
-    _r_X(op, md, rb, ri, ms, 0);
+    _i_X(op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -732,7 +760,7 @@ _imul_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xaf);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -826,7 +854,7 @@ _cmov_sil_mr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
     _d16();
     _O(0x0f);
     _O(0x40 | cc);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 /* --- Push/Pop instructions ----------------------------------------------- */
@@ -840,7 +868,7 @@ __jit_inline void
 _pop_sil_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x8f);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -853,7 +881,7 @@ __jit_inline void
 _push_sil_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xff);
-    _r_X(_b110, md, rb, ri, ms, 0);
+    _i_X(_b110, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -886,7 +914,7 @@ __jit_inline void
 _test_c_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x84);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -905,7 +933,7 @@ __jit_inline void
 _test_c_im(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf6);
-    _r_X(_b000, md, rb, ri, ms, 1);
+    _i_X(_b000, md, rb, ri, ms, 1);
     _jit_B(_s8(im));
 }
 
@@ -925,7 +953,7 @@ __jit_inline void
 _test_s_im(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf7);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
     _jit_W(_s16(im));
 }
 
@@ -940,7 +968,7 @@ __jit_inline void
 _test_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x85);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -959,7 +987,7 @@ __jit_inline void
 _test_il_im(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf7);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
     _jit_I(_s32(im));
 }
 
@@ -977,7 +1005,7 @@ _cmpxchg_c_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xb0);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -993,7 +1021,7 @@ _cmpxchg_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xb1);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1009,7 +1037,7 @@ _xadd_c_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xc0);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1025,7 +1053,7 @@ _xadd_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xc1);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1039,7 +1067,7 @@ __jit_inline void
 _xchg_c_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x86);
-    _r_X(_r1(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1053,7 +1081,7 @@ __jit_inline void
 _xchg_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x87);
-    _r_X(_rA(rs), md, rb, ri, ms, 0);
+    _r_X(rs, md, rb, ri, ms, 0);
 }
 
 /* --- Increment/Decrement instructions ------------------------------------ */
@@ -1075,28 +1103,28 @@ __jit_inline void
 _dec_c_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xfe);
-    _r_X(_b001, md, rb, ri, ms, 0);
+    _i_X(_b001, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _inc_c_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xfe);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _dec_sil_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xff);
-    _r_X(_b001, md, rb, ri, ms, 0);
+    _i_X(_b001, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _inc_sil_m(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xff);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
 }
 
 /* --- Misc instructions --------------------------------------------------- */
@@ -1113,7 +1141,7 @@ _bsf_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbc);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1129,7 +1157,7 @@ _bsr_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbd);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 /* short|int|long rd = (char)rs */
@@ -1147,7 +1175,7 @@ _movsb_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbe);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 /* int|long rd = (short)rs */
@@ -1165,7 +1193,7 @@ _movsw_il_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbf);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 /* unsigned short|int|long rd = (unsigned char)rs */
@@ -1183,7 +1211,7 @@ _movzb_sil_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb6);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 /* unsigned int|long rd = (unsigned short)rs */
@@ -1201,14 +1229,14 @@ _movzw_il_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb7);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
 _lea_il_mr(int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _O(0x8d);
-    _r_X(_rA(rd), md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -1868,7 +1896,7 @@ MOVWrm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-MOVWir(long im, int rd)
+MOVWir(long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
@@ -1882,7 +1910,7 @@ MOVWim(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
     _d16();
     _REXLrm(_NOREG, rb, ri);
     _O(0xc7);
-    _r_X(0, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
     _jit_W(_s16(im));
 }
 
@@ -1920,7 +1948,7 @@ MOVLim(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _O(0xc7);
-    _r_X(0, md, rb, ri, ms, 0);
+    _i_X(0, md, rb, ri, ms, 0);
     _jit_I(_s32(im));
 }
 
@@ -2083,7 +2111,7 @@ CALLsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, int ms)
 #endif
 #endif
     _O(0xff);
-    _r_X(_b010, rs, rb, ri, ms, 0);
+    _i_X(_b010, rs, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -2116,7 +2144,7 @@ JMPsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, int ms)
 #endif
 #endif
     _O(0xff);
-    _r_X(_b100, rs, rb, ri, ms, 0);
+    _i_X(_b100, rs, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -2241,7 +2269,7 @@ SETCCim(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
     _REXBrm(_NOREG, rb, ri);
     _O(0x0f);
     _O(0x90 | cc);
-    _r_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms, 0);
 }
 
 #define SETOm(D, B, I, S)		SETCCim(X86_CC_O,   D, B, I, S)
@@ -3043,7 +3071,7 @@ enum {
 };
 
 #define ESCmi(D, B, I, S, OP)						\
-    (_REXLrm(_NOREG, B, I), _O_r_X(0xd8 | (OP >> 3), (OP & 7), D, B, I, S))
+    (_REXLrm(_NOREG, B, I), _O_i_X(0xd8 | (OP >> 3), (OP & 7), D, B, I, S))
 
 #define ESCri(RD,OP)							\
     _O_Mrm(0xd8 | (OP >> 3), _b11, (OP & 7), RD)
@@ -3060,7 +3088,7 @@ enum {
 #define   FSTPSm(D,B,I,S)	ESCmi(D,B,I,S, 013)	/*   fstp m32real */
 #define   FLDCWm(D,B,I,S)	ESCmi(D,B,I,S, 015)	/*  fldcw m16int  */
 #define   FSTCWm(D,B,I,S)	/* 0x9b prefix to fnstcw */		\
-    (_REXLrm(_NOREG,B,I), _OO_r_X(0x9bd9,7,D,B,I,S))	/*  fstcw m16int  */
+    (_REXLrm(_NOREG,B,I), _OO_i_X(0x9bd9,7,D,B,I,S))	/*  fstcw m16int  */
 #define  FNSTCWm(D,B,I,S)	ESCmi(D,B,I,S, 017)	/* fnstcw m16int  */
 #define   FILDLm(D,B,I,S)	ESCmi(D,B,I,S, 030)	/*   fild m32int  */
 
@@ -3294,48 +3322,55 @@ enum {
 
 /*	_format	Opcd,	Mod,	r,	m,	mem=dsp+sib,	imm... */
 
-#define __SSELrr(OP,RS,RSA,RD,RDA)					\
-    (_REXLrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, RDA(RD), RSA(RS)))
-#define __SSELmr(OP,MD,MB,MI,MS,RD,RDA)					\
-    (_REXLmr(MB, MI, RD), _OO_r_X(0x0f00|(OP), RDA(RD), MD, MB, MI, MS))
-#define __SSELrm(OP,RS,RSA,MD,MB,MI,MS)					\
-    (_REXLrm(RS, MB, MI), _OO_r_X(0x0f00|(OP), RSA(RS), MD, MB, MI, MS))
-#define __SSEL1rm(OP,RS,RSA,MD,MB,MI,MS)				\
-    (_REXLrm(RS, MB, MI), _OO_r_X(0x0f01|(OP), RSA(RS), MD, MB, MI, MS))
+#define __SSELrr(OP, RS, RD)						\
+    (_REXFrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rX(RS)))
+#define __SSELFrr(OP, RS, RD)						\
+    (_REXLFrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rA(RD), _rX(RS)))
+#define __SSEFLrr(OP, RS, RD)						\
+    (_REXFLrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rA(RS)))
+#define __SSELmr(OP, MD, MB, MI, MS, RD)				\
+    (_REXFmr(MB, MI, RD), _OO_f_X(0x0f00|(OP), RD, MD, MB, MI, MS))
+#define __SSELrm(OP, RS, MD, MB, MI, MS)				\
+    (_REXFrm(RS, MB, MI), _OO_f_X(0x0f00|(OP), RS, MD, MB, MI, MS))
+#define __SSEL1rm(OP, RS, MD, MB, MI, MS)				\
+    (_REXFrm(RS, MB, MI), _OO_f_X(0x0f01|(OP), RS, MD, MB, MI, MS))
+#define _SSELrr(PX, OP, RS, RD)						\
+    (_jit_B(PX), __SSELrr(OP, RS, RD))
+#define _SSELFrr(PX, OP, RS, RD)					\
+    (_jit_B(PX), __SSELFrr(OP, RS, RD))
+#define _SSEFLrr(PX, OP, RS, RD)					\
+    (_jit_B(PX), __SSEFLrr(OP, RS, RD))
+#define _SSELmr(PX, OP, MD, MB, MI, MS, RD)				\
+    (_jit_B(PX), __SSELmr(OP, MD, MB, MI, MS, RD))
+#define _SSELrm(PX, OP, RS, MD, MB, MI, MS)				\
+    (_jit_B(PX), __SSELrm(OP, RS, MD, MB, MI, MS))
+#define _SSEL1rm(PX, OP, RS, MD, MB, MI, MS)				\
+    (_jit_B(PX), __SSEL1rm(OP, RS, MD, MB, MI, MS))
 
-#define _SSELrr(PX,OP,RS,RSA,RD,RDA)					\
-    (_jit_B(PX), __SSELrr(OP, RS, RSA, RD, RDA))
-#define _SSELmr(PX,OP,MD,MB,MI,MS,RD,RDA)				\
-    (_jit_B(PX), __SSELmr(OP, MD, MB, MI, MS, RD, RDA))
-#define _SSELrm(PX,OP,RS,RSA,MD,MB,MI,MS)				\
-    (_jit_B(PX), __SSELrm(OP, RS, RSA, MD, MB, MI, MS))
-#define _SSEL1rm(PX,OP,RS,RSA,MD,MB,MI,MS)				\
-    (_jit_B(PX), __SSEL1rm(OP, RS, RSA, MD, MB, MI, MS))
+#define _SSEPSrr(OP,RS,RD)		__SSELrr (      OP, RS, RD)
+#define _SSEPSmr(OP,MD,MB,MI,MS,RD)	__SSELmr (      OP, MD, MB, MI, MS, RD)
+#define _SSEPSrm(OP,RS,MD,MB,MI,MS)	__SSELrm (      OP, RS, MD, MB, MI, MS)
+#define _SSEPS1rm(OP,RS,MD,MB,MI,MS)	__SSEL1rm(      OP, RS, MD, MB, MI, MS)
 
-#define _SSEPSrr(OP,RS,RD)		__SSELrr (      OP, RS,_rX, RD,_rX)
-#define _SSEPSmr(OP,MD,MB,MI,MS,RD)	__SSELmr (      OP, MD, MB, MI, MS, RD,_rX)
-#define _SSEPSrm(OP,RS,MD,MB,MI,MS)	__SSELrm (      OP, RS,_rX, MD, MB, MI, MS)
-#define _SSEPS1rm(OP,RS,MD,MB,MI,MS)	__SSEL1rm(      OP, RS,_rX, MD, MB, MI, MS)
+#define _SSEPDrr(OP,RS,RD)		 _SSELrr (0x66, OP, RS, RD)
+#define _SSEPDmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0x66, OP, MD, MB, MI, MS, RD)
+#define _SSEPDrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0x66, OP, RS, MD, MB, MI, MS)
+#define _SSEPD1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0x66, OP, RS, MD, MB, MI, MS)
 
-#define _SSEPDrr(OP,RS,RD)		 _SSELrr (0x66, OP, RS,_rX, RD,_rX)
-#define _SSEPDmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0x66, OP, MD, MB, MI, MS, RD,_rX)
-#define _SSEPDrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0x66, OP, RS,_rX, MD, MB, MI, MS)
-#define _SSEPD1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0x66, OP, RS,_rX, MD, MB, MI, MS)
+#define _SSESSrr(OP,RS,RD)		 _SSELrr (0xf3, OP, RS, RD)
+#define _SSESSmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0xf3, OP, MD, MB, MI, MS, RD)
+#define _SSESSrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0xf3, OP, RS, MD, MB, MI, MS)
+#define _SSESS1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0xf3, OP, RS, MD, MB, MI, MS)
 
-#define _SSESSrr(OP,RS,RD)		 _SSELrr (0xf3, OP, RS,_rX, RD,_rX)
-#define _SSESSmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0xf3, OP, MD, MB, MI, MS, RD,_rX)
-#define _SSESSrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0xf3, OP, RS,_rX, MD, MB, MI, MS)
-#define _SSESS1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0xf3, OP, RS,_rX, MD, MB, MI, MS)
-
-#define _SSESDrr(OP,RS,RD)		 _SSELrr (0xf2, OP, RS,_rX, RD,_rX)
-#define _SSESDmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0xf2, OP, MD, MB, MI, MS, RD,_rX)
-#define _SSESDrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0xf2, OP, RS,_rX, MD, MB, MI, MS)
-#define _SSESD1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0xf2, OP, RS,_rX, MD, MB, MI, MS)
+#define _SSESDrr(OP,RS,RD)		 _SSELrr (0xf2, OP, RS, RD)
+#define _SSESDmr(OP,MD,MB,MI,MS,RD)	 _SSELmr (0xf2, OP, MD, MB, MI, MS, RD)
+#define _SSESDrm(OP,RS,MD,MB,MI,MS)	 _SSELrm (0xf2, OP, RS, MD, MB, MI, MS)
+#define _SSESD1rm(OP,RS,MD,MB,MI,MS)	 _SSEL1rm(0xf2, OP, RS, MD, MB, MI, MS)
 
 #define LDMXCSRmr(MD, MB, MI, MS)					\
-    _REXLmr(MB, MI, _NOREG), _OO_r_X(0x0fae, 2, MD, MB, MI, MS)
+    _REXLmr(MB, MI, _NOREG), _OO_i_X(0x0fae, 2, MD, MB, MI, MS)
 #define STMXCSRrm(MD, MB, MI, MS)					\
-    _REXLrm(_NOREG, MI, MB), _OO_r_X(0x0fae, 3, MD, MB, MI, MS)
+    _REXLrm(_NOREG, MI, MB), _OO_i_X(0x0fae, 3, MD, MB, MI, MS)
 
 #define ADDPSrr(RS, RD)			_SSEPSrr(X86_SSE_ADD, RS, RD)
 #define ADDPSmr(MD, MB, MI, MS, RD)	_SSEPSmr(X86_SSE_ADD, MD, MB, MI, MS, RD)
@@ -3485,124 +3520,124 @@ enum {
 #define MOVAPDmr(MD, MB, MI, MS, RD)	_SSEPDmr (X86_SSE_MOVA, MD, MB, MI, MS, RD)
 #define MOVAPDrm(RS, MD, MB, MI, MS)	_SSEPD1rm(X86_SSE_MOVA, RS, MD, MB, MI, MS)
 
-#define CVTPS2PIrr(RS, RD)		__SSELrr(      X86_SSE_CVTSI, RS,_rX, RD,_rM)
-#define CVTPS2PImr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTSI, MD, MB, MI, MS, RD,_rM)
-#define CVTPD2PIrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTSI, RS,_rX, RD,_rM)
-#define CVTPD2PImr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTSI, MD, MB, MI, MS, RD,_rM)
+#define CVTPS2PIrr(RS, RD)		__SSELrr(      X86_SSE_CVTSI, RS, RD)
+#define CVTPS2PImr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTSI, MD, MB, MI, MS, RD)
+#define CVTPD2PIrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTSI, RS, RD)
+#define CVTPD2PImr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTSI, MD, MB, MI, MS, RD)
 
-#define CVTPI2PSrr(RS, RD)		__SSELrr(      X86_SSE_CVTIS, RS,_rM, RD,_rX)
-#define CVTPI2PSmr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTIS, MD, MB, MI, MS, RD,_rX)
-#define CVTPI2PDrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTIS, RS,_rM, RD,_rX)
-#define CVTPI2PDmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTIS, MD, MB, MI, MS, RD,_rX)
+#define CVTPI2PSrr(RS, RD)		__SSELrr(      X86_SSE_CVTIS, RS, RD)
+#define CVTPI2PSmr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTIS, MD, MB, MI, MS, RD)
+#define CVTPI2PDrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTIS, RS, RD)
+#define CVTPI2PDmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTIS, MD, MB, MI, MS, RD)
 
-#define CVTPS2PDrr(RS, RD)		__SSELrr(      X86_SSE_CVTSD, RS,_rX, RD,_rX)
-#define CVTPS2PDmr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTSD, MD, MB, MI, MS, RD,_rX)
-#define CVTPD2PSrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTSD, RS,_rX, RD,_rX)
-#define CVTPD2PSmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTSD, MD, MB, MI, MS, RD,_rX)
+#define CVTPS2PDrr(RS, RD)		__SSELrr(      X86_SSE_CVTSD, RS, RD)
+#define CVTPS2PDmr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_CVTSD, MD, MB, MI, MS, RD)
+#define CVTPD2PSrr(RS, RD)		 _SSELrr(0x66, X86_SSE_CVTSD, RS, RD)
+#define CVTPD2PSmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_CVTSD, MD, MB, MI, MS, RD)
 
-#define CVTSS2SDrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_CVTSD, RS,_rX, RD,_rX)
-#define CVTSS2SDmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTSD, MD, MB, MI, MS, RD,_rX)
-#define CVTSD2SSrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_CVTSD, RS,_rX, RD,_rX)
-#define CVTSD2SSmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTSD, MD, MB, MI, MS, RD,_rX)
+#define CVTSS2SDrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_CVTSD, RS, RD)
+#define CVTSS2SDmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTSD, MD, MB, MI, MS, RD)
+#define CVTSD2SSrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_CVTSD, RS, RD)
+#define CVTSD2SSmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTSD, MD, MB, MI, MS, RD)
 
-#define CVTTSS2SILrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_CVTTSI, RS,_rX, RD,_r4)
-#define CVTTSS2SILmr(MD, MB, MI, MS, RD) _SSELmr(0xf3, X86_SSE_CVTTSI, MD, MB, MI, MS, RD,_r4)
-#define CVTTSD2SILrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_CVTTSI, RS,_rX, RD,_r4)
-#define CVTTSD2SILmr(MD, MB, MI, MS, RD) _SSELmr(0xf2, X86_SSE_CVTTSI, MD, MB, MI, MS, RD,_r4)
+#define CVTTSS2SILrr(RS, RD)		 _SSELFrr(0xf3, X86_SSE_CVTTSI, RS, RD)
+#define CVTTSS2SILmr(MD, MB, MI, MS, RD) _SSELmr(0xf3, X86_SSE_CVTTSI, MD, MB, MI, MS, RD)
+#define CVTTSD2SILrr(RS, RD)		 _SSELFrr(0xf2, X86_SSE_CVTTSI, RS, RD)
+#define CVTTSD2SILmr(MD, MB, MI, MS, RD) _SSELmr(0xf2, X86_SSE_CVTTSI, MD, MB, MI, MS, RD)
 
-#define CVTSS2SILrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_CVTSI, RS,_rX, RD,_r4)
-#define CVTSS2SILmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTSI, MD, MB, MI, MS, RD,_r4)
-#define CVTSD2SILrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_CVTSI, RS,_rX, RD,_r4)
-#define CVTSD2SILmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTSI, MD, MB, MI, MS, RD,_r4)
+#define CVTSS2SILrr(RS, RD)		 _SSELFrr(0xf3, X86_SSE_CVTSI, RS, RD)
+#define CVTSS2SILmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTSI, MD, MB, MI, MS, RD)
+#define CVTSD2SILrr(RS, RD)		 _SSELFrr(0xf2, X86_SSE_CVTSI, RS, RD)
+#define CVTSD2SILmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTSI, MD, MB, MI, MS, RD)
 
-#define CVTSI2SSLrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_CVTIS, RS,_r4, RD,_rX)
-#define CVTSI2SSLmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTIS, MD, MB, MI, MS, RD,_rX)
-#define CVTSI2SDLrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_CVTIS, RS,_r4, RD,_rX)
-#define CVTSI2SDLmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTIS, MD, MB, MI, MS, RD,_rX)
+#define CVTSI2SSLrr(RS, RD)		 _SSEFLrr(0xf3, X86_SSE_CVTIS, RS, RD)
+#define CVTSI2SSLmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, X86_SSE_CVTIS, MD, MB, MI, MS, RD)
+#define CVTSI2SDLrr(RS, RD)		 _SSEFLrr(0xf2, X86_SSE_CVTIS, RS, RD)
+#define CVTSI2SDLmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTIS, MD, MB, MI, MS, RD)
 
-#define MOVDLXrr(RS, RD)		 _SSELrr(0x66, 0x6e, RS,_r4, RD,_rX)
-#define MOVDLXmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, 0x6e, MD, MB, MI, MS, RD,_rX)
+#define MOVDLXrr(RS, RD)		 _SSEFLrr(0x66, 0x6e, RS, RD)
+#define MOVDLXmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, 0x6e, MD, MB, MI, MS, RD)
 
-#define MOVDXLrr(RS, RD)		 _SSELrr(0x66, 0x7e, RS,_rX, RD,_r4)
-#define MOVDXLrm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, 0x7e, RS,_rX, MD, MB, MI, MS)
+#define MOVDXLrr(RS, RD)		 _SSELrr(0x66, 0x7e, RS, RD)
+#define MOVDXLrm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, 0x7e, RS, MD, MB, MI, MS)
 
-#define MOVDLMrr(RS, RD)		__SSELrr(      0x6e, RS,_r4, RD,_rM)
-#define MOVDLMmr(MD, MB, MI, MS, RD)	__SSELmr(      0x6e, MD, MB, MI, MS, RD,_rM)
+#define MOVDLMrr(RS, RD)		__SSELrr(      0x6e, RS, RD)
+#define MOVDLMmr(MD, MB, MI, MS, RD)	__SSELmr(      0x6e, MD, MB, MI, MS, RD)
 
-#define MOVDMLrr(RS, RD)		__SSELrr(      0x7e, RS,_rM, RD,_r4)
-#define MOVDMLrm(RS, MD, MB, MI, MS)	__SSELrm(      0x7e, RS,_rM, MD, MB, MI, MS)
+#define MOVDMLrr(RS, RD)		__SSELrr(      0x7e, RS, RD)
+#define MOVDMLrm(RS, MD, MB, MI, MS)	__SSELrm(      0x7e, RS, MD, MB, MI, MS)
 
-#define MOVDQ2Qrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_MOV2, RS,_rX, RD,_rM)
-#define MOVQ2DQrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_MOV2, RS,_rM, RD,_rX)
-#define MOVHLPSrr(RS, RD)		__SSELrr(      X86_SSE_MOVLP, RS,_rX, RD,_rX)
-#define MOVLHPSrr(RS, RD)		__SSELrr(      X86_SSE_MOVHP, RS,_rX, RD,_rX)
+#define MOVDQ2Qrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_MOV2, RS, RD)
+#define MOVQ2DQrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_MOV2, RS, RD)
+#define MOVHLPSrr(RS, RD)		__SSELrr(      X86_SSE_MOVLP, RS, RD)
+#define MOVLHPSrr(RS, RD)		__SSELrr(      X86_SSE_MOVHP, RS, RD)
 
-#define MOVDQArr(RS, RD)		 _SSELrr(0x66, 0x6f, RS,_rX, RD,_rX)
-#define MOVDQAmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, 0x6f, MD, MB, MI, MS, RD,_rX)
-#define MOVDQArm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, 0x7f, RS,_rX, MD, MB, MI, MS)
+#define MOVDQArr(RS, RD)		 _SSELrr(0x66, 0x6f, RS, RD)
+#define MOVDQAmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, 0x6f, MD, MB, MI, MS, RD)
+#define MOVDQArm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, 0x7f, RS, MD, MB, MI, MS)
 
-#define MOVDQUrr(RS, RD)		 _SSELrr(0xf3, 0x6f, RS,_rX, RD,_rX)
-#define MOVDQUmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, 0x6f, MD, MB, MI, MS, RD,_rX)
-#define MOVDQUrm(RS, MD, MB, MI, MS)	 _SSELrm(0xf3, 0x7f, RS,_rX, MD, MB, MI, MS)
+#define MOVDQUrr(RS, RD)		 _SSELrr(0xf3, 0x6f, RS, RD)
+#define MOVDQUmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf3, 0x6f, MD, MB, MI, MS, RD)
+#define MOVDQUrm(RS, MD, MB, MI, MS)	 _SSELrm(0xf3, 0x7f, RS, MD, MB, MI, MS)
 
-#define MOVHPDmr(MD, MB, MI, MS, RD)	 _SSELmr (0x66, X86_SSE_MOVHP, MD, MB, MI, MS, RD,_rX)
-#define MOVHPDrm(RS, MD, MB, MI, MS)	 _SSEL1rm(0x66, X86_SSE_MOVHP, RS,_rX, MD, MB, MI, MS)
-#define MOVHPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVHP, MD, MB, MI, MS, RD,_rX)
-#define MOVHPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVHP, RS,_rX, MD, MB, MI, MS)
+#define MOVHPDmr(MD, MB, MI, MS, RD)	 _SSELmr (0x66, X86_SSE_MOVHP, MD, MB, MI, MS, RD)
+#define MOVHPDrm(RS, MD, MB, MI, MS)	 _SSEL1rm(0x66, X86_SSE_MOVHP, RS, MD, MB, MI, MS)
+#define MOVHPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVHP, MD, MB, MI, MS, RD)
+#define MOVHPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVHP, RS, MD, MB, MI, MS)
 
-#define MOVLPDmr(MD, MB, MI, MS, RD)	 _SSELmr (0x66, X86_SSE_MOVLP, MD, MB, MI, MS, RD,_rX)
-#define MOVLPDrm(RS, MD, MB, MI, MS)	 _SSEL1rm(0x66, X86_SSE_MOVLP, RS,_rX, MD, MB, MI, MS)
-#define MOVLPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVLP, MD, MB, MI, MS, RD,_rX)
-#define MOVLPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVLP, RS,_rX, MD, MB, MI, MS)
+#define MOVLPDmr(MD, MB, MI, MS, RD)	 _SSELmr (0x66, X86_SSE_MOVLP, MD, MB, MI, MS, RD)
+#define MOVLPDrm(RS, MD, MB, MI, MS)	 _SSEL1rm(0x66, X86_SSE_MOVLP, RS, MD, MB, MI, MS)
+#define MOVLPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVLP, MD, MB, MI, MS, RD)
+#define MOVLPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVLP, RS, MD, MB, MI, MS)
 
 #define PCMPEQBrr(RS, RD)						\
-    _SSELrr(0x66, 0x74, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0x74, RS, RD)
 #define PCMPEQBrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x74, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0x74, MD, MB, MI, MS, RD)
 
 #define PCMPEQWrr(RS, RD)						\
-    _SSELrr(0x66, 0x75, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0x75, RS, RD)
 #define PCMPEQWrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x75, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0x75, MD, MB, MI, MS, RD)
 
 #define PCMPEQLrr(RS, RD)						\
-    _SSELrr(0x66, 0x76, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0x76, RS, RD)
 #define PCMPEQLrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x76, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0x76, MD, MB, MI, MS, RD)
 
 #define PSRLWrr(RS, RD)							\
-    _SSELrr(0x66, 0xd1, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0xd1, RS, RD)
 #define PSRLWrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0xd1, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0xd1, MD, MB, MI, MS, RD)
 #define PSRLWir(IM, RD)							\
     (_O(0x66), _REXLrr(_NOREG, RD),					\
      _OO_Mrm(0x0f71, _b11, 2, _rX(RD)), _O(IM))
 
 #define PSRLLrr(RS, RD)							\
-    _SSELrr(0x66, 0xd2, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0xd2, RS, RD)
 #define PSRLLrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0xd2, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0xd2, MD, MB, MI, MS, RD)
 #define PSRLLir(IM, RD)							\
-    (_O(0x66), _REXLrr(_NOREG, RD),					\
+    (_O(0x66), _REXLFrr(_NOREG, RD),					\
      _OO_Mrm(0x0f72, _b11, 2, _rX(RD)), _O(IM))
 
 #define PSRLQrr(RS, RD)							\
-    _SSELrr(0x66, 0xd3, RS,_rX, RD,_rX)
+    _SSELrr(0x66, 0xd3, RS, RD)
 #define PSRLQrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0xd3, MD, MB, MI, MS, RD,_rX)
+    _SSELmr(0x66, 0xd3, MD, MB, MI, MS, RD)
 #define PSRLQir(IM, RD)							\
-    (_O(0x66), _REXLrr(_NOREG, RD),					\
+    (_O(0x66), _REXLFrr(_NOREG, RD),					\
      _OO_Mrm(0x0f73, _b11, 2, _rX(RD)), _O(IM))
 
 /* SSE4.1 */
 #define ROUNDSSrri(RS, RD, IM)						\
-    (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
+    (_O(0x66), _REXFrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
      _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
 #define ROUNDSDrri(RS, RD, IM)						\
-    (_O(0x66), _REXLrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0a),	\
+    (_O(0x66), _REXFrr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0a),	\
      _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
 #define PCMPEQQrr(RS, RD)						\
-    (_O(0x66), _REXLrr(RD, RS), _OO(0xf0038), _O(0x29),			\
+    (_O(0x66), _REXFrr(RD, RS), _OO(0xf0038), _O(0x29),			\
      _Mrm(_b11, _rX(RS), _rX(RD)))
 
 /*** References:										*/

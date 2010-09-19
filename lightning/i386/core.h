@@ -204,7 +204,7 @@ jit_addi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
     else if (r0 == r1)
 	ADDLir(i0, r0);
     else
-	LEALmr(i0, r1, 0, 0, r0);
+	LEALmr(i0, r1, _NOREG, 0, r0);
 }
 
 #define jit_addr_i(r0, r1, r2)		jit_addr_i(r0, r1, r2)
@@ -692,7 +692,7 @@ jit_divr_i_(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2,
 	    int is_signed, int is_divide)
 {
     jit_gpr_t	div;
-    jit_gpr_t		pop;
+    int		pop;
 
     if (r0 != _RDX)
 	jit_pushr_i(_RDX);
@@ -888,7 +888,7 @@ jit_lshi_i(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
     if (i0 == 0)
 	jit_movr_i(r0, r1);
     else if (i0 <= 3)
-	LEALmr(0, 0, r1, 1 << i0, r0);
+	LEALmr(0, _NOREG, r1, 1 << i0, r0);
     else {
 	jit_movr_i(r0, r1);
 	SHLLir(i0, r0);
@@ -1584,7 +1584,7 @@ jit_extr_s_ui(jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldr_uc(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVZBLmr(0, r1, 0, 0, r0);
+    MOVZBLmr(0, r1, _NOREG, 0, r0);
 }
 
 #define jit_ldxr_uc(r0, r1, r2)		jit_ldxr_uc(r0, r1, r2)
@@ -1598,7 +1598,7 @@ jit_ldxr_uc(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 jit_ldr_us(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVZWLmr(0, r1, 0, 0, r0);
+    MOVZWLmr(0, r1, _NOREG, 0, r0);
 }
 
 #define jit_ldxr_us(r0, r1, r2)		jit_ldxr_us(r0, r1, r2)
@@ -1612,7 +1612,7 @@ jit_ldxr_us(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 jit_str_s(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVWrm(r1, 0, r0, 0, 0);
+    MOVWrm(r1, 0, r0, _NOREG, 0);
 }
 
 #define jit_stxr_s(r0, r1, r2)		jit_stxr_s(r0, r1, r2)
@@ -1626,7 +1626,7 @@ jit_stxr_s(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 jit_str_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVLrm(r1, 0, r0, 0, 0);
+    MOVLrm(r1, 0, r0, _NOREG, 0);
 }
 
 #define jit_stxr_i(r0, r1, r2)		jit_stxr_i(r0, r1, r2)

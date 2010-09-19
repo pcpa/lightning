@@ -35,7 +35,7 @@
 
 #define JIT_FPR_NUM			6
 #define JIT_FPRET			_XMM0
-#define JIT_FPR(i)			(_XMM8 + (i))
+#define JIT_FPR(i)			((jit_fpr_t)(_XMM8 + (i)))
 #define JIT_FPTMP0			_XMM14
 #define JIT_FPTMP1			_XMM15
 
@@ -921,7 +921,7 @@ __jit_inline void
 jit_getarg_f(jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_FP_ARG_MAX)
-	jit_movr_f(f0, _XMM0 + ofs);
+	jit_movr_f(f0, (jit_fpr_t)(_XMM0 + ofs));
     else
 	jit_ldxi_f(f0, JIT_FP, ofs);
 }
@@ -931,7 +931,7 @@ __jit_inline void
 jit_getarg_d(jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_FP_ARG_MAX)
-	jit_movr_d(f0, _XMM0 + ofs);
+	jit_movr_d(f0, (jit_fpr_t)(_XMM0 + ofs));
     else
 	jit_ldxi_d(f0, JIT_FP, ofs);
 }
@@ -945,7 +945,7 @@ jit_pusharg_f(jit_fpr_t f0)
 	jit_str_f(JIT_SP, f0);
     }
     else
-	jit_movr_f(_XMM0 + _jitl.nextarg_putfp, f0);
+	jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
 }
 
 #define jit_pusharg_d(f0)		jit_pusharg_d(f0)
@@ -957,7 +957,7 @@ jit_pusharg_d(jit_fpr_t f0)
 	jit_str_d(JIT_SP, f0);
     }
     else
-	jit_movr_d(_XMM0 + _jitl.nextarg_putfp, f0);
+	jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
 }
 
 #endif /* __lightning_fp_h */

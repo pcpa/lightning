@@ -36,7 +36,8 @@
 #define JIT_FPR_NUM			6
 #define JIT_FPRET			_ST0
 
-#define JIT_FPR(i)			((jit_sse_p() ? _XMM0 : _ST0) + i)
+#define JIT_FPR(i)							\
+    ((jit_fpr_t)((jit_sse_p() ? _XMM0 : _ST0) + i))
 #define JIT_FPTMP0			_XMM6
 #define JIT_FPTMP1			_XMM7
 #include "fp-sse.h"

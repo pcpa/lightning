@@ -257,21 +257,21 @@ x87_divr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 __jit_inline void
 x87_ldi_f(jit_fpr_t f0, void *i0)
 {
-    FLDSm((long)i0, 0, 0, 0);
+    FLDSm((long)i0, _NOREG, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
 x87_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
 {
-    FLDSm(0, r0, 0, 0);
+    FLDSm(0, r0, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
 x87_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
-    FLDSm(i0, r0, 0, 0);
+    FLDSm(i0, r0, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
@@ -285,21 +285,21 @@ x87_ldxr_f(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 x87_ldi_d(jit_fpr_t f0, void *i0)
 {
-    FLDLm((long)i0, 0, 0, 0);
+    FLDLm((long)i0, _NOREG, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
 x87_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
 {
-    FLDLm(0, r0, 0, 0);
+    FLDLm(0, r0, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
 x87_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
-    FLDLm(i0, r0, 0, 0);
+    FLDLm(i0, r0, _NOREG, 0);
     FSTPr(f0 + 1);
 }
 
@@ -314,10 +314,10 @@ __jit_inline void
 x87_sti_f(void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTSm((long)i0, 0, 0, 0);
+	FSTSm((long)i0, _NOREG, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTSm((long)i0, 0, 0, 0);
+	FSTSm((long)i0, _NOREG, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -326,10 +326,10 @@ __jit_inline void
 x87_str_f(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTSm(0, r0, 0, 0);
+	FSTSm(0, r0, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTSm(0, r0, 0, 0);
+	FSTSm(0, r0, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -338,10 +338,10 @@ __jit_inline void
 x87_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTSm(i0, r0, 0, 0);
+	FSTSm(i0, r0, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTSm(i0, r0, 0, 0);
+	FSTSm(i0, r0, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -362,10 +362,10 @@ __jit_inline void
 x87_sti_d(void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTLm((long)i0, 0, 0, 0);
+	FSTLm((long)i0, _NOREG, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTLm((long)i0, 0, 0, 0);
+	FSTLm((long)i0, _NOREG, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -374,10 +374,10 @@ __jit_inline void
 x87_str_d(jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTLm(0, r0, 0, 0);
+	FSTLm(0, r0, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTLm(0, r0, 0, 0);
+	FSTLm(0, r0, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -386,10 +386,10 @@ __jit_inline void
 x87_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
-	FSTLm(i0, r0, 0, 0);
+	FSTLm(i0, r0, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FSTLm(i0, r0, 0, 0);
+	FSTLm(i0, r0, _NOREG, 0);
 	FXCHr(f0);
     }
 }
@@ -519,7 +519,7 @@ __jit_inline void
 x87_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 {
     jit_pushr_i(r0);
-    FILDLm(0, _RSP, 0, 0);
+    FILDLm(0, _RSP, _NOREG, 0);
     FSTPr(f0 + 1);
     jit_popr_i(r0);
 }
@@ -530,10 +530,10 @@ x87_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     jit_pushr_i(_RAX);
     /* store integer using current rounding mode */
     if (f0 == _ST0)
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
 	FXCHr(f0);
     }
     jit_popr_i(r0);
@@ -634,7 +634,7 @@ _x87_386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FSTPr(_ST1);
 
     /* store value and pop x87 stack */
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
 
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
@@ -655,7 +655,7 @@ _x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FLDr(f0);
 
     /* store control word */
-    FSTCWm(0, _RSP, 0, 0);
+    FSTCWm(0, _RSP, _NOREG, 0);
     /* load control word */
     jit_ldr_s(_RAX, _RSP);
     /* make copy */
@@ -671,7 +671,7 @@ _x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 
     /* load new control word */
     jit_str_s(_RSP, _RAX);
-    FLDCWm(0, _RSP, 0, 0);
+    FLDCWm(0, _RSP, _NOREG, 0);
 
     /* compare with 0 */
     FTST_();
@@ -694,10 +694,10 @@ _x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FADDPr(_ST1);
 
     /* round adjusted value using truncation */
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
 
     /* load result and restore state */
-    FLDCWm(sizeof(long), _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, _NOREG, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_ldr_i(r0, _RSP);
@@ -718,7 +718,7 @@ _x87_i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, 0, 0);
+    FSTCWm(0, _RSP, _NOREG, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
 
@@ -737,17 +737,17 @@ _x87_i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, 0, 0);
+    FLDCWm(0, _RSP, _NOREG, 0);
     if (f0 == _ST0)
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
 	FXCHr(f0);
     }
 
     /* load result and restore state */
-    FLDCWm(sizeof(long), _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, _NOREG, 0);
     jit_ldr_i(r0, _RSP);
     jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
@@ -757,7 +757,7 @@ _x87_i686_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
     FLDr(f0);
-    FISTTPLm(0, _RSP, 0, 0);
+    FISTTPLm(0, _RSP, _NOREG, 0);
     jit_popr_i(r0);
 }
 
@@ -776,7 +776,7 @@ _x87_safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, 0, 0);
+    FSTCWm(0, _RSP, _NOREG, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
 
@@ -793,18 +793,18 @@ _x87_safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, 0, 0);
+    FLDCWm(0, _RSP, _NOREG, 0);
 
     if (f0 == _ST0)
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
 	FXCHr(f0);
     }
 
     /* load integer and restore state */
-    FLDCWm(sizeof(long), _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, _NOREG, 0);
     jit_ldr_i(r0, _RSP);
     jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
@@ -828,7 +828,7 @@ _x87_i386_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FLD1_();
     FSUBRPr(_ST1);
     jit_patch_rel_char_at(label, _jit.x.pc);
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_popr_i(r0);
@@ -850,7 +850,7 @@ _x87_i686_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FCOMIr(f0 + 1);
     FXCHr(f0 + 1);
     /* store integer */
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
     jit_popr_i(r0);
     JPESm(_jit.x.pc + 3);
     label = _jit.x.pc;
@@ -877,7 +877,7 @@ _x87_safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, 0, 0);
+    FSTCWm(0, _RSP, _NOREG, 0);
     jit_ldr_s(r0, _RSP);
     jit_stxi_s(sizeof(long), _RSP, r0);
 
@@ -894,17 +894,17 @@ _x87_safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 
     /* load new control word and convert integer */
     jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, 0, 0);
+    FLDCWm(0, _RSP, _NOREG, 0);
     if (f0 == _ST0)
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, 0, 0);
+	FISTLm(0, _RSP, _NOREG, 0);
 	FXCHr(f0);
     }
 
     /* load integer and restore state */
-    FLDCWm(sizeof(long), _RSP, 0, 0);
+    FLDCWm(sizeof(long), _RSP, _NOREG, 0);
     jit_ldr_i(r0, _RSP);
     jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
 }
@@ -928,7 +928,7 @@ _x87_i386_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FLD1_();
     FADDPr(_ST1);
     jit_patch_rel_char_at(label, _jit.x.pc);
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_popr_i(r0);
@@ -948,7 +948,7 @@ _x87_i686_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* compare and set flags */
     FCOMIr(f0 + 1);
     /* store integer */
-    FISTPLm(0, _RSP, 0, 0);
+    FISTPLm(0, _RSP, _NOREG, 0);
     jit_popr_i(r0);
     JPESm(_jit.x.pc + 4);
     label = _jit.x.pc;
@@ -997,7 +997,7 @@ x87_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 
 __jit_inline void
 _x87_i386_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
-		 int shift, int and, int code)
+		 int shift, int _and, int code)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1009,8 +1009,8 @@ _x87_i386_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
 	MOVLrr(_RAX, r0);
     FNSTSWr(_RAX);
     SHRLir(shift, _RAX);
-    if (and)
-	ANDLir(and, _RAX);
+    if (_and)
+	ANDLir(_and, _RAX);
     else
 	MOVLir(0, _RAX);
     if (shift == 8) {
@@ -1243,7 +1243,7 @@ x87_unordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 
 __jit_inline void
 _x87_i386_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
-		  int shift, int and, int cmp, int code)
+		  int shift, int _and, int cmp, int code)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1254,8 +1254,8 @@ _x87_i386_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
     jit_pushr_i(_RAX);
     FNSTSWr(_RAX);
     SHRLir(shift, _RAX);
-    if (and)
-	ANDLir(and, _RAX);
+    if (_and)
+	ANDLir(_and, _RAX);
     if (cmp)
 	CMPLir(cmp, _RAX);
     jit_popr_i(_RAX);

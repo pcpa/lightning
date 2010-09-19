@@ -104,6 +104,31 @@ _REXLrm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
+__jit_inline void
+_REXLFrr(jit_gpr_t rr, jit_fpr_t mr)
+{
+}
+
+__jit_inline void
+_REXFrr(jit_fpr_t rr, jit_fpr_t mr)
+{
+}
+
+__jit_inline void
+_REXFLrr(jit_fpr_t rr, jit_gpr_t mr)
+{
+}
+
+__jit_inline void
+_REXFmr(jit_gpr_t rb, jit_gpr_t ri, jit_fpr_t rd)
+{
+}
+
+__jit_inline void
+_REXFrm(jit_fpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
+{
+}
+
 /* --- Push/Pop instructions ----------------------------------------------- */
 __jit_inline void
 POPWr(jit_gpr_t rd)

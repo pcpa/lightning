@@ -52,7 +52,7 @@ jit_flush_code(void *dest, void *end)
      and more common (Fedora, for example), so we implement our
      jit_flush_code as an mprotect.  */
 #ifdef __linux__
-  static unsigned long prev_page = 0, prev_length = 0;
+  static long prev_page = 0, prev_length = 0;
   long page, length;
 #ifdef PAGESIZE
   const int page_size = PAGESIZE;
