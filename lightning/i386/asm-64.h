@@ -42,6 +42,28 @@
 #define CALLsr(R)			CALLQsr(R)
 #define JMPsr(R)			JMPQsr(R)
 
+#if 0
+#  define _r0P(R)		((int)(R) == (int)_NOREG)
+#  define _rIP(R)		((int)(R) == (int)_RIP)
+#  define _rspP(R)		(_rR(R) == _rR(_RSP))
+#  define _rsp12P(R)		(_rN(R) == _rN(_RSP))
+
+#  define _x86_RIP_addressing_possible(D,O)	(X86_RIP_RELATIVE_ADDR && \
+						((unsigned long)x86_get_target() + 4 + (O) - (D) <= 0xffffffff))
+
+#  define _r_X(   R, D,B,I,S,O)	(_r0P(I) ? (_r0P(B)    ? (!X86_TARGET_64BIT ? _r_D(R,D) : \
+					                 (_x86_RIP_addressing_possible(D, O) ? \
+				                          _r_D(R, (D) - ((unsigned long)x86_get_target() + 4 + (O))) : \
+				                          _r_DSIB(R,D))) : \
+					                 _r_DSIB(R,D                ))  : \
+				           (_rIP(B)    ? _r_D   (R,D                )   : \
+				           (_rsp12P(B) ? _r_DBIS(R,D,_RSP,_RSP,1)   : \
+						         _r_DB  (R,D,     B       ))))  : \
+				 (_r0P(B)	       ? _r_4IS (R,D,	         I,S)   : \
+				 (!_rspP(I)            ? _r_DBIS(R,D,     B,     I,S)   : \
+						         JITFAIL("illegal index register: %esp"))))
+#endif
+
 /* --- Increment/Decrement instructions ------------------------------------ */
 __jit_inline void
 _dec_sil_r(jit_gpr_t rd)
@@ -81,7 +103,7 @@ __REXwrx_(int l, int w, int r, int x, int mr)
 __jit_inline void
 __REXw_x_(int l, int w, int r, int x, int mr)
 {
-    __REXwrx_(l,w, _BIT(_rXP(r)), x, mr);
+    __REXwrx_(l, w, _BIT(_rXP(r)), x, mr);
 }
 
 __jit_inline void
@@ -556,7 +578,7 @@ MOVQim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _O(0xc7);
-    _i_X(_b000, md, rb, ri, ms, 0);
+    _i_X(_b000, md, rb, ri, ms);
     _jit_I(_s32(im));
 }
 
@@ -826,7 +848,7 @@ __jit_inline void
 _movsd_l_mr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
 {
     _O(0x63);
-    _r_X(rd, md, rb, ri, ms, 0);
+    _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
@@ -949,17 +971,17 @@ CQO_(void)
 #define __SSEQmr(OP,MD,MB,MI,MS,RD)					\
     (_REXQmr(MB, MI, RD),						\
      _OO(0x0f00 | (OP)),						\
-     _r_X(RD, MD, MB, MI, MS, 0))
+     _r_X(RD, MD, MB, MI, MS))
 
 #define __SSEQrm(OP,RS,MD,MB,MI,MS)					\
     (_REXQrm(RS, MB, MI),						\
      _OO(0x0f00 | (OP)),						\
-     _r_X(RS, MD, MB, MI, MS, 0))
+     _r_X(RS, MD, MB, MI, MS))
 
 #define __SSEQ1rm(OP,RS,MD,MB,MI,MS)					\
     (_REXQrm(RS, MB, MI),						\
      _OO(0x0f01 | (OP)),						\
-     _r_X(RS, MD, MB, MI, MS, 0))
+     _r_X(RS, MD, MB, MI, MS))
 
 #define _SSEQrr(PX, OP, RS, RD)						\
     (_jit_B(PX), __SSEQrr(OP, RS, RD))
