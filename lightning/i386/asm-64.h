@@ -917,17 +917,35 @@ CQO_(void)
 
 
 #define __SSEQrr(OP, RS, RD)						\
-    (_REXQrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rX(RS)))
+    (_REXQrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rX(RD), _rX(RS)))
+
 #define __SSEQFrr(OP, RS, RD)						\
-    (_REXQFrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rA(RD),_rX(RS)))
+    (_REXQFrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rA(RD), _rX(RS)))
+
 #define __SSEFQrr(OP, RS, RD)						\
-    (_REXFQrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rA(RS)))
+    (_REXFQrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rX(RD), _rA(RS)))
+
 #define __SSEQmr(OP,MD,MB,MI,MS,RD)					\
-    (_REXQmr(MB, MI, RD), _OO_r_X(0x0f00|(OP), RD, MD, MB, MI, MS))
+    (_REXQmr(MB, MI, RD),						\
+     _OO(0x0f00 | (OP)),						\
+     _r_X(RD, MD, MB, MI, MS, 0))
+
 #define __SSEQrm(OP,RS,MD,MB,MI,MS)					\
-    (_REXQrm(RS, MB, MI), _OO_r_X(0x0f00|(OP), RS, MD, MB, MI, MS))
+    (_REXQrm(RS, MB, MI),						\
+     _OO(0x0f00 | (OP)),						\
+     _r_X(RS, MD, MB, MI, MS, 0))
+
 #define __SSEQ1rm(OP,RS,MD,MB,MI,MS)					\
-    (_REXQrm(RS, MB, MI), _OO_r_X(0x0f01|(OP), RS, MD, MB, MI, MS))
+    (_REXQrm(RS, MB, MI),						\
+     _OO(0x0f01 | (OP)),						\
+     _r_X(RS, MD, MB, MI, MS, 0))
+
 #define _SSEQrr(PX, OP, RS, RD)						\
     (_jit_B(PX), __SSEQrr(OP, RS, RD))
 #define _SSEQFrr(PX, OP, RS, RD)					\

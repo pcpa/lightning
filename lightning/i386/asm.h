@@ -659,7 +659,7 @@ _bt_sil_rm(x86_bt_t op,
 	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
-    _OO(0x83 | ((int)op << 3));
+    _O(0x83 | ((int)op << 3));
     _r_X(rs, md, rb, ri, ms, 0);
 }
 
@@ -848,7 +848,8 @@ _call_il_sr(jit_gpr_t rs)
 __jit_inline void
 _jmp_il_sr(jit_gpr_t rs)
 {
-    _O_Mrm(0xff, _b11, _b100, _rA(rs));
+    _O(0xff);
+    _Mrm(_b11, _b100, _rA(rs));
 }
 
 __jit_inline void
@@ -2347,6 +2348,7 @@ CMOVLmr(x86_cc_t cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
     _cmov_sil_mr(cc, md, rb, ri, ms, rd);
 }
 
+/* --- Push/Pop instructions ----------------------------------------------- */
 #define POPAD_					POPA_
 __jit_inline void
 POPA_(void)
@@ -3086,10 +3088,13 @@ enum {
 };
 
 #define ESCmi(D, B, I, S, OP)						\
-    (_REXLrm(_NOREG, B, I), _O_i_X(0xd8 | (OP >> 3), (OP & 7), D, B, I, S))
+    (_REXLrm(_NOREG, B, I),						\
+     _O(0xd8 | (OP >> 3)),						\
+     _i_X((OP & 7), D, B, I, S, 0))
 
-#define ESCri(RD,OP)							\
-    _O_Mrm(0xd8 | (OP >> 3), _b11, (OP & 7), RD)
+#define ESCri(RD, OP)							\
+    _O(0xd8 | (OP >> 3)),						\
+    _Mrm(_b11, (OP & 7), RD)
 
 #define ESCrri(RS,RD,OP)						\
     ((RS) == _ST0							\
@@ -3338,17 +3343,35 @@ enum {
 /*	_format	Opcd,	Mod,	r,	m,	mem=dsp+sib,	imm... */
 
 #define __SSELrr(OP, RS, RD)						\
-    (_REXFrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rX(RS)))
+    (_REXFrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rX(RD), _rX(RS)))
+
 #define __SSELFrr(OP, RS, RD)						\
-    (_REXLFrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rA(RD), _rX(RS)))
+    (_REXLFrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rA(RD), _rX(RS)))
+
 #define __SSEFLrr(OP, RS, RD)						\
-    (_REXFLrr(RD, RS), _OO_Mrm(0x0f00|(OP), _b11, _rX(RD), _rA(RS)))
+    (_REXFLrr(RD, RS),							\
+     _OO(0x0f00 | (OP)),						\
+     _Mrm(_b11, _rX(RD), _rA(RS)))
+
 #define __SSELmr(OP, MD, MB, MI, MS, RD)				\
-    (_REXFmr(MB, MI, RD), _OO_f_X(0x0f00|(OP), RD, MD, MB, MI, MS))
+    (_REXFmr(MB, MI, RD),						\
+     _OO(0x0f00 | (OP)),						\
+     _f_X(RD, MD, MB, MI, MS, 0))
+
 #define __SSELrm(OP, RS, MD, MB, MI, MS)				\
-    (_REXFrm(RS, MB, MI), _OO_f_X(0x0f00|(OP), RS, MD, MB, MI, MS))
+    (_REXFrm(RS, MB, MI),						\
+     _OO(0x0f00 | (OP)),						\
+     _f_X(RS, MD, MB, MI, MS, 0))
+
 #define __SSEL1rm(OP, RS, MD, MB, MI, MS)				\
-    (_REXFrm(RS, MB, MI), _OO_f_X(0x0f01|(OP), RS, MD, MB, MI, MS))
+    (_REXFrm(RS, MB, MI),						\
+     _OO(0x0f01 | (OP)),						\
+     _f_X(RS, MD, MB, MI, MS, 0))
+
 #define _SSELrr(PX, OP, RS, RD)						\
     (_jit_B(PX), __SSELrr(OP, RS, RD))
 #define _SSELFrr(PX, OP, RS, RD)					\
