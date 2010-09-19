@@ -826,7 +826,7 @@ jit_modr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 /* Shifts */
 __jit_inline void
-_jit_shift32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
+_jit_shift32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, x86_rotsh_t code)
 {
     jit_gpr_t	lsh;
 
@@ -936,7 +936,7 @@ jit_rshr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 /* Boolean */
 __jit_inline void
-_jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, int code)
+_jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, x86_cc_t code)
 {
     int		op;
     jit_gpr_t	reg;
@@ -960,7 +960,7 @@ _jit_cmp_ri32(jit_gpr_t r0, jit_gpr_t r1, int i0, int code)
 }
 
 __jit_inline void
-_jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, int code)
+_jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, x86_cc_t code)
 {
     int		op;
     jit_gpr_t	reg;
@@ -984,7 +984,7 @@ _jit_test_r32(jit_gpr_t r0, jit_gpr_t r1, int code)
 }
 
 __jit_inline void
-_jit_cmp_rr32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
+_jit_cmp_rr32(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, x86_cc_t code)
 {
     int		op;
     jit_gpr_t	reg;
@@ -1177,21 +1177,21 @@ jit_gtr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 /* Jump */
 __jit_inline void
-_jit_bcmp_ri32(jit_insn *label, jit_gpr_t r0, int i0, int code)
+_jit_bcmp_ri32(jit_insn *label, jit_gpr_t r0, int i0, x86_cc_t code)
 {
     CMPLir(i0, r0);
     JCCim(code, label);
 }
 
 __jit_inline void
-_jit_btest_r32(jit_insn *label, jit_gpr_t r0, int code)
+_jit_btest_r32(jit_insn *label, jit_gpr_t r0, x86_cc_t code)
 {
     TESTLrr(r0, r0);
     JCCim(code, label);
 }
 
 __jit_inline void
-_jit_bcmp_rr32(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1, int code)
+_jit_bcmp_rr32(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1, x86_cc_t code)
 {
     CMPLrr(r1, r0);
     JCCim(code, label);

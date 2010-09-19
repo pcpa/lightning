@@ -961,7 +961,7 @@ sse_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 #endif
 
 __jit_inline void
-_sse_fp_cmp_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
+_sse_fp_cmp_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 {
     int		 rc;
     jit_gpr_t	 reg;
@@ -979,7 +979,7 @@ _sse_fp_cmp_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
 }
 
 __jit_inline void
-_sse_fp_cmp_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, int code)
+_sse_fp_cmp_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 {
     int		 rc;
     jit_gpr_t	 reg;

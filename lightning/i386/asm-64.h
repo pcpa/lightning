@@ -308,35 +308,35 @@ _REXFQrr(jit_fpr_t rr, jit_gpr_t mr)
 
 /* --- ALU instructions ---------------------------------------------------- */
 __jit_inline void
-_ALUQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ALUQrr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXQrr(rs, rd);
     _alu_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ALUQmr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_ALUQmr(x86_alu_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _alu_sil_mr(op, md, rb, ri, ms, rd);
 }
 
 __jit_inline void
-_ALUQrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUQrm(x86_alu_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(rs, rb, ri);
     _alu_sil_rm(op, rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ALUQir(int op, long im, jit_gpr_t rd)
+_ALUQir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     _REXQrr(_NOREG, rd);
     _alu_il_ir(op, im, rd);
 }
 
 __jit_inline void
-_ALUQim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUQim(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _alu_il_im(op, im, md, rb, ri, ms);
@@ -392,28 +392,29 @@ _ALUQim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Shift/Rotate instructions ------------------------------------------- */
 __jit_inline void
-_ROTSHIQir(int op, long im, jit_gpr_t rd)
+_ROTSHIQir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _REXQrr(_NOREG, rd);
     _rotsh_sil_ir(op, im, rd);
 }
 
 __jit_inline void
-_ROTSHIQim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIQim(x86_rotsh_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _rotsh_sil_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ROTSHIQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ROTSHIQrr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXQrr(rs, rd);
     _rotsh_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ROTSHIQrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIQrm(x86_rotsh_t op,
+	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(rs, rb, ri);
     _rotsh_sil_rm(op, rs, md, rb, ri, ms);
@@ -461,28 +462,28 @@ _ROTSHIQrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Bit test instructions ----------------------------------------------- */
 __jit_inline void
-_BTQir(int op, long im, jit_gpr_t rd)
+_BTQir(x86_bt_t op, long im, jit_gpr_t rd)
 {
     _REXQrr(_NOREG, rd);
     _bt_sil_ir(op, im, rd);
 }
 
 __jit_inline void
-_BTQim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTQim(x86_bt_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _bt_sil_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_BTQrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_BTQrr(x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXQrr(rs, rd);
     _bt_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_BTQrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTQrm(x86_bt_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQrm(rs, rb, ri);
     _bt_sil_rm(op, rs, md, rb, ri, ms);
@@ -549,14 +550,14 @@ MOVQim(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
 __jit_inline void
-_UNARYQr(int op, jit_gpr_t rs)
+_UNARYQr(x86_unary_t op, jit_gpr_t rs)
 {
     _REXQrr(_NOREG, rs);
     _unary_sil_r(op, rs);
 }
 
 __jit_inline void
-_UNARYQm(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_UNARYQm(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXQmr(rb, ri, _NOREG);
     _unary_sil_m(op, md, rb, ri, ms);
@@ -618,14 +619,14 @@ JMPQsr(jit_gpr_t rs)
 }
 
 __jit_inline void
-CMOVQrr(int cc,jit_gpr_t rs, jit_gpr_t rd)
+CMOVQrr(x86_cc_t cc,jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXQrr(rd, rs);
     _cmov_sil_rr(cc, rs, rd);
 }
 
 __jit_inline void
-CMOVQmr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+CMOVQmr(x86_cc_t cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _cmov_sil_mr(cc, md, rb, ri, ms, rd);

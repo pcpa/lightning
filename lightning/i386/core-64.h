@@ -926,7 +926,7 @@ jit_modr_ul(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
  *  only %cl can be used as %r1
  */
 __jit_inline void
-_jit_shift64(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
+_jit_shift64(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, x86_rotsh_t code)
 {
     if (r0 == _RCX) {
 	MOVQrr(r1, JIT_REXTMP);
@@ -1003,7 +1003,7 @@ jit_rshr_ul(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 /* Boolean */
 __jit_inline void
-_jit_cmp_ri64(jit_gpr_t r0, jit_gpr_t r1, long i0, int code)
+_jit_cmp_ri64(jit_gpr_t r0, jit_gpr_t r1, long i0, x86_cc_t code)
 {
     int		same = r0 == r1;
 
@@ -1023,7 +1023,7 @@ _jit_cmp_ri64(jit_gpr_t r0, jit_gpr_t r1, long i0, int code)
 }
 
 __jit_inline void
-_jit_test_r64(jit_gpr_t r0, jit_gpr_t r1, int code)
+_jit_test_r64(jit_gpr_t r0, jit_gpr_t r1, x86_cc_t code)
 {
     int		same = r0 == r1;
 
@@ -1036,7 +1036,7 @@ _jit_test_r64(jit_gpr_t r0, jit_gpr_t r1, int code)
 }
 
 __jit_inline void
-_jit_cmp_rr64(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int code)
+_jit_cmp_rr64(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, x86_cc_t code)
 {
     int		same = r0 == r1 || r0 == r2;
 
@@ -1211,7 +1211,7 @@ jit_gtr_ul(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 /* Jump */
 __jit_inline void
-_jit_bcmp_ri64(jit_insn *label, jit_gpr_t r0, long i0, int code)
+_jit_bcmp_ri64(jit_insn *label, jit_gpr_t r0, long i0, x86_cc_t code)
 {
     if (jit_can_sign_extend_int_p(i0))
 	CMPQir(i0, r0);
@@ -1223,14 +1223,14 @@ _jit_bcmp_ri64(jit_insn *label, jit_gpr_t r0, long i0, int code)
 }
 
 __jit_inline void
-_jit_btest_r64(jit_insn *label, jit_gpr_t r0, int code)
+_jit_btest_r64(jit_insn *label, jit_gpr_t r0, x86_cc_t code)
 {
     TESTQrr(r0, r0);
     JCCim(code, label);
 }
 
 __jit_inline void
-_jit_bcmp_rr64(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1, int code)
+_jit_bcmp_rr64(jit_insn *label, jit_gpr_t r0, jit_gpr_t r1, x86_cc_t code)
 {
     CMPQrr(r1, r0);
     JCCim(code, label);

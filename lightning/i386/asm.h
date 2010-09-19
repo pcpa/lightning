@@ -368,7 +368,7 @@ _f_X(jit_fpr_t rd, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, int unused)
 #define	  _O_X_L(    OP		,MD,MB,MI,MS,L	)  (	    _O_r_X_L(  OP	    ,0	,MD,MB,MI,MS	 ,L)	  )
 
 /* --- ALU instructions ---------------------------------------------------- */
-enum {
+typedef enum {
     X86_ADD	= 0,
     X86_OR	= 1,
     X86_ADC	= 2,
@@ -377,140 +377,144 @@ enum {
     X86_SUB	= 5,
     X86_XOR	= 6,
     X86_CMP	= 7,
-};
+} x86_alu_t;
 
 __jit_inline void
-_alu_c_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_alu_c_rr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
-    _O(op << 3);
+    _O((int)op << 3);
     _Mrm(_b11, _r1(rs), _r1(rd));
 }
 
 __jit_inline void
-_alu_c_mr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_alu_c_mr(x86_alu_t op,
+	  int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
-    _O((op << 3) + 2);
+    _O(((int)op << 3) + 2);
     _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_alu_c_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_alu_c_rm(x86_alu_t op,
+	  jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _O(op << 3);
+    _O((int)op << 3);
     _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_alu_c_ir(int op, long im, jit_gpr_t rd)
+_alu_c_ir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (rd == _RAX)
-	_O((op << 3) + 4);
+	_O(((int)op << 3) + 4);
     else {
 	_O(0x80);
-	_Mrm(_b11, op, _r1(rd));
+	_Mrm(_b11, (int)op, _r1(rd));
     }
     _jit_B(_s8(im));
 }
 
 __jit_inline void
-_alu_c_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_alu_c_im(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x80);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
     _jit_B(_s8(im));
 }
 
 __jit_inline void
-_alu_s_ir(int op, long im, jit_gpr_t rd)
+_alu_s_ir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (rd == _RAX) {
-	_O((op << 3) + 5);
+	_O(((int)op << 3) + 5);
 	_jit_W(_s16(im));
     }
     else if (_s8P(im)) {
 	_O(0x83);
-	_Mrm(_b11, op, _r2(rd));
+	_Mrm(_b11, (int)op, _r2(rd));
 	_jit_B(im);
     }
     else {
 	_O(0x81);
-	_Mrm(_b11, op, _r2(rd));
+	_Mrm(_b11, (int)op, _r2(rd));
 	_jit_W(_s16(im));
     }
 }
 
 __jit_inline void
-_alu_s_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_alu_s_im(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_B(im);
     }
     else {
 	_O(0x81);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_W(_s16(im));
     }
 }
 
 __jit_inline void
-_alu_sil_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_alu_sil_rr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
-    _O((op << 3) + 1);
+    _O(((int)op << 3) + 1);
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_alu_sil_mr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_alu_sil_mr(x86_alu_t op,
+	    int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
-    _O((op << 3) + 3);
+    _O(((int)op << 3) + 3);
     _r_X(rd, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_alu_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_alu_sil_rm(x86_alu_t op,
+	    jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _O((op << 3) + 1);
+    _O(((int)op << 3) + 1);
     _r_X(rs, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_alu_il_ir(int op, long im, jit_gpr_t rd)
+_alu_il_ir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (_s8P(im)) {
 	_O(0x83);
-	_Mrm(_b11, op, _rA(rd));
+	_Mrm(_b11, (int)op, _rA(rd));
 	_jit_B(im);
     }
     else {
 	if (rd == _RAX)
-	    _O((op << 3) + 5);
+	    _O(((int)op << 3) + 5);
 	else {
 	    _O(0x81);
-	    _Mrm(_b11, op, _rA(rd));
+	    _Mrm(_b11, (int)op, _rA(rd));
 	}
 	_jit_I(_s32(im));
     }
 }
 
 __jit_inline void
-_alu_il_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_alu_il_im(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_B(im);
     }
     else {
 	_O(0x81);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_I(_s32(im));
     }
 }
 
 /* --- Shift/Rotate instructions ------------------------------------------- */
-enum {
+typedef enum {
     X86_ROL	= 0,
     X86_ROR	= 1,
     X86_RCL	= 2,
@@ -518,137 +522,144 @@ enum {
     X86_SHL	= 4,
     X86_SHR	= 5,
     X86_SAR	= 7,
-};
+} x86_rotsh_t;
 
 __jit_inline void
-_rotsh_c_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_rotsh_c_rr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd2);
-    _Mrm(_b11, op, _rA(rd));
+    _Mrm(_b11, (int)op, _rA(rd));
 }
 
 __jit_inline void
-_rotsh_sil_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_rotsh_sil_rr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd3);
-    _Mrm(_b11, op, _rA(rd));
+    _Mrm(_b11, (int)op, _rA(rd));
 }
 
 __jit_inline void
-_rotsh_c_ir(int op, long im, jit_gpr_t rd)
+_rotsh_c_ir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     if (im == 1) {
 	_O(0xd0);
-	_Mrm(_b11, op, _rA(rd));
+	_Mrm(_b11, (int)op, _rA(rd));
     }
     else {
 	_O(0xc0);
-	_Mrm(_b11, op, _rA(rd));
+	_Mrm(_b11, (int)op, _rA(rd));
 	_jit_B(_u8(im));
     }
 }
 
 __jit_inline void
-_rotsh_sil_ir(int op, long im, jit_gpr_t rd)
+_rotsh_sil_ir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     if (im == 1) {
 	_O(0xd1);
-	_Mrm(_b11, op, _rA(rd));
+	_Mrm(_b11, (int)op, _rA(rd));
     }
     else {
 	_O(0xc1);
-	_Mrm(_b11, op, _rA(rd));
+	_Mrm(_b11, (int)op, _rA(rd));
 	_jit_B(_u8(im));
     }
 }
 
 __jit_inline void
- _rotsh_c_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+ _rotsh_c_im(x86_rotsh_t op,
+	     long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (im == 1) {
 	_O(0xd0);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
     }
     else {
 	_O(0xc0);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_B(_u8(im));
     }
 }
 
 __jit_inline void
- _rotsh_sil_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+ _rotsh_sil_im(x86_rotsh_t op,
+	       long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (im == 1) {
 	_O(0xd1);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
     }
     else {
 	_O(0xc1);
-	_i_X(op, md, rb, ri, ms, 0);
+	_i_X((int)op, md, rb, ri, ms, 0);
 	_jit_B(_u8(im));
     }
 }
 
 __jit_inline void
-_rotsh_c_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_rotsh_c_rm(x86_rotsh_t op,
+	    jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd2);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_rotsh_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_rotsh_sil_rm(x86_rotsh_t op,
+	      jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
     _O(0xd3);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
 }
 
 /* --- Bit test instructions ----------------------------------------------- */
-enum {
+typedef enum {
   X86_BT	= 4,
   X86_BTS	= 5,
   X86_BTR	= 6,
   X86_BTC	= 7,
-};
+} x86_bt_t;
 
 __jit_inline void
-_bt_sil_ir(int op, long im, jit_gpr_t rd)
+_bt_sil_ir(x86_bt_t op, long im, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xba);
-    _Mrm(_b11, op, _rA(rd));
+    _Mrm(_b11, (int)op, _rA(rd));
     _jit_B(_u8(im));
 }
 
 __jit_inline void
-_bt_sil_im(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_bt_sil_im(x86_bt_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0x0f);
     _O(0xba);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
     _jit_B(_u8(im));
 }
 
 __jit_inline void
-_bt_sil_rr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_bt_sil_rr(x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
-    _OO(0x0f83 | (op << 3));
+    _O(0x0f);
+    _O(0x83 | ((int)op << 3));
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_bt_sil_rm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_bt_sil_rm(x86_bt_t op,
+	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
-    _OO(0x0f83 | (op << 3));
+    _O(0x0f);
+    _OO(0x83 | ((int)op << 3));
     _r_X(rs, md, rb, ri, ms, 0);
 }
 
@@ -710,41 +721,41 @@ _mov_sil_rm(jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
-enum {
+typedef enum {
     X86_NOT	= 2,
     X86_NEG	= 3,
     X86_MUL	= 4,
     X86_IMUL	= 5,
     X86_DIV	= 6,
     X86_IDIV	= 7,
-};
+} x86_unary_t;
 
 __jit_inline void
-_unary_c_r(int op, jit_gpr_t rs)
+_unary_c_r(x86_unary_t op, jit_gpr_t rs)
 {
     _O(0xf6);
-    _Mrm(_b11, op, _r1(rs));
+    _Mrm(_b11, (int)op, _r1(rs));
 }
 
 __jit_inline void
-_unary_c_m(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_unary_c_m(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf6);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
-_unary_sil_r(int op, jit_gpr_t rs)
+_unary_sil_r(x86_unary_t op, jit_gpr_t rs)
 {
     _O(0xf7);
-    _Mrm(_b11, op, _rA(rs));
+    _Mrm(_b11, (int)op, _rA(rs));
 }
 
 __jit_inline void
-_unary_sil_m(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_unary_sil_m(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _O(0xf7);
-    _i_X(op, md, rb, ri, ms, 0);
+    _i_X((int)op, md, rb, ri, ms, 0);
 }
 
 __jit_inline void
@@ -794,7 +805,7 @@ _imul_il_irr(long im, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 /* --- Control Flow related instructions ----------------------------------- */
-enum {
+typedef enum {
     X86_CC_O	= 0x0,
     X86_CC_NO	= 0x1,
     X86_CC_NAE	= 0x2,
@@ -825,7 +836,7 @@ enum {
     X86_CC_NG	= 0xe,
     X86_CC_G	= 0xf,
     X86_CC_NLE	= 0xf,
-};
+} x86_cc_t;
 
 __jit_inline void
 _call_il_sr(jit_gpr_t rs)
@@ -841,19 +852,20 @@ _jmp_il_sr(jit_gpr_t rs)
 }
 
 __jit_inline void
-_cmov_sil_rr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+_cmov_sil_rr(x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
-    _O(0x40 | cc);
+    _O(0x40 | (int)cc);
     _Mrm(_b11, _rA(rd), _rA(rs));
 }
 
 __jit_inline void
-_cmov_sil_mr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_cmov_sil_mr(x86_cc_t cc,
+	     int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _d16();
     _O(0x0f);
-    _O(0x40 | cc);
+    _O(0x40 | (int)cc);
     _r_X(rd, md, rb, ri, ms, 0);
 }
 
@@ -1272,42 +1284,42 @@ _bswap_il_r(jit_gpr_t rd)
 
 /* --- ALU instructions ---------------------------------------------------- */
 __jit_inline void
-_ALUBrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ALUBrr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
     _alu_c_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ALUBmr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_ALUBmr(x86_alu_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _REXBmr(rb, ri, rd);
     _alu_c_mr(op, md, rb, ri, ms, rd);
 }
 
 __jit_inline void
-_ALUBrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUBrm(x86_alu_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(rs, rb, ri);
     _alu_c_rm(op, rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ALUBir(int op, long im, jit_gpr_t rd)
+_ALUBir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
     _alu_c_ir(op, im, rd);
 }
 
 __jit_inline void
-_ALUBim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUBim(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(_NOREG, rb, ri);
     _alu_c_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ALUWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ALUWrr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
@@ -1315,7 +1327,7 @@ _ALUWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_ALUWmr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_ALUWmr(x86_alu_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
@@ -1323,7 +1335,7 @@ _ALUWmr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 }
 
 __jit_inline void
-_ALUWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUWrm(x86_alu_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
@@ -1331,7 +1343,7 @@ _ALUWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_ALUWir(int op, long im, jit_gpr_t rd)
+_ALUWir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
@@ -1339,7 +1351,7 @@ _ALUWir(int op, long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_ALUWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALUWim(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
@@ -1347,35 +1359,35 @@ _ALUWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_ALULrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ALULrr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
     _alu_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ALULmr(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+_ALULmr(x86_alu_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
     _alu_sil_mr(op, md, rb, ri, ms, rd);
 }
 
 __jit_inline void
-_ALULrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALULrm(x86_alu_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(rs, rb, ri);
     _alu_sil_rm(op, rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ALULir(int op, long im, jit_gpr_t rd)
+_ALULir(x86_alu_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
     _alu_il_ir(op, im, rd);
 }
 
 __jit_inline void
-_ALULim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ALULim(x86_alu_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _alu_il_im(op, im, md, rb, ri, ms);
@@ -1527,35 +1539,36 @@ _ALULim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Shift/Rotate instructions ------------------------------------------- */
 __jit_inline void
-_ROTSHIBir(int op, long im, jit_gpr_t rd)
+_ROTSHIBir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
     _rotsh_c_ir(op, im, rd);
 }
 
 __jit_inline void
-_ROTSHIBim(int op, int im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIBim(x86_rotsh_t op, int im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(_NOREG, rb, ri);
     _rotsh_c_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ROTSHIBrr(int  op, jit_gpr_t rs, jit_gpr_t rd)
+_ROTSHIBrr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
     _rotsh_c_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ROTSHIBrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIBrm(x86_rotsh_t op,
+	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(rs, rb, ri);
     _rotsh_c_rm(op, rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ROTSHIWir(int op, long im, jit_gpr_t rd)
+_ROTSHIWir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
@@ -1563,7 +1576,7 @@ _ROTSHIWir(int op, long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_ROTSHIWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIWim(x86_rotsh_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
@@ -1571,7 +1584,7 @@ _ROTSHIWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_ROTSHIWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ROTSHIWrr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
@@ -1579,7 +1592,8 @@ _ROTSHIWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_ROTSHIWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHIWrm(x86_rotsh_t op,
+	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
@@ -1587,28 +1601,29 @@ _ROTSHIWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_ROTSHILir(int op, long im, jit_gpr_t rd)
+_ROTSHILir(x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
     _rotsh_sil_ir(op, im, rd);
 }
 
 __jit_inline void
-_ROTSHILim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHILim(x86_rotsh_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _rotsh_sil_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_ROTSHILrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_ROTSHILrr(x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
     _rotsh_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_ROTSHILrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_ROTSHILrm(x86_rotsh_t op,
+	   jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(rs, rb, ri);
     _rotsh_sil_rm(op, rs, md, rb, ri, ms);
@@ -1736,7 +1751,7 @@ _ROTSHILrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Bit test instructions ----------------------------------------------- */
 __jit_inline void
-_BTWir(int op, long im, jit_gpr_t rd)
+_BTWir(x86_bt_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
@@ -1744,7 +1759,7 @@ _BTWir(int op, long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_BTWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTWim(x86_bt_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
@@ -1752,7 +1767,7 @@ _BTWim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_BTWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_BTWrr(x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
@@ -1760,7 +1775,7 @@ _BTWrr(int op, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_BTWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTWrm(x86_bt_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
@@ -1768,28 +1783,28 @@ _BTWrm(int op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_BTLir(int op, long im, jit_gpr_t rd)
+_BTLir(x86_bt_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
     _bt_sil_ir(op, im, rd);
 }
 
 __jit_inline void
-_BTLim(int op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTLim(x86_bt_t op, long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _bt_sil_im(op, im, md, rb, ri, ms);
 }
 
 __jit_inline void
-_BTLrr(int op, jit_gpr_t rs, jit_gpr_t rd)
+_BTLrr(x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
     _bt_sil_rr(op, rs, rd);
 }
 
 __jit_inline void
-_BTLrm(int long op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_BTLrm(x86_bt_t op, jit_gpr_t rs, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLrm(rs, rb, ri);
     _bt_sil_rm(op, rs, md, rb, ri, ms);
@@ -1954,21 +1969,21 @@ MOVLim(long im, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
 __jit_inline void
-_UNARYBr(int op, jit_gpr_t rs)
+_UNARYBr(x86_unary_t op, jit_gpr_t rs)
 {
     _REXBrr(_NOREG, rs);
     _unary_c_r(op, rs);
 }
 
 __jit_inline void
-_UNARYBm(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_UNARYBm(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(_NOREG, rb, ri);
     _unary_c_m(op, md, rb, ri, ms);
 }
 
 __jit_inline void
-_UNARYWr(int op, jit_gpr_t rs)
+_UNARYWr(x86_unary_t op, jit_gpr_t rs)
 {
     _d16();
     _REXLrr(_NOREG, rs);
@@ -1976,7 +1991,7 @@ _UNARYWr(int op, jit_gpr_t rs)
 }
 
 __jit_inline void
-_UNARYWm(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_UNARYWm(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _d16();
     _REXLmr(rb, ri, _NOREG);
@@ -1984,14 +1999,14 @@ _UNARYWm(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-_UNARYLr(int op, jit_gpr_t rs)
+_UNARYLr(x86_unary_t op, jit_gpr_t rs)
 {
     _REXLrr(_NOREG, rs);
     _unary_sil_r(op, rs);
 }
 
 __jit_inline void
-_UNARYLm(int op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+_UNARYLm(x86_unary_t op, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXLmr(rb, ri, _NOREG);
     _unary_sil_m(op, md, rb, ri, ms);
@@ -2148,9 +2163,9 @@ JMPsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, int ms)
 }
 
 __jit_inline void
-JCCSim(int cc, void *im)
+JCCSim(x86_cc_t cc, void *im)
 {
-    _O(0x70 | cc);
+    _O(0x70 | (int)cc);
     _D8(im);
 }
 
@@ -2186,10 +2201,10 @@ JCCSim(int cc, void *im)
 #define JNLESm(D)			JCCSim(X86_CC_NLE, D)
 
 __jit_inline void
-JCCim(int cc, void *im)
+JCCim(x86_cc_t cc, void *im)
 {
     _O(0x0f);
-    _O(0x80 | cc);
+    _O(0x80 | (int)cc);
     _D32(im);
 }
 
@@ -2225,11 +2240,11 @@ JCCim(int cc, void *im)
 #define JNLEm(D)			JCCim(X86_CC_NLE, D)
 
 __jit_inline void
-SETCCir(int cc, jit_gpr_t rd)
+SETCCir(x86_cc_t cc, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
     _O(0x0f);
-    _O(0x90 | cc);
+    _O(0x90 | (int)cc);
     _Mrm(_b11, _b000, _r1(rd));
 }
 
@@ -2264,11 +2279,11 @@ SETCCir(int cc, jit_gpr_t rd)
 #define SETNLEr(RD)			SETCCir(X86_CC_NLE, RD)
 
 __jit_inline void
-SETCCim(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+SETCCim(x86_cc_t cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 {
     _REXBrm(_NOREG, rb, ri);
     _O(0x0f);
-    _O(0x90 | cc);
+    _O(0x90 | (int)cc);
     _i_X(_b000, md, rb, ri, ms, 0);
 }
 
@@ -2303,7 +2318,7 @@ SETCCim(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
 #define SETNLEm(D, B, I, S)		SETCCim(X86_CC_NLE, D, B, I, S)
 
 __jit_inline void
-CMOVWrr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+CMOVWrr(x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
@@ -2311,7 +2326,7 @@ CMOVWrr(int cc, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-CMOVWmr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+CMOVWmr(x86_cc_t cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
@@ -2319,14 +2334,14 @@ CMOVWmr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 }
 
 __jit_inline void
-CMOVLrr(int cc, jit_gpr_t rs, jit_gpr_t rd)
+CMOVLrr(x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
     _cmov_sil_rr(cc, rs, rd);
 }
 
 __jit_inline void
-CMOVLmr(int cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
+CMOVLmr(x86_cc_t cc, int md, jit_gpr_t rb, jit_gpr_t ri, int ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
     _cmov_sil_mr(cc, md, rb, ri, ms, rd);
