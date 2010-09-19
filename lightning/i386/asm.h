@@ -2154,11 +2154,7 @@ CALLLsr(jit_gpr_t rs)
 __jit_inline void
 CALLsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, long ms)
 {
-#if 0	/* FIXME REXQrm if anything? */
-#if __WORDSIZE == 64
     _REXLrm(_NOREG, rb, ri);
-#endif
-#endif
     _O(0xff);
     _i_X(_b010, rs, rb, ri, ms);
 }
@@ -2187,11 +2183,7 @@ JMPLsr(jit_gpr_t rs)
 __jit_inline void
 JMPsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, long ms)
 {
-#if 0	/* FIXME REXQrm if anything? */
-#if __WORDSIZE == 64
     _REXLrm(_NOREG, rb, ri);
-#endif
-#endif
     _O(0xff);
     _i_X(_b100, rs, rb, ri, ms);
 }
