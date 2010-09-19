@@ -247,7 +247,7 @@ _i_X(int op, long md, jit_gpr_t rb, jit_gpr_t ri, long ms, int unused)
     }
     else if (rb == _NOREG)
 	_r_4IS(op, md, ri, ms);
-    else if (!_rR(ri) != _rR(_RSP))
+    else if (_rR(ri) != _rR(_RSP))
 	_r_DBIS(op, md, rb, ri, ms);
     else
 	JITFAIL("illegal index register: %esp");
@@ -284,7 +284,7 @@ _i_X(int op, long md, jit_gpr_t rb, jit_gpr_t ri, long ms, int unused)
     }
     else if (rb == _NOREG)
 	_r_4IS(op, md, ri, ms);
-    else if (!_rR(ri) != _rR(_RSP))
+    else if (_rR(ri) != _rR(_RSP))
 	_r_DBIS(op, md, rb, ri, ms);
     else
 	JITFAIL("illegal index register: %esp");
