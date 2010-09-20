@@ -138,7 +138,7 @@ POPWr(jit_gpr_t rd)
 }
 
 __jit_inline void
-POPWm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+POPWm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _pop_sil_m(md, rb, ri, ms);
@@ -151,7 +151,7 @@ POPLr(jit_gpr_t rd)
 }
 
 __jit_inline void
-POPLm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+POPLm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _pop_sil_m(md, rb, ri, ms);
 }
@@ -164,7 +164,7 @@ PUSHWr(jit_gpr_t rs)
 }
 
 __jit_inline void
-PUSHWm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+PUSHWm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _push_sil_m(md, rb, ri, ms);
@@ -189,7 +189,7 @@ PUSHLr(jit_gpr_t rs)
 }
 
 __jit_inline void
-PUSHLm(int md, jit_gpr_t rb, jit_gpr_t ri, int ms)
+PUSHLm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _push_sil_m(md, rb, ri, ms);
 }

@@ -204,7 +204,7 @@ jit_addi_i(jit_gpr_t r0, jit_gpr_t r1, int i0)
     else if (r0 == r1)
 	ADDLir(i0, r0);
     else
-	LEALmr(i0, r1, _NOREG, 0, r0);
+	LEALmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_addr_i(r0, r1, r2)		jit_addr_i(r0, r1, r2)
@@ -216,7 +216,7 @@ jit_addr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
     else if (r0 == r2)
 	ADDLrr(r1, r0);
     else
-	LEALmr(0, r1, r2, 1, r0);
+	LEALmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_subr_i(r0, r1, r2)		jit_subr_i(r0, r1, r2)
@@ -888,7 +888,7 @@ jit_lshi_i(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
     if (i0 == 0)
 	jit_movr_i(r0, r1);
     else if (i0 <= 3)
-	LEALmr(0, _NOREG, r1, 1 << i0, r0);
+	LEALmr(0, _NOREG, r1, i0 == 1 ? _SCL2 : i0 == 2 ? _SCL4 : _SCL8, r0);
     else {
 	jit_movr_i(r0, r1);
 	SHLLir(i0, r0);
@@ -1584,56 +1584,56 @@ jit_extr_s_ui(jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldr_uc(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVZBLmr(0, r1, _NOREG, 0, r0);
+    MOVZBLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_uc(r0, r1, r2)		jit_ldxr_uc(r0, r1, r2)
 __jit_inline void
 jit_ldxr_uc(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVZBLmr(0, r1, r2, 1, r0);
+    MOVZBLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldr_us(r0, r1)		jit_ldr_us(r0, r1)
 __jit_inline void
 jit_ldr_us(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVZWLmr(0, r1, _NOREG, 0, r0);
+    MOVZWLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_us(r0, r1, r2)		jit_ldxr_us(r0, r1, r2)
 __jit_inline void
 jit_ldxr_us(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVZWLmr(0, r1, r2, 1, r0);
+    MOVZWLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_str_s(r0, r1)		jit_str_s(r0, r1)
 __jit_inline void
 jit_str_s(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVWrm(r1, 0, r0, _NOREG, 0);
+    MOVWrm(r1, 0, r0, _NOREG, _SCL1);
 }
 
 #define jit_stxr_s(r0, r1, r2)		jit_stxr_s(r0, r1, r2)
 __jit_inline void
 jit_stxr_s(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVWrm(r2, 0, r0, r1, 1);
+    MOVWrm(r2, 0, r0, r1, _SCL1);
 }
 
 #define jit_str_i(r0, r1)		jit_str_i(r0, r1)
 __jit_inline void
 jit_str_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVLrm(r1, 0, r0, _NOREG, 0);
+    MOVLrm(r1, 0, r0, _NOREG, _SCL1);
 }
 
 #define jit_stxr_i(r0, r1, r2)		jit_stxr_i(r0, r1, r2)
 __jit_inline void
 jit_stxr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVLrm(r2, 0, r0, r1, 1);
+    MOVLrm(r2, 0, r0, r1, _SCL1);
 }
 
 /* Extra */

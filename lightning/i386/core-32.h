@@ -189,56 +189,56 @@ jit_arg_i(void)
 __jit_inline void
 jit_ldr_c(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSBLmr(0, r1, _NOREG, 0, r0);
+    MOVSBLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_c(r0, r1, r2)		jit_ldxr_c(r0, r1, r2)
 __jit_inline void
 jit_ldxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVSBLmr(0, r1, r2, 1, r0);
+    MOVSBLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldr_s(r0, r1)		jit_ldr_s(r0, r1)
 __jit_inline void
 jit_ldr_s(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSWLmr(0, r1, _NOREG, 0, r0);
+    MOVSWLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_s(r0, r1, r2)		jit_ldxr_s(r0, r1, r2)
 __jit_inline void
 jit_ldxr_s(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVSWLmr(0, r1, r2, 1, r0);
+    MOVSWLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldi_c(r0, i0)		jit_ldi_c(r0, i0)
 __jit_inline void
 jit_ldi_c(jit_gpr_t r0, void *i0)
 {
-    MOVSBLmr((long)i0, _NOREG, _NOREG, 0, r0);
+    MOVSBLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxi_c(r0, r1, i0)		jit_ldxi_c(r0, r1, i0)
 __jit_inline void
-jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    MOVSBLmr(i0, r1, _NOREG, 0, r0);
+    MOVSBLmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldi_uc(r0, i0)		jit_ldi_uc(r0, i0)
 __jit_inline void
 jit_ldi_uc(jit_gpr_t r0, void *i0)
 {
-    MOVZBLmr((long)i0, _NOREG, _NOREG, 0, r0);
+    MOVZBLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxi_uc(r0, r1, i0)		jit_ldxi_uc(r0, r1, i0)
 __jit_inline void
-jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    MOVZBLmr(i0, r1, _NOREG, 0, r0);
+    MOVZBLmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_sti_c(i0, r0)		jit_sti_c(i0, r0)
@@ -246,22 +246,22 @@ __jit_inline void
 jit_sti_c(void *i0, jit_gpr_t r0)
 {
     if (jit_reg8_p(r0))
-	MOVBrm(r0, (long)i0, _NOREG, _NOREG, 0);
+	MOVBrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
 	XCHGLrr(_RAX, r0);
-	MOVBrm(_RAX, (long)i0, _NOREG, _NOREG, 0);
+	MOVBrm(_RAX, (long)i0, _NOREG, _NOREG, _SCL1);
 	XCHGLrr(_RAX, r0);
     }
 }
 
 #define jit_stxi_c(i0, r0, r1)		jit_stxi_c(i0, r0, r1)
 __jit_inline void
-jit_stxi_c(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_c(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t	rep;
 
     if (jit_reg8_p(r1))
-	MOVBrm(r1, i0, r0, _NOREG, 0);
+	MOVBrm(r1, i0, r0, _NOREG, _SCL1);
     else {
 	if (r0 == _RAX)
 	    rep = _RDX;
@@ -273,7 +273,7 @@ jit_stxi_c(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
-	MOVBrm(rep, i0, r0, _NOREG, 0);
+	MOVBrm(rep, i0, r0, _NOREG, _SCL1);
 	if (r0 != r1)
 	    XCHGLrr(rep, r1);
 	else
@@ -288,7 +288,7 @@ jit_str_c(jit_gpr_t r0, jit_gpr_t r1)
     jit_gpr_t	rep;
 
     if (jit_reg8_p(r1))
-	MOVBrm(r1, 0, r0, _NOREG, 0);
+	MOVBrm(r1, 0, r0, _NOREG, _SCL1);
     else {
 	if (r0 == _RAX)
 	    rep = _RDX;
@@ -300,7 +300,7 @@ jit_str_c(jit_gpr_t r0, jit_gpr_t r1)
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
-	MOVBrm(rep, 0, r0, _NOREG, 0);
+	MOVBrm(rep, 0, r0, _NOREG, _SCL1);
 	if (r0 != r1)
 	    XCHGLrr(rep, r1);
 	else
@@ -315,7 +315,7 @@ jit_stxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
     jit_gpr_t	rep;
 
     if (jit_reg8_p(r2))
-	MOVBrm(r2, 0, r0, r1, 1);
+	MOVBrm(r2, 0, r0, r1, _SCL1);
     else {
 	if (r0 == _RAX || r1 == _RAX) {
 	    if (r0 == _RDX || r1 == _RDX)
@@ -331,7 +331,7 @@ jit_stxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 	    jit_pushr_i(rep);
 	    MOVLrr(r2, rep);
 	}
-	MOVBrm(rep, 0, r0, r1, 1);
+	MOVBrm(rep, 0, r0, r1, _SCL1);
 	if (r0 != r2 && r1 != r2)
 	    XCHGLrr(rep, r2);
 	else
@@ -343,84 +343,84 @@ jit_stxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 jit_ldi_s(jit_gpr_t r0, void *i0)
 {
-    MOVSWLmr((long)i0, _NOREG, _NOREG, 0, r0);
+    MOVSWLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxi_s(r0, r1, i0)		jit_ldxi_s(r0, r1, i0)
 __jit_inline void
-jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    MOVSWLmr(i0, r1, _NOREG, 0, r0);
+    MOVSWLmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldi_us(r0, i0)		jit_ldi_us(r0, i0)
 __jit_inline void
 jit_ldi_us(jit_gpr_t r0, void *i0)
 {
-    MOVZWLmr((long)i0, _NOREG, _NOREG, 0, r0);
+    MOVZWLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxi_us(r0, r1, i0)		jit_ldxi_us(r0, r1, i0)
 __jit_inline void
-jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    MOVZWLmr(i0, r1, _NOREG, 0, r0);
+    MOVZWLmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_sti_s(i0, r0)		jit_sti_s(i0, r0)
 __jit_inline void
 jit_sti_s(void *i0, jit_gpr_t r0)
 {
-    MOVWrm(r0, (long)i0, _NOREG, _NOREG, 0);
+    MOVWrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
 }
 
 #define jit_stxi_s(i0, r0, r1)		jit_stxi_s(i0, r0, r1)
 __jit_inline void
-jit_stxi_s(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_s(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVWrm(r1, i0, r0, _NOREG, 0);
+    MOVWrm(r1, i0, r0, _NOREG, _SCL1);
 }
 
 #define jit_ldi_i(r0, i0)		jit_ldi_i(r0, i0)
 __jit_inline void
 jit_ldi_i(jit_gpr_t r0, void *i0)
 {
-    MOVLmr((long)i0, _NOREG, _NOREG, 0, r0);
+    MOVLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxi_i(r0, r1, i0)		jit_ldxi_i(r0, r1, i0)
 __jit_inline void
-jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    MOVLmr(i0, r1, _NOREG, 0, r0);
+    MOVLmr(i0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldr_i(r0, r1)		jit_ldr_i(r0, r1)
 __jit_inline void
 jit_ldr_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVLmr(0, r1, _NOREG, 0, r0);
+    MOVLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_i(r0, r1, r2)		jit_ldxr_i(r0, r1, r2)
 __jit_inline void
 jit_ldxr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVLmr(0, r1, r2, 1, r0);
+    MOVLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_sti_i(i0, r0)		jit_sti_i(i0, r0)
 __jit_inline void
 jit_sti_i(void *i0, jit_gpr_t r0)
 {
-    MOVLrm(r0, (long)i0, _NOREG, _NOREG, 0);
+    MOVLrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
 }
 
 #define jit_stxi_i(i0, r0, r1)		jit_stxi_i(i0, r0, r1)
 __jit_inline void
-jit_stxi_i(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_i(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVLrm(r1, i0, r0, _NOREG, 0);
+    MOVLrm(r1, i0, r0, _NOREG, _SCL1);
 }
 
 #endif /* __lightning_core_h */

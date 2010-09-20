@@ -339,7 +339,7 @@ _ALUQrr(x86_alu_t op,
 
 __jit_inline void
 _ALUQmr(x86_alu_t op,
-	long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _alu_sil_mr(op, md, rb, ri, ms, rd);
@@ -347,7 +347,7 @@ _ALUQmr(x86_alu_t op,
 
 __jit_inline void
 _ALUQrm(x86_alu_t op,
-	jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+	jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _alu_sil_rm(op, rs, md, rb, ri, ms);
@@ -363,7 +363,7 @@ _ALUQir(x86_alu_t op,
 
 __jit_inline void
 _ALUQim(x86_alu_t op,
-	long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+	long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _alu_il_im(op, im, md, rb, ri, ms);
@@ -428,7 +428,7 @@ _ROTSHIQir(x86_rotsh_t op,
 
 __jit_inline void
 _ROTSHIQim(x86_rotsh_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _rotsh_sil_im(op, im, md, rb, ri, ms);
@@ -444,7 +444,7 @@ _ROTSHIQrr(x86_rotsh_t op,
 
 __jit_inline void
 _ROTSHIQrm(x86_rotsh_t op,
-	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _rotsh_sil_rm(op, rs, md, rb, ri, ms);
@@ -501,7 +501,7 @@ _BTQir(x86_bt_t op,
 
 __jit_inline void
 _BTQim(x86_bt_t op,
-       long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+       long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _bt_sil_im(op, im, md, rb, ri, ms);
@@ -517,7 +517,7 @@ _BTQrr(x86_bt_t op,
 
 __jit_inline void
 _BTQrm(x86_bt_t op,
-       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _bt_sil_rm(op, rs, md, rb, ri, ms);
@@ -552,14 +552,14 @@ MOVQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _mov_sil_mr(md, rb, ri, ms, rd);
 }
 
 __jit_inline void
-MOVQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+MOVQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _mov_sil_rm(rs, md, rb, ri, ms);
@@ -574,7 +574,7 @@ MOVQir(long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVQim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+MOVQim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _O(0xc7);
@@ -593,7 +593,7 @@ _UNARYQr(x86_unary_t op,
 
 __jit_inline void
 _UNARYQm(x86_unary_t op,
-	 long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+	 long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQmr(rb, ri, _NOREG);
     _unary_sil_m(op, md, rb, ri, ms);
@@ -625,7 +625,7 @@ IMULQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-IMULQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+IMULQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _imul_sil_mr(md, rb, ri, ms, rd);
@@ -664,7 +664,7 @@ CMOVQrr(x86_cc_t cc,
 
 __jit_inline void
 CMOVQmr(x86_cc_t cc,
-	long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _cmov_sil_mr(cc, md, rb, ri, ms, rd);
@@ -679,7 +679,7 @@ POPQr(jit_gpr_t rd)
 }
 
 __jit_inline void
-POPQm(long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+POPQm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQm(rb, ri);
     _pop_sil_m(md, rb, ri, ms);
@@ -693,7 +693,7 @@ PUSHQr(jit_gpr_t rs)
 }
 
 __jit_inline void
-PUSHQm(long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+PUSHQm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQm(rb, ri);
     _push_sil_m(md, rb, ri, ms);
@@ -714,7 +714,7 @@ TESTQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-TESTQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+TESTQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _test_sil_rm(rs, md, rb, ri, ms);
@@ -728,7 +728,7 @@ TESTQir(long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-TESTQim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+TESTQim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _test_il_im(im, md, rb, ri, ms);
@@ -743,7 +743,7 @@ CMPXCHGQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-CMPXCHGQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+CMPXCHGQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _cmpxchg_sil_rm(rs, md, rb, ri, ms);
@@ -757,7 +757,7 @@ XADDQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-XADDQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+XADDQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _xadd_sil_rm(rs, md, rb, ri, ms);
@@ -771,7 +771,7 @@ XCHGQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-XCHGQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+XCHGQrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(rs, rb, ri);
     _xchg_sil_rm(rs, md, rb, ri, ms);
@@ -786,7 +786,7 @@ DECQr(jit_gpr_t rd)
 }
 
 __jit_inline void
-DECQm(long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+DECQm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _dec_sil_m(md, rb, ri, ms);
@@ -800,7 +800,7 @@ INCQr(jit_gpr_t rd)
 }
 
 __jit_inline void
-INCQm(long md, jit_gpr_t rb, jit_gpr_t ri, long ms)
+INCQm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXQrm(_NOREG, rb, ri);
     _inc_sil_m(md, rb, ri, ms);
@@ -815,7 +815,7 @@ BSFQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-BSFQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+BSFQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _bsf_sil_mr(md, rb, ri, ms, rd);
@@ -829,7 +829,7 @@ BSRQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-BSRQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+BSRQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _bsr_sil_mr(md, rb, ri, ms, rd);
@@ -845,7 +845,7 @@ _movsd_l_rr(jit_gpr_t rs, jit_gpr_t rd)
 
 /* long rd = (int)*rs */
 __jit_inline void
-_movsd_l_mr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+_movsd_l_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x63);
     _r_X(rd, md, rb, ri, ms);
@@ -859,7 +859,7 @@ MOVSBQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVSBQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVSBQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _movsb_sil_mr(md, rb, ri, ms, rd);
@@ -873,7 +873,7 @@ MOVSWQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVSWQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVSWQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _movsw_il_mr(md, rb, ri, ms, rd);
@@ -887,7 +887,7 @@ MOVSLQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVSLQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVSLQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _movsd_l_mr(md, rb, ri, ms, rd);
@@ -901,7 +901,7 @@ MOVZBQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVZBQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVZBQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _movzb_sil_mr(md, rb, ri, ms, rd);
@@ -915,14 +915,14 @@ MOVZWQrr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-MOVZWQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+MOVZWQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _movzw_il_mr(md, rb, ri, ms, rd);
 }
 
 __jit_inline void
-LEAQmr(long md, jit_gpr_t rb, jit_gpr_t ri, long ms, jit_gpr_t rd)
+LEAQmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXQmr(rb, ri, rd);
     _lea_il_mr(md, rb, ri, ms, rd);

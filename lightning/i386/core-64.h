@@ -271,7 +271,7 @@ jit_addi_l(jit_gpr_t r0, jit_gpr_t r1, long i0)
 	if (r0 == r1)
 	    ADDQir(i0, r0);
 	else
-	    LEAQmr(i0, r1, _NOREG, 0, r0);
+	    LEAQmr(i0, r1, _NOREG, _SCL1, r0);
     }
     else if (r0 != r1) {
 	MOVQir(i0, r0);
@@ -292,7 +292,7 @@ jit_addr_l(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
     else if (r0 == r2)
 	ADDQrr(r1, r0);
     else
-	LEAQmr(0, r1, r2, 1, r0);
+	LEAQmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_subr_l(r0, r1, r2)		jit_subr_l(r0, r1, r2)
@@ -955,7 +955,7 @@ jit_lshi_l(jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
     if (i0 == 0)
 	jit_movr_l(r0, r1);
     else if (i0 <= 3)
-	LEAQmr(0, _NOREG, r1, 1 << i0, r0);
+	LEAQmr(0, _NOREG, r1, i0 == 1 ? _SCL2 : i0 == 2 ? _SCL4 : _SCL8, r0);
     else {
 	jit_movr_l(r0, r1);
 	SHLQir(i0, r0);
@@ -1575,28 +1575,28 @@ jit_ntoh_ul(jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldr_c(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSBQmr(0, r1, _NOREG,  0, r0);
+    MOVSBQmr(0, r1, _NOREG,  _SCL1, r0);
 }
 
 #define jit_ldxr_c(r0, r1, r2)		jit_ldxr_c(r0, r1, r2)
 __jit_inline void
 jit_ldxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVSBQmr(0, r1, r2, 1, r0);
+    MOVSBQmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldr_s(r0, r1)		jit_ldr_s(r0, r1)
 __jit_inline void
 jit_ldr_s(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSWQmr(0, r1, _NOREG, 0, r0);
+    MOVSWQmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldxr_s(r0, r1, r2)		jit_ldxr_s(r0, r1, r2)
 __jit_inline void
 jit_ldxr_s(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVSWQmr(0, r1, r2, 1, r0);
+    MOVSWQmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldi_c(r0, i0)		jit_ldi_c(r0, i0)
@@ -1604,7 +1604,7 @@ __jit_inline void
 jit_ldi_c(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVSBQmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVSBQmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_c(r0, JIT_REXTMP);
@@ -1613,10 +1613,10 @@ jit_ldi_c(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_c(r0, r1, i0)		jit_ldxi_c(r0, r1, i0)
 __jit_inline void
-jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_c(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVSBQmr(i0, r1, _NOREG,  0, r0);
+	MOVSBQmr(i0, r1, _NOREG,  _SCL1, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_c(r0, r1, JIT_REXTMP);
@@ -1628,7 +1628,7 @@ __jit_inline void
 jit_ldi_uc(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVZBLmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVZBLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_uc(r0, JIT_REXTMP);
@@ -1637,10 +1637,10 @@ jit_ldi_uc(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_uc(r0, r1, i0)		jit_ldxi_uc(r0, r1, i0)
 __jit_inline void
-jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVZBLmr(i0, r1, _NOREG, 0, r0);
+	MOVZBLmr(i0, r1, _NOREG, _SCL1, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_uc(r0, r1, JIT_REXTMP);
@@ -1651,7 +1651,7 @@ jit_ldxi_uc(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 __jit_inline void
 jit_str_c(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVBrm(r1, 0, r0, _NOREG, 0);
+    MOVBrm(r1, 0, r0, _NOREG, _SCL1);
 }
 
 #define jit_sti_c(i0, r0)		jit_sti_c(i0, r0)
@@ -1659,7 +1659,7 @@ __jit_inline void
 jit_sti_c(void *i0, jit_gpr_t r0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVBrm(r0, (long)i0, _NOREG, _NOREG, 0);
+	MOVBrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_str_c(JIT_REXTMP, r0);
@@ -1670,15 +1670,15 @@ jit_sti_c(void *i0, jit_gpr_t r0)
 __jit_inline void
 jit_stxr_c(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVBrm(r2, 0, r0, r1, 1);
+    MOVBrm(r2, 0, r0, r1, _SCL1);
 }
 
 #define jit_stxi_c(i0, r0, r1)		jit_stxi_c(i0, r0, r1)
 __jit_inline void
-jit_stxi_c(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_c(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVBrm(r1, i0, r0, _NOREG, 0);
+	MOVBrm(r1, i0, r0, _NOREG, _SCL1);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_stxr_c(JIT_REXTMP, r0, r1);
@@ -1690,7 +1690,7 @@ __jit_inline void
 jit_ldi_s(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVSWQmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVSWQmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_s(r0, JIT_REXTMP);
@@ -1699,10 +1699,10 @@ jit_ldi_s(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_s(r0, r1, i0)		jit_ldxi_s(r0, r1, i0)
 __jit_inline void
-jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_s(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVSWQmr(i0, r1, _NOREG, 0, r0);
+	MOVSWQmr(i0, r1, _NOREG, _SCL1, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_s(r0, r1, JIT_REXTMP);
@@ -1714,7 +1714,7 @@ __jit_inline void
 jit_ldi_us(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVZWLmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVZWLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_us(r0, JIT_REXTMP);
@@ -1723,10 +1723,10 @@ jit_ldi_us(jit_gpr_t r0, void *i0)
 
 #define jit_ldxi_us(r0, r1, i0)		jit_ldxi_us(r0, r1, i0)
 __jit_inline void
-jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_us(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVZWLmr(i0, r1, _NOREG, 0, r0);
+	MOVZWLmr(i0, r1, _NOREG, _SCL1, r0);
     else  {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_us(r0, r1, JIT_REXTMP);
@@ -1738,7 +1738,7 @@ __jit_inline void
 jit_sti_s(void *i0, jit_gpr_t r0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVWrm(r0, (long)i0, _NOREG, _NOREG, 0);
+	MOVWrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_str_s(JIT_REXTMP, r0);
@@ -1747,10 +1747,10 @@ jit_sti_s(void *i0, jit_gpr_t r0)
 
 #define jit_stxi_s(i0, r0, r1)		jit_stxi_s(i0, r0, r1)
 __jit_inline void
-jit_stxi_s(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_s(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVWrm(r1, i0, r0, _NOREG, 0);
+	MOVWrm(r1, i0, r0, _NOREG, _SCL1);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_stxr_s(JIT_REXTMP, r0, r1);
@@ -1761,7 +1761,7 @@ jit_stxi_s(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldr_i(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVSLQmr(0, r1, _NOREG, 0, r0);
+    MOVSLQmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldi_i(r0, i0)		jit_ldi_i(r0, i0)
@@ -1769,7 +1769,7 @@ __jit_inline void
 jit_ldi_i(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVSLQmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVSLQmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_i(r0, JIT_REXTMP);
@@ -1780,15 +1780,15 @@ jit_ldi_i(jit_gpr_t r0, void *i0)
 __jit_inline void
 jit_ldxr_i(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVSLQmr(0, r1, r2, 1, r0);
+    MOVSLQmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldxi_i(r0, r1, i0)		jit_ldxi_i(r0, r1, i0)
 __jit_inline void
-jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVSLQmr(i0, r1, _NOREG, 0, r0);
+	MOVSLQmr(i0, r1, _NOREG, _SCL1, r0);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_i(r0, r1, JIT_REXTMP);
@@ -1799,7 +1799,7 @@ jit_ldxi_i(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 __jit_inline void
 jit_ldr_ui(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVLmr(0, r1, _NOREG, 0, r0);
+    MOVLmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldi_ui(r0, i0)		jit_ldi_ui(r0, i0)
@@ -1807,7 +1807,7 @@ __jit_inline void
 jit_ldi_ui(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVLmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVLmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_ui(r0, JIT_REXTMP);
@@ -1818,15 +1818,15 @@ jit_ldi_ui(jit_gpr_t r0, void *i0)
 __jit_inline void
 jit_ldxr_ui(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVLmr(0, r1, r2, 1, r0);
+    MOVLmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldxi_ui(r0, r1, i0)		jit_ldxi_ui(r0, r1, i0)
 __jit_inline void
-jit_ldxi_ui(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_ui(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVLmr(i0, r1, _NOREG, 0, r0);
+	MOVLmr(i0, r1, _NOREG, _SCL1, r0);
     else  {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_ui(r0, r1, JIT_REXTMP);
@@ -1838,7 +1838,7 @@ __jit_inline void
 jit_sti_i(void *i0, jit_gpr_t r0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVLrm(r0, (long)i0, _NOREG, _NOREG, 0);
+	MOVLrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_str_i(JIT_REXTMP, r0);
@@ -1847,10 +1847,10 @@ jit_sti_i(void *i0, jit_gpr_t r0)
 
 #define jit_stxi_i(i0, r0, r1)		jit_stxi_i(i0, r0, r1)
 __jit_inline void
-jit_stxi_i(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_i(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVLrm(r1, i0, r0, _NOREG, 0);
+	MOVLrm(r1, i0, r0, _NOREG, _SCL1);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_stxr_i(JIT_REXTMP, r0, r1);
@@ -1861,7 +1861,7 @@ jit_stxi_i(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 jit_ldr_l(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVQmr(0, r1, _NOREG, 0, r0);
+    MOVQmr(0, r1, _NOREG, _SCL1, r0);
 }
 
 #define jit_ldi_l(r0, i0)		jit_ldi_l(r0, i0)
@@ -1869,7 +1869,7 @@ __jit_inline void
 jit_ldi_l(jit_gpr_t r0, void *i0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVQmr((long)i0, _NOREG, _NOREG, 0, r0);
+	MOVQmr((long)i0, _NOREG, _NOREG, _SCL1, r0);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_ldr_l(r0, JIT_REXTMP);
@@ -1880,17 +1880,17 @@ jit_ldi_l(jit_gpr_t r0, void *i0)
 __jit_inline void
 jit_ldxr_l(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVQmr(0, r1, r2, 1, r0);
+    MOVQmr(0, r1, r2, _SCL1, r0);
 }
 
 #define jit_ldxi_l(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
 #define jit_ldxi_ul(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
 #define jit_ldxi_p(r0, r1, i0)		jit_ldxi_l(r0, r1, i0)
 __jit_inline void
-jit_ldxi_l(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
+jit_ldxi_l(jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVQmr(i0, r1, _NOREG, 0, r0);
+	MOVQmr(i0, r1, _NOREG, _SCL1, r0);
     else  {
 	MOVQir(i0, JIT_REXTMP);
 	jit_ldxr_l(r0, r1, JIT_REXTMP);
@@ -1901,7 +1901,7 @@ jit_ldxi_l(jit_gpr_t r0, jit_gpr_t r1, jit_idx_t i0)
 __jit_inline void
 jit_str_l(jit_gpr_t r0, jit_gpr_t r1)
 {
-    MOVQrm(r1, 0, r0, _NOREG, 0);
+    MOVQrm(r1, 0, r0, _NOREG, _SCL1);
 }
 
 #define jit_sti_l(i0, r0)		jit_sti_l(i0, r0)
@@ -1909,7 +1909,7 @@ __jit_inline void
 jit_sti_l(void *i0, jit_gpr_t r0)
 {
     if (jit_can_sign_extend_int_p((long)i0))
-	MOVQrm(r0, (long)i0, _NOREG, _NOREG, 0);
+	MOVQrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
 	MOVQir((long)i0, JIT_REXTMP);
 	jit_str_l(JIT_REXTMP, r0);
@@ -1920,15 +1920,15 @@ jit_sti_l(void *i0, jit_gpr_t r0)
 __jit_inline void
 jit_stxr_l(jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    MOVQrm(r2, 0, r0, r1, 1);
+    MOVQrm(r2, 0, r0, r1, _SCL1);
 }
 
 #define jit_stxi_l(i0, r0, r1)		jit_stxi_l(i0, r0, r1)
 __jit_inline void
-jit_stxi_l(jit_idx_t i0, jit_gpr_t r0, jit_gpr_t r1)
+jit_stxi_l(long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (jit_can_sign_extend_int_p(i0))
-	MOVQrm(r1, i0, r0, _NOREG, 0);
+	MOVQrm(r1, i0, r0, _NOREG, _SCL1);
     else {
 	MOVQir(i0, JIT_REXTMP);
 	jit_stxr_l(JIT_REXTMP, r0, r1);
