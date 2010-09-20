@@ -70,7 +70,8 @@
    (and similarly for immediates, using the stack) */
 
 __jit_inline void
-x87_absr_d(jit_fpr_t f0, jit_fpr_t f1)
+x87_absr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -89,7 +90,8 @@ x87_absr_d(jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
-x87_negr_d(jit_fpr_t f0, jit_fpr_t f1)
+x87_negr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -108,7 +110,8 @@ x87_negr_d(jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
-x87_sqrtr_d(jit_fpr_t f0, jit_fpr_t f1)
+x87_sqrtr_d(jit_state_t _jit,
+	    jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -127,7 +130,8 @@ x87_sqrtr_d(jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
-x87_addr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_addr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -159,7 +163,8 @@ x87_addr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 }
 
 __jit_inline void
-x87_subr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_subr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -191,7 +196,8 @@ x87_subr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 }
 
 __jit_inline void
-x87_mulr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_mulr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -223,7 +229,8 @@ x87_mulr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 }
 
 __jit_inline void
-x87_divr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_divr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -255,63 +262,72 @@ x87_divr_d(jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 }
 
 __jit_inline void
-x87_ldi_f(jit_fpr_t f0, void *i0)
+x87_ldi_f(jit_state_t _jit,
+	  jit_fpr_t f0, void *i0)
 {
     FLDSm((long)i0, _NOREG, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldr_f(jit_fpr_t f0, jit_gpr_t r0)
+x87_ldr_f(jit_state_t _jit,
+	  jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDSm(0, r0, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldxi_f(jit_fpr_t f0, jit_gpr_t r0, long i0)
+x87_ldxi_f(jit_state_t _jit,
+	   jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDSm(i0, r0, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldxr_f(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
+x87_ldxr_f(jit_state_t _jit,
+	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDSm(0, r0, r1, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldi_d(jit_fpr_t f0, void *i0)
+x87_ldi_d(jit_state_t _jit,
+	  jit_fpr_t f0, void *i0)
 {
     FLDLm((long)i0, _NOREG, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldr_d(jit_fpr_t f0, jit_gpr_t r0)
+x87_ldr_d(jit_state_t _jit,
+	  jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDLm(0, r0, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldxi_d(jit_fpr_t f0, jit_gpr_t r0, long i0)
+x87_ldxi_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDLm(i0, r0, _NOREG, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_ldxr_d(jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
+x87_ldxr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDLm(0, r0, r1, _SCL1);
     FSTPr(f0 + 1);
 }
 
 __jit_inline void
-x87_sti_f(void *i0, jit_fpr_t f0)
+x87_sti_f(jit_state_t _jit,
+	  void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm((long)i0, _NOREG, _NOREG, _SCL1);
@@ -323,7 +339,8 @@ x87_sti_f(void *i0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_str_f(jit_gpr_t r0, jit_fpr_t f0)
+x87_str_f(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(0, r0, _NOREG, _SCL1);
@@ -335,7 +352,8 @@ x87_str_f(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_f(jit_state_t _jit,
+	   long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(i0, r0, _NOREG, _SCL1);
@@ -347,7 +365,8 @@ x87_stxi_f(long i0, jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
+x87_stxr_f(jit_state_t _jit,
+	   jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(0, r0, r1, _SCL1);
@@ -359,7 +378,8 @@ x87_stxr_f(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_sti_d(void *i0, jit_fpr_t f0)
+x87_sti_d(jit_state_t _jit,
+	  void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm((long)i0, _NOREG, _NOREG, _SCL1);
@@ -371,7 +391,8 @@ x87_sti_d(void *i0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_str_d(jit_gpr_t r0, jit_fpr_t f0)
+x87_str_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(0, r0, _NOREG, _SCL1);
@@ -383,7 +404,8 @@ x87_str_d(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_d(jit_state_t _jit,
+	   long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(i0, r0, _NOREG, _SCL1);
@@ -395,7 +417,8 @@ x87_stxi_d(long i0, jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
+x87_stxr_d(jit_state_t _jit,
+	   jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(0, r0, r1, _SCL1);
@@ -407,7 +430,8 @@ x87_stxr_d(jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_movi_f(jit_fpr_t f0, float i0)
+x87_movi_f(jit_state_t _jit,
+	   jit_fpr_t f0, float i0)
 {
     union {
 	int	i;
@@ -444,13 +468,14 @@ x87_movi_f(jit_fpr_t f0, float i0)
 	FSTPr(f0 + 1);
     else {
 	jit_pushi_i(data.i);
-	x87_ldr_f(f0, _RSP);
+	x87_ldr_f(_jit, f0, _RSP);
 	jit_addi_l(_RSP, _RSP, sizeof(long));
     }
 }
 
 __jit_inline void
-x87_movi_d(jit_fpr_t f0, double i0)
+x87_movi_d(jit_state_t _jit,
+	   jit_fpr_t f0, double i0)
 {
     union {
 	int	i[2];
@@ -493,13 +518,14 @@ x87_movi_d(jit_fpr_t f0, double i0)
 	PUSHLi(data.i[1]);
 	PUSHLi(data.i[0]);
 #endif
-	x87_ldr_d(f0, _RSP);
+	x87_ldr_d(_jit, f0, _RSP);
 	jit_addi_l(_RSP, _RSP, 8);
     }
 }
 
 __jit_inline void
-x87_movr_d(jit_fpr_t f0, jit_fpr_t f1)
+x87_movr_d(jit_state_t _jit,
+	   jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 != f1) {
 	if (f1 == _ST0)
@@ -516,7 +542,8 @@ x87_movr_d(jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
-x87_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
+x87_extr_i_d(jit_state_t _jit,
+	     jit_fpr_t f0, jit_gpr_t r0)
 {
     jit_pushr_i(r0);
     FILDLm(0, _RSP, _NOREG, _SCL1);
@@ -525,7 +552,8 @@ x87_extr_i_d(jit_fpr_t f0, jit_gpr_t r0)
 }
 
 __jit_inline void
-x87_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_rintr_d_i(jit_state_t _jit,
+	      jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
     /* store integer using current rounding mode */
@@ -543,7 +571,8 @@ x87_rintr_d_i(jit_gpr_t r0, jit_fpr_t f0)
  * adjusting the rounding mode as done in _safe_roundr_d_i
  */
 __jit_inline void
-_x87_386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_386_roundr_d_i(jit_state_t _jit,
+		   jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -642,7 +671,8 @@ _x87_386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_roundr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -705,16 +735,18 @@ _x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_roundr_d_i(jit_state_t _jit,
+	       jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p())
-	_x87_386_roundr_d_i(r0, f0);
+	x87_386_roundr_d_i(_jit, r0, f0);
     else
-	_x87_safe_roundr_d_i(r0, f0);
+	x87_safe_roundr_d_i(_jit, r0, f0);
 }
 
 __jit_inline void
-_x87_i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_truncr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
@@ -753,7 +785,8 @@ _x87_i386_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_i686_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_truncr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
     FLDr(f0);
@@ -762,17 +795,19 @@ _x87_i686_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_truncr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_truncr_d_i(jit_state_t _jit,
+	       jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_i686_p())
-	_x87_i686_truncr_d_i(r0, f0);
+	x87_i686_truncr_d_i(_jit, r0, f0);
     else
 	/* also "safe" version */
-	_x87_i386_truncr_d_i(r0, f0);
+	x87_i386_truncr_d_i(_jit, r0, f0);
 }
 
 __jit_inline void
-_x87_safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_floorr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
@@ -810,7 +845,8 @@ _x87_safe_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_i386_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_floorr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -835,7 +871,8 @@ _x87_i386_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_i686_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_floorr_d_i(jit_state_t _jit,
+		    jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -860,20 +897,22 @@ _x87_i686_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_floorr_d_i(jit_state_t _jit,
+	       jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p()) {
 	if (jit_i686_p())
-	    _x87_i686_floorr_d_i(r0, f0);
+	    x87_i686_floorr_d_i(_jit, r0, f0);
 	else
-	    _x87_i386_floorr_d_i(r0, f0);
+	    x87_i386_floorr_d_i(_jit, r0, f0);
     }
     else
-	_x87_safe_floorr_d_i(r0, f0);
+	x87_safe_floorr_d_i(_jit, r0, f0);
 }
 
 __jit_inline void
-_x87_safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_ceilr_d_i(jit_state_t _jit,
+		   jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
@@ -910,7 +949,8 @@ _x87_safe_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_i386_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_ceilr_d_i(jit_state_t _jit,
+		   jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -935,7 +975,8 @@ _x87_i386_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-_x87_i686_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_ceilr_d_i(jit_state_t _jit,
+		   jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -958,16 +999,17 @@ _x87_i686_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 }
 
 __jit_inline void
-x87_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
+x87_ceilr_d_i(jit_state_t _jit,
+	      jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p()) {
 	if (jit_i686_p())
-	    _x87_i686_ceilr_d_i(r0, f0);
+	    x87_i686_ceilr_d_i(_jit, r0, f0);
 	else
-	    _x87_i386_ceilr_d_i(r0, f0);
+	    x87_i386_ceilr_d_i(_jit, r0, f0);
     }
     else
-	_x87_safe_ceilr_d_i(r0, f0);
+	x87_safe_ceilr_d_i(_jit, r0, f0);
 }
 
 /* After FNSTSW we have 1 if <, 40 if =, 0 if >, 45 if unordered.  Here
@@ -996,8 +1038,9 @@ x87_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
   the operands swapped; it is more efficient this way.  */
 
 __jit_inline void
-_x87_i386_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
-		 int shift, int _and, x86_cc_t code)
+x87_i386_fp_cmp(jit_state_t _jit,
+		jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
+		int shift, int _and, x86_cc_t code)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1029,7 +1072,8 @@ _x87_i386_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
 }
 
 __jit_inline void
-_x87_i686_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
+x87_i686_fp_cmp(jit_state_t _jit,
+		jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 {
     int		 rc;
     jit_gpr_t	 reg;
@@ -1054,25 +1098,28 @@ _x87_i686_fp_cmp(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 }
 
 __jit_inline void
-x87_ltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ltr_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f1, f0,	X86_CC_A);
+	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_A);
     else
-	_x87_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_Z);
+	x87_i386_fp_cmp(_jit, r0, f1, f0,	8, 0x45, X86_CC_Z);
 }
 
 __jit_inline void
-x87_ler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ler_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f1, f0,	X86_CC_AE);
+	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_AE);
     else
-	_x87_i386_fp_cmp(r0, f1, f0,	9, 0, (x86_cc_t)-1);
+	x87_i386_fp_cmp(_jit, r0, f1, f0,	9, 0, (x86_cc_t)-1);
 }
 
 __jit_inline void
-x87_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_eqr_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t			fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1102,29 +1149,32 @@ x87_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	    XCHGLrr(_RAX, r0);
     }
     else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_E);
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_E);
 }
 
 __jit_inline void
-x87_ger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ger_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f0, f1,	X86_CC_AE);
+	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_AE);
     else
-	_x87_i386_fp_cmp(r0, f0, f1,	9, 0, (x86_cc_t)-1);
+	x87_i386_fp_cmp(_jit, r0, f0, f1,	9, 0, (x86_cc_t)-1);
 }
 
 __jit_inline void
-x87_gtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_gtr_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f0, f1,	X86_CC_A);
+	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_A);
     else
-	_x87_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_Z);
+	x87_i386_fp_cmp(_jit, r0, f0, f1,	8, 0x45, X86_CC_Z);
 }
 
 __jit_inline void
-x87_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ner_d(jit_state_t _jit,
+	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1154,96 +1204,105 @@ x87_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	    XCHGLrr(_RAX, r0);
     }
     else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_NE);
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_NE);
 }
 
 __jit_inline void
-x87_unltr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unltr_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f0, f1,	X86_CC_NAE);
+	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_NAE);
     else
-	_x87_i386_fp_cmp(r0, f0, f1,	9, 0, (x86_cc_t)0);
+	x87_i386_fp_cmp(_jit, r0, f0, f1,	9, 0, (x86_cc_t)0);
 }
 
 __jit_inline void
-x87_unler_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unler_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f0, f1,	X86_CC_NA);
+	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_NA);
     else
-	_x87_i386_fp_cmp(r0, f0, f1,	8, 0x45, X86_CC_NZ);
+	x87_i386_fp_cmp(_jit, r0, f0, f1,	8, 0x45, X86_CC_NZ);
 }
 
 __jit_inline void
-x87_ltgtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    jit_fpr_t		fr0, fr1;
-    if (f1 == _ST0)	fr0 = f1, fr1 = f0;
-    else		fr0 = f0, fr1 = f1;
-    if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, fr0, fr1,	X86_CC_NE);
-    else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	15, 0, (x86_cc_t)-1);
-}
-
-__jit_inline void
-x87_uneqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ltgtr_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, fr0, fr1,	X86_CC_E);
+	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_NE);
     else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	15, 0, (x86_cc_t)0);
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	15, 0, (x86_cc_t)-1);
 }
 
 __jit_inline void
-x87_unger_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f1, f0,	X86_CC_NA);
-    else
-	_x87_i386_fp_cmp(r0, f1, f0,	8, 0x45, X86_CC_NZ);
-}
-
-__jit_inline void
-x87_ungtr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
-{
-    if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, f1, f0,	X86_CC_NAE);
-    else
-	_x87_i386_fp_cmp(r0, f1, f0,	9, 0, (x86_cc_t)0);
-}
-
-__jit_inline void
-x87_ordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_uneqr_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, fr0, fr1,	X86_CC_NP);
+	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_E);
     else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	11, 0, (x86_cc_t)-1);
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	15, 0, (x86_cc_t)0);
 }
 
 __jit_inline void
-x87_unordr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unger_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_i686_p())
+	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_NA);
+    else
+	x87_i386_fp_cmp(_jit, r0, f1, f0,	8, 0x45, X86_CC_NZ);
+}
+
+__jit_inline void
+x87_ungtr_d(jit_state_t _jit,
+	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_i686_p())
+	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_NAE);
+    else
+	x87_i386_fp_cmp(_jit, r0, f1, f0,	9, 0, (x86_cc_t)0);
+}
+
+__jit_inline void
+x87_ordr_d(jit_state_t _jit,
+	   jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_cmp(r0, fr0, fr1,	X86_CC_P);
+	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_NP);
     else
-	_x87_i386_fp_cmp(r0, fr0, fr1,	11, 0, (x86_cc_t)0);
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	11, 0, (x86_cc_t)-1);
 }
 
 __jit_inline void
-_x87_i386_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
-		  int shift, int _and, int cmp, x86_cc_t code)
+x87_unordr_d(jit_state_t _jit,
+	     jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_fpr_t		fr0, fr1;
+    if (f1 == _ST0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686_p())
+	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_P);
+    else
+	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	11, 0, (x86_cc_t)0);
+}
+
+__jit_inline void
+x87_i386_fp_bcmp(jit_state_t _jit,
+		 jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
+		 int shift, int _and, int cmp, x86_cc_t code)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1263,7 +1322,8 @@ _x87_i386_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
 }
 
 __jit_inline void
-_x87_i686_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
+x87_i686_fp_bcmp(jit_state_t _jit,
+		 jit_insn *label, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 {
     if (f0 == _ST0)
 	FUCOMIr(f1);
@@ -1275,27 +1335,30 @@ _x87_i686_fp_bcmp(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
 }
 
 __jit_inline jit_insn *
-x87_bltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bltr_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_A);
+	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_A);
     else
-	_x87_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_Z);
+	x87_i386_fp_bcmp(_jit, label, f1, f0,	8, 0x45, 0, X86_CC_Z);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bler_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_AE);
+	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_AE);
     else
-	_x87_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_NC);
+	x87_i386_fp_bcmp(_jit, label, f1, f0,	9, 0, 0, X86_CC_NC);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_beqr_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1315,32 +1378,35 @@ x87_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	jit_patch_rel_char_at(jp_label, _jit->x.pc);
     }
     else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_Z);
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	8, 0x45, 0x40, X86_CC_Z);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bger_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_AE);
+	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_AE);
     else
-	_x87_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_NC);
+	x87_i386_fp_bcmp(_jit, label, f0, f1,	9, 0, 0, X86_CC_NC);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bgtr_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_A);
+	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_A);
     else
-	_x87_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_Z);
+	x87_i386_fp_bcmp(_jit, label, f0, f1,	8, 0x45, 0, X86_CC_Z);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bner_d(jit_state_t _jit,
+	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1365,99 +1431,107 @@ x87_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	jit_patch_rel_char_at(jz_label, _jit->x.pc);
     }
     else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_NZ);
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	8, 0x45, 0x40, X86_CC_NZ);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bunltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunltr_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_NAE);
+	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_NAE);
     else
-	_x87_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_C);
+	x87_i386_fp_bcmp(_jit, label, f0, f1,	9, 0, 0, X86_CC_C);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bunler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunler_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_NA);
+	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_NA);
     else
-	_x87_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_NZ);
+	x87_i386_fp_bcmp(_jit, label, f0, f1,	8, 0x45, 0, X86_CC_NZ);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bltgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
-{
-    jit_fpr_t		fr0, fr1;
-    if (f1 == _ST0)	fr0 = f1, fr1 = f0;
-    else		fr0 = f0, fr1 = f1;
-    if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NE);
-    else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_NC);
-    return (_jit->x.pc);
-}
-
-__jit_inline jit_insn *
-x87_buneqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bltgtr_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_E);
+	x87_i686_fp_bcmp(_jit, label, fr0, fr1,	X86_CC_NE);
     else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_C);
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	15, 0, 0, X86_CC_NC);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bunger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
-{
-    if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_NA);
-    else
-	_x87_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_NZ);
-    return (_jit->x.pc);
-}
-
-__jit_inline jit_insn *
-x87_bungtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
-{
-    if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_NAE);
-    else
-	_x87_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_C);
-    return (_jit->x.pc);
-}
-
-__jit_inline jit_insn *
-x87_bordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_buneqr_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NP);
+	x87_i686_fp_bcmp(_jit, label, fr0, fr1,	X86_CC_E);
     else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_NC);
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	15, 0, 0, X86_CC_C);
     return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
-x87_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunger_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_i686_p())
+	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_NA);
+    else
+	x87_i386_fp_bcmp(_jit, label, f1, f0,	8, 0x45, 0, X86_CC_NZ);
+    return (_jit->x.pc);
+}
+
+__jit_inline jit_insn *
+x87_bungtr_d(jit_state_t _jit,
+	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_i686_p())
+	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_NAE);
+    else
+	x87_i386_fp_bcmp(_jit, label, f1, f0,	9, 0, 0, X86_CC_C);
+    return (_jit->x.pc);
+}
+
+__jit_inline jit_insn *
+x87_bordr_d(jit_state_t _jit,
+	    jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
     if (jit_i686_p())
-	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_P);
+	x87_i686_fp_bcmp(_jit, label, fr0, fr1,	X86_CC_NP);
     else
-	_x87_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_C);
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	11, 0, 0, X86_CC_NC);
+    return (_jit->x.pc);
+}
+
+__jit_inline jit_insn *
+x87_bunordr_d(jit_state_t _jit,
+	      jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_fpr_t		fr0, fr1;
+    if (f1 == _ST0)	fr0 = f1, fr1 = f0;
+    else		fr0 = f0, fr1 = f1;
+    if (jit_i686_p())
+	x87_i686_fp_bcmp(_jit, label, fr0, fr1,	X86_CC_P);
+    else
+	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	11, 0, 0, X86_CC_C);
     return (_jit->x.pc);
 }
 
