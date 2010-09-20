@@ -155,7 +155,7 @@ _jit_prolog(jit_state *jit, int n)
   /* The stack must be quad-word aligned.  */
   frame_size = (_jitl.frame_size + 15) & ~15;
   _jitl.slack = frame_size - _jitl.frame_size;
-  _jitl.stwu = _jit.x.pc;
+  _jitl.stwu = _jit->x.pc;
   STWUrm(1, -frame_size, 1);		/* stwu  r1, -x(r1)	   */
 
   STMWrm(first_saved_reg, 24 + 32, 1);		/* stmw  rI, ofs(r1)	   */

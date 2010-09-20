@@ -554,10 +554,10 @@ sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
-    JAESm(_jit.x.pc);
-    label = _jit.x.pc;
+    JAESm(_jit->x.pc);
+    label = _jit->x.pc;
     XORLir((int)0x80000000, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
     jit_pushr_i(r0);
     /* round */
     if (jit_round_to_nearest_p()) {
@@ -567,13 +567,13 @@ sse_roundr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 	SUBSSrr(f0, JIT_FPTMP0);
 	UCOMISSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
-	JNESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JNESm(_jit->x.pc);
+	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_f(JIT_FPTMP0, f0);
 	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_f_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	jit_addi_l(_RSP, _RSP, sizeof(long));
     }
     else {
@@ -595,10 +595,10 @@ sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
     XORPSrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISSrr(JIT_FPTMP0, f0);
-    JAESm(_jit.x.pc);
-    label = _jit.x.pc;
+    JAESm(_jit->x.pc);
+    label = _jit->x.pc;
     XORLir((int)0x80000000, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
     jit_pushr_i(r0);
     /* round */
     if (jit_round_to_nearest_p()) {
@@ -608,13 +608,13 @@ sse_roundr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	SUBSSrr(f0, JIT_FPTMP0);
 	UCOMISSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
-	JNESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JNESm(_jit->x.pc);
+	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_f(JIT_FPTMP0, f0);
 	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_f_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	jit_addi_l(_RSP, _RSP, sizeof(long));
     }
     else {
@@ -636,10 +636,10 @@ sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
-    JAESm(_jit.x.pc);
-    label = _jit.x.pc;
+    JAESm(_jit->x.pc);
+    label = _jit->x.pc;
     XORLir((int)0x80000000, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 #if __WORDSIZE == 32
     jit_pushr_i(r0);
     jit_pushi_i(0);
@@ -655,13 +655,13 @@ sse_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 	SUBSDrr(f0, JIT_FPTMP0);
 	UCOMISDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
-	JNESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JNESm(_jit->x.pc);
+	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_d(JIT_FPTMP0, f0);
 	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_d_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	jit_addi_l(_RSP, _RSP, sizeof(double));
     }
     else {
@@ -683,10 +683,10 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
     XORPDrr(JIT_FPTMP0, JIT_FPTMP0);
     /* invert -0.5 sign if argument is negative */
     UCOMISDrr(JIT_FPTMP0, f0);
-    JAESm(_jit.x.pc);
-    label = _jit.x.pc;
+    JAESm(_jit->x.pc);
+    label = _jit->x.pc;
     XORLir((int)0x80000000, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
     SHLQir(32, r0);
     jit_pushr_l(r0);
     /* round */
@@ -697,13 +697,13 @@ sse_roundr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	SUBSDrr(f0, JIT_FPTMP0);
 	UCOMISDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
-	JNESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JNESm(_jit->x.pc);
+	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_d(JIT_FPTMP0, f0);
 	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_d_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	jit_addi_l(_RSP, _RSP, sizeof(double));
     }
     else {
@@ -756,12 +756,12 @@ sse_floorr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_f_i(r0, f0);
 	sse_extr_i_f(JIT_FPTMP0, r0);
 	UCOMISSrr(f0, JIT_FPTMP0);
-	JBESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JBESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_f(JIT_FPTMP0, -0.5);
 	ADDSSrr(f0, JIT_FPTMP0);
 	sse_rintr_f_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -783,12 +783,12 @@ sse_floorr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_f_l(r0, f0);
 	sse_extr_l_f(JIT_FPTMP0, r0);
 	UCOMISSrr(f0, JIT_FPTMP0);
-	JBESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JBESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_f(JIT_FPTMP0, -0.5);
 	ADDSSrr(f0, JIT_FPTMP0);
 	sse_rintr_f_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -810,12 +810,12 @@ sse_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_d_i(r0, f0);
 	sse_extr_i_d(JIT_FPTMP0, r0);
 	UCOMISDrr(f0, JIT_FPTMP0);
-	JBESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JBESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_d(JIT_FPTMP0, -0.5);
 	ADDSDrr(f0, JIT_FPTMP0);
 	sse_rintr_d_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -837,12 +837,12 @@ sse_floorr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_d_l(r0, f0);
 	sse_extr_l_d(JIT_FPTMP0, r0);
 	UCOMISDrr(f0, JIT_FPTMP0);
-	JBESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JBESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_d(JIT_FPTMP0, -0.5);
 	ADDSDrr(f0, JIT_FPTMP0);
 	sse_rintr_d_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_DOWN);
@@ -864,12 +864,12 @@ sse_ceilr_f_i(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_f_i(r0, f0);
 	sse_extr_i_f(JIT_FPTMP0, r0);
 	UCOMISSrr(f0, JIT_FPTMP0);
-	JAESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JAESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_f(JIT_FPTMP0, 0.5);
 	ADDSSrr(f0, JIT_FPTMP0);
 	sse_rintr_f_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -891,12 +891,12 @@ sse_ceilr_f_l(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_f_l(r0, f0);
 	sse_extr_l_f(JIT_FPTMP0, r0);
 	UCOMISSrr(f0, JIT_FPTMP0);
-	JAESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JAESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_f(JIT_FPTMP0, 0.5);
 	ADDSSrr(f0, JIT_FPTMP0);
 	sse_rintr_f_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -918,12 +918,12 @@ sse_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_d_i(r0, f0);
 	sse_extr_i_d(JIT_FPTMP0, r0);
 	UCOMISDrr(f0, JIT_FPTMP0);
-	JAESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JAESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_d(JIT_FPTMP0, 0.5);
 	ADDSDrr(f0, JIT_FPTMP0);
 	sse_rintr_d_i(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -945,12 +945,12 @@ sse_ceilr_d_l(jit_gpr_t r0, jit_fpr_t f0)
 	sse_rintr_d_l(r0, f0);
 	sse_extr_l_d(JIT_FPTMP0, r0);
 	UCOMISDrr(f0, JIT_FPTMP0);
-	JAESm(_jit.x.pc);
-	label = _jit.x.pc;
+	JAESm(_jit->x.pc);
+	label = _jit->x.pc;
 	sse_movi_d(JIT_FPTMP0, 0.5);
 	ADDSDrr(f0, JIT_FPTMP0);
 	sse_rintr_d_l(r0, JIT_FPTMP0);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
     }
     else {
 	_sse_rnd_enter(r0, MXCSR_RND_UP);
@@ -1033,10 +1033,10 @@ sse_eqr_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     }
     XORLrr(reg, reg);
     UCOMISSrr(f0, f1);
-    JPESm(_jit.x.pc + 3);
-    _jitl.label = _jit.x.pc;
+    JPESm(_jit->x.pc + 3);
+    _jitl.label = _jit->x.pc;
     SETEr(reg);
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
 	XCHGLrr(_RAX, r0);
 }
@@ -1054,10 +1054,10 @@ sse_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     }
     XORLrr(reg, reg);
     UCOMISDrr(f0, f1);
-    JPESm(_jit.x.pc + 3);
-    _jitl.label = _jit.x.pc;
+    JPESm(_jit->x.pc + 3);
+    _jitl.label = _jit->x.pc;
     SETEr(reg);
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
 	XCHGLrr(_RAX, r0);
 }
@@ -1099,10 +1099,10 @@ sse_ner_f(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     }
     MOVLir(1, reg);
     UCOMISSrr(f0, f1);
-    JPESm(_jit.x.pc + 3);
-    _jitl.label = _jit.x.pc;
+    JPESm(_jit->x.pc + 3);
+    _jitl.label = _jit->x.pc;
     SETNEr(reg);
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
 	XCHGLrr(_RAX, r0);
 }
@@ -1120,10 +1120,10 @@ sse_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     }
     MOVLir(1, reg);
     UCOMISDrr(f0, f1);
-    JPESm(_jit.x.pc + 3);
-    _jitl.label = _jit.x.pc;
+    JPESm(_jit->x.pc + 3);
+    _jitl.label = _jit->x.pc;
     SETNEr(reg);
-    jit_patch_rel_char_at(_jitl.label, _jit.x.pc);
+    jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
 	XCHGLrr(_RAX, r0);
 }
@@ -1229,7 +1229,7 @@ sse_bltr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1237,7 +1237,7 @@ sse_bler_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1246,11 +1246,11 @@ sse_beqr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
     jit_insn	*jp_label;
     UCOMISSrr(f0, f1);
     /* jump after user jump if (unordered) */
-    JPSm(_jit.x.pc + 5);
-    jp_label = _jit.x.pc;
+    JPSm(_jit->x.pc + 5);
+    jp_label = _jit->x.pc;
     JEm(label);
-    jit_patch_rel_char_at(jp_label, _jit.x.pc);
-    return (_jit.x.pc);
+    jit_patch_rel_char_at(jp_label, _jit->x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1258,7 +1258,7 @@ sse_bger_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1266,7 +1266,7 @@ sse_bgtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1276,15 +1276,15 @@ sse_bner_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
     jit_insn	*jz_label;
     UCOMISSrr(f0, f1);
     /* jump to user jump if parity (unordered) */
-    JPSm(_jit.x.pc + 2);
-    jp_label = _jit.x.pc;
+    JPSm(_jit->x.pc + 2);
+    jp_label = _jit->x.pc;
     /* jump past user jump if zero (equal)  */
-    JZSm(_jit.x.pc + 5);
-    jz_label = _jit.x.pc;
-    jit_patch_rel_char_at(jp_label, _jit.x.pc);
+    JZSm(_jit->x.pc + 5);
+    jz_label = _jit->x.pc;
+    jit_patch_rel_char_at(jp_label, _jit->x.pc);
     JMPm(label);
-    jit_patch_rel_char_at(jz_label, _jit.x.pc);
-    return (_jit.x.pc);
+    jit_patch_rel_char_at(jz_label, _jit->x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1292,7 +1292,7 @@ sse_bunltr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JNAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1300,7 +1300,7 @@ sse_bunler_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f1, f0);
     JNAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1308,7 +1308,7 @@ sse_buneqr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1316,7 +1316,7 @@ sse_bunger_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1324,7 +1324,7 @@ sse_bungtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1332,7 +1332,7 @@ sse_bltgtr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1340,7 +1340,7 @@ sse_bordr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JNPm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1348,7 +1348,7 @@ sse_bunordr_f(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISSrr(f0, f1);
     JPm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1356,7 +1356,7 @@ sse_bltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1364,7 +1364,7 @@ sse_bler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1373,11 +1373,11 @@ sse_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
     jit_insn	*jp_label;
     UCOMISDrr(f0, f1);
     /* jump after user jump if (unordered) */
-    JPSm(_jit.x.pc + 5);
-    jp_label = _jit.x.pc;
+    JPSm(_jit->x.pc + 5);
+    jp_label = _jit->x.pc;
     JEm(label);
-    jit_patch_rel_char_at(jp_label, _jit.x.pc);
-    return (_jit.x.pc);
+    jit_patch_rel_char_at(jp_label, _jit->x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1385,7 +1385,7 @@ sse_bger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1393,7 +1393,7 @@ sse_bgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1403,15 +1403,15 @@ sse_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
     jit_insn	*jz_label;
     UCOMISDrr(f0, f1);
     /* jump to user jump if parity (unordered) */
-    JPSm(_jit.x.pc + 2);
-    jp_label = _jit.x.pc;
+    JPSm(_jit->x.pc + 2);
+    jp_label = _jit->x.pc;
     /* jump past user jump if zero (equal)  */
-    JZSm(_jit.x.pc + 5);
-    jz_label = _jit.x.pc;
-    jit_patch_rel_char_at(jp_label, _jit.x.pc);
+    JZSm(_jit->x.pc + 5);
+    jz_label = _jit->x.pc;
+    jit_patch_rel_char_at(jp_label, _jit->x.pc);
     JMPm(label);
-    jit_patch_rel_char_at(jz_label, _jit.x.pc);
-    return (_jit.x.pc);
+    jit_patch_rel_char_at(jz_label, _jit->x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1419,7 +1419,7 @@ sse_bunltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JNAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1427,7 +1427,7 @@ sse_bunler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f1, f0);
     JNAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1435,7 +1435,7 @@ sse_buneqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1443,7 +1443,7 @@ sse_bunger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNAm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1451,7 +1451,7 @@ sse_bungtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNAEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1459,7 +1459,7 @@ sse_bltgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNEm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1467,7 +1467,7 @@ sse_bordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JNPm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1475,7 +1475,7 @@ sse_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     UCOMISDrr(f0, f1);
     JPm(label);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 #endif /* __lightning_fp_sse_h */

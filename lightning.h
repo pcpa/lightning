@@ -162,15 +162,15 @@ typedef struct {
     } x;
     struct jit_fp	*fp;
     jit_local_state	 jitl;
-} jit_state;
+} jit_state, jit_state_t[1];
 
 #ifdef jit_init
-jit_state		_jit = jit_init();
+jit_state_t		_jit = jit_init();
 #else
-jit_state		_jit;
+jit_state_t		_jit;
 #endif
 
-#define _jitl		_jit.jitl
+#define _jitl		_jit->jitl
 
 #include <lightning/asm-common.h>
 

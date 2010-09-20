@@ -41,10 +41,10 @@
 #define JIT_V1				JIT_V(1)
 #define JIT_V2				JIT_V(2)
 
-#define	jit_get_ip()			(*(jit_code *) &_jit.x.pc)
-#define	jit_set_ip(ptr)			(_jit.x.pc = (ptr), jit_get_ip ())
-#define	jit_get_label()			(_jit.x.pc)
-#define	jit_forward()			(_jit.x.pc)
+#define	jit_get_ip()			(*(jit_code *) &_jit->x.pc)
+#define	jit_set_ip(ptr)			(_jit->x.pc = (ptr), jit_get_ip ())
+#define	jit_get_label()			(_jit->x.pc)
+#define	jit_forward()			(_jit->x.pc)
 
 #define	jit_field(struc, f)		( ((long) (&((struc *) 8)->f) ) - 8)
 #define	jit_ptr_field(struc_p, f)	( ((long) (&((struc_p) 8)->f) ) - 8)
@@ -225,10 +225,10 @@ typedef union jit_code {
 #define jit_rsbi_p(d, rs, is)		jit_rsbi_ul((d), (rs), (long) (is))
 
 #ifndef jit_movi_p
-#define jit_movi_p(d, is)		(jit_movi_ul((d),       (long) (is)), _jit.x.pc)
+#define jit_movi_p(d, is)		(jit_movi_ul((d),       (long) (is)), _jit->x.pc)
 #endif
 
-#define jit_patch(pv)        		jit_patch_at ((pv), (_jit.x.pc))
+#define jit_patch(pv)        		jit_patch_at ((pv), (_jit->x.pc))
 
 /* NEG is not mandatory -- pick an appropriate implementation */
 #ifndef jit_negr_i

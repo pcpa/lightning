@@ -600,10 +600,10 @@ _x87_386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if (st(f0+2) is positive, do not change sign of -0.5 */
     ANDWir(FPSW_COND, _RAX);
     TESTWrr(_RAX, _RAX);
-    JZSm(_jit.x.pc + 2);
-    label = _jit.x.pc;
+    JZSm(_jit->x.pc + 2);
+    label = _jit->x.pc;
     FCHS_();
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 
     /* st(0) = *0.5 + fract, st(1) = *0.5 */
     FXCHr(_ST1);
@@ -622,13 +622,13 @@ _x87_386_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if operation did not result in zero, can round to near */
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_EQ, _RAX);
-    JNESm(_jit.x.pc + 2);
-    label = _jit.x.pc;
+    JNESm(_jit->x.pc + 2);
+    label = _jit->x.pc;
 
     /* adjust for round, st(0) = st(0) - *0.5 */
     FSUBrr(_ST1, _ST0);
 
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 
     /* overwrite *0.5 with (possibly adjusted) value */
     FSTPr(_ST1);
@@ -685,10 +685,10 @@ _x87_safe_roundr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* if negative keep sign of -0.5 */
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_LT, _RAX);
-    JESm(_jit.x.pc + 2);
-    label = _jit.x.pc;
+    JESm(_jit->x.pc + 2);
+    label = _jit->x.pc;
     FCHS_();
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 
     /* add/sub 0.5 */
     FADDPr(_ST1);
@@ -823,11 +823,11 @@ _x87_i386_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FNSTSWr(_RAX);
     ANDWir(FPSW_COND, _RAX);
     TESTWrr(_RAX, _RAX);
-    JNESm(_jit.x.pc + 4);
-    label = _jit.x.pc;
+    JNESm(_jit->x.pc + 4);
+    label = _jit->x.pc;
     FLD1_();
     FSUBRPr(_ST1);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
@@ -852,11 +852,11 @@ _x87_i686_floorr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* store integer */
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     jit_popr_i(r0);
-    JPESm(_jit.x.pc + 3);
-    label = _jit.x.pc;
+    JPESm(_jit->x.pc + 3);
+    label = _jit->x.pc;
     /* subtract 1 if carry */
     SBBLir(0, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 }
 
 __jit_inline void
@@ -923,11 +923,11 @@ _x87_i386_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     FNSTSWr(_RAX);
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_LT, _RAX);
-    JNESm(_jit.x.pc + 4);
-    label = _jit.x.pc;
+    JNESm(_jit->x.pc + 4);
+    label = _jit->x.pc;
     FLD1_();
     FADDPr(_ST1);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
@@ -950,11 +950,11 @@ _x87_i686_ceilr_d_i(jit_gpr_t r0, jit_fpr_t f0)
     /* store integer */
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     jit_popr_i(r0);
-    JPESm(_jit.x.pc + 4);
-    label = _jit.x.pc;
+    JPESm(_jit->x.pc + 4);
+    label = _jit->x.pc;
     /* add 1 if carry */
     ADCLir(0, r0);
-    jit_patch_rel_char_at(label, _jit.x.pc);
+    jit_patch_rel_char_at(label, _jit->x.pc);
 }
 
 __jit_inline void
@@ -1094,10 +1094,10 @@ x87_eqr_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	    FLDr(f0);
 	    FUCOMIPr(f1 + 1);
 	}
-	JPESm(_jit.x.pc + 3);
-	label = _jit.x.pc;
+	JPESm(_jit->x.pc + 3);
+	label = _jit->x.pc;
 	SETCCir(X86_CC_E, reg);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	if (!rc)
 	    XCHGLrr(_RAX, r0);
     }
@@ -1146,10 +1146,10 @@ x87_ner_d(jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	    FLDr(f0);
 	    FUCOMIPr(f1 + 1);
 	}
-	JPESm(_jit.x.pc + 3);
-	label = _jit.x.pc;
+	JPESm(_jit->x.pc + 3);
+	label = _jit->x.pc;
 	SETCCir(X86_CC_NE, reg);
-	jit_patch_rel_char_at(label, _jit.x.pc);
+	jit_patch_rel_char_at(label, _jit->x.pc);
 	if (!rc)
 	    XCHGLrr(_RAX, r0);
     }
@@ -1281,7 +1281,7 @@ x87_bltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_A);
     else
 	_x87_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_Z);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1291,7 +1291,7 @@ x87_bler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_AE);
     else
 	_x87_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_NC);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1309,14 +1309,14 @@ x87_beqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	    FUCOMIPr(fr1 + 1);
 	}
 	/* jump past user jump if unordered */
-	JPESm(_jit.x.pc + 6);
-	jp_label = _jit.x.pc;
+	JPESm(_jit->x.pc + 6);
+	jp_label = _jit->x.pc;
 	JCCim(X86_CC_E, label);
-	jit_patch_rel_char_at(jp_label, _jit.x.pc);
+	jit_patch_rel_char_at(jp_label, _jit->x.pc);
     }
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_Z);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1326,7 +1326,7 @@ x87_bger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_AE);
     else
 	_x87_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_NC);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1336,7 +1336,7 @@ x87_bgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_A);
     else
 	_x87_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_Z);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1355,18 +1355,18 @@ x87_bner_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	    FUCOMIPr(fr1 + 1);
 	}
 	/* jump to user jump if unordered */
-	JPESm(_jit.x.pc + 2);
-	jp_label = _jit.x.pc;
+	JPESm(_jit->x.pc + 2);
+	jp_label = _jit->x.pc;
 	/* jump past user jump if equal */
-	JZSm(_jit.x.pc + 5);
-	jz_label = _jit.x.pc;
-	jit_patch_rel_char_at(jp_label, _jit.x.pc);
+	JZSm(_jit->x.pc + 5);
+	jz_label = _jit->x.pc;
+	jit_patch_rel_char_at(jp_label, _jit->x.pc);
 	JMPm(label);
-	jit_patch_rel_char_at(jz_label, _jit.x.pc);
+	jit_patch_rel_char_at(jz_label, _jit->x.pc);
     }
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	8, 0x45, 0x40, X86_CC_NZ);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1376,7 +1376,7 @@ x87_bunltr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_NAE);
     else
 	_x87_i386_fp_bcmp(label, f0, f1,	9, 0, 0, X86_CC_C);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1386,7 +1386,7 @@ x87_bunler_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f0, f1,	X86_CC_NA);
     else
 	_x87_i386_fp_bcmp(label, f0, f1,	8, 0x45, 0, X86_CC_NZ);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1399,7 +1399,7 @@ x87_bltgtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NE);
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_NC);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1412,7 +1412,7 @@ x87_buneqr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_E);
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	15, 0, 0, X86_CC_C);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1422,7 +1422,7 @@ x87_bunger_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_NA);
     else
 	_x87_i386_fp_bcmp(label, f1, f0,	8, 0x45, 0, X86_CC_NZ);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1432,7 +1432,7 @@ x87_bungtr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, f1, f0,	X86_CC_NAE);
     else
 	_x87_i386_fp_bcmp(label, f1, f0,	9, 0, 0, X86_CC_C);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1445,7 +1445,7 @@ x87_bordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_NP);
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_NC);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 __jit_inline jit_insn *
@@ -1458,7 +1458,7 @@ x87_bunordr_d(jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 	_x87_i686_fp_bcmp(label, fr0, fr1,	X86_CC_P);
     else
 	_x87_i386_fp_bcmp(label, fr0, fr1,	11, 0, 0, X86_CC_C);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 #if 0

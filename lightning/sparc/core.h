@@ -58,12 +58,12 @@
  * it.  Delay slots in RET are already used for RESTORE, so we don't
  * schedule them.
  *
- *	,--- _jit.x.pc
+ *	,--- _jit->x.pc
  * insn X       X				before
  * cmp  branch  insn  X	   X			after (branch)
- *		      `--- _jit.x.pc			
+ *		      `--- _jit->x.pc			
  * call insn    insn X				after (call)
- *		`--- _jit.x.pc			
+ *		`--- _jit->x.pc			
  */
 
 
@@ -130,11 +130,11 @@
    (_jitl).alloca_offset -= (amount),			\
    (_jitl).alloca_offset)
 
-#define jit_fill_delay_after(branch) (_jitl.delay = *--_jit.x.pc, 					 \
-	((branch) == _jit.x.pc					  /* check if NOP was inserted */		 \
-		? (_jit.x.pc[-1] ^= 1<<29)			  /* no if branch, toggle annul bit  */	 \
-		: (_jit.x.pc[-1] = _jitl.delay)),			  /* yes if call, replace NOP with delay insn */ \
-	*_jit.x.pc = _jitl.delay, _jit.x.pc - 1)			  /* return addr of delay insn */
+#define jit_fill_delay_after(branch) (_jitl.delay = *--_jit->x.pc, 					 \
+	((branch) == _jit->x.pc					  /* check if NOP was inserted */		 \
+		? (_jit->x.pc[-1] ^= 1<<29)			  /* no if branch, toggle annul bit  */	 \
+		: (_jit->x.pc[-1] = _jitl.delay)),			  /* yes if call, replace NOP with delay insn */ \
+	*_jit->x.pc = _jitl.delay, _jit->x.pc - 1)			  /* return addr of delay insn */
 
 /* If possible, use the `small' instruction (rs, imm, rd)
  * else load imm into %l6 and use the `big' instruction (rs, %l6, rd)
@@ -144,8 +144,8 @@
 #define jit_chk_imm2(imm, small, big)		(_siP(13,(imm)) ? (small) : (SETir((imm), JIT_BIG2), (big)) )
 
 /* Helper macros for branches */
-#define jit_branchi(rs, is, jmp, nop)		(jit_chk_imm2(is, CMPri(rs, is), CMPrr(rs, JIT_BIG2)), jmp, nop, _jit.x.pc - 1)
-#define jit_branchr(s1, s2, jmp, nop)		(		  CMPrr(s1, s2), 		       jmp, nop, _jit.x.pc - 1)
+#define jit_branchi(rs, is, jmp, nop)		(jit_chk_imm2(is, CMPri(rs, is), CMPrr(rs, JIT_BIG2)), jmp, nop, _jit->x.pc - 1)
+#define jit_branchr(s1, s2, jmp, nop)		(		  CMPrr(s1, s2), 		       jmp, nop, _jit->x.pc - 1)
 
 /* Helper macros for boolean tests -- delay slot sets d to 1;
  * taken branch leaves it to 1, not-taken branch resets it to 0 */
@@ -155,8 +155,8 @@
 /* Helper macros for division
  * The architecture specifies that there must be 3 instructions between *
  * a y register write and a use of it for correct results. */
-#define jit_prepare_y(rs, is)		(SRArir(rs, 31, JIT_BIG), WRri(JIT_BIG, _y), NOP(), NOP(), NOP(), _jit.x.pc -= jit_immsize(is))
-#define jit_clr_y(rs, is)		(			  WRri(0,	_y), NOP(), NOP(), NOP(), _jit.x.pc -= jit_immsize(is))
+#define jit_prepare_y(rs, is)		(SRArir(rs, 31, JIT_BIG), WRri(JIT_BIG, _y), NOP(), NOP(), NOP(), _jit->x.pc -= jit_immsize(is))
+#define jit_clr_y(rs, is)		(			  WRri(0,	_y), NOP(), NOP(), NOP(), _jit->x.pc -= jit_immsize(is))
 
 #define jit_modr(jit_div, jit_mul, d, s1, s2)   \
         (jit_div (JIT_BIG, s1, s2),             \
@@ -227,19 +227,19 @@
 #define jit_bltr_ui(label, s1, s2)	jit_branchr((s1), (s2), BLUi((label)), NOP() )
 #define jit_bnei_i(label, rs, is)	jit_branchi((rs), (is), BNEi((label)), NOP() )
 #define jit_bner_i(label, s1, s2)	jit_branchr((s1), (s2), BNEi((label)), NOP() )
-#define jit_bmsi_i(label, rs, is)	(jit_chk_imm((is), BTSTir((is), (rs)), BTSTrr((rs), JIT_BIG)), BNEi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bmci_i(label, rs, is)	(jit_chk_imm((is), BTSTir((is), (rs)), BTSTrr((rs), JIT_BIG)), BEi((label)), NOP(),  _jit.x.pc - 1)
-#define jit_bmsr_i(label, s1, s2)	(		   BTSTrr((s1), (s2)),			       BNEi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bmcr_i(label, s1, s2)	(		   BTSTrr((s1), (s2)),			       BEi((label)), NOP(),  _jit.x.pc - 1)
-#define jit_boaddi_i(label, rs, is)	(jit_chk_imm((is), ADDCCrir((rs), (is), (rs)), ADDCCrrr((rs), JIT_BIG, (rs))), BVSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bosubi_i(label, rs, is)	(jit_chk_imm((is), SUBCCrir((rs), (is), (rs)), SUBCCrrr((rs), JIT_BIG, (rs))), BVSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_boaddr_i(label, s1, s2)	(		   ADDCCrrr((s1), (s2), (s1)),			         BVSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bosubr_i(label, s1, s2)	(		   SUBCCrrr((s1), (s2), (s1)),			         BVSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_boaddi_ui(label, rs, is)	(jit_chk_imm((is), ADDCCrir((rs), (is), (rs)), ADDCCrrr((rs), JIT_BIG, (rs))), BCSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bosubi_ui(label, rs, is)	(jit_chk_imm((is), SUBCCrir((rs), (is), (rs)), SUBCCrrr((rs), JIT_BIG, (rs))), BCSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_boaddr_ui(label, s1, s2)	(		   ADDCCrrr((s1), (s2), (s1)),			         BCSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_bosubr_ui(label, s1, s2)	(		   SUBCCrrr((s1), (s2), (s1)),			         BCSi((label)), NOP(), _jit.x.pc - 1)
-#define jit_calli(label)		(CALLi(label), NOP(), _jit.x.pc - 1)
+#define jit_bmsi_i(label, rs, is)	(jit_chk_imm((is), BTSTir((is), (rs)), BTSTrr((rs), JIT_BIG)), BNEi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bmci_i(label, rs, is)	(jit_chk_imm((is), BTSTir((is), (rs)), BTSTrr((rs), JIT_BIG)), BEi((label)), NOP(),  _jit->x.pc - 1)
+#define jit_bmsr_i(label, s1, s2)	(		   BTSTrr((s1), (s2)),			       BNEi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bmcr_i(label, s1, s2)	(		   BTSTrr((s1), (s2)),			       BEi((label)), NOP(),  _jit->x.pc - 1)
+#define jit_boaddi_i(label, rs, is)	(jit_chk_imm((is), ADDCCrir((rs), (is), (rs)), ADDCCrrr((rs), JIT_BIG, (rs))), BVSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bosubi_i(label, rs, is)	(jit_chk_imm((is), SUBCCrir((rs), (is), (rs)), SUBCCrrr((rs), JIT_BIG, (rs))), BVSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_boaddr_i(label, s1, s2)	(		   ADDCCrrr((s1), (s2), (s1)),			         BVSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bosubr_i(label, s1, s2)	(		   SUBCCrrr((s1), (s2), (s1)),			         BVSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_boaddi_ui(label, rs, is)	(jit_chk_imm((is), ADDCCrir((rs), (is), (rs)), ADDCCrrr((rs), JIT_BIG, (rs))), BCSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bosubi_ui(label, rs, is)	(jit_chk_imm((is), SUBCCrir((rs), (is), (rs)), SUBCCrrr((rs), JIT_BIG, (rs))), BCSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_boaddr_ui(label, s1, s2)	(		   ADDCCrrr((s1), (s2), (s1)),			         BCSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_bosubr_ui(label, s1, s2)	(		   SUBCCrrr((s1), (s2), (s1)),			         BCSi((label)), NOP(), _jit->x.pc - 1)
+#define jit_calli(label)		(CALLi(label), NOP(), _jit->x.pc - 1)
 #define jit_callr(reg)			(CALLx((reg), 0), NOP())
 
 #define jit_divi_i(d, rs, is)		(jit_prepare_y((rs), 0x12345678), SETir((is), JIT_BIG), SDIVrrr((rs), JIT_BIG, (d)) )
@@ -254,20 +254,20 @@
   (SUBCCrir((rs), (is), (d)), ADDXCCrir((d), -1, JIT_BIG), ADDXrrr(0,0,(d))),\
   jit_ner_i(d, rs, JIT_BIG))
 #define jit_ner_i(d, s1, s2)		  (SUBCCrrr((s1), (s2), (d)), ADDXCCrir((d), -1, JIT_BIG), ADDXrrr(0,0,(d)))
-#define jit_gei_i(d, rs, is)		jit_booli ((d), (rs), (is), BGEi(_jit.x.pc + 3) )
-#define jit_gei_ui(d, rs, is)		jit_booli ((d), (rs), (is), BGEUi(_jit.x.pc + 3))
-#define jit_ger_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGEi(_jit.x.pc + 3) )
-#define jit_ger_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGEUi(_jit.x.pc + 3))
-#define jit_gti_i(d, rs, is)		jit_booli ((d), (rs), (is), BGi(_jit.x.pc + 3) )
-#define jit_gti_ui(d, rs, is)		jit_booli ((d), (rs), (is), BGUi(_jit.x.pc + 3) )
-#define jit_gtr_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGi(_jit.x.pc + 3)  )
-#define jit_gtr_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGUi(_jit.x.pc + 3) )
+#define jit_gei_i(d, rs, is)		jit_booli ((d), (rs), (is), BGEi(_jit->x.pc + 3) )
+#define jit_gei_ui(d, rs, is)		jit_booli ((d), (rs), (is), BGEUi(_jit->x.pc + 3))
+#define jit_ger_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGEi(_jit->x.pc + 3) )
+#define jit_ger_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGEUi(_jit->x.pc + 3))
+#define jit_gti_i(d, rs, is)		jit_booli ((d), (rs), (is), BGi(_jit->x.pc + 3) )
+#define jit_gti_ui(d, rs, is)		jit_booli ((d), (rs), (is), BGUi(_jit->x.pc + 3) )
+#define jit_gtr_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGi(_jit->x.pc + 3)  )
+#define jit_gtr_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BGUi(_jit->x.pc + 3) )
 #define jit_hmuli_i(d, rs, is)		(jit_muli_i (JIT_BIG, (rs), (is)), RDir (_y, (d)))
 #define jit_hmuli_ui(d, rs, is)		(jit_muli_ui(JIT_BIG, (rs), (is)), RDir (_y, (d)))
 #define jit_hmulr_i(d, s1, s2)		(jit_mulr_i (JIT_BIG, (s1), (s2)), RDir (_y, (d)))
 #define jit_hmulr_ui(d, s1, s2)		(jit_mulr_ui(JIT_BIG, (s1), (s2)), RDir (_y, (d)))
-#define jit_jmpi(label)			(BA_Ai((label)), _jit.x.pc)
-#define jit_jmpr(reg)			(JMPx(JIT_RZERO, (reg)), NOP(), _jit.x.pc - 1)
+#define jit_jmpi(label)			(BA_Ai((label)), _jit->x.pc)
+#define jit_jmpr(reg)			(JMPx(JIT_RZERO, (reg)), NOP(), _jit->x.pc - 1)
 #define jit_ldxi_c(d, rs, is)		jit_chk_imm((is), LDSBmr((rs), (is), (d)), LDSBxr((rs), JIT_BIG, (d)))
 #define jit_ldxi_i(d, rs, is)		jit_chk_imm((is), LDSWmr((rs), (is), (d)), LDSWxr((rs), JIT_BIG, (d)))
 #define jit_ldxi_s(d, rs, is)		jit_chk_imm((is), LDSHmr((rs), (is), (d)), LDSHxr((rs), JIT_BIG, (d)))
@@ -278,22 +278,22 @@
 #define jit_ldxr_s(d, s1, s2)				  LDSHxr((s1), (s2), (d))
 #define jit_ldxr_uc(d, s1, s2)				  LDUBxr((s1), (s2), (d))
 #define jit_ldxr_us(d, s1, s2)				  LDUHxr((s1), (s2), (d))
-#define jit_lei_i(d, rs, is)		jit_booli ((d), (rs), (is), BLEi(_jit.x.pc + 3) )
-#define jit_lei_ui(d, rs, is)		jit_booli ((d), (rs), (is), BLEUi(_jit.x.pc + 3))
-#define jit_ler_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLEi(_jit.x.pc + 3) )
-#define jit_ler_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLEUi(_jit.x.pc + 3))
+#define jit_lei_i(d, rs, is)		jit_booli ((d), (rs), (is), BLEi(_jit->x.pc + 3) )
+#define jit_lei_ui(d, rs, is)		jit_booli ((d), (rs), (is), BLEUi(_jit->x.pc + 3))
+#define jit_ler_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLEi(_jit->x.pc + 3) )
+#define jit_ler_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLEUi(_jit->x.pc + 3))
 #define jit_lshi_i(d, rs, is)		SLLrir((rs), (is), (d))
 #define jit_lshr_i(d, r1, r2)		SLLrrr((r1), (r2), (d))
-#define jit_lti_i(d, rs, is)		jit_booli ((d), (rs), (is), BLi(_jit.x.pc + 3)  )
-#define jit_lti_ui(d, rs, is)		jit_booli ((d), (rs), (is), BLUi(_jit.x.pc + 3) )
-#define jit_ltr_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLi(_jit.x.pc + 3)  )
-#define jit_ltr_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLUi(_jit.x.pc + 3) )
+#define jit_lti_i(d, rs, is)		jit_booli ((d), (rs), (is), BLi(_jit->x.pc + 3)  )
+#define jit_lti_ui(d, rs, is)		jit_booli ((d), (rs), (is), BLUi(_jit->x.pc + 3) )
+#define jit_ltr_i(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLi(_jit->x.pc + 3)  )
+#define jit_ltr_ui(d, s1, s2)		jit_boolr ((d), (s1), (s2), BLUi(_jit->x.pc + 3) )
 #define jit_modi_i(d, rs, is)           jit_modi(jit_divi_i, jit_muli_i, jit_divr_i, jit_mulr_i, (d), (rs), (is))
 #define jit_modi_ui(d, rs, is)          jit_modi(jit_divi_ui, jit_muli_ui, jit_divr_ui, jit_mulr_ui, (d), (rs), (is))
 #define jit_modr_i(d, s1, s2)           jit_modr(jit_divr_i, jit_mulr_i, (d), (s1), (s2))
 #define jit_modr_ui(d, s1, s2)          jit_modr(jit_divr_ui, jit_mulr_ui, (d), (s1), (s2))
 #define jit_movi_i(d, is)		SETir((is), (d))
-#define jit_movi_p(d, is)		(SETir2(_HI((is)), _LO((is)), (d)), _jit.x.pc)
+#define jit_movi_p(d, is)		(SETir2(_HI((is)), _LO((is)), (d)), _jit->x.pc)
 #define jit_movr_i(d, rs)		MOVrr((rs), (d))
 #define jit_muli_i(d, rs, is)		jit_chk_imm((is), SMULrir((rs), (is), (d)), SMULrrr((rs), JIT_BIG, (d)))
 #define jit_muli_ui(d, rs, is)		jit_chk_imm((is), UMULrir((rs), (is), (d)), UMULrrr((rs), JIT_BIG, (d)))
@@ -304,7 +304,7 @@
 #define jit_orr_i(d, s1, s2)				  ORrrr((s1), (s2), (d))
 #define jit_patch_at(delay_pc, pv)	jit_patch_ (((delay_pc) - 1) , (pv))
 #define jit_prepare_i(num)		(_jitl.nextarg_put += (num))
-#define jit_prolog(numargs)		(_jitl.save = (jit_insn *) _jit.x.pc, SAVErir (JIT_SP, -JIT_SPARC_MIN_FRAME_SIZE, JIT_SP), _jitl.frame_size = JIT_SPARC_MIN_FRAME_SIZE, _jitl.alloca_offset = -JIT_SPARC_MAX_STACK_REGISTER_AREA, _jitl.nextarg_get = _Ri(0), JIT_SPARC_INIT_PUSH_POP ())
+#define jit_prolog(numargs)		(_jitl.save = (jit_insn *) _jit->x.pc, SAVErir (JIT_SP, -JIT_SPARC_MIN_FRAME_SIZE, JIT_SP), _jitl.frame_size = JIT_SPARC_MIN_FRAME_SIZE, _jitl.alloca_offset = -JIT_SPARC_MAX_STACK_REGISTER_AREA, _jitl.nextarg_get = _Ri(0), JIT_SPARC_INIT_PUSH_POP ())
 
 #define jit_pusharg_i(rs)		(--_jitl.nextarg_put, MOVrr((rs), _Ro(_jitl.nextarg_put)))
 #define jit_ret()			(RET(), RESTORE())

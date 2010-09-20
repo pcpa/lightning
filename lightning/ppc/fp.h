@@ -58,8 +58,8 @@
 #define jit_movi_d(reg0,d) do {                   \
       double _v = (d);                            \
       _FBA (18, 12, 0, 1); 			  \
-      memcpy(_jit.x.uc_pc, &_v, sizeof (double)); \
-      _jit.x.uc_pc += sizeof (double);            \
+      memcpy(_jit->x.uc_pc, &_v, sizeof (double)); \
+      _jit->x.uc_pc += sizeof (double);            \
       MFLRr (JIT_AUX);				  \
       jit_ldxi_d((reg0), JIT_AUX, 0);		  \
    } while(0) 
@@ -69,8 +69,8 @@
 #define jit_movi_f(reg0,f) do {                   \
       float _v = (f);                             \
       _FBA (18, 8, 0, 1); 			  \
-      memcpy(_jit.x.uc_pc, &_v, sizeof (float));  \
-      _jit.x.uc_pc += sizeof (float);             \
+      memcpy(_jit->x.uc_pc, &_v, sizeof (float));  \
+      _jit->x.uc_pc += sizeof (float);             \
       MFLRr (JIT_AUX);				  \
       jit_ldxi_f((reg0), JIT_AUX, 0);		  \
    } while(0) 
@@ -144,28 +144,28 @@
 #define jit_fpbr(d, s1, s2, rcbit) (		\
 	FCMPOrrr(_cr0,(s1),(s2)),		\
 	BTii ((rcbit), (d)),			\
-	_jit.x.pc)
+	_jit->x.pc)
 
 #define jit_fpbr_neg(d, s1, s2,rcbit) (	\
 	FCMPOrrr(_cr0,(s1),(s2)),		\
 	BFii ((rcbit), (d)),			\
-	_jit.x.pc)
+	_jit->x.pc)
 
 #define jit_fpbur(d, s1, s2, rcbit) (		\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
 	BTii ((rcbit), (d)),			\
-	_jit.x.pc)
+	_jit->x.pc)
 
 #define jit_fpbur_neg(d, s1, s2,rcbit) (	\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
 	BFii ((rcbit), (d)),			\
-	_jit.x.pc)
+	_jit->x.pc)
 
 #define jit_fpbur_or(d, s1, s2, bit1, bit2) (	\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
 	CRORiii((bit1), (bit1), (bit2)),	\
 	BTii ((bit1), (d)),			\
-	_jit.x.pc)
+	_jit->x.pc)
 
 #define jit_bgtr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_gt)   
 #define jit_bger_d(d, s1, s2)      jit_fpbr_neg((d),(s1),(s2),_lt)   

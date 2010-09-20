@@ -56,7 +56,7 @@ __jit_inline jit_insn *
 jit_movi_p(jit_gpr_t r0, void *i0)
 {
     MOVLir((long)i0, r0);
-    return (_jit.x.pc);
+    return (_jit->x.pc);
 }
 
 #define jit_patch_at(jump, label)	jit_patch_at(jump, label)
@@ -121,7 +121,7 @@ __jit_inline jit_insn *
 jit_calli(void *p0)
 {
     CALLm(p0);
-    return (_jitl.label = _jit.x.pc);
+    return (_jitl.label = _jit->x.pc);
 }
 
 #define jit_callr(r0)			jit_callr(r0)

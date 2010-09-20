@@ -168,14 +168,14 @@ typedef enum {
 #define _rN(R)			((R) & 0x07)
 #define _rXP(R)			((R) > 0 && _rR(R) > 7)
 
-#define _OFF4(D)		(_jit_SL(D) - _jit_SL(_jit.x.pc))
+#define _OFF4(D)		(_jit_SL(D) - _jit_SL(_jit->x.pc))
 #define _CKD8(D)		_s8(_OFF4(D))
 #define _CKD32(D)		_s32(_OFF4(D))
 
 #define _D8(D)								\
-    (_jit_B(0), ((*(_PUC(_jit.x.pc)-1))= _CKD8(D)))
+    (_jit_B(0), ((*(_PUC(_jit->x.pc)-1))= _CKD8(D)))
 #define _D32(D)								\
-    (_jit_I(0), ((*(_PUI(_jit.x.pc)-1))= _CKD32(D)))
+    (_jit_I(0), ((*(_PUI(_jit->x.pc)-1))= _CKD32(D)))
 
 #ifndef _ASM_SAFETY
 # define _M(M)			(M)

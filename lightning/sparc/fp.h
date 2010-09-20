@@ -66,19 +66,19 @@
 #define jit_movi_f(rd,immf)			  \
     do {					  \
       float _v = (immf);                          \
-      _1(_jit.x.pc + 3), LDFmr(_Ro(7), 8, (rd));  \
-      memcpy(_jit.x.uc_pc, &_v, sizeof (float));  \
-      _jit.x.uc_pc += sizeof (float);             \
+      _1(_jit->x.pc + 3), LDFmr(_Ro(7), 8, (rd));  \
+      memcpy(_jit->x.uc_pc, &_v, sizeof (float));  \
+      _jit->x.uc_pc += sizeof (float);             \
     } while(0)
 
 #define jit_movi_d(rd,immd)			 	\
     do {					 	\
       double _v = (immd);                        	\
-      if ((long)_jit.x.pc & 4) NOP();			\
-      _1(_jit.x.pc + 4);				\
+      if ((long)_jit->x.pc & 4) NOP();			\
+      _1(_jit->x.pc + 4);				\
       LDDFmr(_Ro(7), 8, (rd));				\
-      memcpy(_jit.x.uc_pc, &_v, sizeof (double));	\
-      _jit.x.uc_pc += sizeof (double);           	\
+      memcpy(_jit->x.uc_pc, &_v, sizeof (double));	\
+      _jit->x.uc_pc += sizeof (double);           	\
     } while(0)
 
 
@@ -92,25 +92,25 @@
 #define jit_stxr_d(d1, d2, rs)		STDFrx((rs), (d1), (d2))
 
 #define jit_truncr_f_i(rd, rs) (		\
-	_1(_jit.x.pc + 3),			\
+	_1(_jit->x.pc + 3),			\
 	FSTOIrr((rs), JIT_FPTMP),		\
 	NOP(),					\
 	STFrm(JIT_FPTMP, _Ro(7), 8),		\
 	LDmr(_Ro(7), 8, (rd)))
 
 #define jit_truncr_d_i(rd, rs) (		\
-	_1(_jit.x.pc + 3),			\
+	_1(_jit->x.pc + 3),			\
 	FDTOIrr((rs), JIT_FPTMP),		\
 	NOP(),					\
 	STFrm(JIT_FPTMP, _Ro(7), 8),		\
 	LDmr(_Ro(7), 8, (rd)))
 
-#define jit_extr_i_d(rd, rs)		(_1 (_jit.x.pc + 3), NOP(), NOP(), STrm((rs), _Ro(7), 8), LDFmr(_Ro(7), 8, (rd)), FITODrr((rd), (rd)))
-#define jit_extr_i_f(rd, rs)		(_1 (_jit.x.pc + 3), NOP(), NOP(), STrm((rs), _Ro(7), 8), LDFmr(_Ro(7), 8, (rd)), FITOSrr((rd), (rd)))
+#define jit_extr_i_d(rd, rs)		(_1 (_jit->x.pc + 3), NOP(), NOP(), STrm((rs), _Ro(7), 8), LDFmr(_Ro(7), 8, (rd)), FITODrr((rd), (rd)))
+#define jit_extr_i_f(rd, rs)		(_1 (_jit->x.pc + 3), NOP(), NOP(), STrm((rs), _Ro(7), 8), LDFmr(_Ro(7), 8, (rd)), FITOSrr((rd), (rd)))
 
 #define jit_do_round_f(rd, rs, fixup, mode) do {		\
 	jit_movi_f (JIT_FPTMP, fixup);				\
-        _1(_jit.x.pc + 4);                                      \
+        _1(_jit->x.pc + 4);                                      \
         SETHIir(_HI(mode << 29), JIT_BIG);                      \
         NOP();                                                  \
         NOP();                                                  \
@@ -130,7 +130,7 @@
 
 #define jit_do_round_d(rd, rs, fixup, mode) do {		\
 	jit_movi_d (JIT_FPTMP, fixup);				\
-        _1(_jit.x.pc + 4);                                      \
+        _1(_jit->x.pc + 4);                                      \
         SETHIir(_HI(mode << 29), JIT_BIG);                      \
         NOP();                                                  \
         NOP();                                                  \
@@ -176,37 +176,37 @@
 #define jit_floorr_d_i(rd, rs) 				\
 	jit_do_round_d ((rd), (rs), DBL_EPSILON, 2)
 
-#define jit_ltr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBLi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ltr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBLi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ler_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBLEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ler_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBLEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_eqr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_eqr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ner_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBNEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ner_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBNEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ger_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBGEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ger_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBGEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_gtr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_gtr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unltr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unltr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unler_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unler_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_uneqr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_uneqr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ltgtr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBLGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ltgtr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBLGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unger_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUGEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unger_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUGEi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ungtr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ungtr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUGi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ordr_d(d, s1, s2)           (FCMPDrr ((s1), (s2)), FBOi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_ordr_f(d, s1, s2)           (FCMPSrr ((s1), (s2)), FBOi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unordr_d(d, s1, s2)         (FCMPDrr ((s1), (s2)), FBUi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
-#define jit_unordr_f(d, s1, s2)         (FCMPSrr ((s1), (s2)), FBUi(_jit.x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ltr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBLi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ltr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBLi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ler_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBLEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ler_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBLEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_eqr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_eqr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ner_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBNEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ner_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBNEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ger_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBGEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ger_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBGEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_gtr_d(d, s1, s2)            (FCMPDrr ((s1), (s2)), FBGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_gtr_f(d, s1, s2)            (FCMPSrr ((s1), (s2)), FBGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unltr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unltr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unler_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBULEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unler_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBULEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_uneqr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_uneqr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ltgtr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBLGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ltgtr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBLGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unger_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUGEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unger_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUGEi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ungtr_d(d, s1, s2)          (FCMPDrr ((s1), (s2)), FBUGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ungtr_f(d, s1, s2)          (FCMPSrr ((s1), (s2)), FBUGi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ordr_d(d, s1, s2)           (FCMPDrr ((s1), (s2)), FBOi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_ordr_f(d, s1, s2)           (FCMPSrr ((s1), (s2)), FBOi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unordr_d(d, s1, s2)         (FCMPDrr ((s1), (s2)), FBUi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
+#define jit_unordr_f(d, s1, s2)         (FCMPSrr ((s1), (s2)), FBUi(_jit->x.pc + 3), MOVir (1, (d)), MOVir (0, (d)))
 
-#define jit_branchr_f(s1, s2, jmp)      (FCMPSrr(s1, s2), jmp, NOP(), _jit.x.pc - 1)
-#define jit_branchr_d(s1, s2, jmp)      (FCMPDrr(s1, s2), jmp, NOP(), _jit.x.pc - 1)
+#define jit_branchr_f(s1, s2, jmp)      (FCMPSrr(s1, s2), jmp, NOP(), _jit->x.pc - 1)
+#define jit_branchr_d(s1, s2, jmp)      (FCMPDrr(s1, s2), jmp, NOP(), _jit->x.pc - 1)
 
 #define jit_bltr_d(label, s1, s2)        jit_branchr_d((s1), (s2), FBLi((label)))
 #define jit_bltr_f(label, s1, s2)        jit_branchr_f((s1), (s2), FBLi((label)))
