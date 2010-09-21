@@ -35,11 +35,19 @@
 #define __lightning_core_h
 
 #define JIT_AP				_RBP
-
 #define JIT_R_NUM			3
-#define JIT_R(i)			(_RAX + (i))
+static jit_gpr_t
+jit_r_order[JIT_R_NUM] = {
+    _RAX, _RCX, _RDX
+};
+#define JIT_R(i)			jit_r_order[i]
+
 #define JIT_V_NUM			3
-#define JIT_V(i)			((i) == 0 ? _RBX : _RSI + (i) - 1)
+static jit_gpr_t
+jit_v_order[JIT_V_NUM] = {
+    _RBX, _RSI, _RDI
+};
+#define JIT_V(i)			jit_v_order[i]
 
 #define jit_movi_i(r0, i0)		x86_movi_i(_jit, r0, i0)
 __jit_inline void

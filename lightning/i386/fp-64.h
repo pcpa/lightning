@@ -33,11 +33,16 @@
 #ifndef __lightning_fp_h
 #define __lightning_fp_h
 
-#define JIT_FPR_NUM			6
 #define JIT_FPRET			_XMM0
-#define JIT_FPR(i)			((jit_fpr_t)(_XMM8 + (i)))
 #define JIT_FPTMP0			_XMM14
 #define JIT_FPTMP1			_XMM15
+
+#define JIT_FPR_NUM			6
+static jit_fpr_t
+jit_sse_order[JIT_FPR_NUM] = {
+    _XMM8, _XMM9, _XMM10, _XMM11, _XMM12, _XMM13
+};
+#define JIT_FPR(i)			jit_sse_order[i]
 
 #include "fp-sse.h"
 
