@@ -206,74 +206,86 @@ typedef enum {
     _jit_B((_s(Sc) << 6) | (_i(I) << 3) | _b(B))
 
 /* _r_D() is RIP addressing mode if X86_TARGET_64BIT, use _r_DSIB() instead */
+#define _r_D(rd, md)			x86_r_D(_jit, rd, md)
 __jit_inline void
-_r_D(int rd, long md)
+x86_r_D(jit_state_t _jit, int rd, long md)
 {
     _Mrm(_b00, rd, _b101);
     _jit_I(_s32(md));
 }
 
+#define _r_DSIB(rd, md)			x86_r_DSIB(_jit, rd, md)
 __jit_inline void
-_r_DSIB(int rd, long md)
+x86_r_DSIB(jit_state_t _jit, int rd, long md)
 {
     _Mrm(_b00, rd, _b100);
     _SIB(_SCL1, _b100, _b101);
     _jit_I(_s32(md));
 }
 
+#define _r_0B(rd, rb)			x86_r_0B(_jit, rd, rb)
 __jit_inline void
-_r_0B(int rd, jit_gpr_t rb)
+x86_r_0B(jit_state_t _jit, int rd, jit_gpr_t rb)
 {
     _Mrm(_b00, rd, _rA(rb));
 }
 
+#define _r_0BIS(rd, rb, ri, ms)		x86_r_0BIS(_jit, rd, rb, ri, ms)
 __jit_inline void
-_r_0BIS(int rd, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_r_0BIS(jit_state_t _jit, int rd, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _Mrm(_b00, rd, _b100);
     _SIB(ms, _rA(ri), _rA(rb));
 }
 
+#define _r_1B(rd, md, rb)		x86_r_1B(_jit, rd, md, rb)
 __jit_inline void
-_r_1B(int rd, long md, jit_gpr_t rb)
+x86_r_1B(jit_state_t _jit, int rd, long md, jit_gpr_t rb)
 {
     _Mrm(_b01, rd, _rA(rb));
     _jit_B(md);
 }
 
+#define _r_1BIS(rd, md, rb, ri, ms)	x86_r_1BIS(_jit, rd, md, rb, ri, ms)
 __jit_inline void
-_r_1BIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_r_1BIS(jit_state_t _jit,
+	   int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _Mrm(_b01, rd, _b100);
     _SIB(ms, _rA(ri), _rA(rb));
     _jit_B(md);
 }
 
+#define _r_4B(rd, md, rb)		x86_r_4B(_jit, rd, md, rb)
 __jit_inline void
-_r_4B(int rd, long md, jit_gpr_t rb)
+x86_r_4B(jit_state_t _jit, int rd, long md, jit_gpr_t rb)
 {
     _Mrm(_b10, rd, _rA(rb));
     _jit_I(_s32(md));
 }
 
+#define _r_4IS(rd, md, ri, ms)		x86_r_4IS(_jit, rd, md, ri, ms)
 __jit_inline void
-_r_4IS(int rd, long md, jit_gpr_t ri, jit_scl_t ms)
+x86_r_4IS(jit_state_t _jit, int rd, long md, jit_gpr_t ri, jit_scl_t ms)
 {
     _Mrm(_b00, rd, _b100);
     _SIB(ms, _rA(ri), _b101);
     _jit_I(_s32(md));
 }
 
+#define _r_4BIS(rd, md, rb, ri, ms)	x86_r_4BIS(_jit, rd, md, rb, ri, ms)
 __jit_inline void
-_r_4BIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_r_4BIS(jit_state_t _jit,
+	   int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _Mrm(_b10, rd, _b100);
     _SIB(ms, _rA(ri), _rA(rb));
     _jit_I(_s32(md));
 }
 
+#define _r_DB(rd, md, rb)		x86_r_DB(_jit, rd, md, rb)
 __jit_inline void
-_r_DB(int rd, long md, jit_gpr_t rb)
+x86_r_DB(jit_state_t _jit, int rd, long md, jit_gpr_t rb)
 {
     if (md == 0 && _rN(rb) != _rN(_RBP))
 	_r_0B(rd, rb);
@@ -283,8 +295,10 @@ _r_DB(int rd, long md, jit_gpr_t rb)
 	_r_4B(rd, md, rb);
 }
 
+#define _r_DBIS(rd, md, rb, ri, ms)	x86_r_DBIS(_jit, rd, md, rb, ri, ms)
 __jit_inline void
-_r_DBIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_r_DBIS(jit_state_t _jit,
+	   int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (md == 0 && _rN(rb) != _rN(_RBP))
 	_r_0BIS(rd, rb, ri, ms);
@@ -295,8 +309,10 @@ _r_DBIS(int rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 /* Use RIP-addressing in 64-bit mode, if possible */
+#define _i_X(op, md, rb, ri, ms)	x86_i_X(_jit, op, md, rb, ri, ms)
 __jit_inline void
-_i_X(int op, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_i_X(jit_state_t _jit,
+	int op, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (ri == _NOREG) {
 	if (rb == _NOREG) {
@@ -323,14 +339,18 @@ _i_X(int op, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 	JITFAIL("illegal index register: %esp");
 }
 
+#define _r_X(rd, md, rb, ri, ms)	x86_r_X(_jit, rd, md, rb, ri, ms)
 __jit_inline void
-_r_X(jit_gpr_t rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_r_X(jit_state_t _jit,
+	jit_gpr_t rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _i_X((int)_rA(rd), md, rb, ri, ms);
 }
 
+#define _f_X(rd, md, rb, ri, ms)	x86_f_X(_jit, rd, md, rb, ri, ms)
 __jit_inline void
-_f_X(jit_fpr_t rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_f_X(jit_state_t _jit,
+	jit_fpr_t rd, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _i_X((int)_rX(rd), md, rb, ri, ms);
 }
@@ -355,31 +375,30 @@ typedef enum {
 } x86_alu_t;
 
 __jit_inline void
-_alu_c_rr(x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
+x86_alu_c_rr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O((int)op << 3);
     _Mrm(_b11, _r1(rs), _r1(rd));
 }
 
 __jit_inline void
-_alu_c_mr(x86_alu_t op,
-	  long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_alu_c_mr(jit_state_t _jit, x86_alu_t op,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(((int)op << 3) + 2);
     _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
-_alu_c_rm(x86_alu_t op,
-	  jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_alu_c_rm(jit_state_t _jit, x86_alu_t op,
+	     jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O((int)op << 3);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_alu_c_ir(x86_alu_t op,
-	  long im, jit_gpr_t rd)
+x86_alu_c_ir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (rd == _RAX)
 	_O(((int)op << 3) + 4);
@@ -391,8 +410,8 @@ _alu_c_ir(x86_alu_t op,
 }
 
 __jit_inline void
-_alu_c_im(x86_alu_t op,
-	  long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_alu_c_im(jit_state_t _jit, x86_alu_t op,
+	     long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x80);
     _i_X((int)op, md, rb, ri, ms);
@@ -400,8 +419,7 @@ _alu_c_im(x86_alu_t op,
 }
 
 __jit_inline void
-_alu_s_ir(x86_alu_t op,
-	  long im, jit_gpr_t rd)
+x86_alu_s_ir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (rd == _RAX) {
 	_O(((int)op << 3) + 5);
@@ -420,8 +438,8 @@ _alu_s_ir(x86_alu_t op,
 }
 
 __jit_inline void
-_alu_s_im(x86_alu_t op,
-	  long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_alu_s_im(jit_state_t _jit, x86_alu_t op,
+	     long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
@@ -436,32 +454,30 @@ _alu_s_im(x86_alu_t op,
 }
 
 __jit_inline void
-_alu_sil_rr(x86_alu_t op,
-	    jit_gpr_t rs, jit_gpr_t rd)
+x86_alu_sil_rr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(((int)op << 3) + 1);
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_alu_sil_mr(x86_alu_t op,
-	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_alu_sil_mr(jit_state_t _jit, x86_alu_t op,
+	       long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(((int)op << 3) + 3);
     _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
-_alu_sil_rm(x86_alu_t op,
-	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_alu_sil_rm(jit_state_t _jit, x86_alu_t op,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(((int)op << 3) + 1);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_alu_il_ir(x86_alu_t op,
-	   long im, jit_gpr_t rd)
+x86_alu_il_ir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     if (_s8P(im)) {
 	_O(0x83);
@@ -480,8 +496,8 @@ _alu_il_ir(x86_alu_t op,
 }
 
 __jit_inline void
-_alu_il_im(x86_alu_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_alu_il_im(jit_state_t _jit, x86_alu_t op,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (_s8P(im)) {
 	_O(0x83);
@@ -507,8 +523,7 @@ typedef enum {
 } x86_rotsh_t;
 
 __jit_inline void
-_rotsh_c_rr(x86_rotsh_t op,
-	    jit_gpr_t rs, jit_gpr_t rd)
+x86_rotsh_c_rr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
@@ -517,8 +532,7 @@ _rotsh_c_rr(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_sil_rr(x86_rotsh_t op,
-	      jit_gpr_t rs, jit_gpr_t rd)
+x86_rotsh_sil_rr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
@@ -527,8 +541,7 @@ _rotsh_sil_rr(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_c_ir(x86_rotsh_t op,
-	    long im, jit_gpr_t rd)
+x86_rotsh_c_ir(jit_state_t _jit, x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     if (im == 1) {
 	_O(0xd0);
@@ -542,8 +555,7 @@ _rotsh_c_ir(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_sil_ir(x86_rotsh_t op,
-	      long im, jit_gpr_t rd)
+x86_rotsh_sil_ir(jit_state_t _jit, x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     if (im == 1) {
 	_O(0xd1);
@@ -557,25 +569,25 @@ _rotsh_sil_ir(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_c_im(x86_rotsh_t op,
-	     long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
-{
-    if (im == 1) {
-	_O(0xd0);
-	_i_X((int)op, md, rb, ri, ms);
-    }
-    else {
-	_O(0xc0);
-	_i_X((int)op, md, rb, ri, ms);
-	_jit_B(_u8(im));
-    }
-}
-
-__jit_inline void
-_rotsh_sil_im(x86_rotsh_t op,
+x86_rotsh_c_im(jit_state_t _jit, x86_rotsh_t op,
 	       long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (im == 1) {
+	_O(0xd0);
+	_i_X((int)op, md, rb, ri, ms);
+    }
+    else {
+	_O(0xc0);
+	_i_X((int)op, md, rb, ri, ms);
+	_jit_B(_u8(im));
+    }
+}
+
+__jit_inline void
+x86_rotsh_sil_im(jit_state_t _jit, x86_rotsh_t op,
+		 long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    if (im == 1) {
 	_O(0xd1);
 	_i_X((int)op, md, rb, ri, ms);
     }
@@ -587,8 +599,8 @@ _rotsh_sil_im(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_c_rm(x86_rotsh_t op,
-	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_rotsh_c_rm(jit_state_t _jit, x86_rotsh_t op,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
@@ -597,8 +609,8 @@ _rotsh_c_rm(x86_rotsh_t op,
 }
 
 __jit_inline void
-_rotsh_sil_rm(x86_rotsh_t op,
-	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_rotsh_sil_rm(jit_state_t _jit, x86_rotsh_t op,
+		 jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     if (rs != _RCX)
 	JITFAIL("source register must be RCX");
@@ -615,8 +627,7 @@ typedef enum {
 } x86_bt_t;
 
 __jit_inline void
-_bt_sil_ir(x86_bt_t op,
-	   long im, jit_gpr_t rd)
+x86_bt_sil_ir(jit_state_t _jit, x86_bt_t op, long im, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xba);
@@ -625,8 +636,8 @@ _bt_sil_ir(x86_bt_t op,
 }
 
 __jit_inline void
-_bt_sil_im(x86_bt_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_bt_sil_im(jit_state_t _jit, x86_bt_t op,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x0f);
     _O(0xba);
@@ -635,8 +646,7 @@ _bt_sil_im(x86_bt_t op,
 }
 
 __jit_inline void
-_bt_sil_rr(x86_bt_t op,
-	   jit_gpr_t rs, jit_gpr_t rd)
+x86_bt_sil_rr(jit_state_t _jit, x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0x83 | ((int)op << 3));
@@ -644,8 +654,8 @@ _bt_sil_rr(x86_bt_t op,
 }
 
 __jit_inline void
-_bt_sil_rm(x86_bt_t op,
-	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_bt_sil_rm(jit_state_t _jit, x86_bt_t op,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x0f);
     _O(0x83 | ((int)op << 3));
@@ -654,56 +664,61 @@ _bt_sil_rm(x86_bt_t op,
 
 /* --- Move instructions --------------------------------------------------- */
 __jit_inline void
-_mov_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_mov_c_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x88);
     _Mrm(_b11, _r1(rs), _r1(rd));
 }
 
 __jit_inline void
-_mov_c_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_mov_c_mr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x8a);
     _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
-_mov_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_mov_c_rm(jit_state_t _jit,
+	     jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x88);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_mov_c_ir(long im, jit_gpr_t rd)
+x86_mov_c_ir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _Or(0xb0, _r1(rd));
     _jit_B(_s8(im));
 }
 
 __jit_inline void
-_mov_c_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_mov_c_im(jit_state_t _jit,
+	     long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _i_X(0, md, rb, ri, ms);
     _jit_B(_s8(im));
 }
 
 __jit_inline void
-_mov_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_mov_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x89);
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_mov_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_mov_sil_mr(jit_state_t _jit,
+	       long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x8b);
     _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
-_mov_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_mov_sil_rm(jit_state_t _jit,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x89);
     _r_X(rs, md, rb, ri, ms);
@@ -720,39 +735,37 @@ typedef enum {
 } x86_unary_t;
 
 __jit_inline void
-_unary_c_r(x86_unary_t op,
-	   jit_gpr_t rs)
+x86_unary_c_r(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
     _O(0xf6);
     _Mrm(_b11, (int)op, _r1(rs));
 }
 
 __jit_inline void
-_unary_c_m(x86_unary_t op,
-	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_unary_c_m(jit_state_t _jit, x86_unary_t op,
+	      long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xf6);
     _i_X((int)op, md, rb, ri, ms);
 }
 
 __jit_inline void
-_unary_sil_r(x86_unary_t op,
-	     jit_gpr_t rs)
+x86_unary_sil_r(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
     _O(0xf7);
     _Mrm(_b11, (int)op, _rA(rs));
 }
 
 __jit_inline void
-_unary_sil_m(x86_unary_t op,
-	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_unary_sil_m(jit_state_t _jit, x86_unary_t op,
+		long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xf7);
     _i_X((int)op, md, rb, ri, ms);
 }
 
 __jit_inline void
-_imul_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_imul_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xaf);
@@ -760,7 +773,8 @@ _imul_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_imul_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_imul_sil_mr(jit_state_t _jit, 
+		long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xaf);
@@ -768,7 +782,7 @@ _imul_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 }
 
 __jit_inline void
-_imul_s_irr(long im, jit_gpr_t rs, jit_gpr_t rd)
+x86_imul_s_irr(jit_state_t _jit, long im, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (_s8P(im)) {
 	_O(0x6b);
@@ -783,7 +797,7 @@ _imul_s_irr(long im, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_imul_il_irr(long im, jit_gpr_t rs, jit_gpr_t rd)
+x86_imul_il_irr(jit_state_t _jit, long im, jit_gpr_t rs, jit_gpr_t rd)
 {
     if (_s8P(im)) {
 	_O(0x6b);
@@ -832,22 +846,21 @@ typedef enum {
 } x86_cc_t;
 
 __jit_inline void
-_call_il_sr(jit_gpr_t rs)
+x86_call_il_sr(jit_state_t _jit, jit_gpr_t rs)
 {
     _O(0xff);
     _Mrm(_b11, _b010, _rA(rs));
 }
 
 __jit_inline void
-_jmp_il_sr(jit_gpr_t rs)
+x86_jmp_il_sr(jit_state_t _jit, jit_gpr_t rs)
 {
     _O(0xff);
     _Mrm(_b11, _b100, _rA(rs));
 }
 
 __jit_inline void
-_cmov_sil_rr(x86_cc_t cc,
-	     jit_gpr_t rs, jit_gpr_t rd)
+x86_cmov_sil_rr(jit_state_t _jit, x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0x40 | (int)cc);
@@ -855,8 +868,8 @@ _cmov_sil_rr(x86_cc_t cc,
 }
 
 __jit_inline void
-_cmov_sil_mr(x86_cc_t cc,
-	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_cmov_sil_mr(jit_state_t _jit, x86_cc_t cc,
+		long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _O(0x0f);
@@ -866,43 +879,45 @@ _cmov_sil_mr(x86_cc_t cc,
 
 /* --- Push/Pop instructions ----------------------------------------------- */
 __jit_inline void
-_pop_sil_r(jit_gpr_t rd)
+x86_pop_sil_r(jit_state_t _jit, jit_gpr_t rd)
 {
     _Or(0x58, _rA(rd));
 }
 
 __jit_inline void
-_pop_sil_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_pop_sil_m(jit_state_t _jit,
+	      long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x8f);
     _i_X(_b000, md, rb, ri, ms);
 }
 
 __jit_inline void
-_push_sil_r(jit_gpr_t rs)
+x86_push_sil_r(jit_state_t _jit, jit_gpr_t rs)
 {
     _Or(0x50, _rA(rs));
 }
 
 __jit_inline void
-_push_sil_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_push_sil_m(jit_state_t _jit,
+	       long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xff);
     _i_X(_b110, md, rb, ri, ms);
 }
 
 __jit_inline void
-_push_c_i(long im)
+x86_push_c_i(jit_state_t _jit, long im)
 {
     _O(0x6a);
     _jit_B(im);
 }
 
 __jit_inline void
-_push_il_i(long im)
+x86_push_il_i(jit_state_t _jit, long im)
 {
     if (_s8P(im))
-	_push_c_i(im);
+	x86_push_c_i(_jit, im);
     else {
 	_O(0x68);
 	_jit_I(_s32(im));
@@ -911,21 +926,22 @@ _push_il_i(long im)
 
 /* --- Test instructions --------------------------------------------------- */
 __jit_inline void
-_test_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_test_c_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x84);
     _Mrm(_b11, _r1(rs), _r1(rd));
 }
 
 __jit_inline void
-_test_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_test_c_rm(jit_state_t _jit,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x84);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_test_c_ir(long im, jit_gpr_t rd)
+x86_test_c_ir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     if (rd == _RAX)
 	_O(0xa8);
@@ -937,7 +953,8 @@ _test_c_ir(long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_test_c_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_test_c_im(jit_state_t _jit,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xf6);
     _i_X(_b000, md, rb, ri, ms);
@@ -945,7 +962,7 @@ _test_c_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_test_s_ir(long im, jit_gpr_t rd)
+x86_test_s_ir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     if (rd == _RAX)
 	_O(0xa9);
@@ -957,7 +974,8 @@ _test_s_ir(long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_test_s_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_test_s_im(jit_state_t _jit,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xf7);
     _i_X(_b000, md, rb, ri, ms);
@@ -965,21 +983,22 @@ _test_s_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_test_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_test_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x85);
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_test_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_test_sil_rm(jit_state_t _jit,
+		jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x85);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_test_il_ir(long im, jit_gpr_t rd)
+x86_test_il_ir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     if (rd == _RAX)
 	_O(0xa9);
@@ -991,7 +1010,8 @@ _test_il_ir(long im, jit_gpr_t rd)
 }
 
 __jit_inline void
-_test_il_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_test_il_im(jit_state_t _jit,
+	       long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xf7);
     _i_X(_b000, md, rb, ri, ms);
@@ -1000,7 +1020,7 @@ _test_il_im(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 
 /* --- Exchange instructions ----------------------------------------------- */
 __jit_inline void
-_cmpxchg_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_cmpxchg_c_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb0);
@@ -1008,7 +1028,9 @@ _cmpxchg_c_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_cmpxchg_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_cmpxchg_c_rm(jit_state_t _jit,
+		 jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri,
+		 jit_scl_t ms)
 {
     _O(0x0f);
     _O(0xb0);
@@ -1016,7 +1038,7 @@ _cmpxchg_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_cmpxchg_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_cmpxchg_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb1);
@@ -1024,7 +1046,9 @@ _cmpxchg_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_cmpxchg_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_cmpxchg_sil_rm(jit_state_t _jit,
+		   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri,
+		   jit_scl_t ms)
 {
     _O(0x0f);
     _O(0xb1);
@@ -1032,7 +1056,7 @@ _cmpxchg_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_xadd_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_xadd_c_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xc0);
@@ -1040,7 +1064,8 @@ _xadd_c_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_xadd_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_xadd_c_rm(jit_state_t _jit,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x0f);
     _O(0xc0);
@@ -1048,7 +1073,7 @@ _xadd_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_xadd_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_xadd_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xc1);
@@ -1056,7 +1081,8 @@ _xadd_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_xadd_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_xadd_sil_rm(jit_state_t _jit,
+		jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x0f);
     _O(0xc1);
@@ -1064,28 +1090,30 @@ _xadd_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 __jit_inline void
-_xchg_c_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_xchg_c_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x86);
     _Mrm(_b11, _r1(rs), _r1(rd));
 }
 
 __jit_inline void
-_xchg_c_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_xchg_c_rm(jit_state_t _jit,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x86);
     _r_X(rs, md, rb, ri, ms);
 }
 
 __jit_inline void
-_xchg_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_xchg_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x87);
     _Mrm(_b11, _rA(rs), _rA(rd));
 }
 
 __jit_inline void
-_xchg_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_xchg_sil_rm(jit_state_t _jit,
+		jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0x87);
     _r_X(rs, md, rb, ri, ms);
@@ -1093,42 +1121,44 @@ _xchg_sil_rm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 
 /* --- Increment/Decrement instructions ------------------------------------ */
 __jit_inline void
-_dec_c_r(jit_gpr_t rd)
+x86_dec_c_r(jit_state_t _jit, jit_gpr_t rd)
 {
     _O(0xfe);
     _Mrm(_b11, _b001, _r1(rd));
 }
 
 __jit_inline void
-_inc_c_r(jit_gpr_t rd)
+x86_inc_c_r(jit_state_t _jit, jit_gpr_t rd)
 {
     _O(0xfe);
     _Mrm(_b11, _b000, _r1(rd));
 }
 
 __jit_inline void
-_dec_c_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_dec_c_m(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xfe);
     _i_X(_b001, md, rb, ri, ms);
 }
 
 __jit_inline void
-_inc_c_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_inc_c_m(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _O(0xfe);
     _i_X(_b000, md, rb, ri, ms);
 }
 
 __jit_inline void
-_dec_sil_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_dec_sil_m(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+	      jit_scl_t ms)
 {
     _O(0xff);
     _i_X(_b001, md, rb, ri, ms);
 }
 
 __jit_inline void
-_inc_sil_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_inc_sil_m(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+	      jit_scl_t ms)
 {
     _O(0xff);
     _i_X(_b000, md, rb, ri, ms);
@@ -1136,7 +1166,7 @@ _inc_sil_m(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 
 /* --- Misc instructions --------------------------------------------------- */
 __jit_inline void
-_bsf_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_bsf_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbc);
@@ -1144,7 +1174,8 @@ _bsf_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_bsf_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_bsf_sil_mr(jit_state_t _jit,
+	       long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbc);
@@ -1152,7 +1183,7 @@ _bsf_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 }
 
 __jit_inline void
-_bsr_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_bsr_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbd);
@@ -1160,7 +1191,8 @@ _bsr_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 }
 
 __jit_inline void
-_bsr_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_bsr_sil_mr(jit_state_t _jit,
+	       long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbd);
@@ -1169,7 +1201,7 @@ _bsr_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 
 /* short|int|long rd = (char)rs */
 __jit_inline void
-_movsb_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_movsb_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbe);
@@ -1178,7 +1210,8 @@ _movsb_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 
 /* short|int|long rd = (char)*rs */
 __jit_inline void
-_movsb_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_movsb_sil_mr(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+		 jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbe);
@@ -1187,7 +1220,7 @@ _movsb_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 
 /* int|long rd = (short)rs */
 __jit_inline void
-_movsw_il_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_movsw_il_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbf);
@@ -1196,7 +1229,8 @@ _movsw_il_rr(jit_gpr_t rs, jit_gpr_t rd)
 
 /* int|long rd = (short)*rs */
 __jit_inline void
-_movsw_il_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_movsw_il_mr(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+		jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xbf);
@@ -1205,7 +1239,7 @@ _movsw_il_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 
 /* unsigned short|int|long rd = (unsigned char)rs */
 __jit_inline void
-_movzb_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_movzb_sil_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb6);
@@ -1214,7 +1248,8 @@ _movzb_sil_rr(jit_gpr_t rs, jit_gpr_t rd)
 
 /* unsigned short|int|long rd = (unsigned char)*rs */
 __jit_inline void
-_movzb_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_movzb_sil_mr(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+		 jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb6);
@@ -1223,7 +1258,7 @@ _movzb_sil_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 
 /* unsigned int|long rd = (unsigned short)rs */
 __jit_inline void
-_movzw_il_rr(jit_gpr_t rs, jit_gpr_t rd)
+x86_movzw_il_rr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb7);
@@ -1232,7 +1267,8 @@ _movzw_il_rr(jit_gpr_t rs, jit_gpr_t rd)
 
 /* unsigned int|long rd = (unsigned short)*rs */
 __jit_inline void
-_movzw_il_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_movzw_il_mr(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+		jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x0f);
     _O(0xb7);
@@ -1240,14 +1276,15 @@ _movzw_il_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 }
 
 __jit_inline void
-_lea_il_mr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_lea_il_mr(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri,
+	      jit_scl_t ms, jit_gpr_t rd)
 {
     _O(0x8d);
     _r_X(rd, md, rb, ri, ms);
 }
 
 __jit_inline void
-_bswap_il_r(jit_gpr_t rd)
+x86_bswap_il_r(jit_state_t _jit, jit_gpr_t rd)
 {
     _O(0x0f);
     _Or(0xc8, _rA(rd));
@@ -1278,129 +1315,138 @@ _bswap_il_r(jit_gpr_t rd)
  */
 
 /* --- ALU instructions ---------------------------------------------------- */
+#define _ALUBrr(op, rs, rd)		x86_ALUBrr(_jit, op, rs, rd)
 __jit_inline void
-_ALUBrr(x86_alu_t op,
-	jit_gpr_t rs, jit_gpr_t rd)
+x86_ALUBrr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _alu_c_rr(op, rs, rd);
+    x86_alu_c_rr(_jit, op, rs, rd);
 }
 
+#define _ALUBmr(op, md, rb, ri, ms, rd)	x86_ALUBmr(_jit, op, md, rb, ri, ms, rd)
 __jit_inline void
-_ALUBmr(x86_alu_t op,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_ALUBmr(jit_state_t _jit, x86_alu_t op,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXBmr(rb, ri, rd);
-    _alu_c_mr(op, md, rb, ri, ms, rd);
+    x86_alu_c_mr(_jit, op, md, rb, ri, ms, rd);
 }
 
+#define _ALUBrm(op, rs, md, rb, ri, ms)	x86_ALUBrm(_jit, op, rs, md, rb, ri, ms)
 __jit_inline void
-_ALUBrm(x86_alu_t op,
-	jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALUBrm(jit_state_t _jit, x86_alu_t op,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _alu_c_rm(op, rs, md, rb, ri, ms);
+    x86_alu_c_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _ALUBir(op, im, rd)		x86_ALUBir(_jit, op, im, rd)
 __jit_inline void
-_ALUBir(x86_alu_t op,
-	long im, jit_gpr_t rd)
+x86_ALUBir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _alu_c_ir(op, im, rd);
+    x86_alu_c_ir(_jit, op, im, rd);
 }
 
+#define _ALUBim(op, im, md, rb, ri, ms)	x86_ALUBim(_jit, op, im, md, rb, ri, ms)
 __jit_inline void
-_ALUBim(x86_alu_t op,
-	long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALUBim(jit_state_t _jit, x86_alu_t op,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _alu_c_im(op, im, md, rb, ri, ms);
+    x86_alu_c_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _ALUWrr(op, rs, rd)		x86_ALUWrr(_jit, op, rs, rd)
 __jit_inline void
-_ALUWrr(x86_alu_t op,
-	jit_gpr_t rs, jit_gpr_t rd)
+x86_ALUWrr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _alu_sil_rr(op, rs, rd);
+    x86_alu_sil_rr(_jit, op, rs, rd);
 }
 
+#define _ALUWmr(op, md, rb, ri, ms, rd)	x86_ALUWmr(_jit, op, md, rb, ri, ms, rd)
 __jit_inline void
-_ALUWmr(x86_alu_t op,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_ALUWmr(jit_state_t _jit, x86_alu_t op,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _alu_sil_mr(op, md, rb, ri, ms, rd);
+    x86_alu_sil_mr(_jit, op, md, rb, ri, ms, rd);
 }
 
+#define _ALUWrm(op, rs, md, rb, ri, ms)	x86_ALUWrm(_jit, op, rs, md, rb, ri, ms)
 __jit_inline void
-_ALUWrm(x86_alu_t op,
-	jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALUWrm(jit_state_t _jit, x86_alu_t op,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _alu_sil_rm(op, rs, md, rb, ri, ms);
+    x86_alu_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _ALUWir(op, im, rd)		x86_ALUWir(_jit, op, im, rd)
 __jit_inline void
-_ALUWir(x86_alu_t op,
-	long im, jit_gpr_t rd)
+x86_ALUWir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
-    _alu_s_ir(op, im, rd);
+    x86_alu_s_ir(_jit, op, im, rd);
 }
 
+#define _ALUWim(op, im, md, rb, ri, ms)	x86_ALUWim(_jit, op, im, md, rb, ri, ms)
 __jit_inline void
-_ALUWim(x86_alu_t op,
-	long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALUWim(jit_state_t _jit, x86_alu_t op,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _alu_s_im(op, im, md, rb, ri, ms);
+    x86_alu_s_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _ALULrr(op, rs, rd)		x86_ALULrr(_jit, op, rs, rd)
 __jit_inline void
-_ALULrr(x86_alu_t op,
-	jit_gpr_t rs, jit_gpr_t rd)
+x86_ALULrr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _alu_sil_rr(op, rs, rd);
+    x86_alu_sil_rr(_jit, op, rs, rd);
 }
 
+#define _ALULmr(op, md, rb, ri, ms, rd)	x86_ALULmr(_jit, op, md, rb, ri, ms, rd)
 __jit_inline void
-_ALULmr(x86_alu_t op,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_ALULmr(jit_state_t _jit, x86_alu_t op,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _alu_sil_mr(op, md, rb, ri, ms, rd);
+    x86_alu_sil_mr(_jit, op, md, rb, ri, ms, rd);
 }
 
+#define _ALULrm(op, rs, md, rb, ri, ms)	x86_ALULrm(_jit, op, rs, md, rb, ri, ms)
 __jit_inline void
-_ALULrm(x86_alu_t op,
-	jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALULrm(jit_state_t _jit, x86_alu_t op,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _alu_sil_rm(op, rs, md, rb, ri, ms);
+    x86_alu_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _ALULir(op, im, rd)		x86_ALULir(_jit, op, im, rd)
 __jit_inline void
-_ALULir(x86_alu_t op,
-	long im, jit_gpr_t rd)
+x86_ALULir(jit_state_t _jit, x86_alu_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
-    _alu_il_ir(op, im, rd);
+    x86_alu_il_ir(_jit, op, im, rd);
 }
 
+#define _ALULim(op, im, md, rb, ri, ms)	x86_ALULim(_jit, op, im, md, rb, ri, ms)
 __jit_inline void
-_ALULim(x86_alu_t op,
-	long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ALULim(jit_state_t _jit, x86_alu_t op,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _alu_il_im(op, im, md, rb, ri, ms);
+    x86_alu_il_im(_jit, op, im, md, rb, ri, ms);
 }
 
 #define ADCBrr(RS, RD)			_ALUBrr(X86_ADC, RS, RD)
@@ -1548,104 +1594,110 @@ _ALULim(x86_alu_t op,
 #define XORLim(IM, MD, MB, MI, MS)	_ALULim(X86_XOR, IM, MD, MB, MI, MS)
 
 /* --- Shift/Rotate instructions ------------------------------------------- */
+#define _ROTSHIBir(op, im, rd)		x86_ROTSHIBir(_jit, op, im, rd)
 __jit_inline void
-_ROTSHIBir(x86_rotsh_t op,
-	   long im, jit_gpr_t rd)
+x86_ROTSHIBir(jit_state_t _jit, x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _rotsh_c_ir(op, im, rd);
+    x86_rotsh_c_ir(_jit, op, im, rd);
 }
 
+#define _ROTSHIBim(op,im,md,rb,ri,ms)	x86_ROTSHIBim(_jit,op,im,md,rb,ri,ms)
 __jit_inline void
-_ROTSHIBim(x86_rotsh_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHIBim(jit_state_t _jit, x86_rotsh_t op,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _rotsh_c_im(op, im, md, rb, ri, ms);
+    x86_rotsh_c_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _ROTSHIBrr(op, rs, rd)		x86_ROTSHIBrr(_jit, op, rs, rd)
 __jit_inline void
-_ROTSHIBrr(x86_rotsh_t op,
-	   jit_gpr_t rs, jit_gpr_t rd)
+x86_ROTSHIBrr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _rotsh_c_rr(op, rs, rd);
+    x86_rotsh_c_rr(_jit, op, rs, rd);
 }
 
+#define _ROTSHIBrm(op,rs,md,rb,ri,ms)	x86_ROTSHIBrm(_jit,op,rs,md,rb,ri,ms)
 __jit_inline void
-_ROTSHIBrm(x86_rotsh_t op,
-	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHIBrm(jit_state_t _jit, x86_rotsh_t op,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _rotsh_c_rm(op, rs, md, rb, ri, ms);
+    x86_rotsh_c_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _ROTSHIWir(op, im, rd)		x86_ROTSHIWir(_jit, op, im, rd)
 __jit_inline void
-_ROTSHIWir(x86_rotsh_t op,
-	   long im, jit_gpr_t rd)
+x86_ROTSHIWir(jit_state_t _jit, x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
-    _rotsh_sil_ir(op, im, rd);
+    x86_rotsh_sil_ir(_jit, op, im, rd);
 }
 
+#define _ROTSHIWim(op,im,md,rb,ri,ms)	x86_ROTSHIWim(_jit,op,im,md,rb,ri,ms)
 __jit_inline void
-_ROTSHIWim(x86_rotsh_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHIWim(jit_state_t _jit, x86_rotsh_t op,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _rotsh_sil_im(op, im, md, rb, ri, ms);
+    x86_rotsh_sil_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _ROTSHIWrr(op, rs, rd)		x86_ROTSHIWrr(_jit, op, rs, rd)
 __jit_inline void
-_ROTSHIWrr(x86_rotsh_t op,
-	   jit_gpr_t rs, jit_gpr_t rd)
+x86_ROTSHIWrr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _rotsh_sil_rr(op, rs, rd);
+    x86_rotsh_sil_rr(_jit, op, rs, rd);
 }
 
+#define _ROTSHIWrm(op,rs,md,rb,ri,ms)	x86_ROTSHIWrm(_jit,op,rs,md,rb,ri,ms)
 __jit_inline void
-_ROTSHIWrm(x86_rotsh_t op,
-	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHIWrm(jit_state_t _jit, x86_rotsh_t op,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _rotsh_sil_rm(op, rs, md, rb, ri, ms);
+    x86_rotsh_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _ROTSHILir(op, im, rd)		x86_ROTSHILir(_jit, op, im, rd)
 __jit_inline void
-_ROTSHILir(x86_rotsh_t op,
-	   long im, jit_gpr_t rd)
+x86_ROTSHILir(jit_state_t _jit, x86_rotsh_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
-    _rotsh_sil_ir(op, im, rd);
+    x86_rotsh_sil_ir(_jit, op, im, rd);
 }
 
+#define _ROTSHILim(op,im,md,rb,ri,ms)	x86_ROTSHILim(_jit,op,im,md,rb,ri,ms)
 __jit_inline void
-_ROTSHILim(x86_rotsh_t op,
-	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHILim(jit_state_t _jit, x86_rotsh_t op,
+	      long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _rotsh_sil_im(op, im, md, rb, ri, ms);
+    x86_rotsh_sil_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _ROTSHILrr(op, rs, rd)		x86_ROTSHILrr(_jit, op, rs, rd)
 __jit_inline void
-_ROTSHILrr(x86_rotsh_t op,
-	   jit_gpr_t rs, jit_gpr_t rd)
+x86_ROTSHILrr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _rotsh_sil_rr(op, rs, rd);
+    x86_rotsh_sil_rr(_jit, op, rs, rd);
 }
 
+#define _ROTSHILrm(op,rs,md,rb,ri,ms)	x86_ROTSHILrm(_jit,op,rs,md,rb,ri,ms)
 __jit_inline void
-_ROTSHILrm(x86_rotsh_t op,
-	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_ROTSHILrm(jit_state_t _jit, x86_rotsh_t op,
+	      jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _rotsh_sil_rm(op, rs, md, rb, ri, ms);
+    x86_rotsh_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
 #define ROLBir(IM, RD)			_ROTSHIBir(X86_ROL, IM, RD)
@@ -1769,72 +1821,76 @@ _ROTSHILrm(x86_rotsh_t op,
 #define SARLrm(RS, MD, MB, MI, MS)	_ROTSHILrm(X86_SAR, RS, MD, MB, MI, MS)
 
 /* --- Bit test instructions ----------------------------------------------- */
+#define _BTWir(op, im, rd)		x86_BTWir(_jit, op, im, rd)
 __jit_inline void
-_BTWir(x86_bt_t op,
-       long im, jit_gpr_t rd)
+x86_BTWir(jit_state_t _jit, x86_bt_t op, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
-    _bt_sil_ir(op, im, rd);
+    x86_bt_sil_ir(_jit, op, im, rd);
 }
 
+#define _BTWim(op, im, md, rb, ri, ms)	x86_BTWim(_jit, op, im, md, rb, ri, ms)
 __jit_inline void
-_BTWim(x86_bt_t op,
-       long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_BTWim(jit_state_t _jit, x86_bt_t op,
+	  long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _bt_sil_im(op, im, md, rb, ri, ms);
+    x86_bt_sil_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _BTWrr(op, rs, rd)		x86_BTWrr(_jit, op, rs, rd)
 __jit_inline void
-_BTWrr(x86_bt_t op,
-       jit_gpr_t rs, jit_gpr_t rd)
+x86_BTWrr(jit_state_t _jit, x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _bt_sil_rr(op, rs, rd);
+    x86_bt_sil_rr(_jit, op, rs, rd);
 }
 
+#define _BTWrm(op, rs, md, rb, ri, ms)	x86_BTWrm(_jit, op, rs, md, rb, ri, ms)
 __jit_inline void
-_BTWrm(x86_bt_t op,
-       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_BTWrm(jit_state_t _jit, x86_bt_t op,
+	  jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _bt_sil_rm(op, rs, md, rb, ri, ms);
+    x86_bt_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
+#define _BTLir(op, im, rd)		x86_BTLir(_jit, op, im, rd)
 __jit_inline void
-_BTLir(x86_bt_t op,
-       long im, jit_gpr_t rd)
+x86_BTLir(jit_state_t _jit, x86_bt_t op, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
-    _bt_sil_ir(op, im, rd);
+    x86_bt_sil_ir(_jit, op, im, rd);
 }
 
+#define _BTLim(op, im, md, rb, ri, ms)	x86_BTLim(_jit, op, im, md, rb, ri, ms)
 __jit_inline void
-_BTLim(x86_bt_t op,
-       long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_BTLim(jit_state_t _jit, x86_bt_t op,
+	  long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _bt_sil_im(op, im, md, rb, ri, ms);
+    x86_bt_sil_im(_jit, op, im, md, rb, ri, ms);
 }
 
+#define _BTLrr(op, rs, rd)		x86_BTLrr(_jit, op, rs, rd)
 __jit_inline void
-_BTLrr(x86_bt_t op,
-       jit_gpr_t rs, jit_gpr_t rd)
+x86_BTLrr(jit_state_t _jit, x86_bt_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _bt_sil_rr(op, rs, rd);
+    x86_bt_sil_rr(_jit, op, rs, rd);
 }
 
+#define _BTLrm(op, rs, md, rb, ri, ms)	x86_BTLrm(_jit, op, rs, md, rb, ri, ms)
 __jit_inline void
-_BTLrm(x86_bt_t op,
-       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_BTLrm(jit_state_t _jit, x86_bt_t op,
+	  jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _bt_sil_rm(op, rs, md, rb, ri, ms);
+    x86_bt_sil_rm(_jit, op, rs, md, rb, ri, ms);
 }
 
 #define BTWir(IM, RD)			_BTWir(X86_BT, IM, RD)
@@ -1878,67 +1934,81 @@ _BTLrm(x86_bt_t op,
 #define BTSLrm(RS, MD, MB, MI, MS)	_BTLrm(X86_BTS, RS, MD, MB, MI, MS)
 
 /* --- Move instructions --------------------------------------------------- */
+#define MOVBrr(rs, rd)			x86_MOVBrr(_jit, rs, rd)
 __jit_inline void
-MOVBrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVBrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _mov_c_rr(rs, rd);
+    x86_mov_c_rr(_jit, rs, rd);
 }
 
+#define MOVBmr(md, rb, ri, ms, rd)	x86_MOVBmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVBmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVBmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXBmr(rb, ri, rd);
-    _mov_c_mr(md, rb, ri, ms, rd);
+    x86_mov_c_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVBrm(rs, md, rb, ri, ms)	x86_MOVBrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-MOVBrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVBrm(jit_state_t _jit,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _mov_c_rm(rs, md, rb, ri, ms);
+    x86_mov_c_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define MOVBir(im, rd)			x86_MOVBir(_jit, im, rd)
 __jit_inline void
-MOVBir(long im, jit_gpr_t rd)
+x86_MOVBir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _mov_c_ir(im, rd);
+    x86_mov_c_ir(_jit, im, rd);
 }
 
+#define MOVBim(im, md, rb, ri, ms)	x86_MOVBim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-MOVBim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVBim(jit_state_t _jit,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _mov_c_im(im, md, rb, ri, ms);
+    x86_mov_c_im(_jit, im, md, rb, ri, ms);
 }
 
+#define MOVWrr(rs, rd)			x86_MOVWrr(_jit, rs, rd)
 __jit_inline void
-MOVWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _mov_sil_rr(rs, rd);
+    x86_mov_sil_rr(_jit, rs, rd);
 }
 
+#define MOVWmr(md, rb, ri, ms, rd)	x86_MOVWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVWmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _mov_sil_mr(md, rb, ri, ms, rd);
+    x86_mov_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVWrm(rs, md, rb, ri, ms)	x86_MOVWrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-MOVWrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVWrm(jit_state_t _jit,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _mov_sil_rm(rs, md, rb, ri, ms);
+    x86_mov_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define MOVWir(im, rd)			x86_MOVWir(_jit, im, rd)
 __jit_inline void
-MOVWir(long im, jit_gpr_t rd)
+x86_MOVWir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
@@ -1946,8 +2016,10 @@ MOVWir(long im, jit_gpr_t rd)
     _jit_W(_s16(im));
 }
 
+#define MOVWim(im, md, rb, ri, ms)	x86_MOVWim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-MOVWim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVWim(jit_state_t _jit,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
@@ -1956,37 +2028,45 @@ MOVWim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
     _jit_W(_s16(im));
 }
 
+#define MOVLrr(rs, rd)			x86_MOVLrr(_jit, rs, rd)
 __jit_inline void
-MOVLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _mov_sil_rr(rs, rd);
+    x86_mov_sil_rr(_jit, rs, rd);
 }
 
+#define MOVLmr(md, rb, ri, ms, rd)	x86_MOVLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVLmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _mov_sil_mr(md, rb, ri, ms, rd);
+    x86_mov_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVLrm(rs, md, rb, ri, ms)	x86_MOVLrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-MOVLrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVLrm(jit_state_t _jit,
+	   jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _mov_sil_rm(rs, md, rb, ri, ms);
+    x86_mov_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define MOVLir(im, rd)			x86_MOVLir(_jit, im, rd)
 __jit_inline void
-MOVLir(long im, jit_gpr_t rd)
+x86_MOVLir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
     _Or(0xb8, _r4(rd));
     _jit_I(_u32(im));
 }
 
+#define MOVLim(im, md, rb, ri, ms)	x86_MOVLim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-MOVLim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_MOVLim(jit_state_t _jit,
+	   long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _O(0xc7);
@@ -1995,54 +2075,57 @@ MOVLim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 }
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
+#define _UNARYBr(op, rs)		x86_UNARYBr(_jit, op, rs)
 __jit_inline void
-_UNARYBr(x86_unary_t op,
-	 jit_gpr_t rs)
+x86_UNARYBr(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
     _REXBrr(_NOREG, rs);
-    _unary_c_r(op, rs);
+    x86_unary_c_r(_jit, op, rs);
 }
 
+#define _UNARYBm(op, md, rb, ri, ms)	x86_UNARYBm(_jit, op, md, rb, ri, ms)
 __jit_inline void
-_UNARYBm(x86_unary_t op,
-	 long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_UNARYBm(jit_state_t _jit, x86_unary_t op,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _unary_c_m(op, md, rb, ri, ms);
+    x86_unary_c_m(_jit, op, md, rb, ri, ms);
 }
 
+#define _UNARYWr(op, rs)		x86_UNARYWr(_jit, op, rs)
 __jit_inline void
-_UNARYWr(x86_unary_t op,
-	 jit_gpr_t rs)
+x86_UNARYWr(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
     _d16();
     _REXLrr(_NOREG, rs);
-    _unary_sil_r(op, rs);
+    x86_unary_sil_r(_jit, op, rs);
 }
 
+#define _UNARYWm(op, md, rb, ri, ms)	x86_UNARYQm(_jit, op, md, rb, ri, ms)
 __jit_inline void
-_UNARYWm(x86_unary_t op,
-	 long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_UNARYWm(jit_state_t _jit, x86_unary_t op,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLmr(rb, ri, _NOREG);
-    _unary_sil_m(op, md, rb, ri, ms);
+    x86_unary_sil_m(_jit, op, md, rb, ri, ms);
 }
 
+#define _UNARYLr(op, rs)		x86_UNARYLr(_jit, op, rs)
 __jit_inline void
-_UNARYLr(x86_unary_t op,
-	 jit_gpr_t rs)
+x86_UNARYLr(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
     _REXLrr(_NOREG, rs);
-    _unary_sil_r(op, rs);
+    x86_unary_sil_r(_jit, op, rs);
 }
 
+#define _UNARYLm(op, md, rb, ri, ms)	x86_UNARYLm(_jit, op, md, rb, ri, ms)
 __jit_inline void
-_UNARYLm(x86_unary_t op,
-	 long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_UNARYLm(jit_state_t _jit, x86_unary_t op,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLmr(rb, ri, _NOREG);
-    _unary_sil_m(op, md, rb, ri, ms);
+    x86_unary_sil_m(_jit, op, md, rb, ri, ms);
 }
 
 #define NOTBr(RS)			_UNARYBr(X86_NOT, RS)
@@ -2087,109 +2170,127 @@ _UNARYLm(x86_unary_t op,
 #define IDIVLr(RS)			_UNARYLr(X86_IDIV, RS)
 #define IDIVLm(MD, MB, MI, MS)		_UNARYLm(X86_IDIV, MD, MB, MI, MS)
 
+#define IMULWrr(rs, rd)			x86_IMULWrr(_jit, rs, rd)
 __jit_inline void
-IMULWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_IMULWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
-    _imul_sil_rr(rs, rd);
+    x86_imul_sil_rr(_jit, rs, rd);
 }
 
+#define IMULWmr(md, rb, ri, ms, rd)	x86_IMULWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-IMULWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_IMULWmr(jit_state_t _jit,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _imul_sil_mr(md, rb, ri, ms, rd);
+    x86_imul_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define IMULwir(im, rd)			x86_IMULWirr(_jit, im, rd)
+#define IMULWirr(im, rs, rd)		x86_IMULWirr(_jit, im, rs, rd)
 __jit_inline void
-IMULWirr(long im, jit_gpr_t rs, jit_gpr_t rd)
+x86_IMULWirr(jit_state_t _jit, long im, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
-    _imul_il_irr(im, rs, rd);
+    x86_imul_il_irr(_jit, im, rs, rd);
 }
 
+#define IMULLrr(rs, rd)			x86_IMULLrr(_jit, rs, rd)
 __jit_inline void
-IMULLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_IMULLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
-    _imul_sil_rr(rs, rd);
+    x86_imul_sil_rr(_jit, rs, rd);
 }
 
+#define IMULLmr(md, rb, ri, ms, rd)	x86_IMULLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-IMULLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_IMULLmr(jit_state_t _jit,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _imul_sil_mr(md, rb, ri, ms, rd);
+    x86_imul_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
-#define IMULLir(im, rd)			IMULLirr(im, rd, rd)
+#define IMULLir(im, rd)			x86_IMULLirr(_jit, im, rd)
+#define IMULLirr(im, rs, rd)		x86_IMULLirr(_jit, im, rs, rd)
 __jit_inline void
-IMULLirr(long im, jit_gpr_t rs, jit_gpr_t rd)
+x86_IMULLirr(jit_state_t _jit, long im, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
-    _imul_il_irr(im, rs, rd);
+    x86_imul_il_irr(_jit, im, rs, rd);
 }
 
 /* --- Control Flow related instructions ----------------------------------- */
 /* 32 bit displacement from %rip */
+#define CALLm(im)			x86_CALLm(_jit, im)
 __jit_inline void
-CALLm(void *im)
+x86_CALLm(jit_state_t _jit, void *im)
 {
     _O(0xe8);
     _D32(im);
 }
 
 /* call absolute value */
+#define CALLLsr(rs)			x86_CALLLsr(_jit, rs)
 __jit_inline void
-CALLLsr(jit_gpr_t rs)
+x86_CALLLsr(jit_state_t _jit, jit_gpr_t rs)
 {
     _REXLrr(_NOREG, rs);
-    _call_il_sr(rs);
+    x86_call_il_sr(_jit, rs);
 }
 
+#define CALLsm(rs, rb, ri, ms)		x86_CALLsm(_jit, rs, rb, ri, ms)
 __jit_inline void
-CALLsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_CALLsm(jit_state_t _jit,
+	   jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _O(0xff);
     _i_X(_b010, rs, rb, ri, ms);
 }
 
+#define JMPSm(im)			x86_JMPSm(_jit, im)
 __jit_inline void
-JMPSm(void *im)
+x86_JMPSm(jit_state_t _jit, void *im)
 {
     _O(0xeb);
     _D8(im);
 }
 
+#define JMPm(im)			x86_JMPm(_jit, im)
 __jit_inline void
-JMPm(void *im)
+x86_JMPm(jit_state_t _jit, void *im)
 {
     _O(0xe9);
     _D32(im);
 }
 
+#define JMPLsr(rs)			x86_JMPLsr(_jit, rs)
 __jit_inline void
-JMPLsr(jit_gpr_t rs)
+x86_JMPLsr(jit_state_t _jit, jit_gpr_t rs)
 {
     _REXLrr(_NOREG, rs);
-    _jmp_il_sr(rs);
+    x86_jmp_il_sr(_jit, rs);
 }
 
+#define JMPsm(rs, rb, ri, ms)		x86_JMPsm(_jit, rs, rb, ri, ms)
 __jit_inline void
-JMPsm(jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_JMPsm(jit_state_t _jit,
+	  jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
     _O(0xff);
     _i_X(_b100, rs, rb, ri, ms);
 }
 
+#define JCCSim(cc, im)			x86_JCCSim(_jit, cc, im)
 __jit_inline void
-JCCSim(x86_cc_t cc,
-       void *im)
+x86_JCCSim(jit_state_t _jit, x86_cc_t cc, void *im)
 {
     _O(0x70 | (int)cc);
     _D8(im);
@@ -2226,9 +2327,9 @@ JCCSim(x86_cc_t cc,
 #define JGSm(D)				JCCSim(X86_CC_G,   D)
 #define JNLESm(D)			JCCSim(X86_CC_NLE, D)
 
+#define JCCim(cc, im)			x86_JCCim(_jit, cc, im)
 __jit_inline void
-JCCim(x86_cc_t cc,
-      void *im)
+x86_JCCim(jit_state_t _jit, x86_cc_t cc, void *im)
 {
     _O(0x0f);
     _O(0x80 | (int)cc);
@@ -2266,9 +2367,9 @@ JCCim(x86_cc_t cc,
 #define JGm(D)				JCCim(X86_CC_G,   D)
 #define JNLEm(D)			JCCim(X86_CC_NLE, D)
 
+#define SETCCir(cc, rd)			x86_SETCCir(_jit, cc, rd)
 __jit_inline void
-SETCCir(x86_cc_t cc,
-	jit_gpr_t rd)
+x86_SETCCir(jit_state_t _jit, x86_cc_t cc, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
     _O(0x0f);
@@ -2306,9 +2407,10 @@ SETCCir(x86_cc_t cc,
 #define SETGr(RD)			SETCCir(X86_CC_G,   RD)
 #define SETNLEr(RD)			SETCCir(X86_CC_NLE, RD)
 
+#define SETCCim(rs, cc, md, rb, ri, ms)	x86_SETCCim(_jit, cc, md, rb, ri, ms)
 __jit_inline void
-SETCCim(x86_cc_t cc,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_SETCCim(jit_state_t _jit, x86_cc_t cc,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
     _O(0x0f);
@@ -2346,541 +2448,637 @@ SETCCim(x86_cc_t cc,
 #define SETGm(D, B, I, S)		SETCCim(X86_CC_G,   D, B, I, S)
 #define SETNLEm(D, B, I, S)		SETCCim(X86_CC_NLE, D, B, I, S)
 
+#define CMOVWrr(cc, rs, rd)		x86_CMOVWrr(_jit, cc, rs, rd)
 __jit_inline void
-CMOVWrr(x86_cc_t cc,
-	jit_gpr_t rs, jit_gpr_t rd)
+x86_CMOVWrr(jit_state_t _jit, x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
-    _cmov_sil_rr(cc, rs, rd);
+    x86_cmov_sil_rr(_jit, cc, rs, rd);
 }
 
+#define CMOVWmr(cc, md, rb, ri, ms, rd)	x86_CMOVWmr(_jit, cc, md, rb, ri, ms, rd)
 __jit_inline void
-CMOVWmr(x86_cc_t cc,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_CMOVWmr(jit_state_t _jit, x86_cc_t cc,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _cmov_sil_mr(cc, md, rb, ri, ms, rd);
+    x86_cmov_sil_mr(_jit, cc, md, rb, ri, ms, rd);
 }
 
+#define CMOVLrr(cc, rs, rd)		x86_CMOVLrr(_jit, cc, rs, rd)
 __jit_inline void
-CMOVLrr(x86_cc_t cc,
-	jit_gpr_t rs, jit_gpr_t rd)
+x86_CMOVLrr(jit_state_t _jit, x86_cc_t cc, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
-    _cmov_sil_rr(cc, rs, rd);
+    x86_cmov_sil_rr(_jit, cc, rs, rd);
 }
 
+#define CMOVLmr(cc, md, rb, ri, ms, rd)	x86_CMOVLmr(_jit, cc, md, rb, ri, ms, rd)
 __jit_inline void
-CMOVLmr(x86_cc_t cc,
-	long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_CMOVLmr(jit_state_t _jit, x86_cc_t cc,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _cmov_sil_mr(cc, md, rb, ri, ms, rd);
+    x86_cmov_sil_mr(_jit, cc, md, rb, ri, ms, rd);
 }
 
 /* --- Push/Pop instructions ----------------------------------------------- */
-#define POPAD_					POPA_
+#define POPAD_()			x86_POPA_(_jit)
+#define POPA_()				x86_POPA_(_jit)
 __jit_inline void
-POPA_(void)
+x86_POPA_(jit_state_t _jit)
 {
     _d16();
     _O(0x61);
 }
 
-#define PUSHAD_					PUSHA_
+#define PUSHAD_()			x86_PUSHA_(_jit)
+#define PUSHA_()			x86_PUSHA_(_jit)
 __jit_inline void
-PUSHA_(void)
+x86_PUSHA_(jit_state_t _jit)
 {
     _d16();
     _O(0x60);
 }
     
+#define POPF_()				x86_POPF_(_jit)
 __jit_inline void
-POPF_(void)
+x86_POPF_(jit_state_t _jit)
 {
     _O(0x9d);
 }
 
+#define PUSHF_()			x86_PUSHF_(_jit)
 __jit_inline void
-PUSHF_(void)
+x86_PUSHF_(jit_state_t _jit)
 {
     _O(0x9c);
 }
 
 /* --- Test instructions --------------------------------------------------- */
+#define TESTBrr(rs, rd)			x86_TESTBrr(_jit, rs, rd)
 __jit_inline void
-TESTBrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_TESTBrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _test_c_rr(rs, rd);
+    x86_test_c_rr(_jit, rs, rd);
 }
 
+#define TESTBrm(rs, md, rb, ri, ms)	x86_TESTBrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-TESTBrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTBrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _test_c_rm(rs, md, rb, ri, ms);
+    x86_test_c_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define TESTBir(im, rd)			x86_TESTBir(_jit, im, rd)
 __jit_inline void
-TESTBir(long im, jit_gpr_t rd)
+x86_TESTBir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _test_c_ir(im, rd);
+    x86_test_c_ir(_jit, im, rd);
 }
 
+#define TESTBim(im, md, rb, ri, ms)	x86_TESTBim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-TESTBim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTBim(jit_state_t _jit,
+	    long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _test_c_im(im, md, rb, ri, ms);
+    x86_test_c_im(_jit, im, md, rb, ri, ms);
 }
 
+#define TESTWrr(rs, rd)			x86_TESTWrr(_jit, rs, rd)
 __jit_inline void
-TESTWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_TESTWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _test_sil_rr(rs, rd);
+    x86_test_sil_rr(_jit, rs, rd);
 }
 
+#define TESTWrm(rs, md, rb, ri, ms)	x86_TESTWrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-TESTWrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTWrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _test_sil_rm(rs, md, rb, ri, ms);
+    x86_test_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define TESTWir(im, rd)			x86_TESTWir(_jit, im, rd)
 __jit_inline void
-TESTWir(long im, jit_gpr_t rd)
+x86_TESTWir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(_NOREG, rd);
-    _test_s_ir(im, rd);
+    x86_test_s_ir(_jit, im, rd);
 }
 
+#define TESTWim(im, md, rb, ri, ms)	x86_TESTWim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-TESTWim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTWim(jit_state_t _jit,
+	    long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _test_s_im(im, md, rb, ri, ms);
+    x86_test_s_im(_jit, im, md, rb, ri, ms);
 }
 
+#define TESTLrr(rs, rd)			x86_TESTLrr(_jit, rs, rd)
 __jit_inline void
-TESTLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_TESTLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _test_sil_rr(rs, rd);
+    x86_test_sil_rr(_jit, rs, rd);
 }
 
+#define TESTLrm(rs, md, rb, ri, ms)	x86_TESTLrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-TESTLrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTLrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _test_sil_rm(rs, md, rb, ri, ms);
+    x86_test_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define TESTLir(im, rd)			x86_TESTLir(_jit, im, rd)
 __jit_inline void
-TESTLir(long im, jit_gpr_t rd)
+x86_TESTLir(jit_state_t _jit, long im, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
-    _test_il_ir(im, rd);
+    x86_test_il_ir(_jit, im, rd);
 }
 
+#define TESTLim(im, md, rb, ri, ms)	x86_TESTLim(_jit, im, md, rb, ri, ms)
 __jit_inline void
-TESTLim(long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_TESTLim(jit_state_t _jit,
+	    long im, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _test_il_im(im, md, rb, ri, ms);
+    x86_test_il_im(_jit, im, md, rb, ri, ms);
 }
 
 /* --- Exchange instructions ----------------------------------------------- */
+#define CMPXCHGBrr(rs, rd)		x86_CMPXCHGBrr(_jit, rs, rd)
 __jit_inline void
-CMPXCHGBrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_CMPXCHGBrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _cmpxchg_c_rr(rs, rd);
+    x86_cmpxchg_c_rr(_jit, rs, rd);
 }
 
+#define CMPXCHGBrm(rs, md, rb, ri, ms)	x86_CMPXCHGBrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-CMPXCHGBrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_CMPXCHGBrm(jit_state_t _jit,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _cmpxchg_c_rm(rs, md, rb, ri, ms);
+    x86_cmpxchg_c_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define CMPXCHGWrr(rs, rd)		x86_CMPXCHGWrr(_jit, rs, rd)
 __jit_inline void
-CMPXCHGWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_CMPXCHGWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _cmpxchg_sil_rr(rs, rd);
+    x86_cmpxchg_sil_rr(_jit, rs, rd);
 }
 
+#define CMPXCHGWrm(rs, md, rb, ri, ms)	x86_CMPXCHGWrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-CMPXCHGWrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_CMPXCHGWrm(jit_state_t _jit,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _cmpxchg_sil_rm(rs, md, rb, ri, ms);
+    x86_cmpxchg_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define CMPXCHGLrr(rs, rd)		x86_CMPXCHGLrr(_jit, rs, rd)
 __jit_inline void
-CMPXCHGLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_CMPXCHGLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _cmpxchg_sil_rr(rs, rd);
+    x86_cmpxchg_sil_rr(_jit, rs, rd);
 }
 
+#define CMPXCHGLrm(rs, md, rb, ri, ms)	x86_CMPXCHGLrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-CMPXCHGLrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_CMPXCHGLrm(jit_state_t _jit,
+	       jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _cmpxchg_sil_rm(rs, md, rb, ri, ms);
+    x86_cmpxchg_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XADDBrr(rs, rd)			x86_XADDBrr(_jit, rs, rd)
 __jit_inline void
-XADDBrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XADDBrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _xadd_c_rr(rs, rd);
+    x86_xadd_c_rr(_jit, rs, rd);
 }
 
+#define XADDBrm(rs, md, rb, ri, ms)	x86_XADDBrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XADDBrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XADDBrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _xadd_c_rm(rs, md, rb, ri, ms);
+    x86_xadd_c_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XADDWrr(rs, rd)			x86_XADDWrr(_jit, rs, rd)
 __jit_inline void
-XADDWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XADDWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _xadd_sil_rr(rs, rd);
+    x86_xadd_sil_rr(_jit, rs, rd);
 }
 
+#define XADDWrm(rs, md, rb, ri, ms)	x86_XADDWrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XADDWrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XADDWrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _xadd_sil_rm(rs, md, rb, ri, ms);
+    x86_xadd_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XADDLrr(rs, rd)			x86_XADDLrr(_jit, rs, rd)
 __jit_inline void
-XADDLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XADDLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _xadd_sil_rr(rs, rd);
+    x86_xadd_sil_rr(_jit, rs, rd);
 }
 
+#define XADDLrm(rs, md, rb, ri, ms)	x86_XADDLrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XADDLrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XADDLrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _xadd_sil_rm(rs, md, rb, ri, ms);
+    x86_xadd_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XCHGBrr(rs, rd)			x86_XCHGBrr(_jit, rs, rd)
 __jit_inline void
-XCHGBrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XCHGBrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBrr(rs, rd);
-    _xchg_c_rr(rs, rd);
+    x86_xchg_c_rr(_jit, rs, rd);
 }
 
+#define XCHGBrm(rs, md, rb, ri, ms)	x86_XCHGBrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XCHGBrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XCHGBrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(rs, rb, ri);
-    _xchg_c_rm(rs, md, rb, ri, ms);
+    x86_xchg_c_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XCHGWrr(rs, rd)			x86_XCHGWrr(_jit, rs, rd)
 __jit_inline void
-XCHGWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XCHGWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rs, rd);
-    _xchg_sil_rr(rs, rd);
+    x86_xchg_sil_rr(_jit, rs, rd);
 }
 
+#define XCHGWrm(rs, md, rb, ri, ms)	x86_XCHGWrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XCHGWrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XCHGWrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(rs, rb, ri);
-    _xchg_sil_rm(rs, md, rb, ri, ms);
+    x86_xchg_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
+#define XCHGLrr(rs, rd)			x86_XCHGLrr(_jit, rs, rd)
 __jit_inline void
-XCHGLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_XCHGLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rs, rd);
-    _xchg_sil_rr(rs, rd);
+    x86_xchg_sil_rr(_jit, rs, rd);
 }
 
+#define XCHGLrm(rs, md, rb, ri, ms)	x86_XCHGLrm(_jit, rs, md, rb, ri, ms)
 __jit_inline void
-XCHGLrm(jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_XCHGLrm(jit_state_t _jit,
+	    jit_gpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(rs, rb, ri);
-    _xchg_sil_rm(rs, md, rb, ri, ms);
+    x86_xchg_sil_rm(_jit, rs, md, rb, ri, ms);
 }
 
 /* --- Increment/Decrement instructions ------------------------------------ */
+#define DECBr(rd)			x86_DECBr(_jit, rd)
 __jit_inline void
-DECBr(jit_gpr_t rd)
+x86_DECBr(jit_state_t _jit, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _dec_c_r(rd);
+    x86_dec_c_r(_jit, rd);
 }
 
+#define DECBm(md, rb, ri, ms)		x86_DECBm(_jit, md, rb, ri, ms)
 __jit_inline void
-DECBm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_DECBm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _dec_c_m(md, rb, ri, ms);
+    x86_dec_c_m(_jit, md, rb, ri, ms);
 }
 
+#define DECWr(rd)			x86_DECWr(_jit, rd)
 __jit_inline void
-DECWm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_DECWr(jit_state_t _jit, jit_gpr_t rd)
+{
+    _d16();
+    _REXLrr(_NOREG, rd);
+    x86_dec_sil_r(_jit, rd);
+}
+
+#define DECWm(md, rb, ri, ms)		x86_DECWm(_jit, md, rb, ri, ms)
+__jit_inline void
+x86_DECWm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _dec_sil_m(md, rb, ri, ms);
+    x86_dec_sil_m(_jit, md, rb, ri, ms);
 }
 
+#define DECLr(rd)			x86_DECLr(_jit, rd)
 __jit_inline void
-DECLm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_DECLr(jit_state_t _jit, jit_gpr_t rd)
+{
+    _REXLrr(_NOREG, rd);
+    x86_dec_sil_r(_jit, rd);
+}
+
+#define DECLm(md, rb, ri, ms)		x86_DECLm(_jit, md, rb, ri, ms)
+__jit_inline void
+x86_DECLm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _dec_sil_m(md, rb, ri, ms);
+    x86_dec_sil_m(_jit, md, rb, ri, ms);
 }
 
+#define INCBr(rd)			x86_INCBr(_jit, rd)
 __jit_inline void
-DECWr(jit_gpr_t rd)
-{
-    _d16();
-    _REXLrr(_NOREG, rd);
-    _dec_sil_r(rd);
-}
-
-__jit_inline void
-DECLr(jit_gpr_t rd)
-{
-    _REXLrr(_NOREG, rd);
-    _dec_sil_r(rd);
-}
-
-__jit_inline void
-INCWr(jit_gpr_t rd)
-{
-    _d16();
-    _REXLrr(_NOREG, rd);
-    _inc_sil_r(rd);
-}
-
-__jit_inline void
-INCLr(jit_gpr_t rd)
-{
-    _REXLrr(_NOREG, rd);
-    _inc_sil_r(rd);
-}
-
-__jit_inline void
-INCBr(jit_gpr_t rd)
+x86_INCBr(jit_state_t _jit, jit_gpr_t rd)
 {
     _REXBrr(_NOREG, rd);
-    _inc_c_r(rd);
+    x86_inc_c_r(_jit, rd);
 }
 
+#define INCBm(md, rb, ri, ms)		x86_INCBm(_jit, md, rb, ri, ms)
 __jit_inline void
-INCBm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_INCBm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXBrm(_NOREG, rb, ri);
-    _inc_c_m(md, rb, ri, ms);
+    x86_inc_c_m(_jit, md, rb, ri, ms);
 }
 
+#define INCWr(rd)			x86_INCWr(_jit, rd)
 __jit_inline void
-INCWm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_INCWr(jit_state_t _jit, jit_gpr_t rd)
+{
+    _d16();
+    _REXLrr(_NOREG, rd);
+    x86_inc_sil_r(_jit, rd);
+}
+
+#define INCWm(md, rb, ri, ms)		x86_INCWm(_jit, md, rb, ri, ms)
+__jit_inline void
+x86_INCWm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _d16();
     _REXLrm(_NOREG, rb, ri);
-    _inc_sil_m(md, rb, ri, ms);
+    x86_inc_sil_m(_jit, md, rb, ri, ms);
 }
 
+#define INCLr(rd)			x86_INCLr(_jit, rd)
 __jit_inline void
-INCLm(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+x86_INCLr(jit_state_t _jit, jit_gpr_t rd)
+{
+    _REXLrr(_NOREG, rd);
+    x86_inc_sil_r(_jit, rd);
+}
+
+#define INCLm(md, rb, ri, ms)		x86_INCLm(_jit, md, rb, ri, ms)
+__jit_inline void
+x86_INCLm(jit_state_t _jit, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
 {
     _REXLrm(_NOREG, rb, ri);
-    _inc_sil_m(md, rb, ri, ms);
+    x86_inc_sil_m(_jit, md, rb, ri, ms);
 }
 
 /* --- Misc instructions --------------------------------------------------- */
+#define BSFWrr(rs, rd)			x86_BSFWrr(_jit, rs, rd)
 __jit_inline void
-BSFWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_BSFWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
-    _bsf_sil_rr(rs, rd);
+    x86_bsf_sil_rr(_jit, rs, rd);
 }
 
+#define BSFWmr(md, rb, ri, ms, rd)	x86_BSFWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-BSFWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_BSFWmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _bsf_sil_mr(md, rb, ri, ms, rd);
+    x86_bsf_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define BSRWrr(rs, rd)			x86_BSRWrr(_jit, rs, rd)
 __jit_inline void
-BSRWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_BSRWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXLrr(rd, rs);
-    _bsr_sil_rr(rs, rd);
+    x86_bsr_sil_rr(_jit, rs, rd);
 }
 
+#define BSRWmr(md, rb, ri, ms, rd)	x86_BSRWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-BSRWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_BSRWmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _bsr_sil_mr(md, rb, ri, ms, rd);
+    x86_bsr_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define BSFLrr(rs, rd)			x86_BSFLrr(_jit, rs, rd)
 __jit_inline void
-BSFLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_BSFLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
-    _bsf_sil_rr(rs, rd);
+    x86_bsf_sil_rr(_jit, rs, rd);
 }
 
+#define BSFLmr(md, rb, ri, ms, rd)	x86_BSFLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-BSFLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_BSFLmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _bsf_sil_mr(md, rb, ri, ms, rd);
+    x86_bsf_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define BSRLrr(rs, rd)			x86_BSRLrr(_jit, rs, rd)
 __jit_inline void
-BSRLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_BSRLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXLrr(rd, rs);
-    _bsr_sil_rr(rs, rd);
+    x86_bsr_sil_rr(_jit, rs, rd);
 }
 
+#define BSRLmr(md, rb, ri, ms, rd)	x86_BSRLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-BSRLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_BSRLmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _bsr_sil_mr(md, rb, ri, ms, rd);
+    x86_bsr_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVSBWrr(rs, rd)		x86_MOVSBWrr(_jit, rs, rd)
 __jit_inline void
-MOVSBWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVSBWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXBLrr(rd, rs);
-    _movsb_sil_rr(rs, rd);
+    x86_movsb_sil_rr(_jit, rs, rd);
 }
 
+#define MOVSBWmr(md, rb, ri, ms, rd)	x86_MOVSBWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVSBWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVSBWmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _movsb_sil_mr(md, rb, ri, ms, rd);
+    x86_movsb_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVSBLrr(rs, rd)		x86_MOVSBLrr(_jit, rs, rd)
 __jit_inline void
-MOVSBLrr(jit_gpr_t rs, jit_gpr_t rd)		
+x86_MOVSBLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)		
 {
     _REXBLrr(rd, rs);
-    _movsb_sil_rr(rs, rd);
+    x86_movsb_sil_rr(_jit, rs, rd);
 }
 
+#define MOVSBLmr(md, rb, ri, ms, rd)	x86_MOVSBLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVSBLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVSBLmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _movsb_sil_mr(md, rb, ri, ms, rd);
+    x86_movsb_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVSWLrr(rs, rd)		x86_MOVSWLrr(_jit, rs, rd)
 __jit_inline void
-MOVSWLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVSWLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBLrr(rd, rs);
-    _movsw_il_rr(rs, rd);
+    x86_movsw_il_rr(_jit, rs, rd);
 }
 
+#define MOVSWLmr(md, rb, ri, ms, rd)	x86_MOVSWLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVSWLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVSWLmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _movsw_il_mr(md, rb, ri, ms, rd);
+    x86_movsw_il_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVZBWrr(rs, rd)		x86_MOVZBWrr(_jit, rs, rd)
 __jit_inline void
-MOVZBWrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVZBWrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _d16();
     _REXBLrr(rd, rs);
-    _movzb_sil_rr(rs, rd);
+    x86_movzb_sil_rr(_jit, rs, rd);
 }
 
+#define MOVZBWmr(md, rb, ri, ms, rd)	x86_MOVZBWmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVZBWmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVZBWmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _d16();
     _REXLmr(rb, ri, rd);
-    _movzb_sil_mr(md, rb, ri, ms, rd);
+    x86_movzb_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVZBLrr(rs, rd)		x86_MOVZBLrr(_jit, rs, rd)
 __jit_inline void
-MOVZBLrr(jit_gpr_t rs, jit_gpr_t rd)		
+x86_MOVZBLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)		
 {
     _REXBLrr(rd, rs);
-    _movzb_sil_rr(rs, rd);
+    x86_movzb_sil_rr(_jit, rs, rd);
 }
 
+#define MOVZBLmr(md, rb, ri, ms, rd)	x86_MOVZBLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVZBLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVZBLmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _movzb_sil_mr(md, rb, ri, ms, rd);
+    x86_movzb_sil_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define MOVZWLrr(rs, rd)		x86_MOVZWLrr(_jit, rs, rd)
 __jit_inline void
-MOVZWLrr(jit_gpr_t rs, jit_gpr_t rd)
+x86_MOVZWLrr(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd)
 {
     _REXBLrr(rd, rs);
-    _movzw_il_rr(rs, rd);
+    x86_movzw_il_rr(_jit, rs, rd);
 }
 
+#define MOVZWLmr(md, rb, ri, ms, rd)	x86_MOVZWLmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-MOVZWLmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_MOVZWLmr(jit_state_t _jit,
+	     long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _movzw_il_mr(md, rb, ri, ms, rd);
+    x86_movzw_il_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define LEALmr(md, rb, ri, ms, rd)	x86_LEALmr(_jit, md, rb, ri, ms, rd)
 __jit_inline void
-LEALmr(long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
+x86_LEALmr(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_gpr_t rd)
 {
     _REXLmr(rb, ri, rd);
-    _lea_il_mr(md, rb, ri, ms, rd);
+    x86_lea_il_mr(_jit, md, rb, ri, ms, rd);
 }
 
+#define BSWAPLr(rd)			x86_BSWAPLr(_jit, rd)
 __jit_inline void
-BSWAPLr(jit_gpr_t rd)
+x86_BSWAPLr(jit_state_t _jit, jit_gpr_t rd)
 {
     _REXLrr(_NOREG, rd);
-    _bswap_il_r(rd);
+    x86_bswap_il_r(_jit, rd);
 }
 
 #define CLC_()				_O(0xf8)
@@ -2890,102 +3088,116 @@ BSWAPLr(jit_gpr_t rd)
 #define CLD_()				_O(0xfc)
 #define STD_()				_O(0xfd)
 
-#define CBTW_				CBW_
+#define CBTW_()				x86_CBW_(_jit)
+#define CBW_()				x86_CBW_(_jit)
 /* short ax = (char)al */
 __jit_inline void
-CBW_(void)
+x86_CBW_(jit_state_t _jit)
 {
     _d16();
     _sign_extend_rax();
 }
 
-#define CWTL_				CWTL_
+#define CWTL_()				x86_CWDE_(_jit)
+#define CWDE_()				x86_CWDE_(_jit)
 /* int eax = (short)ax */
 __jit_inline void
-CWDE_(void)
+x86_CWDE_(jit_state_t _jit)
 {
     _sign_extend_rax();
 }
 
-#define CWTD_()				CWD_()
+#define CWTD_()				x86_CWD_(_jit)
+#define CWD_()				x86_CWD_(_jit)
 /* short dx:ax = ax */
 __jit_inline void
-CWD_(void)
+x86_CWD_(jit_state_t _jit)
 {
     _d16();
     _sign_extend_rdx_rax();
 }
 
-#define CLTD_()				CDQ_()
+#define CLTD_()				x86_CDQ_(_jit)
+#define CDQ_()				x86_CDQ_(_jit)
 /* int edx:eax = eax */
 __jit_inline void
-CDQ_(void)
+x86_CDQ_(jit_state_t _jit)
 {
     _sign_extend_rdx_rax();
 }
 
+#define LAHF_()				x86_LAHF_(_jit)
 __jit_inline void
-LAHF_(void)
+x86_LAHF_(jit_state_t _jit)
 {
     _O(0x9f);
 }
 
+#define SAHF_()				x86_SAHF_(_jit)
 __jit_inline void
-SAHF_(void)
+x86_SAHF_(jit_state_t _jit)
 {
     _O(0x9e);
 }
 
+#define CPUID_()			x86_CPUID_(_jit)
 __jit_inline void
-CPUID_(void)
+x86_CPUID_(jit_state_t _jit)
 {
     _O(0x0f);
     _O(0xa2);
 }
 
+#define RDTSC_()			x86_RDTSC_(_jit)
 __jit_inline void
-RDTSC_(void)
+x86_RDTSC_(jit_state_t _jit)
 {
     _O(0xff);
     _O(0x31);
 }
 
+#define ENTERii(size, nest)		x86_ENTERii(_jit, size, nest)
 __jit_inline void
-ENTERii(long size, int nest)
+x86_ENTERii(jit_state_t _jit, long size, int nest)
 {
     _O(0xc8);
     _jit_W(_su16(size));
     _jit_B(_su8(nest));
 }
 
+#define LEAVE_()			x86_LEAVE_(_jit)
 __jit_inline void
-LEAVE_(void)
+x86_LEAVE_(jit_state_t _jit)
 {
     _O(0xc9);
 }
 
+#define RET_()				x86_RET_(_jit)
 __jit_inline void
-RET_(void)
+x86_RET_(jit_state_t _jit)
 {
     _O(0xc3);
 }
 
+#define RETi(im)			x86_RETi(_jit, im)
 __jit_inline void
-RETi(long im)
+x86_RETi(jit_state_t _jit, long im)
 {
     _O(0xc2);
     _jit_W(_su16(im));
 }
 
+#define NOP_()				x86_NOP_(_jit)
 __jit_inline void
-NOP_(void)
+x86_NOP_(jit_state_t _jit)
 {
     _O(0x90);
 }
 
 /* N byte NOPs */
+#define NOPi(nop)			x86_NOPi(_jit, nop)
 __jit_inline void
-NOPi(unsigned long nop)
+x86_NOPi(jit_state_t _jit, unsigned long nop)
 {
     if (nop > 9)
 	JITFAIL(".align argument too large");

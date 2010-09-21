@@ -152,7 +152,7 @@ struct jit_local_state {
 #  error GNU lightning does not support the current target
 #endif
 
-typedef struct {
+typedef struct jit_state {
     union {
 	jit_insn	*pc;
 	_uc		*uc_pc;
@@ -162,7 +162,7 @@ typedef struct {
     } x;
     struct jit_fp	*fp;
     jit_local_state	 jitl;
-} jit_state, jit_state_t[1];
+} jit_state_t[1];
 
 #ifdef jit_init
 jit_state_t		_jit = jit_init();
