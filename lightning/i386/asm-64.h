@@ -349,6 +349,27 @@ x86_REXFQrr(jit_state_t _jit, jit_fpr_t rr, jit_gpr_t mr)
     x86_rex_q_rr(_jit, (int)rr, (int)mr);
 }
 
+#define _REXDrr(rr, mr)			x86_REXDrr(_jit, rr, mr)
+__jit_inline void
+x86_REXDrr(jit_state_t _jit, jit_fpr_t rr, jit_fpr_t mr)
+{
+    x86_rex_q_rr(_jit, (int)rr, (int)mr);
+}
+
+#define _REXDmr(rb, ri, rd)		x86_REXDmr(_jit, rb, ri, rd)
+__jit_inline void
+x86_REXDmr(jit_state_t _jit, jit_gpr_t rb, jit_gpr_t ri, jit_fpr_t rd)
+{
+    x86_rex_q_mr(_jit, (int)rb, (int)ri, (int)rd);
+}
+
+#define _REXDrm(rs, rb, ri)		x86_REXDrm(_jit, rs, rb, ri)
+__jit_inline void
+x86_REXDrm(jit_state_t _jit, jit_fpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
+{
+    x86_rex_q_rm(_jit, (int)rs, (int)rb, (int)ri);
+}
+
 /* --- ALU instructions ---------------------------------------------------- */
 #define _ALUQrr(op, rs, rd)		x86_ALUQrr(_jit, op, rs, rd)
 __jit_inline void
@@ -1048,48 +1069,119 @@ x86_CQO_(jit_state_t _jit)
     _sign_extend_rdx_rax();
 }
 
-#define __SSEQrr(OP, RS, RD)						\
-    (_REXQrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rX(RD), _rX(RS)))
+#define __SSEQrr(op, rs, rd)		x86__SSEQrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSEQrr(jit_state_t _jit, x86_sse_t op, jit_fpr_t rs, jit_fpr_t rd)
+{
+    _REXDrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rX(rd), _rX(rs));
+}
 
-#define __SSEQFrr(OP, RS, RD)						\
-    (_REXQFrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rA(RD), _rX(RS)))
+#define __SSEQFrr(op, rs, rd)		x86__SSEQFrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSEQFrr(jit_state_t _jit, x86_sse_t op, jit_fpr_t rs, jit_gpr_t rd)
+{
+    _REXQFrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rA(rd), _rX(rs));
+}
 
-#define __SSEFQrr(OP, RS, RD)						\
-    (_REXFQrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rX(RD), _rA(RS)))
+#define __SSEFLrr(op, rs, rd)		x86__SSEFLrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSEFQrr(jit_state_t _jit, x86_sse_t op, jit_gpr_t rs, jit_fpr_t rd)
+{
+    _REXFQrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rX(rd), _rA(rs));
+}
 
-#define __SSEQmr(OP,MD,MB,MI,MS,RD)					\
-    (_REXQmr(MB, MI, RD),						\
-     _OO(0x0f00 | (OP)),						\
-     _r_X(RD, MD, MB, MI, MS))
+#define __SSEQmr(op, md,rb,mi,ms, rd)	x86__SSEQmr(_jit, op, md,rb,mi,ms, rd)
+__jit_inline void
+x86__SSEQmr(jit_state_t _jit, x86_sse_t op,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_fpr_t rd)
+{
+    _REXDmr(rb, ri, rd);
+    _O(0x0f);
+    _O(op);
+    _f_X(rd, md, rb, ri, ms);
+}
 
-#define __SSEQrm(OP,RS,MD,MB,MI,MS)					\
-    (_REXQrm(RS, MB, MI),						\
-     _OO(0x0f00 | (OP)),						\
-     _r_X(RS, MD, MB, MI, MS))
+#define __SSEQrm(op, rs, md,rb,mi,ms)	x86__SSEQrm(_jit, op, rs, md,rb,mi,ms)
+__jit_inline void
+x86__SSEQrm(jit_state_t _jit, x86_sse_t op,
+	    jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _REXDrm(rs, rb, ri);
+    _O(0x0f);
+    _O(op);
+    _f_X(rs, md, rb, ri, ms);
+}
 
-#define __SSEQ1rm(OP,RS,MD,MB,MI,MS)					\
-    (_REXQrm(RS, MB, MI),						\
-     _OO(0x0f01 | (OP)),						\
-     _r_X(RS, MD, MB, MI, MS))
+#define __SSEQ1rm(op, rs,md,mb,mi,ms)	x86__SSEQ1rm(_jit, op, rs,md,mb,mi,ms)
+__jit_inline void
+x86__SSEQ1rm(jit_state_t _jit, x86_sse_t op,
+	     jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _REXDrm(rs, rb, ri);
+    _O(0x0f);
+    _O(0x01 | op);
+    _f_X(rs, md, rb, ri, ms);
+}
 
-#define _SSEQrr(PX, OP, RS, RD)						\
-    (_jit_B(PX), __SSEQrr(OP, RS, RD))
-#define _SSEQFrr(PX, OP, RS, RD)					\
-    (_jit_B(PX), __SSEQFrr(OP, RS, RD))
-#define _SSEFQrr(PX, OP, RS, RD)					\
-    (_jit_B(PX), __SSEFQrr(OP, RS, RD))
-#define _SSEQmr(PX, OP, MD, MB, MI, MS, RD)				\
-    (_jit_B(PX), __SSEQmr(OP, MD, MB, MI, MS, RD))
-#define _SSEQrm(PX, OP, RS, MD, MB, MI, MS)				\
-    (_jit_B(PX), __SSEQrm(OP, RS, MD, MB, MI, MS))
-#define _SSEQ1rm(PX, OP, RS, MD, MB, MI, MS)				\
-    (_jit_B(PX), __SSEQ1rm(OP, RS, MD, MB, MI, MS))
+#define _SSEQrr(px, op, rs, rd)		x86_SSEQrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSEQrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_fpr_t rs, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSEQrr(_jit, op, rs, rd);
+}
+
+#define _SSEQFrr(px, op, rs, rd)	x86_SSEQFrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSEQFrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_fpr_t rs, jit_gpr_t rd)
+{
+    _jit_B(px);
+    x86__SSEQFrr(_jit, op, rs, rd);
+}
+
+#define _SSEFQrr(px, op, rs, rd)	x86_SSEFQrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSEFQrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_gpr_t rs, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSEFQrr(_jit, op, rs, rd);
+}
+
+#define _SSEQmr(px,op,md,rb,mi,ms,rd)	x86_SSEQmr(_jit,px,op,md,rb,mi,ms,rd)
+__jit_inline void
+x86_SSEQmr(jit_state_t _jit, _uc px, x86_sse_t op,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSEQmr(_jit, op, md, rb, ri, ms, rd);
+}
+
+#define _SSEQrm(px,op,rs,md,rb,mi,ms)	x86_SSEQrm(_jit,px,op,rs,md,rb,mi,ms)
+__jit_inline void
+x86_SSEQrm(jit_state_t _jit, _uc px, x86_sse_t op,
+	   jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _jit_B(px);
+    x86__SSEQrm(_jit, op, rs, md, rb, ri, ms);
+}
+
+#define _SSEQ1rm(px,op,rs,md,mb,mi,ms)	x86_SSEQ1rm(_jit,px,op,rs,md,mb,mi,ms)
+__jit_inline void
+x86_SSEQ1rm(jit_state_t _jit, _uc px, x86_sse_t op,
+	    jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _jit_B(px);
+    x86__SSEQ1rm(_jit, op, rs, md, rb, ri, ms);
+}
 
 #define CVTTSS2SIQrr(RS, RD)		 _SSEQFrr(0xf3, X86_SSE_CVTTSI, RS, RD)
 #define CVTTSS2SIQmr(MD, MB, MI, MS, RD) _SSEQmr(0xf3, X86_SSE_CVTTSI, MD, MB, MI, MS, RD)
@@ -1106,15 +1198,15 @@ x86_CQO_(jit_state_t _jit)
 #define CVTSI2SDQrr(RS, RD)		 _SSEFQrr(0xf2, X86_SSE_CVTIS, RS, RD)
 #define CVTSI2SDQmr(MD, MB, MI, MS, RD)	 _SSEQmr(0xf2, X86_SSE_CVTIS, MD, MB, MI, MS, RD)
 
-#define MOVDQXrr(RS, RD)		 _SSEFQrr(0x66, 0x6e, RS, RD)
-#define MOVDQXmr(MD, MB, MI, MS, RD)	 _SSEQmr(0x66, 0x6e, MD, MB, MI, MS, RD)
+#define MOVDQXrr(RS, RD)		 _SSEFQrr(0x66, X86_SSE_X2G, RS, RD)
+#define MOVDQXmr(MD, MB, MI, MS, RD)	 _SSEQmr(0x66, X86_SSE_X2G, MD, MB, MI, MS, RD)
 
-#define MOVDXQrr(RS, RD)		 _SSEQrr(0x66, 0x7e, RS, RD)
-#define MOVDXQrm(RS, MD, MB, MI, MS)	 _SSEQrm(0x66, 0x7e, RS, MD, MB, MI, MS)
-#define MOVDQMrr(RS, RD)		__SSEQrr(      0x6e, RS, RD)
-#define MOVDQMmr(MD, MB, MI, MS, RD)	__SSEQmr(      0x6e, MD, MB, MI, MS, RD)
-#define MOVDMQrr(RS, RD)		__SSEQrr(      0x7e, RS, RD)
-#define MOVDMQrm(RS, MD, MB, MI, MS)	__SSEQrm(      0x7e, RS, MD, MB, MI, MS)
+#define MOVDXQrr(RS, RD)		 _SSEQDrr(0x66, X86_SSE_G2X, RS, RD)
+#define MOVDXQrm(RS, MD, MB, MI, MS)	 _SSEQrm(0x66, X86_SSE_G2X, RS, MD, MB, MI, MS)
+#define MOVDQMrr(RS, RD)		__SSEDQrr(      X86_SSE_X2G, RS, RD)
+#define MOVDQMmr(MD, MB, MI, MS, RD)	__SSEQmr(      X86_SSE_X2G, MD, MB, MI, MS, RD)
+#define MOVDMQrr(RS, RD)		__SSEQrr(      X86_SSE_G2X, RS, RD)
+#define MOVDMQrm(RS, MD, MB, MI, MS)	__SSEQrm(      X86_SSE_G2X, RS, MD, MB, MI, MS)
 
 #endif	/* LIGHTNING_DEBUG */
 #endif	/* __lightning_asm_h */

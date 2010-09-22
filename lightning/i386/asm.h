@@ -109,6 +109,40 @@ typedef enum {
     _SCL8	= _b11,
 } jit_scl_t;
 
+typedef enum {
+    X86_SSE_MOV		= 0x10,
+    X86_SSE_MOVLP	= 0x12,
+    X86_SSE_MOVHP	= 0x16,
+    X86_SSE_MOVA	= 0x28,
+    X86_SSE_CVTIS	= 0x2a,
+    X86_SSE_CVTTSI	= 0x2c,
+    X86_SSE_CVTSI	= 0x2d,
+    X86_SSE_UCOMI	= 0x2e,
+    X86_SSE_COMI	= 0x2f,
+    X86_SSE_ROUND	= 0x3a,
+    X86_SSE_SQRT	= 0x51,
+    X86_SSE_RSQRT	= 0x52,
+    X86_SSE_RCP		= 0x53,
+    X86_SSE_AND		= 0x54,
+    X86_SSE_ANDN	= 0x55,
+    X86_SSE_OR		= 0x56,
+    X86_SSE_XOR		= 0x57,
+    X86_SSE_ADD		= 0x58,
+    X86_SSE_MUL		= 0x59,
+    X86_SSE_CVTSD	= 0x5a,
+    X86_SSE_CVTDT	= 0x5b,
+    X86_SSE_SUB		= 0x5c,
+    X86_SSE_MIN		= 0x5d,
+    X86_SSE_DIV		= 0x5e,
+    X86_SSE_MAX		= 0x5f,
+    X86_SSE_X2G		= 0x6e,
+    X86_SSE_EQB		= 0x74,
+    X86_SSE_EQW		= 0x75,
+    X86_SSE_EQD		= 0x76,
+    X86_SSE_G2X		= 0x7e,
+    X86_SSE_MOV2	= 0xd6
+} x86_sse_t;
+
 #if __WORDSIZE == 32
 #  define _RMAX			_RDI
 #  define _XMAX			_XMM7
@@ -3564,36 +3598,6 @@ x86_FSTCWm(jit_state_t _jit,
 
 
 /* --- Media 128-bit instructions ------------------------------------------ */
-
-enum {
-  X86_SSE_MOV    = 0x10,
-  X86_SSE_MOVLP  = 0x12,
-  X86_SSE_MOVHP  = 0x16,
-  X86_SSE_MOVA   = 0x28,
-  X86_SSE_CVTIS  = 0x2a,
-  X86_SSE_CVTTSI = 0x2c,
-  X86_SSE_CVTSI  = 0x2d,
-  X86_SSE_UCOMI  = 0x2e,
-  X86_SSE_COMI   = 0x2f,
-  X86_SSE_ROUND  = 0x3a,
-  X86_SSE_SQRT   = 0x51,
-  X86_SSE_RSQRT  = 0x52,
-  X86_SSE_RCP    = 0x53,
-  X86_SSE_AND    = 0x54,
-  X86_SSE_ANDN   = 0x55,
-  X86_SSE_OR     = 0x56,
-  X86_SSE_XOR    = 0x57,
-  X86_SSE_ADD    = 0x58,
-  X86_SSE_MUL    = 0x59,
-  X86_SSE_CVTSD  = 0x5a,
-  X86_SSE_CVTDT  = 0x5b,
-  X86_SSE_SUB    = 0x5c,
-  X86_SSE_MIN    = 0x5d,
-  X86_SSE_DIV    = 0x5e,
-  X86_SSE_MAX    = 0x5f,
-  X86_SSE_MOV2   = 0xd6
-};
-
 enum {
     MXCSR_INV_EXCPT	= 0x0001,
     MXCSR_DENORM_EXCPT	= 0x0002,
@@ -3618,50 +3622,119 @@ enum {
     MXCSR_FLUSHTOZERO	= 0x8000
 };
 
-/*	_format	Opcd,	Mod,	r,	m,	mem=dsp+sib,	imm... */
+#define __SSELrr(op, rs, rd)		x86__SSELrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSELrr(jit_state_t _jit, x86_sse_t op, jit_fpr_t rs, jit_fpr_t rd)
+{
+    _REXFrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rX(rd), _rX(rs));
+}
 
-#define __SSELrr(OP, RS, RD)						\
-    (_REXFrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rX(RD), _rX(RS)))
+#define __SSELFrr(op, rs, rd)		x86__SSELFrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSELFrr(jit_state_t _jit, x86_sse_t op, jit_fpr_t rs, jit_gpr_t rd)
+{
+    _REXLFrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rA(rd), _rX(rs));
+}
 
-#define __SSELFrr(OP, RS, RD)						\
-    (_REXLFrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rA(RD), _rX(RS)))
+#define __SSEFLrr(op, rs, rd)		x86__SSEFLrr(_jit, op, rs, rd)
+__jit_inline void
+x86__SSEFLrr(jit_state_t _jit, x86_sse_t op, jit_gpr_t rs, jit_fpr_t rd)
+{
+    _REXFLrr(rd, rs);
+    _O(0x0f);
+    _O(op);
+    _Mrm(_b11, _rX(rd), _rA(rs));
+}
 
-#define __SSEFLrr(OP, RS, RD)						\
-    (_REXFLrr(RD, RS),							\
-     _OO(0x0f00 | (OP)),						\
-     _Mrm(_b11, _rX(RD), _rA(RS)))
+#define __SSELmr(op, md,rb,mi,ms, rd)	x86__SSELmr(_jit, op, md,rb,mi,ms, rd)
+__jit_inline void
+x86__SSELmr(jit_state_t _jit, x86_sse_t op,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_fpr_t rd)
+{
+    _REXFmr(rb, ri, rd);
+    _O(0x0f);
+    _O(op);
+    _f_X(rd, md, rb, ri, ms);
+}
 
-#define __SSELmr(OP, MD, MB, MI, MS, RD)				\
-    (_REXFmr(MB, MI, RD),						\
-     _OO(0x0f00 | (OP)),						\
-     _f_X(RD, MD, MB, MI, MS))
+#define __SSELrm(op, rs, md,rb,mi,ms)	x86__SSELrm(_jit, op, rs, md,rb,mi,ms)
+__jit_inline void
+x86__SSELrm(jit_state_t _jit, x86_sse_t op,
+	    jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _REXFrm(rs, rb, ri);
+    _O(0x0f);
+    _O(op);
+    _f_X(rs, md, rb, ri, ms);
+}
 
-#define __SSELrm(OP, RS, MD, MB, MI, MS)				\
-    (_REXFrm(RS, MB, MI),						\
-     _OO(0x0f00 | (OP)),						\
-     _f_X(RS, MD, MB, MI, MS))
+#define __SSEL1rm(op, rs,md,mb,mi,ms)	x86__SSEL1rm(_jit, op, rs,md,mb,mi,ms)
+__jit_inline void
+x86__SSEL1rm(jit_state_t _jit, x86_sse_t op,
+	     jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _REXFrm(rs, rb, ri);
+    _O(0x0f);
+    _O(0x01 | op);
+    _f_X(rs, md, rb, ri, ms);
+}
 
-#define __SSEL1rm(OP, RS, MD, MB, MI, MS)				\
-    (_REXFrm(RS, MB, MI),						\
-     _OO(0x0f01 | (OP)),						\
-     _f_X(RS, MD, MB, MI, MS))
+#define _SSELrr(px, op, rs, rd)		x86_SSELrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSELrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_fpr_t rs, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSELrr(_jit, op, rs, rd);
+}
 
-#define _SSELrr(PX, OP, RS, RD)						\
-    (_jit_B(PX), __SSELrr(OP, RS, RD))
-#define _SSELFrr(PX, OP, RS, RD)					\
-    (_jit_B(PX), __SSELFrr(OP, RS, RD))
-#define _SSEFLrr(PX, OP, RS, RD)					\
-    (_jit_B(PX), __SSEFLrr(OP, RS, RD))
-#define _SSELmr(PX, OP, MD, MB, MI, MS, RD)				\
-    (_jit_B(PX), __SSELmr(OP, MD, MB, MI, MS, RD))
-#define _SSELrm(PX, OP, RS, MD, MB, MI, MS)				\
-    (_jit_B(PX), __SSELrm(OP, RS, MD, MB, MI, MS))
-#define _SSEL1rm(PX, OP, RS, MD, MB, MI, MS)				\
-    (_jit_B(PX), __SSEL1rm(OP, RS, MD, MB, MI, MS))
+#define _SSELFrr(px, op, rs, rd)	x86_SSELFrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSELFrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_fpr_t rs, jit_gpr_t rd)
+{
+    _jit_B(px);
+    x86__SSELFrr(_jit, op, rs, rd);
+}
+
+#define _SSEFLrr(px, op, rs, rd)	x86_SSEFLrr(_jit, px, op, rs, rd)
+__jit_inline void
+x86_SSEFLrr(jit_state_t _jit, _uc px, x86_sse_t op, jit_gpr_t rs, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSEFLrr(_jit, op, rs, rd);
+}
+
+#define _SSELmr(px,op,md,rb,mi,ms,rd)	x86_SSELmr(_jit,px,op,md,rb,mi,ms,rd)
+__jit_inline void
+x86_SSELmr(jit_state_t _jit, _uc px, x86_sse_t op,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, jit_fpr_t rd)
+{
+    _jit_B(px);
+    x86__SSELmr(_jit, op, md, rb, ri, ms, rd);
+}
+
+#define _SSELrm(px,op,rs,md,rb,mi,ms)	x86_SSELrm(_jit,px,op,rs,md,rb,mi,ms)
+__jit_inline void
+x86_SSELrm(jit_state_t _jit, _uc px, x86_sse_t op,
+	   jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _jit_B(px);
+    x86__SSELrm(_jit, op, rs, md, rb, ri, ms);
+}
+
+#define _SSEL1rm(px,op,rs,md,mb,mi,ms)	x86_SSEL1rm(_jit,px,op,rs,md,mb,mi,ms)
+__jit_inline void
+x86_SSEL1rm(jit_state_t _jit, _uc px, x86_sse_t op,
+	    jit_fpr_t rs, long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    _jit_B(px);
+    x86__SSEL1rm(_jit, op, rs, md, rb, ri, ms);
+}
 
 #define _SSEPSrr(OP,RS,RD)		__SSELrr (      OP, RS, RD)
 #define _SSEPSmr(OP,MD,MB,MI,MS,RD)	__SSELmr (      OP, MD, MB, MI, MS, RD)
@@ -3687,12 +3760,12 @@ enum {
     (_REXLmr(MB, MI, _NOREG),						\
      _O(0x0f),								\
      _O(0xae),								\
-     _i_X(2, MD, MB, MI, MS))
+     _i_X(_b10, MD, MB, MI, MS))
 #define STMXCSRrm(MD, MB, MI, MS)					\
     (_REXLrm(_NOREG, MI, MB),						\
      _O(0x0f),								\
      _O(0xae),								\
-     _i_X(3, MD, MB, MI, MS))
+     _i_X(_b11, MD, MB, MI, MS))
 
 #define ADDPSrr(RS, RD)			_SSEPSrr(X86_SSE_ADD, RS, RD)
 #define ADDPSmr(MD, MB, MI, MS, RD)	_SSEPSmr(X86_SSE_ADD, MD, MB, MI, MS, RD)
@@ -3877,17 +3950,17 @@ enum {
 #define CVTSI2SDLrr(RS, RD)		 _SSEFLrr(0xf2, X86_SSE_CVTIS, RS, RD)
 #define CVTSI2SDLmr(MD, MB, MI, MS, RD)	 _SSELmr(0xf2, X86_SSE_CVTIS, MD, MB, MI, MS, RD)
 
-#define MOVDLXrr(RS, RD)		 _SSEFLrr(0x66, 0x6e, RS, RD)
-#define MOVDLXmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, 0x6e, MD, MB, MI, MS, RD)
+#define MOVDLXrr(RS, RD)		 _SSEFLrr(0x66, X86_SSE_X2G, RS, RD)
+#define MOVDLXmr(MD, MB, MI, MS, RD)	 _SSELmr(0x66, X86_SSE_X2G, MD, MB, MI, MS, RD)
 
-#define MOVDXLrr(RS, RD)		 _SSELrr(0x66, 0x7e, RS, RD)
-#define MOVDXLrm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, 0x7e, RS, MD, MB, MI, MS)
+#define MOVDXLrr(RS, RD)		 _SSELrr(0x66, X86_SSE_G2X, RS, RD)
+#define MOVDXLrm(RS, MD, MB, MI, MS)	 _SSELrm(0x66, X86_SSE_G2X, RS, MD, MB, MI, MS)
 
-#define MOVDLMrr(RS, RD)		__SSELrr(      0x6e, RS, RD)
-#define MOVDLMmr(MD, MB, MI, MS, RD)	__SSELmr(      0x6e, MD, MB, MI, MS, RD)
+#define MOVDLMrr(RS, RD)		__SSELrr(      X86_SSE_X2G, RS, RD)
+#define MOVDLMmr(MD, MB, MI, MS, RD)	__SSELmr(      X86_SSE_X2G, MD, MB, MI, MS, RD)
 
-#define MOVDMLrr(RS, RD)		__SSELrr(      0x7e, RS, RD)
-#define MOVDMLrm(RS, MD, MB, MI, MS)	__SSELrm(      0x7e, RS, MD, MB, MI, MS)
+#define MOVDMLrr(RS, RD)		__SSELrr(      X86_SSE_G2X, RS, RD)
+#define MOVDMLrm(RS, MD, MB, MI, MS)	__SSELrm(      X86_SSE_G2X, RS, MD, MB, MI, MS)
 
 #define MOVDQ2Qrr(RS, RD)		 _SSELrr(0xf2, X86_SSE_MOV2, RS, RD)
 #define MOVQ2DQrr(RS, RD)		 _SSELrr(0xf3, X86_SSE_MOV2, RS, RD)
@@ -3912,20 +3985,19 @@ enum {
 #define MOVLPSmr(MD, MB, MI, MS, RD)	__SSELmr (      X86_SSE_MOVLP, MD, MB, MI, MS, RD)
 #define MOVLPSrm(RS, MD, MB, MI, MS)	__SSEL1rm(      X86_SSE_MOVLP, RS, MD, MB, MI, MS)
 
+/* FIXME 0x66 prefix actually required to modify 128 bits register */
 #define PCMPEQBrr(RS, RD)						\
-    _SSELrr(0x66, 0x74, RS, RD)
+    _SSELrr(0x66, X86_SSE_EQB, RS, RD)
 #define PCMPEQBrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x74, MD, MB, MI, MS, RD)
-
+    _SSELmr(0x66, X86_SSE_EQB, MD, MB, MI, MS, RD)
 #define PCMPEQWrr(RS, RD)						\
-    _SSELrr(0x66, 0x75, RS, RD)
+    _SSELrr(0x66, X86_SSE_EQW, RS, RD)
 #define PCMPEQWrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x75, MD, MB, MI, MS, RD)
-
+    _SSELmr(0x66, X86_SSE_EQW, MD, MB, MI, MS, RD)
 #define PCMPEQLrr(RS, RD)						\
-    _SSELrr(0x66, 0x76, RS, RD)
+    _SSELrr(0x66, X86_SSE_EQD, RS, RD)
 #define PCMPEQLrm(RS, MD, MB, MI, MS)					\
-    _SSELmr(0x66, 0x76, MD, MB, MI, MS, RD)
+    _SSELmr(0x66, X86_SSE_EQD, MD, MB, MI, MS, RD)
 
 #define PSRLWrr(RS, RD)							\
     _SSELrr(0x66, 0xd1, RS, RD)
@@ -3936,7 +4008,7 @@ enum {
      _REXLrr(_NOREG, RD),						\
      _O(0x0f),								\
      _O(0x71),								\
-     _Mrm(_b11, 2, _rX(RD)),						\
+     _Mrm(_b11, _b10, _rX(RD)),						\
      _O(IM))
 
 #define PSRLLrr(RS, RD)							\
@@ -3948,7 +4020,7 @@ enum {
      _REXLFrr(_NOREG, RD),						\
      _O(0x0f),								\
      _O(0x72),								\
-     _Mrm(_b11, 2, _rX(RD)),						\
+     _Mrm(_b11, _b10, _rX(RD)),						\
      _O(IM))
 
 #define PSRLQrr(RS, RD)							\
@@ -3960,7 +4032,7 @@ enum {
      _REXLFrr(_NOREG, RD),						\
      _O(0x0f),								\
      _O(0x73),								\
-     _Mrm(_b11, 2, _rX(RD)),						\
+     _Mrm(_b11, _b10, _rX(RD)),						\
      _O(IM))
 
 /* SSE4.1 */
