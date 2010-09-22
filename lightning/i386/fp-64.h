@@ -38,7 +38,7 @@
 #define JIT_FPTMP1			_XMM15
 
 #define JIT_FPR_NUM			6
-static jit_fpr_t
+static const jit_fpr_t
 jit_sse_order[JIT_FPR_NUM] = {
     _XMM8, _XMM9, _XMM10, _XMM11, _XMM12, _XMM13
 };

@@ -36,14 +36,14 @@
 
 #define JIT_AP				_RBP
 #define JIT_R_NUM			3
-static jit_gpr_t
+static const jit_gpr_t
 jit_r_order[JIT_R_NUM] = {
     _RAX, _RCX, _RDX
 };
 #define JIT_R(i)			jit_r_order[i]
 
 #define JIT_V_NUM			3
-static jit_gpr_t
+static const jit_gpr_t
 jit_v_order[JIT_V_NUM] = {
     _RBX, _RSI, _RDI
 };

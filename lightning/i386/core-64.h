@@ -34,7 +34,7 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-static jit_gpr_t
+static const jit_gpr_t
 jit_arg_reg_order[] = {
     _RDI, _RSI, _RDX, _RCX, _R8, _R9
 };
@@ -48,14 +48,14 @@ jit_arg_reg_order[] = {
 #define JIT_FP_ARG_MAX			8
 
 #define JIT_R_NUM			3
-static jit_gpr_t
+static const jit_gpr_t
 jit_r_order[JIT_R_NUM] = {
     _RAX, _R10, _R11
 };
 #define JIT_R(i)			jit_r_order[i]
 
 #define JIT_V_NUM			3
-static jit_gpr_t
+static const jit_gpr_t
 jit_v_order[JIT_R_NUM] = {
     _RBX, _R13, _R14
 };

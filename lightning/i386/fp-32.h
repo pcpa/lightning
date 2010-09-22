@@ -38,11 +38,11 @@
 #define JIT_FPTMP1			_XMM7
 
 #define JIT_FPR_NUM			6
-static jit_fpr_t
+static const jit_fpr_t
 jit_x87_order[JIT_FPR_NUM] = {
     _ST0, _ST1, _ST2, _ST3, _ST4, _ST5
 };
-static jit_fpr_t
+static const jit_fpr_t
 jit_sse_order[JIT_FPR_NUM] = {
     _XMM0, _XMM1, _XMM2, _XMM3, _XMM4, _XMM5
 };
