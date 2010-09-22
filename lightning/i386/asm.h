@@ -3331,60 +3331,90 @@ enum {
     FPSW_DENORM		= 0x4400,	/*  1  1  0  0 */
 };
 
-#define ESCmi(D, B, I, S, OP)						\
-    (_REXLrm(_NOREG, B, I),						\
-     _O(0xd8 | (OP >> 3)),						\
-     _i_X((OP & 7), D, B, I, S))
+__jit_inline void
+x86_esc_mi(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, int op)
+{
+    _O(0xd8 | (op >> 3));
+    _i_X((op & 7), md, rb, ri, ms);
+}
 
-#define ESCri(RD, OP)							\
-    _O(0xd8 | (OP >> 3)),						\
-    _Mrm(_b11, (OP & 7), RD)
+__jit_inline void
+x86_fstcw_m(jit_state_t _jit,
+	    long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+     _O(0x9b);
+    x86_esc_mi(_jit, md, rb, ri, ms, 017);
+}
 
-#define ESCrri(RS,RD,OP)						\
-    ((RS) == _ST0							\
-	? ESCri(RD,(OP | 040))						\
-	: (RD) == _ST0							\
-	    ? ESCri(RS, OP)						\
-	    : JITFAIL ("coprocessor instruction without st0"))
+#define ESCmi(md, rb, ri, rs, op)	x86_ESCmi(_jit, md, rb, ri, rs, op)
+__jit_inline void
+x86_ESCmi(jit_state_t _jit,
+	  long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, int op)
+{
+    _REXLrm(_NOREG, rb, ri);
+    x86_esc_mi(_jit, md, rb, ri, ms, op);
+}
 
-#define    FLDSm(D,B,I,S)	ESCmi(D,B,I,S, 010)	/*    fld m32real */
-#define    FSTSm(D,B,I,S)	ESCmi(D,B,I,S, 012)	/*    fst m32real */
-#define   FSTPSm(D,B,I,S)	ESCmi(D,B,I,S, 013)	/*   fstp m32real */
-#define   FLDCWm(D,B,I,S)	ESCmi(D,B,I,S, 015)	/*  fldcw m16int  */
-#define   FSTCWm(D,B,I,S)	/* 0x9b prefix to fnstcw */		\
-    (_REXLrm(_NOREG,B,I),						\
-     _O(0x9b),								\
-     _O(0xd9),								\
-     _i_X(7, D, B, I, S))				/*  fstcw m16int  */
-#define  FNSTCWm(D,B,I,S)	ESCmi(D,B,I,S, 017)	/* fnstcw m16int  */
-#define   FILDLm(D,B,I,S)	ESCmi(D,B,I,S, 030)	/*   fild m32int  */
+#define ESCri(rd, op)			x86_ESCri(_jit, rd, op)
+__jit_inline void
+x86_ESCri(jit_state_t _jit, jit_fpr_t rd, int op)
+{
+    _O(0xd8 | (op >> 3));
+    _Mrm(_b11, (op & 7), rd);
+}
 
+#define ESCrri(rs, rd, op)		x86_ESCrri(_jit, rs, rd, op)
+__jit_inline void
+x86_ESCrri(jit_state_t _jit, jit_fpr_t rs, jit_fpr_t rd, int op)
+{
+    if (rs == _ST0)
+	ESCri(rd, (op | 040));
+    else if (rd == _ST0)
+	ESCri(rs, op);
+    else
+	JITFAIL("coprocessor instruction without st0");
+}
+
+__jit_inline void					/*  fstcw m16int  */
+x86_FSTCWm(jit_state_t _jit,
+	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms)
+{
+    /* 0x9b prefix to fnstcw */
+    _REXLrm(_NOREG, rb, ri);
+    x86_fstcw_m(_jit, md, rb, ri, ms);
+}
+
+#define    FLDSm(D, B, I, S)	ESCmi(D, B, I, S, 010)	/*    fld m32real */
+#define    FSTSm(D, B, I, S)	ESCmi(D, B, I, S, 012)	/*    fst m32real */
+#define   FSTPSm(D, B, I, S)	ESCmi(D, B, I, S, 013)	/*   fstp m32real */
+#define   FLDCWm(D, B, I, S)	ESCmi(D, B, I, S, 015)	/*  fldcw m16int  */
+#define   FSTCWm(D, B, I, S)	x86_FSTCWm(_jit,D,B,I,S)/*  fstcw m16int  */
+#define  FNSTCWm(D, B, I, S)	ESCmi(D, B, I, S, 017)	/* fnstcw m16int  */
+#define   FILDLm(D, B, I, S)	ESCmi(D, B, I, S, 030)	/*   fild m32int  */
 /* (p6 or newer) */
-#define FISTTPLm(D,B,I,S)	ESCmi(D,B,I,S, 031)	/* fisttp m32int  */
-
-#define   FISTLm(D,B,I,S)	ESCmi(D,B,I,S, 032)	/*   fist m32int  */
-#define  FISTPLm(D,B,I,S)	ESCmi(D,B,I,S, 033)	/*  fistp m32int  */
-#define    FLDTm(D,B,I,S)	ESCmi(D,B,I,S, 035)	/*    fld m80real */
-#define   FSTPTm(D,B,I,S)	ESCmi(D,B,I,S, 037)	/*   fstp m80real */
-#define    FLDLm(D,B,I,S)	ESCmi(D,B,I,S, 050)	/*    fld m64real */
-#define    FSTLm(D,B,I,S)	ESCmi(D,B,I,S, 052)	/*    fst m64real */
-#define   FSTPLm(D,B,I,S)	ESCmi(D,B,I,S, 053)	/*   fstp m64real */
-#define   FILDWm(D,B,I,S)	ESCmi(D,B,I,S, 070)	/*   fild m16int  */
-
+#define FISTTPLm(D, B, I, S)	ESCmi(D, B, I, S, 031)	/* fisttp m32int  */
+#define   FISTLm(D, B, I, S)	ESCmi(D, B, I, S, 032)	/*   fist m32int  */
+#define  FISTPLm(D, B, I, S)	ESCmi(D, B, I, S, 033)	/*  fistp m32int  */
+#define    FLDTm(D, B, I, S)	ESCmi(D, B, I, S, 035)	/*    fld m80real */
+#define   FSTPTm(D, B, I, S)	ESCmi(D, B, I, S, 037)	/*   fstp m80real */
+#define    FLDLm(D, B, I, S)	ESCmi(D, B, I, S, 050)	/*    fld m64real */
+#define    FSTLm(D, B, I, S)	ESCmi(D, B, I, S, 052)	/*    fst m64real */
+#define   FSTPLm(D, B, I, S)	ESCmi(D, B, I, S, 053)	/*   fstp m64real */
+#define   FILDWm(D, B, I, S)	ESCmi(D, B, I, S, 070)	/*   fild m16int  */
 /* (p6 or newer) */
-#define FISTTPQm(D,B,I,S)	ESCmi(D,B,I,S, 071)	/* fisttp m64int  */
+#define FISTTPQm(D, B, I, S)	ESCmi(D, B, I, S, 071)	/* fisttp m64int  */
+#define   FISTWm(D, B, I, S)	ESCmi(D, B, I, S, 072)	/*   fist m16int  */
+#define  FISTPWm(D, B, I, S)	ESCmi(D, B, I, S, 073)	/*  fistp m16int  */
+#define   FILDQm(D, B, I, S)	ESCmi(D, B, I, S, 075)	/*   fild m64int  */
+#define  FISTPQm(D, B, I, S)	ESCmi(D, B, I, S, 077)	/*  fistp m64int  */
 
-#define   FISTWm(D,B,I,S)	ESCmi(D,B,I,S, 072)	/*   fist m16int  */
-#define  FISTPWm(D,B,I,S)	ESCmi(D,B,I,S, 073)	/*  fistp m16int  */
-#define   FILDQm(D,B,I,S)	ESCmi(D,B,I,S, 075)	/*   fild m64int  */
-#define  FISTPQm(D,B,I,S)	ESCmi(D,B,I,S, 077)	/*  fistp m64int  */
-
-#define  FADDrr(RS,RD)		ESCrri(RS,RD, 000)
-#define  FMULrr(RS,RD)		ESCrri(RS,RD, 001)
-#define  FSUBrr(RS,RD)		ESCrri(RS,RD, 004)
-#define FSUBRrr(RS,RD)		ESCrri(RS,RD, 005)
-#define  FDIVrr(RS,RD)		ESCrri(RS,RD, 006)
-#define FDIVRrr(RS,RD)		ESCrri(RS,RD, 007)
+#define  FADDrr(RS, RD)		ESCrri(RS, RD, 000)
+#define  FMULrr(RS, RD)		ESCrri(RS, RD, 001)
+#define  FSUBrr(RS, RD)		ESCrri(RS, RD, 004)
+#define FSUBRrr(RS, RD)		ESCrri(RS, RD, 005)
+#define  FDIVrr(RS, RD)		ESCrri(RS, RD, 006)
+#define FDIVRrr(RS, RD)		ESCrri(RS, RD, 007)
 
 /* st(0) = st(rs) if below (cf=1) (p6 or newer) */
 #define   FCMOVB(RS)		ESCri(RS, 020)
@@ -3412,6 +3442,7 @@ enum {
 
 /* *push*, st(0) = st(rd+1) */
 #define     FLDr(RD)		ESCri(RD, 010)
+
 #define    FXCHr(RD)		ESCri(RD, 011)
 #define   FFREEr(RD)		ESCri(RD, 050)
 #define     FSTr(RD)		ESCri(RD, 052)

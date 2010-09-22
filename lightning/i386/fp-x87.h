@@ -85,7 +85,7 @@ x87_absr_d(jit_state_t _jit,
     else {
 	FLDr(f1);
 	FABS_();
-	FSTPr(f0 + 1);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -105,7 +105,7 @@ x87_negr_d(jit_state_t _jit,
     else {
 	FLDr(f1);
 	FCHS_();
-	FSTPr(f0 + 1);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -125,7 +125,7 @@ x87_sqrtr_d(jit_state_t _jit,
     else {
 	FLDr(f1);
 	FSQRT_();
-	FSTPr(f0 + 1);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -157,8 +157,8 @@ x87_addr_d(jit_state_t _jit,
     }
     else {
 	FLDr(f1);
-	FADDrr(f2 + 1, _ST0);
-	FSTPr(f0 + 1);
+	FADDrr((jit_fpr_t)(f2 + 1), _ST0);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -190,8 +190,8 @@ x87_subr_d(jit_state_t _jit,
     }
     else {
 	FLDr(f1);
-	FSUBrr(f2 + 1, _ST0);
-	FSTPr(f0 + 1);
+	FSUBrr((jit_fpr_t)(f2 + 1), _ST0);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -223,8 +223,8 @@ x87_mulr_d(jit_state_t _jit,
     }
     else {
 	FLDr(f1);
-	FMULrr(f2 + 1, _ST0);
-	FSTPr(f0 + 1);
+	FMULrr((jit_fpr_t)(f2 + 1), _ST0);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -256,8 +256,8 @@ x87_divr_d(jit_state_t _jit,
     }
     else {
 	FLDr(f1);
-	FDIVrr(f2 + 1, _ST0);
-	FSTPr(f0 + 1);
+	FDIVrr((jit_fpr_t)(f2 + 1), _ST0);
+	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -266,7 +266,7 @@ x87_ldi_f(jit_state_t _jit,
 	  jit_fpr_t f0, void *i0)
 {
     FLDSm((long)i0, _NOREG, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -274,7 +274,7 @@ x87_ldr_f(jit_state_t _jit,
 	  jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDSm(0, r0, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -282,7 +282,7 @@ x87_ldxi_f(jit_state_t _jit,
 	   jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDSm(i0, r0, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -290,7 +290,7 @@ x87_ldxr_f(jit_state_t _jit,
 	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDSm(0, r0, r1, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -298,7 +298,7 @@ x87_ldi_d(jit_state_t _jit,
 	  jit_fpr_t f0, void *i0)
 {
     FLDLm((long)i0, _NOREG, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -306,7 +306,7 @@ x87_ldr_d(jit_state_t _jit,
 	  jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDLm(0, r0, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -314,7 +314,7 @@ x87_ldxi_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDLm(i0, r0, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -322,7 +322,7 @@ x87_ldxr_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDLm(0, r0, r1, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
@@ -465,7 +465,7 @@ x87_movi_f(jit_state_t _jit,
 	c = 0;
 
     if (c)
-	FSTPr(f0 + 1);
+	FSTPr((jit_fpr_t)(f0 + 1));
     else {
 	jit_pushi_i(data.i);
 	x87_ldr_f(_jit, f0, _RSP);
@@ -510,7 +510,7 @@ x87_movi_d(jit_state_t _jit,
 	c = 0;
 
     if (c)
-	FSTPr(f0 + 1);
+	FSTPr((jit_fpr_t)(f0 + 1));
     else {
 #if __WORDSIZE == 64
 	PUSHQi(data.l);
@@ -536,7 +536,7 @@ x87_movr_d(jit_state_t _jit,
 	}
 	else {
 	    FLDr(f1);
-	    FSTPr(f0 + 1);
+	    FSTPr((jit_fpr_t)(f0 + 1));
 	}
     }
 }
@@ -547,7 +547,7 @@ x87_extr_i_d(jit_state_t _jit,
 {
     jit_pushr_i(r0);
     FILDLm(0, _RSP, _NOREG, _SCL1);
-    FSTPr(f0 + 1);
+    FSTPr((jit_fpr_t)(f0 + 1));
     jit_popr_i(r0);
 }
 
@@ -619,7 +619,7 @@ x87_386_roundr_d_i(jit_state_t _jit,
     FRNDINT_();
 
     /* st(0) = st(f0+1)-st(0) */
-    FSUBRrr(f0 + 1, _ST0);
+    FSUBRrr((jit_fpr_t)(f0 + 1), _ST0);
 
     /* st(0) = -0.5, st(1) = fract */
     FLD1_();
@@ -646,7 +646,7 @@ x87_386_roundr_d_i(jit_state_t _jit,
     /* replace top of x87 stack with jit register argument */
     FFREEr(_ST0);
     FINCSTP_();
-    FLDr(f0 + 1);
+    FLDr((jit_fpr_t)(f0 + 1));
 
     /* if operation did not result in zero, can round to near */
     ANDWir(FPSW_COND, _RAX);
@@ -855,7 +855,7 @@ x87_i386_floorr_d_i(jit_state_t _jit,
 	MOVLrr(_RAX, r0);
     FLDr(f0);
     FRNDINT_();
-    FUCOMr(f0 + 1);
+    FUCOMr((jit_fpr_t)(f0 + 1));
     FNSTSWr(_RAX);
     ANDWir(FPSW_COND, _RAX);
     TESTWrr(_RAX, _RAX);
@@ -883,9 +883,9 @@ x87_i686_floorr_d_i(jit_state_t _jit,
     /* round to nearest */
     FRNDINT_();
     /* compare and set flags */
-    FXCHr(f0 + 1);
-    FCOMIr(f0 + 1);
-    FXCHr(f0 + 1);
+    FXCHr((jit_fpr_t)(f0 + 1));
+    FCOMIr((jit_fpr_t)(f0 + 1));
+    FXCHr((jit_fpr_t)(f0 + 1));
     /* store integer */
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     jit_popr_i(r0);
@@ -959,7 +959,7 @@ x87_i386_ceilr_d_i(jit_state_t _jit,
 	MOVLrr(_RAX, r0);
     FLDr(f0);
     FRNDINT_();
-    FUCOMr(f0 + 1);
+    FUCOMr((jit_fpr_t)(f0 + 1));
     FNSTSWr(_RAX);
     ANDWir(FPSW_COND, _RAX);
     CMPWir(FPSW_LT, _RAX);
@@ -987,7 +987,7 @@ x87_i686_ceilr_d_i(jit_state_t _jit,
     /* round to nearest */
     FRNDINT_();
     /* compare and set flags */
-    FCOMIr(f0 + 1);
+    FCOMIr((jit_fpr_t)(f0 + 1));
     /* store integer */
     FISTPLm(0, _RSP, _NOREG, _SCL1);
     jit_popr_i(r0);
@@ -1046,7 +1046,7 @@ x87_i386_fp_cmp(jit_state_t _jit,
 	FUCOMr(f1);
     else {
 	FLDr(f0);
-	FUCOMPr(f1 + 1);
+	FUCOMPr((jit_fpr_t)(f1 + 1));
     }
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
@@ -1090,7 +1090,7 @@ x87_i686_fp_cmp(jit_state_t _jit,
 	FUCOMIr(f1);
     else {
 	FLDr(f0);
-	FUCOMIPr(f1 + 1);
+	FUCOMIPr((jit_fpr_t)(f1 + 1));
     }
     SETCCir(code, reg);
     if (!rc)
@@ -1139,7 +1139,7 @@ x87_eqr_d(jit_state_t _jit,
 	    FUCOMIr(f1);
 	else {
 	    FLDr(f0);
-	    FUCOMIPr(f1 + 1);
+	    FUCOMIPr((jit_fpr_t)(f1 + 1));
 	}
 	JPESm(_jit->x.pc + 3);
 	label = _jit->x.pc;
@@ -1194,7 +1194,7 @@ x87_ner_d(jit_state_t _jit,
 	    FUCOMIr(f1);
 	else {
 	    FLDr(f0);
-	    FUCOMIPr(f1 + 1);
+	    FUCOMIPr((jit_fpr_t)(f1 + 1));
 	}
 	JPESm(_jit->x.pc + 3);
 	label = _jit->x.pc;
@@ -1308,7 +1308,7 @@ x87_i386_fp_bcmp(jit_state_t _jit,
 	FUCOMr(f1);
     else {
 	FLDr(f0);
-	FUCOMPr(f1 + 1);
+	FUCOMPr((jit_fpr_t)(f1 + 1));
     }
     jit_pushr_i(_RAX);
     FNSTSWr(_RAX);
@@ -1329,7 +1329,7 @@ x87_i686_fp_bcmp(jit_state_t _jit,
 	FUCOMIr(f1);
     else {
 	FLDr(f0);
-	FUCOMIPr(f1 + 1);
+	FUCOMIPr((jit_fpr_t)(f1 + 1));
     }
     JCCim(code, label);
 }
@@ -1369,7 +1369,7 @@ x87_beqr_d(jit_state_t _jit,
 	    FUCOMIr(fr1);
 	else {
 	    FLDr(fr0);
-	    FUCOMIPr(fr1 + 1);
+	    FUCOMIPr((jit_fpr_t)(fr1 + 1));
 	}
 	/* jump past user jump if unordered */
 	JPESm(_jit->x.pc + 6);
@@ -1418,7 +1418,7 @@ x87_bner_d(jit_state_t _jit,
 	    FUCOMIr(fr1);
 	else {
 	    FLDr(fr0);
-	    FUCOMIPr(fr1 + 1);
+	    FUCOMIPr((jit_fpr_t)(fr1 + 1));
 	}
 	/* jump to user jump if unordered */
 	JPESm(_jit->x.pc + 2);

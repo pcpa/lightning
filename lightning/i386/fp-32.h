@@ -1238,7 +1238,7 @@ x86_retval_f(jit_state_t _jit,
 	if (jit_sse_reg_p(f0))
 	    sse_from_x87_f(_jit, f0, JIT_FPRET);
 	else
-	    FSTPr(f0 + 1);
+	    FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
@@ -1251,7 +1251,7 @@ x86_retval_d(jit_state_t _jit,
 	if (jit_sse_reg_p(f0))
 	    sse_from_x87_d(_jit, f0, JIT_FPRET);
 	else
-	    FSTPr(f0 + 1);
+	    FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
 
