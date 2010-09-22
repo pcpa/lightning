@@ -113,33 +113,33 @@ x86_REXLrm(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
-#define _REXLFrr(rr, mr)		x86_REXLFrr(_jit, rr, mr)
+#define _rex_if_rr(rr, mr)		x86_rex_if_rr(_jit, rr, mr)
 __jit_inline void
-x86_REXLFrr(jit_state_t _jit, jit_gpr_t rr, jit_fpr_t mr)
+x86_rex_if_rr(jit_state_t _jit, jit_gpr_t rr, jit_fpr_t mr)
 {
 }
 
-#define _REXFrr(rr, mr)			x86_REXFrr(_jit, rr, mr)
+#define _rex_ff_rr(rr, mr)		x86_rex_ff_rr(_jit, rr, mr)
 __jit_inline void
-x86_REXFrr(jit_state_t _jit, jit_fpr_t rr, jit_fpr_t mr)
+x86_rex_ff_rr(jit_state_t _jit, jit_fpr_t rr, jit_fpr_t mr)
 {
 }
 
-#define _REXFLrr(rr, mr)		x86_REXFLrr(_jit, rr, mr)
+#define _rex_fi_rr(rr, mr)		x86_rex_fi_rr(_jit, rr, mr)
 __jit_inline void
-x86_REXFLrr(jit_state_t _jit, jit_fpr_t rr, jit_gpr_t mr)
+x86_rex_fi_rr(jit_state_t _jit, jit_fpr_t rr, jit_gpr_t mr)
 {
 }
 
-#define _REXFmr(rb, ri, rd)		x86_REXFmr(_jit, rb, ri, rd)
+#define _rex_if_mr(rb, ri, rd)		x86_rex_if_mr(_jit, rb, ri, rd)
 __jit_inline void
-x86_REXFmr(jit_state_t _jit, jit_gpr_t rb, jit_gpr_t ri, jit_fpr_t rd)
+x86_rex_if_mr(jit_state_t _jit, jit_gpr_t rb, jit_gpr_t ri, jit_fpr_t rd)
 {
 }
 
-#define _REXFrm(rs, rb, ri)		x86_REXFrm(_jit, rs, rb, ri)
+#define _rex_fi_rm(rs, rb, ri)		x86_rex_fi_rm(_jit, rs, rb, ri)
 __jit_inline void
-x86_REXFrm(jit_state_t _jit, jit_fpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
+x86_rex_fi_rm(jit_state_t _jit, jit_fpr_t rs, jit_gpr_t rb, jit_gpr_t ri)
 {
 }
 
