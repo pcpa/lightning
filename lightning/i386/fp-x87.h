@@ -130,6 +130,72 @@ x87_sqrtr_d(jit_state_t _jit,
 }
 
 __jit_inline void
+x87_sinr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    FSIN_();
+	else {
+	    FXCHr(f0);
+	    FSIN_();
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FSIN_();
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
+x87_cosr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    FCOS_();
+	else {
+	    FXCHr(f0);
+	    FCOS_();
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FCOS_();
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
+x87_tanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    /*	  After tan(_ST0), the fpu stack is, _ST0 == 1.0, _ST1 == arctangent
+     *	so, it calls FSTPr(_ST0) to pop the 1.0 and have the result in _ST0.
+     *	  Initial _ST0 value has limited range, but in this initial
+     *	implementation, to not bother...
+     */
+    if (f0 == f1) {
+	if (f0 == _ST0) {
+	    FPTAN_();
+	    FSTPr(_ST0);
+	}
+	else {
+	    FXCHr(f0);
+	    FPTAN_();
+	    FSTPr(_ST0);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	FPTAN_();
+	FSTPr(_ST0);
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
 x87_addr_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
