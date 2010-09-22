@@ -47,7 +47,7 @@ jit_sse_order[JIT_FPR_NUM] = {
     _XMM0, _XMM1, _XMM2, _XMM3, _XMM4, _XMM5
 };
 #define JIT_FPR(i)							\
-    (jit_sse_p() ? jit_sse_order[i] : jit_x87_order[i])
+    (jit_sse2_p() ? jit_sse_order[i] : jit_x87_order[i])
 
 #include "fp-sse.h"
 #include "fp-x87.h"

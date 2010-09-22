@@ -35,6 +35,7 @@
 #define __lightning_fp_i386_h
 
 #define jit_sse_p()			jit_cpu.sse
+#define jit_sse2_p()			jit_cpu.sse2
 #define jit_sse4_1_p()			jit_cpu.sse4_1
 #define jit_i686_p()			jit_cpu.cmov
 #define jit_round_to_nearest_p()	jit_flags.rnd_near
