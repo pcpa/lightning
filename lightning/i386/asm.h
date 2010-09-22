@@ -110,6 +110,125 @@ typedef enum {
 } jit_scl_t;
 
 typedef enum {
+    X86_ADD	= 0,
+    X86_OR	= 1,
+    X86_ADC	= 2,
+    X86_SBB	= 3,
+    X86_AND	= 4,
+    X86_SUB	= 5,
+    X86_XOR	= 6,
+    X86_CMP	= 7,
+} x86_alu_t;
+
+typedef enum {
+    X86_ROL	= 0,
+    X86_ROR	= 1,
+    X86_RCL	= 2,
+    X86_RCR	= 3,
+    X86_SHL	= 4,
+    X86_SHR	= 5,
+    X86_SAR	= 7,
+} x86_rotsh_t;
+
+typedef enum {
+  X86_BT	= 4,
+  X86_BTS	= 5,
+  X86_BTR	= 6,
+  X86_BTC	= 7,
+} x86_bt_t;
+
+typedef enum {
+    X86_NOT	= 2,
+    X86_NEG	= 3,
+    X86_MUL	= 4,
+    X86_IMUL	= 5,
+    X86_DIV	= 6,
+    X86_IDIV	= 7,
+} x86_unary_t;
+
+typedef enum {
+    X86_CC_O	= 0x0,
+    X86_CC_NO	= 0x1,
+    X86_CC_NAE	= 0x2,
+    X86_CC_B	= 0x2,
+    X86_CC_C	= 0x2,
+    X86_CC_AE	= 0x3,
+    X86_CC_NB	= 0x3,
+    X86_CC_NC	= 0x3,
+    X86_CC_E	= 0x4,
+    X86_CC_Z	= 0x4,
+    X86_CC_NE	= 0x5,
+    X86_CC_NZ	= 0x5,
+    X86_CC_BE	= 0x6,
+    X86_CC_NA	= 0x6,
+    X86_CC_A	= 0x7,
+    X86_CC_NBE	= 0x7,
+    X86_CC_S	= 0x8,
+    X86_CC_NS	= 0x9,
+    X86_CC_P	= 0xa,
+    X86_CC_PE	= 0xa,
+    X86_CC_NP	= 0xb,
+    X86_CC_PO	= 0xb,
+    X86_CC_L	= 0xc,
+    X86_CC_NGE	= 0xc,
+    X86_CC_GE	= 0xd,
+    X86_CC_NL	= 0xd,
+    X86_CC_LE	= 0xe,
+    X86_CC_NG	= 0xe,
+    X86_CC_G	= 0xf,
+    X86_CC_NLE	= 0xf,
+} x86_cc_t;
+
+enum {
+    FPCW_MCW_PC		= 0x300,	/* Precision control mask */
+    FPCW_64		= 0x300,	/* 64-bit precision */
+    FPCW_53		= 0x200,	/* 53-bit precision */
+    FPCW_24		= 0x000,	/* 24-bit precision */
+    FPCW_MCW_RC		= 0xc00,	/* Rounding control mask */
+    FPCW_CHOP		= 0xc00,	/* Truncate */
+    FPCW_UP		= 0x800,	/* Round up */
+    FPCW_DOWN		= 0x400,	/* Round down */
+    FPCW_NEAR		= 0x000,	/* Round to nearest */
+    FPCW_MCW_EM		= 0x03f,	/* Exception mask */
+    FPCW_INVALID	= 0x001,	/* Allow invalid numbers */
+    FPCW_DENORMAL	= 0x002,	/* Allow denormals */
+    FPCW_ZERODIVIDE	= 0x004,	/* Allow divide by zero */
+    FPCW_OVERFLOW	= 0x008,	/* Allow overflow */
+    FPCW_UNDERFLOW	= 0x010,	/* Allow underflow */
+    FPCW_INEXACT	= 0x020,	/* Allow inexact precision */
+};
+
+enum {
+    FPSW_INVALID	= 0x0001,
+    FPSW_DENORMAL	= 0x0002,
+    FPSW_ZERODIVIDE	= 0x0004,
+    FPSW_OVERFLOW	= 0x0008,
+    FPSW_UNDERFLOW	= 0x0010,
+    FPSW_INEXACT	= 0x0020,
+    FPSW_STACKFAULT	= 0x0040,
+    FPSW_EXCEPT		= 0x0080,
+    FPSW_STACK		= 0x3800,	/* Top of stack pointer */
+    FPSW_BUSY		= 0x8000,
+
+    /* Condition mask (bits 14,10,9,8) */
+    FPSW_COND		= 0x4700,
+    FPSW_GT		= 0x0000,
+    FPSW_LT		= 0x0100,
+    FPSW_EQ		= 0x4000,
+    FPSW_UN		= 0x4500,
+
+    /* Classify mask (bits 14,10,9,8) bit 9 (C1) is sign */
+    /* FIXME verify correctness */
+    FPSW_CLASS		= 0x4700,	/* C3 C2 C1 C0 */
+    FPSW_UNSUPPORTED	= 0x0000,	/*  0  0  0  0 */
+    FPSW_NAN		= 0x0100,	/*  0  0  0  1 */
+    FPSW_FINITE		= 0x0400,	/*  0  1  0  0 */
+    FPSW_ZERO		= 0x4000,	/*  1  0  0  0 */
+    FPSW_EMPTY		= 0x4100,	/*  1  0  0  1 */
+    FPSW_DENORM		= 0x4400,	/*  1  1  0  0 */
+};
+
+typedef enum {
     X86_SSE_MOV		= 0x10,
     X86_SSE_MOVLP	= 0x12,
     X86_SSE_MOVHP	= 0x16,
@@ -142,6 +261,30 @@ typedef enum {
     X86_SSE_G2X		= 0x7e,
     X86_SSE_MOV2	= 0xd6
 } x86_sse_t;
+
+enum {
+    MXCSR_INV_EXCPT	= 0x0001,
+    MXCSR_DENORM_EXCPT	= 0x0002,
+    MXCSR_ZERODIV_EXCPT	= 0x0004,
+    MXCSR_OVER_EXCPT	= 0x0008,
+    MXCSR_UNDER_EXCPT	= 0x0010,
+    MXCSR_PREC_EXCPT	= 0x0020,
+    MXCSR_DENORMISZERO	= 0x0040,
+    MXCSR_INV_MASK	= 0x0080,
+    MXCSR_DENORM_MASK	= 0x0100,
+    MXCSR_ZERODIV_MASK	= 0x0200,
+    MXCSR_OVER_MASK	= 0x0400,
+    MXCSR_UNDER_MASK	= 0x0800,
+    MXCSR_PREC_MASK	= 0x1000,
+
+    MXCSR_RND_MASK	= 0x6000,	/* Round mode mask */
+    MXCSR_RND_NEAR	= 0x0000,	/* Round to nearest */
+    MXCSR_RND_DOWN	= 0x2000,	/* Round toward -oo */
+    MXCSR_RND_UP	= 0x4000,	/* Round toward +oo */
+    MXCSR_RND_CHOP	= 0x6000,	/* Truncate to zero */
+
+    MXCSR_FLUSHTOZERO	= 0x8000
+};
 
 #if __WORDSIZE == 32
 #  define _RMAX			_RDI
@@ -397,17 +540,6 @@ x86_f_X(jit_state_t _jit,
 #define _OO(OP)			(_jit_B((OP) >> 8), _jit_B((OP)))
 
 /* --- ALU instructions ---------------------------------------------------- */
-typedef enum {
-    X86_ADD	= 0,
-    X86_OR	= 1,
-    X86_ADC	= 2,
-    X86_SBB	= 3,
-    X86_AND	= 4,
-    X86_SUB	= 5,
-    X86_XOR	= 6,
-    X86_CMP	= 7,
-} x86_alu_t;
-
 __jit_inline void
 x86_alu_c_rr(jit_state_t _jit, x86_alu_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
@@ -546,16 +678,6 @@ x86_alu_il_im(jit_state_t _jit, x86_alu_t op,
 }
 
 /* --- Shift/Rotate instructions ------------------------------------------- */
-typedef enum {
-    X86_ROL	= 0,
-    X86_ROR	= 1,
-    X86_RCL	= 2,
-    X86_RCR	= 3,
-    X86_SHL	= 4,
-    X86_SHR	= 5,
-    X86_SAR	= 7,
-} x86_rotsh_t;
-
 __jit_inline void
 x86_rotsh_c_rr(jit_state_t _jit, x86_rotsh_t op, jit_gpr_t rs, jit_gpr_t rd)
 {
@@ -653,13 +775,6 @@ x86_rotsh_sil_rm(jit_state_t _jit, x86_rotsh_t op,
 }
 
 /* --- Bit test instructions ----------------------------------------------- */
-typedef enum {
-  X86_BT	= 4,
-  X86_BTS	= 5,
-  X86_BTR	= 6,
-  X86_BTC	= 7,
-} x86_bt_t;
-
 __jit_inline void
 x86_bt_sil_ir(jit_state_t _jit, x86_bt_t op, long im, jit_gpr_t rd)
 {
@@ -759,15 +874,6 @@ x86_mov_sil_rm(jit_state_t _jit,
 }
 
 /* --- Unary and Multiply/Divide instructions ------------------------------ */
-typedef enum {
-    X86_NOT	= 2,
-    X86_NEG	= 3,
-    X86_MUL	= 4,
-    X86_IMUL	= 5,
-    X86_DIV	= 6,
-    X86_IDIV	= 7,
-} x86_unary_t;
-
 __jit_inline void
 x86_unary_c_r(jit_state_t _jit, x86_unary_t op, jit_gpr_t rs)
 {
@@ -846,39 +952,6 @@ x86_imul_il_irr(jit_state_t _jit, long im, jit_gpr_t rs, jit_gpr_t rd)
 }
 
 /* --- Control Flow related instructions ----------------------------------- */
-typedef enum {
-    X86_CC_O	= 0x0,
-    X86_CC_NO	= 0x1,
-    X86_CC_NAE	= 0x2,
-    X86_CC_B	= 0x2,
-    X86_CC_C	= 0x2,
-    X86_CC_AE	= 0x3,
-    X86_CC_NB	= 0x3,
-    X86_CC_NC	= 0x3,
-    X86_CC_E	= 0x4,
-    X86_CC_Z	= 0x4,
-    X86_CC_NE	= 0x5,
-    X86_CC_NZ	= 0x5,
-    X86_CC_BE	= 0x6,
-    X86_CC_NA	= 0x6,
-    X86_CC_A	= 0x7,
-    X86_CC_NBE	= 0x7,
-    X86_CC_S	= 0x8,
-    X86_CC_NS	= 0x9,
-    X86_CC_P	= 0xa,
-    X86_CC_PE	= 0xa,
-    X86_CC_NP	= 0xb,
-    X86_CC_PO	= 0xb,
-    X86_CC_L	= 0xc,
-    X86_CC_NGE	= 0xc,
-    X86_CC_GE	= 0xd,
-    X86_CC_NL	= 0xd,
-    X86_CC_LE	= 0xe,
-    X86_CC_NG	= 0xe,
-    X86_CC_G	= 0xf,
-    X86_CC_NLE	= 0xf,
-} x86_cc_t;
-
 __jit_inline void
 x86_call_il_sr(jit_state_t _jit, jit_gpr_t rs)
 {
@@ -3316,55 +3389,6 @@ x86_NOPi(jit_state_t _jit, unsigned long nop)
 
 
 /* x87 instructions -- yay, we found a use for octal constants :-) */
-enum {
-    FPCW_MCW_PC		= 0x300,	/* Precision control mask */
-    FPCW_64		= 0x300,	/* 64-bit precision */
-    FPCW_53		= 0x200,	/* 53-bit precision */
-    FPCW_24		= 0x000,	/* 24-bit precision */
-    FPCW_MCW_RC		= 0xc00,	/* Rounding control mask */
-    FPCW_CHOP		= 0xc00,	/* Truncate */
-    FPCW_UP		= 0x800,	/* Round up */
-    FPCW_DOWN		= 0x400,	/* Round down */
-    FPCW_NEAR		= 0x000,	/* Round to nearest */
-    FPCW_MCW_EM		= 0x03f,	/* Exception mask */
-    FPCW_INVALID	= 0x001,	/* Allow invalid numbers */
-    FPCW_DENORMAL	= 0x002,	/* Allow denormals */
-    FPCW_ZERODIVIDE	= 0x004,	/* Allow divide by zero */
-    FPCW_OVERFLOW	= 0x008,	/* Allow overflow */
-    FPCW_UNDERFLOW	= 0x010,	/* Allow underflow */
-    FPCW_INEXACT	= 0x020,	/* Allow inexact precision */
-};
-
-enum {
-    FPSW_INVALID	= 0x0001,
-    FPSW_DENORMAL	= 0x0002,
-    FPSW_ZERODIVIDE	= 0x0004,
-    FPSW_OVERFLOW	= 0x0008,
-    FPSW_UNDERFLOW	= 0x0010,
-    FPSW_INEXACT	= 0x0020,
-    FPSW_STACKFAULT	= 0x0040,
-    FPSW_EXCEPT		= 0x0080,
-    FPSW_STACK		= 0x3800,	/* Top of stack pointer */
-    FPSW_BUSY		= 0x8000,
-
-    /* Condition mask (bits 14,10,9,8) */
-    FPSW_COND		= 0x4700,
-    FPSW_GT		= 0x0000,
-    FPSW_LT		= 0x0100,
-    FPSW_EQ		= 0x4000,
-    FPSW_UN		= 0x4500,
-
-    /* Classify mask (bits 14,10,9,8) bit 9 (C1) is sign */
-    /* FIXME verify correctness */
-    FPSW_CLASS		= 0x4700,	/* C3 C2 C1 C0 */
-    FPSW_UNSUPPORTED	= 0x0000,	/*  0  0  0  0 */
-    FPSW_NAN		= 0x0100,	/*  0  0  0  1 */
-    FPSW_FINITE		= 0x0400,	/*  0  1  0  0 */
-    FPSW_ZERO		= 0x4000,	/*  1  0  0  0 */
-    FPSW_EMPTY		= 0x4100,	/*  1  0  0  1 */
-    FPSW_DENORM		= 0x4400,	/*  1  1  0  0 */
-};
-
 __jit_inline void
 x86_esc_mi(jit_state_t _jit,
 	   long md, jit_gpr_t rb, jit_gpr_t ri, jit_scl_t ms, int op)
@@ -3598,30 +3622,6 @@ x86_FSTCWm(jit_state_t _jit,
 
 
 /* --- Media 128-bit instructions ------------------------------------------ */
-enum {
-    MXCSR_INV_EXCPT	= 0x0001,
-    MXCSR_DENORM_EXCPT	= 0x0002,
-    MXCSR_ZERODIV_EXCPT	= 0x0004,
-    MXCSR_OVER_EXCPT	= 0x0008,
-    MXCSR_UNDER_EXCPT	= 0x0010,
-    MXCSR_PREC_EXCPT	= 0x0020,
-    MXCSR_DENORMISZERO	= 0x0040,
-    MXCSR_INV_MASK	= 0x0080,
-    MXCSR_DENORM_MASK	= 0x0100,
-    MXCSR_ZERODIV_MASK	= 0x0200,
-    MXCSR_OVER_MASK	= 0x0400,
-    MXCSR_UNDER_MASK	= 0x0800,
-    MXCSR_PREC_MASK	= 0x1000,
-
-    MXCSR_RND_MASK	= 0x6000,	/* Round mode mask */
-    MXCSR_RND_NEAR	= 0x0000,	/* Round to nearest */
-    MXCSR_RND_DOWN	= 0x2000,	/* Round toward -oo */
-    MXCSR_RND_UP	= 0x4000,	/* Round toward +oo */
-    MXCSR_RND_CHOP	= 0x6000,	/* Truncate to zero */
-
-    MXCSR_FLUSHTOZERO	= 0x8000
-};
-
 #define __SSELrr(op, rs, rd)		x86__SSELrr(_jit, op, rs, rd)
 __jit_inline void
 x86__SSELrr(jit_state_t _jit, x86_sse_t op, jit_fpr_t rs, jit_fpr_t rd)
