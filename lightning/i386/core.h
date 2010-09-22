@@ -53,11 +53,11 @@
      ((im) <  0 && (im) >= -0x8000))
 
 #define jit_can_zero_extend_int_p(im)					\
-    ((im) >= 0 && (im) <= 0x80000000)
+    ((im) >= 0 && (im) <= 0x80000000L)
 
 #define jit_can_sign_extend_int_p(im)					\
-    (((im) >= 0 && (im) <=  0x7fffffff) ||				\
-     ((im) <  0 && (im) >= -0x80000000))
+    (((im) >= 0 && (im) <=  0x7fffffffL) ||				\
+     ((im) <  0 && (im) >= -0x80000000L))
 
 #define jit_movr_i(r0, r1)		x86_movr_i(_jit, r0, r1)
 #define jit_pushr_i(r0)			x86_pushr_i(_jit, r0)
