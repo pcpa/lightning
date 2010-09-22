@@ -83,7 +83,8 @@ x86_prolog(jit_state_t _jit,
 	   int n)
 {
     _jitl.framesize = 20;
-    _jitl.alloca_offset = _jitl.alloca_slack = 0;
+    _jitl.alloca_offset = 0;
+    _jitl.alloca_slack = 12;
     PUSHLr(_RBX);
     PUSHLr(_RSI);
     PUSHLr(_RDI);
@@ -125,9 +126,7 @@ __jit_inline void
 x86_prepare_i(jit_state_t _jit,
 	      int ni)
 {
-    _jitl.argssize = (ni + 3) & ~0x3;
-    if (ni & 0x3)
-	SUBLir(4 * (_jitl.argssize - ni), JIT_SP);
+    _jitl.argssize = ni;
 }
 
 #define jit_calli(p0)			x86_calli(_jit, p0)
@@ -182,6 +181,11 @@ __jit_inline void
 x86_pusharg_i(jit_state_t _jit,
 	      jit_gpr_t r0)
 {
+    int		argssize = (_jitl.argssize + 3) & ~3;
+    if (argssize != _jitl.argssize) {
+	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+	_jitl.argssize = argssize;
+    }
     PUSHLr(r0);
 }
 

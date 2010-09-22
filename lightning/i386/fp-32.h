@@ -1260,6 +1260,11 @@ __jit_inline void
 x86_pusharg_f(jit_state_t _jit,
 	      jit_fpr_t f0)
 {
+    int		argssize = (_jitl.argssize + 3) & ~3;
+    if (argssize != _jitl.argssize) {
+	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+	_jitl.argssize = argssize;
+    }
     jit_subi_l(JIT_SP, JIT_SP, sizeof(float));
     jit_str_f(JIT_SP, f0);
 }
@@ -1269,6 +1274,11 @@ __jit_inline void
 x86_pusharg_d(jit_state_t _jit,
 	      jit_fpr_t f0)
 {
+    int		argssize = (_jitl.argssize + 3) & ~3;
+    if (argssize != _jitl.argssize) {
+	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+	_jitl.argssize = argssize;
+    }
     jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
     jit_str_d(JIT_SP, f0);
 }
