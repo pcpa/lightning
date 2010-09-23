@@ -144,6 +144,7 @@ x86_negr_d(jit_state_t _jit,
 }
 
 #define jit_sqrtr_f(f0, f1)		x86_sqrtr_f(_jit, f0, f1)
+__jit_inline void
 x86_sqrtr_f(jit_state_t _jit,
 	    jit_fpr_t f0, jit_fpr_t f1)
 {
