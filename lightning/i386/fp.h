@@ -271,6 +271,32 @@ x86_atanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 	x87_atanr_d(_jit, f0, f1);
 }
 
+#define jit_logr_f(f0, f1)		x86_logr_f(_jit, f0, f1)
+__jit_inline void
+x86_logr_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_sse_reg_p(f0)) {
+	x87_from_sse_f(_jit, _ST0, f1);
+	x87_logr_d(_jit, _ST0, _ST0);
+	sse_from_x87_f(_jit, f0, _ST0);
+    }
+    else
+	x87_logr_d(_jit, f0, f1);
+}
+
+#define jit_logr_d(f0, f1)		x86_logr_d(_jit, f0, f1)
+__jit_inline void
+x86_logr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (jit_sse_reg_p(f0)) {
+	x87_from_sse_d(_jit, _ST0, f1);
+	x87_logr_d(_jit, _ST0, _ST0);
+	sse_from_x87_d(_jit, f0, _ST0);
+    }
+    else
+	x87_logr_d(_jit, f0, f1);
+}
+
 #define jit_addr_f(f0, f1, f2)		x86_addr_f(_jit, f0, f1, f2)
 __jit_inline void
 x86_addr_f(jit_state_t _jit,

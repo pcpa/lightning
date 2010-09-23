@@ -374,6 +374,33 @@ x87_atanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
+x87_log(jit_state_t _jit)
+{
+    FLDLN2_();
+    FXCHr(_ST1);
+    FYL2X_();
+}
+
+__jit_inline void
+x87_logr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    x87_log(_jit);
+	else {
+	    FXCHr(f0);
+	    x87_log(_jit);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	x87_log(_jit);
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
 x87_addr_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
@@ -1791,9 +1818,6 @@ x87_bunordr_d(jit_state_t _jit,
 			 FADDPr(_ST1), 			/* faddp */ \
 			 FSCALE_(), 			/* fscale */ \
 			 FSTPr(_ST1))			/* fstp st(1) */
-#define jit_log()	(FLDLN2_(), 			/* fldln2 */ \
-			 FXCHr(_ST1), 			/* fxch st(1) */ \
-			 FYL2X_())			/* fyl2x */
 #endif
 
 #endif /* __lightning_fp_x87_h */

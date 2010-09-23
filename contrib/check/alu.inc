@@ -38,6 +38,8 @@ strtan:
 .c	"tan"
 stratan:
 .c	"atan"
+strlog:
+.c	"log"
 fmti:
 .c	" i: %lx -> %lx %s %lx = %lx\n"
 fmtui:
@@ -563,11 +565,11 @@ OP##T##N##c##R0##R1:
 	prepare_d 3			\
 		extr_d_f %F0 %F0	\
 		pusharg_d %F0		\
-		extr_d_f %F1 %F1	\
+		extr_f_d %F1 %F1	\
 		pusharg_d %F1		\
 		movi_p %R0 str##OP	\
 		pusharg_p %R0		\
-		extr_d_f %F2 %F2	\
+		extr_f_d %F2 %F2	\
 		pusharg_d %F2		\
 		movi_p %R0 ufmtf	\
 		pusharg_p %R0		\
