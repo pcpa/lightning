@@ -7,8 +7,7 @@
 
 /***********************************************************************
  *
- * Copyright 2000, 2001, 2002, 2003, 2006 Free Software Foundation, Inc.
- * Written by Paolo Bonzini and Matthew Flatt.
+ * Copyright 2000,2001,2002,2003,2006,2010 Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
  *
@@ -27,6 +26,10 @@
  * Free Software Foundation, 59 Temple Place - Suite 330, Boston,
  * MA 02111-1307, USA.
  *
+ * Authors:
+ *	Matthew Flatt
+ *	Paolo Bonzini
+ *	Paulo Cesar Pereira de Andrade
  ***********************************************************************/
 
 

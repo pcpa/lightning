@@ -7,8 +7,7 @@
 
 /***********************************************************************
  *
- * Copyright 2000, 2001, 2002, 2004, 2008 Free Software Foundation, Inc.
- * Written by Paolo Bonzini.
+ * Copyright 2000,2001,2002,2004,2008,2010 Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
  *
@@ -27,6 +26,9 @@
  * Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
  *
+ * Authors:
+ *	Paolo Bonzini
+ *	Paulo Cesar Pereira de Andrade
  ***********************************************************************/
 
 

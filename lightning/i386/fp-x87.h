@@ -7,8 +7,7 @@
 
 /***********************************************************************
  *
- * Copyright 2000, 2001, 2002, 2004, 2008 Free Software Foundation, Inc.
- * Written by Paolo Bonzini.
+ * Copyright 2000,2001,2002,2004,2008,2010 Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
  *
@@ -27,6 +26,9 @@
  * Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
  *
+ * Authors:
+ *	Paolo Bonzini
+ *	Paulo Cesar Pereira de Andrade
  ***********************************************************************/
 
 #ifndef __lightning_fp_x87_h
@@ -1752,10 +1754,6 @@ x87_bunordr_d(jit_state_t _jit,
 }
 
 #if 0
-#define jit_sin()	FSIN_()				/* fsin */
-#define jit_cos()	FCOS_()				/* fcos */
-#define jit_tan()	(FPTAN_(), 			/* fptan */ \
-			 FSTPr(_ST0))			/* fstp st */
 #define jit_atn()	(FLD1_(), 			/* fld1 */ \
 			 FPATAN_())			/* fpatan */
 #define jit_exp()	(FLDL2E_(), 			/* fldl2e */ \

@@ -8,7 +8,7 @@
 /***********************************************************************
  *
  * Copyright 2003 Gwenole Beauchesne
- * Copyright 2006 Free Software Foundation, Inc.
+ * Copyright 2006,2010 Free Software Foundation, Inc.
  *
  * This file is part of GNU lightning.
  *
@@ -27,6 +27,9 @@
  * Free Software Foundation, 59 Temple Place - Suite 330, Boston,
  * MA 02111-1307, USA.
  *
+ * Authors:
+ *	Paolo Bonzini
+ *	Paulo Cesar Pereira de Andrade
  ***********************************************************************/
 
 #ifndef __lightning_asm_h

@@ -9,7 +9,7 @@
  *
  * Copyright 1999, 2000, 2001, 2002 Ian Piumarta
  * Copyright 2003 Gwenole Beauchesne
- * Copyright 2006 Free Software Foundation
+ * Copyright 2006,2010 Free Software Foundation
  *
  * This file is part of GNU lightning.
  *
@@ -28,6 +28,9 @@
  * Free Software Foundation, 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
  *
+ * Authors:
+ *	Paolo Bonzini
+ *	Paulo Cesar Pereira de Andrade
  ***********************************************************************/
 
 #ifndef __lightning_asm_i386_h
