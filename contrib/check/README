@@ -1,0 +1,115 @@
+  Very simple tool for testing lightning
+
+  Available commands:
+
+------------------------------------------------------------------------
+.data <integer>
+
+  Must be used before declaring any data, and <integer> large enough
+to hold all data.
+  Must be specified only once, and usually before ".code" as there is
+no patching of some forward references (only labels).
+
+  After .data has been defined, it is possible to initialize data
+with:
+
+.c <char-spec>+
+.s <short-spec>+
+.i <int-spec>+
+.l <long-spec>+
+.f <float-spec>+
+.d <double-spec>+
+.p <pointer-spec>+
+
+  .c, .s, .i, .l, .f, .d, and .p are only hints. It is allowed to write:
+
+.i 0xdeadbeef
+
+  and later use it as a float.
+
+  <*-spec> is most standard C formats, with the extension of "0b" and
+limited syntax for \<char>
+
+------------------------------------------------------------------------
+.code <integer>
+
+  Must always be specified, and to avoid executing random memory, must
+usually have:
+
+	ret
+
+as last command.
+
+------------------------------------------------------------------------
+@<name>
+
+  If:
+
+	dlsym(null, "<name>")
+
+returns a valid identifier, this will implicitly create an identifier
+for that dynamic symbol, that can be used as argument to finish/calli
+among others.
+
+------------------------------------------------------------------------
+$<name>
+	or
+$(<expr>)
+
+  $<name> expands a variable and $(<expr>) expands an expression.
+  To create a new variable, use something like:
+
+	$($my_var = 1 + 1)
+
+  If the expression has no side effects other then creating the
+variable, you can "escape" it using '.', example:
+
+.$($foo = $bar * 2)
+
+  It is an error to use an undefined variable.
+
+  Some special uses of variables are:
+o allocai:	sets the variable value to the index from %fp
+o arg_*:	sets the variable to the stack/register index
+o getarg_*	loads stack/register using variable set with arg_*
+
+------------------------------------------------------------------------
+<name>:
+
+  Creates a label. Labels may be in .data or .code (jumping to .data is
+not supported, but not disabled). Jumps and movi_p support forward
+labels; everything else will cause an error for forward references.
+
+------------------------------------------------------------------------
+%<reg>
+
+  Registers are specified by name, example:
+
+%r0 %ret %fp
+
+  And can also be specified as:
+
+%r(<number>)
+
+  Basic error checking is done, so it will not accept a float register
+where an integer one is required, neither accept an invalid register
+specified with a syntax like %f(<large-number>)
+
+
+------------------------------------------------------------------------
+TODO
+
+o Support registers in variables, i.e. allow logic like:
+.$($this_reg = %rX)
+	movi_p $this_reg something
+
+o Support some kind of macro, to expand test cases, usually where
+  registers are macro arguments
+Update:
+  cpp is being used.
+
+o Support patching expressions where applicable. This may get quite
+  complex because it may be required to patch constants in the code,
+  what would need tracking the jit_xxx macro called, and arguments,
+  then adjusting the ip and calling the macro again once the value
+  is resolved
