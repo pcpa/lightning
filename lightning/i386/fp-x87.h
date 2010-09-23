@@ -130,22 +130,126 @@ x87_sqrtr_d(jit_state_t _jit,
 }
 
 __jit_inline void
+x87_sin(jit_state_t _jit)
+{
+    jit_insn	*n_label;
+    jit_insn	*f_label;
+    jit_insn	*r_label;
+
+    /* save %rax */
+#if __WORDSIZE == 32
+    jit_pushr_i(_RAX);
+#else
+    jit_movr_l(JIT_REXTMP, _RAX);
+#endif
+    /* classify argument */
+    FXAM_();
+    /* do nothing if zero or unordered */
+    FNSTSWr(_RAX);
+    TESTWir(FPSW_NAN | FPSW_ZERO, _RAX);
+    JNZSm(_jit->x.pc);
+    n_label = _jit->x.pc;
+    /* calculate once */
+    FSIN_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is out of range */
+    TESTWir(FPSW_FINITE, _RAX);
+    JZSm(_jit->x.pc);
+    f_label = _jit->x.pc;
+    /* load pi*2 */
+    FLDPI_();
+    FADDrr(_ST0, _ST0);
+    /* swap top of stack */
+    FXCHr(_ST1);
+    /* calculate remainder */
+    r_label = _jit->x.pc;
+    FPREM1_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is partial */
+    TESTWir(FPSW_FINITE, _RAX);
+    JNZSm(r_label);
+    /* value in range now */
+    FSTPr(_ST1);
+    FSIN_();
+    jit_patch_rel_char_at(n_label, _jit->x.pc);
+    jit_patch_rel_char_at(f_label, _jit->x.pc);
+    /* restore %rax */
+#if __WORDSIZE == 32
+    jit_popr_i(_RAX);
+#else
+    jit_movr_l(_RAX, JIT_REXTMP);
+#endif
+}
+
+__jit_inline void
 x87_sinr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
-	    FSIN_();
+	    x87_sin(_jit);
 	else {
 	    FXCHr(f0);
-	    FSIN_();
+	    x87_sin(_jit);
 	    FXCHr(f0);
 	}
     }
     else {
 	FLDr(f1);
-	FSIN_();
+	x87_sin(_jit);
 	FSTPr((jit_fpr_t)(f0 + 1));
     }
+}
+
+__jit_inline void
+x87_cos(jit_state_t _jit)
+{
+    jit_insn	*n_label;
+    jit_insn	*f_label;
+    jit_insn	*r_label;
+
+    /* save %rax */
+#if __WORDSIZE == 32
+    jit_pushr_i(_RAX);
+#else
+    jit_movr_l(JIT_REXTMP, _RAX);
+#endif
+    /* classify argument */
+    FXAM_();
+    /* do nothing if unordered */
+    FNSTSWr(_RAX);
+    TESTWir(FPSW_NAN, _RAX);
+    JNZSm(_jit->x.pc);
+    n_label = _jit->x.pc;
+    /* calculate once */
+    FCOS_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is out of range */
+    TESTWir(FPSW_FINITE, _RAX);
+    JZSm(_jit->x.pc);
+    f_label = _jit->x.pc;
+    /* load pi*2 */
+    FLDPI_();
+    FADDrr(_ST0, _ST0);
+    /* swap top of stack */
+    FXCHr(_ST1);
+    /* calculate remainder */
+    r_label = _jit->x.pc;
+    FPREM1_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is partial */
+    TESTWir(FPSW_FINITE, _RAX);
+    JNZSm(r_label);
+    /* value in range now */
+    FSTPr(_ST1);
+    FCOS_();
+    jit_patch_rel_char_at(n_label, _jit->x.pc);
+    jit_patch_rel_char_at(f_label, _jit->x.pc);
+    /* restore %rax */
+#if __WORDSIZE == 32
+    jit_popr_i(_RAX);
+#else
+    jit_movr_l(_RAX, JIT_REXTMP);
+#endif
 }
 
 __jit_inline void
@@ -153,18 +257,73 @@ x87_cosr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
-	    FCOS_();
+	    x87_cos(_jit);
 	else {
 	    FXCHr(f0);
-	    FCOS_();
+	    x87_cos(_jit);
 	    FXCHr(f0);
 	}
     }
     else {
 	FLDr(f1);
-	FCOS_();
+	x87_cos(_jit);
 	FSTPr((jit_fpr_t)(f0 + 1));
     }
+}
+
+__jit_inline void
+x87_tan(jit_state_t _jit)
+{
+    jit_insn	*n_label;
+    jit_insn	*f_label;
+    jit_insn	*r_label;
+
+    /* save %rax */
+#if __WORDSIZE == 32
+    jit_pushr_i(_RAX);
+#else
+    jit_movr_l(JIT_REXTMP, _RAX);
+#endif
+    /* classify argument */
+    FXAM_();
+    /* do nothing if zero or unordered */
+    FNSTSWr(_RAX);
+    TESTWir(FPSW_NAN | FPSW_ZERO, _RAX);
+    JNZSm(_jit->x.pc);
+    n_label = _jit->x.pc;
+    /* calculate once */
+    FPTAN_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is out of range */
+    TESTWir(FPSW_FINITE, _RAX);
+    JZSm(_jit->x.pc);
+    f_label = _jit->x.pc;
+    /* load pi*2 */
+    FLDPI_();
+    FADDrr(_ST0, _ST0);
+    /* swap top of stack */
+    FXCHr(_ST1);
+    /* calculate remainder */
+    r_label = _jit->x.pc;
+    FPREM1_();
+    FNSTSWr(_RAX);
+    /* if C2 is set, it means the value is partial */
+    TESTWir(FPSW_FINITE, _RAX);
+    JNZSm(r_label);
+    /* value in range now */
+    FSTPr(_ST1);
+    FPTAN_();
+    jit_patch_rel_char_at(f_label, _jit->x.pc);
+    /* remove 1.0 from top of stack */
+    FSTPr(_ST0);
+    /* 1.0 not in stack if argument is NaN or zero */
+    jit_patch_rel_char_at(n_label, _jit->x.pc);
+    /* restore %rax */
+#if __WORDSIZE == 32
+    jit_popr_i(_RAX);
+#else
+    jit_movr_l(_RAX, JIT_REXTMP);
+#endif
 }
 
 __jit_inline void
@@ -176,21 +335,17 @@ x87_tanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
      *	implementation, to not bother...
      */
     if (f0 == f1) {
-	if (f0 == _ST0) {
-	    FPTAN_();
-	    FSTPr(_ST0);
-	}
+	if (f0 == _ST0)
+	    x87_tan(_jit);
 	else {
 	    FXCHr(f0);
-	    FPTAN_();
-	    FSTPr(_ST0);
+	    x87_tan(_jit);
 	    FXCHr(f0);
 	}
     }
     else {
 	FLDr(f1);
-	FPTAN_();
-	FSTPr(_ST0);
+	x87_tan(_jit);
 	FSTPr((jit_fpr_t)(f0 + 1));
     }
 }
