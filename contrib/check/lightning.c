@@ -601,6 +601,7 @@ static void sqrtr_f(void);	static void sqrtr_d(void);
 static void sinr_f(void);	static void sinr_d(void);
 static void cosr_f(void);	static void cosr_d(void);
 static void tanr_f(void);	static void tanr_d(void);
+static void atanr_f(void);	static void atanr_d(void);
 #endif
 
 static void error(const char *format, ...) noreturn printf_format(1, 2);
@@ -1010,6 +1011,7 @@ static instr_t		  instr_vector[] = {
     entry(sinr_f),	entry(sinr_d),
     entry(cosr_f),	entry(cosr_d),
     entry(tanr_f),	entry(tanr_d),
+    entry(atanr_f),	entry(atanr_d),
 #endif
 #undef entry
 };
@@ -1908,6 +1910,7 @@ entry_fr_fr(sqrtr_f)		entry_fr_fr(sqrtr_d)
 entry_fr_fr(sinr_f)		entry_fr_fr(sinr_d)
 entry_fr_fr(cosr_f)		entry_fr_fr(cosr_d)
 entry_fr_fr(tanr_f)		entry_fr_fr(tanr_d)
+entry_fr_fr(atanr_f)		entry_fr_fr(atanr_d)
 #endif
 
 static void

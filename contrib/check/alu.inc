@@ -36,6 +36,8 @@ strcos:
 .c	"cos"
 strtan:
 .c	"tan"
+stratan:
+.c	"atan"
 fmti:
 .c	" i: %lx -> %lx %s %lx = %lx\n"
 fmtui:

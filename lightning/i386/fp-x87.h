@@ -348,6 +348,32 @@ x87_tanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
+x87_atan(jit_state_t _jit)
+{
+    FLD1_();
+    FPATAN_();
+}
+
+__jit_inline void
+x87_atanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    x87_atan(_jit);
+	else {
+	    FXCHr(f0);
+	    x87_atan(_jit);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	x87_atan(_jit);
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
 x87_addr_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
@@ -1754,8 +1780,6 @@ x87_bunordr_d(jit_state_t _jit,
 }
 
 #if 0
-#define jit_atn()	(FLD1_(), 			/* fld1 */ \
-			 FPATAN_())			/* fpatan */
 #define jit_exp()	(FLDL2E_(), 			/* fldl2e */ \
 			 FMULPr(_ST1), 			/* fmulp */ \
 			 FLDr(_ST0),			/* fld st */ \
