@@ -329,11 +329,6 @@ x87_tan(jit_state_t _jit)
 __jit_inline void
 x87_tanr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
-    /*	  After tan(_ST0), the fpu stack is, _ST0 == 1.0, _ST1 == arctangent
-     *	so, it calls FSTPr(_ST0) to pop the 1.0 and have the result in _ST0.
-     *	  Initial _ST0 value has limited range, but in this initial
-     *	implementation, to not bother...
-     */
     if (f0 == f1) {
 	if (f0 == _ST0)
 	    x87_tan(_jit);
