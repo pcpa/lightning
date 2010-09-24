@@ -40,6 +40,10 @@ stratan:
 .c	"atan"
 strlog:
 .c	"log"
+strlog2:
+.c	"log2"
+strlog10:
+.c	"log10"
 fmti:
 .c	" i: %lx -> %lx %s %lx = %lx\n"
 fmtui:

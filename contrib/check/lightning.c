@@ -603,6 +603,8 @@ static void cosr_f(void);	static void cosr_d(void);
 static void tanr_f(void);	static void tanr_d(void);
 static void atanr_f(void);	static void atanr_d(void);
 static void logr_f(void);	static void logr_d(void);
+static void log2r_f(void);	static void log2r_d(void);
+static void log10r_f(void);	static void log10r_d(void);
 #endif
 
 static void error(const char *format, ...) noreturn printf_format(1, 2);
@@ -1014,6 +1016,8 @@ static instr_t		  instr_vector[] = {
     entry(tanr_f),	entry(tanr_d),
     entry(atanr_f),	entry(atanr_d),
     entry(logr_f),	entry(logr_d),
+    entry(log2r_f),	entry(log2r_d),
+    entry(log10r_f),	entry(log10r_d),
 #endif
 #undef entry
 };
@@ -1914,6 +1918,8 @@ entry_fr_fr(cosr_f)		entry_fr_fr(cosr_d)
 entry_fr_fr(tanr_f)		entry_fr_fr(tanr_d)
 entry_fr_fr(atanr_f)		entry_fr_fr(atanr_d)
 entry_fr_fr(logr_f)		entry_fr_fr(logr_d)
+entry_fr_fr(log2r_f)		entry_fr_fr(log2r_d)
+entry_fr_fr(log10r_f)		entry_fr_fr(log10r_d)
 #endif
 
 static void

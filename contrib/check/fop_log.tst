@@ -5,7 +5,7 @@
 
 #define  LOG(N, T, I, V)			 FOPU(N, T, log, I, V)
 #define ULOG(N, T, I, V)			UFOPU(N, T, log, I, V)
-	LOG(0, f,	 0.0,		$nInf)
+	 LOG(0, f,	 0.0,		$nInf)
 	 LOG(1, f,	 2.0,		 0.69314718055994530943)
 	 LOG(2, f,	 0.5,		-0.69314718055994530943)
 	ULOG(3, f,	$Inf,		$Inf)

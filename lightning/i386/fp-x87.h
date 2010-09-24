@@ -401,6 +401,60 @@ x87_logr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
+x87_log2(jit_state_t _jit)
+{
+    FLD1_();
+    FXCHr(_ST1);
+    FYL2X_();
+}
+
+__jit_inline void
+x87_log2r_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    x87_log2(_jit);
+	else {
+	    FXCHr(f0);
+	    x87_log2(_jit);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	x87_log2(_jit);
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
+x87_log10(jit_state_t _jit)
+{
+    FLDLG2_();
+    FXCHr(_ST1);
+    FYL2X_();
+}
+
+__jit_inline void
+x87_log10r_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (f0 == f1) {
+	if (f0 == _ST0)
+	    x87_log10(_jit);
+	else {
+	    FXCHr(f0);
+	    x87_log10(_jit);
+	    FXCHr(f0);
+	}
+    }
+    else {
+	FLDr(f1);
+	x87_log10(_jit);
+	FSTPr((jit_fpr_t)(f0 + 1));
+    }
+}
+
+__jit_inline void
 x87_addr_d(jit_state_t _jit,
 	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {

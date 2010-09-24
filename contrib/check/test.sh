@@ -14,7 +14,8 @@ if [ -f $PROGRAM ]; then
 		alu_neg alu_not \
 		clobber \
 		fcvt fop_abs fop_sqrt \
-		fop_sin fop_cos fop_tan fop_atan fop_log;
+		fop_sin fop_cos fop_tan fop_atan \
+		fop_log fop_log2 fop_log10;
     do
 	if [ -f $test.tst ]; then
 	    $PROGRAM $test.tst
