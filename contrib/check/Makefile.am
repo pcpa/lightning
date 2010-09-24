@@ -24,3 +24,11 @@ lightning_LDADD = $(LIGHTNING_LIBS)
 
 lightning_SOURCES =		\
 	lightning.c
+
+# hackish schema to get it to build a loadable module to be
+# used with LD_PRELOAD for the test of calls to C functions
+functions_la_CFLAGS = -O0 -g3
+functions_la_LTLIBRARIES = functions.la
+functions_la_LDFLAGS = -module -avoid-version
+functions_la_SOURCES = functions.c
+functions_ladir = $(libdir)

@@ -54,12 +54,12 @@ __jit_inline void
 x86_retval_f(jit_state_t _jit,
 	     jit_fpr_t f0)
 {
-    if (f0 != JIT_FPRET) {
-	if (jit_sse_reg_p(f0))
-	    sse_from_x87_f(_jit, f0, JIT_FPRET);
-	else
-	    FSTPr((jit_fpr_t)(f0 + 1));
+    if (jit_sse_reg_p(f0)) {
+	FSTPr(_ST1);
+	sse_from_x87_f(_jit, f0, JIT_FPRET);
     }
+    else
+	FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 #define jit_retval_d(f0)		x86_retval_d(_jit, f0)
@@ -67,12 +67,12 @@ __jit_inline void
 x86_retval_d(jit_state_t _jit,
 	     jit_fpr_t f0)
 {
-    if (f0 != JIT_FPRET) {
-	if (jit_sse_reg_p(f0))
-	    sse_from_x87_d(_jit, f0, JIT_FPRET);
-	else
-	    FSTPr((jit_fpr_t)(f0 + 1));
+    if (jit_sse_reg_p(f0)) {
+	FSTPr(_ST1);
+	sse_from_x87_d(_jit, f0, JIT_FPRET);
     }
+    else
+	FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 #define jit_pusharg_f(f0)		x86_pusharg_f(_jit, f0)
@@ -80,12 +80,16 @@ __jit_inline void
 x86_pusharg_f(jit_state_t _jit,
 	      jit_fpr_t f0)
 {
-    int		argssize = (_jitl.argssize + 3) & ~3;
-    if (argssize != _jitl.argssize) {
-	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+    if (_jitl.argssize & ~3) {
+	/* only true if first argument to a function with
+	 * stack arguments not aligned at 16 bytes */
+	int	argssize = (_jitl.argssize + 3) & ~3;
+	jit_subi_i(JIT_SP, JIT_SP,
+		   ((argssize - _jitl.argssize) << 2) + sizeof(float));
 	_jitl.argssize = argssize;
     }
-    jit_subi_l(JIT_SP, JIT_SP, sizeof(float));
+    else
+	jit_subi_i(JIT_SP, JIT_SP, sizeof(float));
     jit_str_f(JIT_SP, f0);
 }
 
@@ -94,12 +98,16 @@ __jit_inline void
 x86_pusharg_d(jit_state_t _jit,
 	      jit_fpr_t f0)
 {
-    int		argssize = (_jitl.argssize + 3) & ~3;
-    if (argssize != _jitl.argssize) {
-	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+    if (_jitl.argssize & ~3) {
+	/* only true if first argument to a function with
+	 * stack arguments not aligned at 16 bytes */
+	int	argssize = (_jitl.argssize + 3) & ~3;
+	jit_subi_i(JIT_SP, JIT_SP,
+		   ((argssize - _jitl.argssize) << 2) + sizeof(double));
 	_jitl.argssize = argssize;
     }
-    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
+    else
+	jit_subi_i(JIT_SP, JIT_SP, sizeof(double));
     jit_str_d(JIT_SP, f0);
 }
 

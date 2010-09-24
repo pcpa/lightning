@@ -131,32 +131,14 @@ x86_ceilr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 #define jit_prolog_d(nf)		x86_prolog_f(_jit, nf)
 #define jit_prolog_f(nf)		x86_prolog_f(_jit, nf)
 __jit_inline void
-x86_prolog_f(jit_state_t _jit,
-	     int nf)
+x86_prolog_f(jit_state_t _jit, int nf)
 {
     /* update counter of float arguments */
     if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
-	/* need float arguments on stack */
-	int	argssize;
-
-	if ((argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
-	    argssize = 0;
-	argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
-	if (_jitl.argssize & 1)	{
-	    /* stack appears to be padded */
-	    _jitl.argssize = argssize;
-	    /* stack still appears to be padded? */
-	    if (!(_jitl.argssize & 1))
-		/* update state for aligned stack */
-		_jitl.framesize -= sizeof(double);
-	}
-	else {
-	    _jitl.argssize = argssize;
-	    /* stack appears to be padded now? */
-	    if (_jitl.argssize & 1)
-		/* update state for padded stack */
-		_jitl.framesize += sizeof(double);
-	}
+	/* have float arguments on stack */
+	if ((_jitl.argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
+	    _jitl.argssize = 0;
+	_jitl.argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
     }
 }
 
@@ -184,6 +166,14 @@ __jit_inline int
 x86_arg_f(jit_state_t _jit)
 {
     int		ofs;
+
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	PUSHQr(_RAX);
+	++_jitl.argssize;
+	_jitl.alloca_slack = sizeof(long);
+    }
     if (_jitl.nextarg_getfp < JIT_FP_ARG_MAX)
 	ofs = _jitl.nextarg_getfp++;
     else {
@@ -217,28 +207,66 @@ x86_getarg_d(jit_state_t _jit,
 
 #define jit_pusharg_f(f0)		x86_pusharg_f(_jit, f0)
 __jit_inline void
-x86_pusharg_f(jit_state_t _jit,
-	      jit_fpr_t f0)
+x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
-	jit_str_f(JIT_SP, f0);
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	    /* adjust and pass argument in stack */
+	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double) << 1);
+	    jit_str_f(JIT_SP, f0);
+	}
+	else {
+	    /* adjust stack and pass argument in register */
+	    PUSHQr(_RAX);
+	    jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+	}
+	++_jitl.argssize;
     }
-    else
-	jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+    else {
+	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	    /* pass argument in stack */
+	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
+	    jit_str_f(JIT_SP, f0);
+	}
+	else
+	    /* pass argument in register */
+	    jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+    }
+    assert(_jitl.nextarg_putfp >= 0);
 }
 
 #define jit_pusharg_d(f0)		x86_pusharg_d(_jit, f0)
 __jit_inline void
-x86_pusharg_d(jit_state_t _jit,
-	      jit_fpr_t f0)
+x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
-	jit_str_d(JIT_SP, f0);
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	    /* adjust and pass argument in stack */
+	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double) << 1);
+	    jit_str_d(JIT_SP, f0);
+	}
+	else {
+	    /* adjust stack and pass argument in register */
+	    PUSHQr(_RAX);
+	    jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+	}
+	++_jitl.argssize;
     }
-    else
-	jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+    else {
+	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	    /* pass argument in stack */
+	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
+	    jit_str_d(JIT_SP, f0);
+	}
+	else
+	    /* pass argument in register */
+	    jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
+    }
+    assert(_jitl.nextarg_putfp >= 0);
 }
 
 #endif /* __lightning_fp_h */

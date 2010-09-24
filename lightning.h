@@ -36,6 +36,7 @@
 #ifndef __lightning_h
 #define __lightning_h
 
+#include <assert.h>
 #include <sys/types.h>
 
 #if defined(__cplusplus)

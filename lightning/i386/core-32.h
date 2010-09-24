@@ -164,7 +164,7 @@ x86_finish(jit_state_t _jit,
 	   void *p0)
 {
     jit_calli(p0);
-    ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
+    jit_addi_i(JIT_SP, JIT_SP, _jitl.argssize << 2);
     _jitl.argssize = 0;
 
     return (_jitl.label);
@@ -176,21 +176,25 @@ x86_finishr(jit_state_t _jit,
 	    jit_gpr_t r0)
 {
     jit_callr(r0);
-    ADDLir(sizeof(long) * _jitl.argssize, JIT_SP);
+    jit_addi_i(JIT_SP, JIT_SP, _jitl.argssize << 2);
     _jitl.argssize = 0;
 }
 
 #define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
 __jit_inline void
-x86_pusharg_i(jit_state_t _jit,
-	      jit_gpr_t r0)
+x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    int		argssize = (_jitl.argssize + 3) & ~3;
-    if (argssize != _jitl.argssize) {
-	SUBLir((argssize - _jitl.argssize) << 2, JIT_SP);
+    if (_jitl.argssize & ~3) {
+	/* only true if first argument to a function with
+	 * stack arguments not aligned at 16 bytes */
+	int	argssize = (_jitl.argssize + 3) & ~3;
+	jit_subi_i(JIT_SP, JIT_SP,
+		   ((argssize - _jitl.argssize) << 2) + sizeof(int));
 	_jitl.argssize = argssize;
+	jit_str_i(JIT_SP, r0);
     }
-    PUSHLr(r0);
+    else
+	PUSHLr(r0);
 }
 
 #define jit_arg_i()			x86_arg_i(_jit)

@@ -240,6 +240,26 @@ x86_addr_i(jit_state_t _jit,
 	LEALmr(0, r1, r2, _SCL1, r0);
 }
 
+#define jit_subi_i(r0, r1, i0)		x86_subi_i(_jit, r0, r1, i0)
+__jit_inline void
+x86_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    if (i0 == 0)
+	jit_movr_i(r0, r1);
+    else if (i0 == 1) {
+	jit_movr_i(r0, r1);
+	DECLr(r0);
+    }
+    else if (i0 == -1) {
+	jit_movr_i(r0, r1);
+	INCLr(r0);
+    }
+    else if (r0 == r1)
+	SUBLir(i0, r0);
+    else
+	LEALmr(-i0, r1, _NOREG, _SCL1, r0);
+}
+
 #define jit_subr_i(r0, r1, r2)		x86_subr_i(_jit, r0, r1, r2)
 __jit_inline void
 x86_subr_i(jit_state_t _jit,

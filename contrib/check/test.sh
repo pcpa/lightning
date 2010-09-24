@@ -24,6 +24,10 @@ if [ -f $PROGRAM ]; then
 	    echo "$test.tst missing"
 	fi
     done
+
+    LD_PRELOAD=.libs/functions.so $PROGRAM c_call.tst
+    [ $? -ne 0 ] && echo "c_call.tst: Bad exit status"
+
 else
     echo "$PROGRAM missing"
     exit -1

@@ -66,11 +66,19 @@ jit_v_order[JIT_R_NUM] = {
 
 #define jit_allocai(n)			x86_allocai(_jit, n)
 __jit_inline int
-x86_allocai(jit_state_t _jit,
-	    int n)
+x86_allocai(jit_state_t _jit, int n)
 {
-    int		s = (_jitl.alloca_slack - n) & 15;
+    int		s;
 
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	PUSHQr(_RAX);
+	++_jitl.argssize;
+	_jitl.alloca_slack = sizeof(long);
+    }
+
+    s = (_jitl.alloca_slack - n) & 15;
     if (n >= _jitl.alloca_slack) {
 	_jitl.alloca_slack += n + s;
 	SUBQir(n + s, _RSP);
@@ -110,8 +118,7 @@ x86_movi_l(jit_state_t _jit,
 /* Return address is 8 bytes, plus 5 registers = 40 bytes, total = 48 bytes. */
 #define jit_prolog(n)			x86_prolog(_jit, n)
 __jit_inline void
-x86_prolog(jit_state_t _jit,
-	   int n)
+x86_prolog(jit_state_t _jit, int n)
 {
      /* counter of integer arguments */
     _jitl.nextarg_puti = n;
@@ -119,7 +126,7 @@ x86_prolog(jit_state_t _jit,
     _jitl.argssize = (_jitl.nextarg_puti > JIT_ARG_MAX)
 	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
     /* offset of stack arguments */
-    _jitl.framesize = (_jitl.argssize & 1) ? 56 : 48;
+    _jitl.framesize = 48;
     /* counter of float arguments */
     _jitl.nextarg_putfp = 0;
     /*offsets of arguments */
@@ -188,24 +195,9 @@ x86_prepare_i(jit_state_t _jit,
 	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
 }
 
-#define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
-#define jit_pusharg_l(r0)		x86_pusharg_i(_jit, r0)
-__jit_inline void
-x86_pusharg_i(jit_state_t _jit,
-	      jit_gpr_t r0)
-{
-    if (--_jitl.nextarg_puti >= JIT_ARG_MAX)
-	/* pass argument in stack */
-	PUSHQr(r0);
-    else
-	/* pass argument in register */
-	MOVQrr(r0, jit_arg_reg_order[_jitl.nextarg_puti]);
-}
-
 #define jit_finish(p0)			x86_finish(_jit, p0)
 __jit_inline jit_insn *
-x86_finish(jit_state_t _jit,
-	   void *p0)
+x86_finish(jit_state_t _jit, void *p0)
 {
     if (_jitl.fprssize) {
 	MOVBir(_jitl.fprssize, _RAX);
@@ -213,10 +205,7 @@ x86_finish(jit_state_t _jit,
     }
     else
 	MOVBir(0, _RAX);
-    if (_jitl.argssize & 1) {
-	PUSHQr(_RAX);
-	++_jitl.argssize;
-    }
+    assert(_jitl.nextarg_puti == 0 && _jitl.nextarg_putfp == 0);
     jit_calli(p0);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
@@ -228,8 +217,7 @@ x86_finish(jit_state_t _jit,
 
 #define jit_finishr(rs)			x86_finishr(_jit, rs)
 __jit_inline void
-x86_finishr(jit_state_t _jit,
-	    jit_gpr_t r0)
+x86_finishr(jit_state_t _jit, jit_gpr_t r0)
 {
     if (r0 == _RAX) {
 	/* clobbered with # of fp registers (for varargs) */
@@ -246,6 +234,7 @@ x86_finishr(jit_state_t _jit,
 	PUSHQr(_RAX);
 	++_jitl.argssize;
     }
+    assert(_jitl.nextarg_puti == 0 && _jitl.nextarg_putfp == 0);
     jit_callr(r0);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
@@ -320,6 +309,36 @@ x86_addr_l(jit_state_t _jit,
 	ADDQrr(r1, r0);
     else
 	LEAQmr(0, r1, r2, _SCL1, r0);
+}
+
+#define jit_subi_l(r0, r1, i0)		x86_subi_l(_jit, r0, r1, i0)
+__jit_inline void
+x86_subi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
+{
+    if (i0 == 0)
+	jit_movr_l(r0, r1);
+    else if (i0 == 1) {
+	jit_movr_l(r0, r1);
+	DECQr(r0);
+    }
+    else if (i0 == -1) {
+	jit_movr_l(r0, r1);
+	INCQr(r0);
+    }
+    else if (jit_can_sign_extend_int_p(i0)) {
+	if (r0 == r1)
+	    SUBQir(i0, r0);
+	else
+	    LEAQmr(-i0, r1, _NOREG, _SCL1, r0);
+    }
+    else if (r0 != r1) {
+	MOVQir(-i0, r0);
+	ADDQrr(r1, r0);
+    }
+    else {
+	MOVQir(i0, JIT_REXTMP);
+	SUBQrr(JIT_REXTMP, r0);
+    }
 }
 
 #define jit_subr_l(r0, r1, r2)		x86_subr_l(_jit, r0, r1, r2)
@@ -2161,6 +2180,38 @@ x86_extr_i_ul(jit_state_t _jit,
     MOVLrr(r1, r0);
 }
 
+#define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
+#define jit_pusharg_l(r0)		x86_pusharg_i(_jit, r0)
+__jit_inline void
+x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	if (--_jitl.nextarg_puti >= JIT_ARG_MAX) {
+	    /* adjust and pass argument in stack */
+	    jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
+	    jit_str_l(JIT_SP, r0);
+	}
+	else {
+	    /* adjust stack and pass argument in register */
+	    PUSHQr(_RAX);
+	    MOVQrr(r0, jit_arg_reg_order[_jitl.nextarg_puti]);
+	}
+	++_jitl.argssize;
+    }
+    else {
+	if (--_jitl.nextarg_puti >= JIT_ARG_MAX)
+	    /* pass argument in stack */
+	    PUSHQr(r0);
+	else {
+	    /* pass argument in register */
+	    MOVQrr(r0, jit_arg_reg_order[_jitl.nextarg_puti]);
+	}
+    }
+    assert(_jitl.nextarg_puti >= 0);
+}
+
 #define jit_retval_l(r0)		x86_retval_l(_jit, r0)
 __jit_inline void
 x86_retval_l(jit_state_t _jit,
@@ -2183,6 +2234,13 @@ x86_arg_i(jit_state_t _jit)
 {
     int		ofs;
 
+    if (_jitl.argssize & 1) {
+	/* true if first argument to a function with odd number
+	 * of arguments that also requires arguments on stack */
+	PUSHQr(_RAX);
+	++_jitl.argssize;
+	_jitl.alloca_slack = sizeof(long);
+    }
     if (_jitl.nextarg_geti < JIT_ARG_MAX) {
 	ofs = _jitl.nextarg_geti;
 	++_jitl.nextarg_geti;

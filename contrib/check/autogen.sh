@@ -7,4 +7,4 @@
 [ -f ChangeLog ] || touch ChangeLog
 
 autoreconf -v --install || exit 1
-./configure "$@"
+./configure --disable-static --enable-shared "$@"

@@ -2505,14 +2505,18 @@ number(int ch)
 		    neg = 1;
 		    continue;
 		}
-		if (offset && buffer[offset - 1] != 'e')
-		    goto fail;
+		if (offset && buffer[offset - 1] != 'e') {
+		    ungetch(ch);
+		    goto done;
+		}
 		break;
 	    case '+':
 		if (offset == 0)
 		    continue;
-		if (offset && buffer[offset - 1] != 'e')
-		    goto fail;
+		if (offset && buffer[offset - 1] != 'e') {
+		    ungetch(ch);
+		    goto done;
+		}
 		break;
 	    case '.':
 		if (d)
