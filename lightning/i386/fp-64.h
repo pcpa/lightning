@@ -134,23 +134,22 @@ __jit_inline void
 x86_prolog_f(jit_state_t _jit, int nf)
 {
     /* update counter of float arguments */
-    if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
+    if ((_jitl.fp_args += nf) > JIT_FP_ARG_MAX) {
 	/* have float arguments on stack */
-	if ((_jitl.argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
-	    _jitl.argssize = 0;
-	_jitl.argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
+	if ((_jitl.st_args = _jitl.gp_args - JIT_ARG_MAX) < 0)
+	    _jitl.st_args = 0;
+	_jitl.st_args += _jitl.fp_args - JIT_FP_ARG_MAX;
     }
 }
 
 #define jit_prepare_d(nf)		x86_prepare_f(_jit, nf)
 #define jit_prepare_f(nf)		x86_prepare_f(_jit, nf)
 __jit_inline void
-x86_prepare_f(jit_state_t _jit,
-	      int nf)
+x86_prepare_f(jit_state_t _jit, int nf)
 {
     if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
 	/* need floats on stack */
-	if ((_jitl.argssize = _jitl.nextarg_puti - JIT_ARG_MAX) < 0)
+	if ((_jitl.argssize = _jitl.gp_args - JIT_ARG_MAX) < 0)
 	    _jitl.argssize = 0;
 	_jitl.argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
 	_jitl.fprssize = JIT_FP_ARG_MAX;
@@ -167,11 +166,15 @@ x86_arg_f(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.argssize & 1) {
+    if (_jitl.st_args & 1) {
 	/* true if first argument to a function with odd number
 	 * of arguments that also requires arguments on stack */
 	PUSHQr(_RAX);
-	++_jitl.argssize;
+	++_jitl.st_args;
+
+	/* must call jit_allocai after aknowledging all arguments */
+	assert(_jitl.alloca_offset == 0);
+
 	_jitl.alloca_slack = sizeof(long);
     }
     if (_jitl.nextarg_getfp < JIT_FP_ARG_MAX)
@@ -234,6 +237,8 @@ x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 	    /* pass argument in register */
 	    jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
     }
+
+    /* only true if jit_prolog argument is less than jit_pusharg calls */
     assert(_jitl.nextarg_putfp >= 0);
 }
 
@@ -266,6 +271,8 @@ x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 	    /* pass argument in register */
 	    jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
     }
+
+    /* only true if jit_prolog argument is less than jit_pusharg calls */
     assert(_jitl.nextarg_putfp >= 0);
 }
 

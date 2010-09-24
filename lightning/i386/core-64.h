@@ -70,13 +70,10 @@ x86_allocai(jit_state_t _jit, int n)
 {
     int		s;
 
-    if (_jitl.argssize & 1) {
-	/* true if first argument to a function with odd number
-	 * of arguments that also requires arguments on stack */
-	PUSHQr(_RAX);
-	++_jitl.argssize;
-	_jitl.alloca_slack = sizeof(long);
-    }
+    /* jit_allocai() should really be called only once, but if called
+     * after aknowledging arguments and before any function call,
+     * multiple calls are not a problem; tests/allocai.c makes
+     * multiple calls */
 
     s = (_jitl.alloca_slack - n) & 15;
     if (n >= _jitl.alloca_slack) {
@@ -121,15 +118,15 @@ __jit_inline void
 x86_prolog(jit_state_t _jit, int n)
 {
      /* counter of integer arguments */
-    _jitl.nextarg_puti = n;
+    _jitl.gp_args = n;
     /* counter of stack arguments */
-    _jitl.argssize = (_jitl.nextarg_puti > JIT_ARG_MAX)
-	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
+    _jitl.st_args = (_jitl.gp_args > JIT_ARG_MAX)
+	? _jitl.gp_args - JIT_ARG_MAX : 0;
     /* offset of stack arguments */
     _jitl.framesize = 48;
     /* counter of float arguments */
-    _jitl.nextarg_putfp = 0;
-    /*offsets of arguments */
+    _jitl.fp_args = 0;
+    /* offsets of arguments */
     _jitl.nextarg_getfp = _jitl.nextarg_geti = 0;
     /* alloca information */
     _jitl.alloca_offset = _jitl.alloca_slack = 0;
@@ -183,13 +180,20 @@ x86_patch_calli(jit_state_t _jit,
 
 #define jit_prepare_i(ni)		x86_prepare_i(_jit, ni)
 __jit_inline void
-x86_prepare_i(jit_state_t _jit,
-	      int ni)
+x86_prepare_i(jit_state_t _jit, int ni)
 {
+    /* jit_prepare(n) should be called before optional jit_prepare_{f,d}(n) */
+
+    /* only true if called jit_prepare(n) and passed < n arguments */
+    assert(_jitl.nextarg_puti == 0);
+    assert(_jitl.nextarg_putfp == 0);
+    /* only true on nested jit_prepare call, or memory corruption */
+    assert(_jitl.fprssize == 0);
+    assert(_jitl.argssize == 0);
+
     /* offset of right to left integer argument */
     _jitl.nextarg_puti = ni;
-    /* float argument offset and register counter */
-    _jitl.nextarg_putfp = _jitl.fprssize = 0;
+
     /* argssize is used to keep track of stack slots used */
     _jitl.argssize = _jitl.nextarg_puti > JIT_ARG_MAX
 	? _jitl.nextarg_puti - JIT_ARG_MAX : 0;
@@ -205,7 +209,11 @@ x86_finish(jit_state_t _jit, void *p0)
     }
     else
 	MOVBir(0, _RAX);
-    assert(_jitl.nextarg_puti == 0 && _jitl.nextarg_putfp == 0);
+
+    /* only true if jit_prepare/jit_pusharg counters did not match */
+    assert(_jitl.nextarg_puti == 0);
+    assert(_jitl.nextarg_putfp == 0);
+
     jit_calli(p0);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
@@ -230,11 +238,11 @@ x86_finishr(jit_state_t _jit, jit_gpr_t r0)
     }
     else
 	MOVBir(0, _RAX);
-    if (_jitl.argssize & 1) {
-	PUSHQr(_RAX);
-	++_jitl.argssize;
-    }
-    assert(_jitl.nextarg_puti == 0 && _jitl.nextarg_putfp == 0);
+
+    /* only true if jit_prepare/jit_pusharg counters did not match */
+    assert(_jitl.nextarg_puti == 0);
+    assert(_jitl.nextarg_putfp == 0);
+
     jit_callr(r0);
     if (_jitl.argssize) {
 	ADDQir(sizeof(long) * _jitl.argssize, JIT_SP);
@@ -2209,6 +2217,8 @@ x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 	    MOVQrr(r0, jit_arg_reg_order[_jitl.nextarg_puti]);
 	}
     }
+
+    /* only true if jit_prolog argument is less than jit_pusharg calls */
     assert(_jitl.nextarg_puti >= 0);
 }
 
@@ -2234,11 +2244,15 @@ x86_arg_i(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.argssize & 1) {
+    if (_jitl.st_args & 1) {
 	/* true if first argument to a function with odd number
 	 * of arguments that also requires arguments on stack */
 	PUSHQr(_RAX);
-	++_jitl.argssize;
+	++_jitl.st_args;
+
+	/* must call jit_allocai after aknowledging all arguments */
+	assert(_jitl.alloca_offset == 0);
+
 	_jitl.alloca_slack = sizeof(long);
     }
     if (_jitl.nextarg_geti < JIT_ARG_MAX) {
