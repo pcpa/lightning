@@ -77,16 +77,16 @@ x86_retval_d(jit_state_t _jit,
 
 #define jit_pusharg_f(f0)		x86_pusharg_f(_jit, f0)
 __jit_inline void
-x86_pusharg_f(jit_state_t _jit,
-	      jit_fpr_t f0)
+x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (_jitl.argssize & ~3) {
+    int		pad = _jitl.argssize & 3;
+
+    if (pad) {
 	/* only true if first argument to a function with
 	 * stack arguments not aligned at 16 bytes */
-	int	argssize = (_jitl.argssize + 3) & ~3;
-	jit_subi_i(JIT_SP, JIT_SP,
-		   ((argssize - _jitl.argssize) << 2) + sizeof(float));
-	_jitl.argssize = argssize;
+	pad = 4 - pad;
+	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(float));
+	_jitl.argssize += pad;
     }
     else
 	jit_subi_i(JIT_SP, JIT_SP, sizeof(float));
@@ -95,16 +95,16 @@ x86_pusharg_f(jit_state_t _jit,
 
 #define jit_pusharg_d(f0)		x86_pusharg_d(_jit, f0)
 __jit_inline void
-x86_pusharg_d(jit_state_t _jit,
-	      jit_fpr_t f0)
+x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (_jitl.argssize & ~3) {
+    int		pad = _jitl.argssize & 3;
+
+    if (pad) {
 	/* only true if first argument to a function with
 	 * stack arguments not aligned at 16 bytes */
-	int	argssize = (_jitl.argssize + 3) & ~3;
-	jit_subi_i(JIT_SP, JIT_SP,
-		   ((argssize - _jitl.argssize) << 2) + sizeof(double));
-	_jitl.argssize = argssize;
+	pad = 4 - pad;
+	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(double));
+	_jitl.argssize += pad;
     }
     else
 	jit_subi_i(JIT_SP, JIT_SP, sizeof(double));

@@ -184,13 +184,14 @@ x86_finishr(jit_state_t _jit,
 __jit_inline void
 x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    if (_jitl.argssize & ~3) {
+    int		pad = _jitl.argssize & 3;
+
+    if (pad) {
 	/* only true if first argument to a function with
 	 * stack arguments not aligned at 16 bytes */
-	int	argssize = (_jitl.argssize + 3) & ~3;
-	jit_subi_i(JIT_SP, JIT_SP,
-		   ((argssize - _jitl.argssize) << 2) + sizeof(int));
-	_jitl.argssize = argssize;
+	pad = 4 - pad;
+	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(int));
+	_jitl.argssize += pad;
 	jit_str_i(JIT_SP, r0);
     }
     else
