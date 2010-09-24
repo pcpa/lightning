@@ -251,7 +251,7 @@ typedef union jit_code {
 #  define jit_subi_i(d, rs, is)		jit_addi_i((d), (rs), -(is))
 #endif
 #ifndef jit_subi_l
-#  define jit_subi_l(d, rs, is)		jit_addi_l((d), (rs), -(is))
+#  define jit_subi_l(d, rs, is)		jit_subi_i((d), (rs), (is))
 #endif
 #define jit_rsbr_f(d, s1, s2)		jit_subr_f((d), (s2), (s1))
 #define jit_rsbr_d(d, s1, s2)		jit_subr_d((d), (s2), (s1))
