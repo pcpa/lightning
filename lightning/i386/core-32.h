@@ -89,8 +89,8 @@ x86_prolog(jit_state_t _jit, int n)
     PUSHLr(_RBX);
     PUSHLr(_RSI);
     PUSHLr(_RDI);
-    PUSHLr(_RBP);
-    MOVLrr(_RSP, _RBP);
+    PUSHLr(JIT_FP);
+    MOVLrr(JIT_SP, JIT_FP);
 
     /*   Inline emit of stack align/adjust so that arguments can be passed
      * relative to %esp and can be patched on the fly when jit_allocai

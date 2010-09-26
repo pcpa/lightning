@@ -793,8 +793,8 @@ x87_movi_f(jit_state_t _jit,
 	FSTPr((jit_fpr_t)(f0 + 1));
     else {
 	jit_pushi_i(data.i);
-	x87_ldr_f(_jit, f0, _RSP);
-	jit_addi_l(_RSP, _RSP, sizeof(long));
+	x87_ldr_f(_jit, f0, JIT_SP);
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
     }
 }
 
@@ -843,8 +843,8 @@ x87_movi_d(jit_state_t _jit,
 	PUSHLi(data.i[1]);
 	PUSHLi(data.i[0]);
 #endif
-	x87_ldr_d(_jit, f0, _RSP);
-	jit_addi_l(_RSP, _RSP, 8);
+	x87_ldr_d(_jit, f0, JIT_SP);
+	jit_addi_l(JIT_SP, JIT_SP, 8);
     }
 }
 
@@ -871,7 +871,7 @@ x87_extr_i_d(jit_state_t _jit,
 	     jit_fpr_t f0, jit_gpr_t r0)
 {
     jit_pushr_i(r0);
-    FILDLm(0, _RSP, _NOREG, _SCL1);
+    FILDLm(0, JIT_SP, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
     jit_popr_i(r0);
 }
@@ -883,10 +883,10 @@ x87_rintr_d_i(jit_state_t _jit,
     jit_pushr_i(_RAX);
     /* store integer using current rounding mode */
     if (f0 == _ST0)
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
 	FXCHr(f0);
     }
     jit_popr_i(r0);
@@ -988,7 +988,7 @@ x87_386_roundr_d_i(jit_state_t _jit,
     FSTPr(_ST1);
 
     /* store value and pop x87 stack */
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
 
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
@@ -1002,7 +1002,7 @@ x87_safe_roundr_d_i(jit_state_t _jit,
     jit_insn	*label;
 
     /* make room on stack and save %rax */
-    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
     if (r0 != _RAX)
 	MOVLrr(_RAX, r0);
 
@@ -1010,11 +1010,11 @@ x87_safe_roundr_d_i(jit_state_t _jit,
     FLDr(f0);
 
     /* store control word */
-    FSTCWm(0, _RSP, _NOREG, _SCL1);
+    FSTCWm(0, JIT_SP, _NOREG, _SCL1);
     /* load control word */
-    jit_ldr_s(_RAX, _RSP);
+    jit_ldr_s(_RAX, JIT_SP);
     /* make copy */
-    jit_stxi_s(sizeof(long), _RSP, _RAX);
+    jit_stxi_s(sizeof(long), JIT_SP, _RAX);
 
     /* clear top bits and select chop (truncate mode) */
     MOVZBLrr(_RAX, _RAX);
@@ -1025,8 +1025,8 @@ x87_safe_roundr_d_i(jit_state_t _jit,
 #endif
 
     /* load new control word */
-    jit_str_s(_RSP, _RAX);
-    FLDCWm(0, _RSP, _NOREG, _SCL1);
+    jit_str_s(JIT_SP, _RAX);
+    FLDCWm(0, JIT_SP, _NOREG, _SCL1);
 
     /* compare with 0 */
     FTST_();
@@ -1049,14 +1049,14 @@ x87_safe_roundr_d_i(jit_state_t _jit,
     FADDPr(_ST1);
 
     /* round adjusted value using truncation */
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
 
     /* load result and restore state */
-    FLDCWm(sizeof(long), _RSP, _NOREG, _SCL1);
+    FLDCWm(sizeof(long), JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
-    jit_ldr_i(r0, _RSP);
-    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+    jit_ldr_i(r0, JIT_SP);
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -1074,10 +1074,10 @@ x87_i386_truncr_d_i(jit_state_t _jit,
 		    jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, _NOREG, _SCL1);
-    jit_ldr_s(r0, _RSP);
-    jit_stxi_s(sizeof(long), _RSP, r0);
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
+    FSTCWm(0, JIT_SP, _NOREG, _SCL1);
+    jit_ldr_s(r0, JIT_SP);
+    jit_stxi_s(sizeof(long), JIT_SP, r0);
 
     /* clear top bits and select chop (round towards zero) */
     if (jit_reg8_p(r0))
@@ -1093,20 +1093,20 @@ x87_i386_truncr_d_i(jit_state_t _jit,
 #endif
 
     /* load new control word and convert integer */
-    jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, _NOREG, _SCL1);
+    jit_str_s(JIT_SP, r0);
+    FLDCWm(0, JIT_SP, _NOREG, _SCL1);
     if (f0 == _ST0)
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
 	FXCHr(f0);
     }
 
     /* load result and restore state */
-    FLDCWm(sizeof(long), _RSP, _NOREG, _SCL1);
-    jit_ldr_i(r0, _RSP);
-    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+    FLDCWm(sizeof(long), JIT_SP, _NOREG, _SCL1);
+    jit_ldr_i(r0, JIT_SP);
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -1115,7 +1115,7 @@ x87_i686_truncr_d_i(jit_state_t _jit,
 {
     jit_pushr_i(_RAX);
     FLDr(f0);
-    FISTTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTTPLm(0, JIT_SP, _NOREG, _SCL1);
     jit_popr_i(r0);
 }
 
@@ -1135,10 +1135,10 @@ x87_safe_floorr_d_i(jit_state_t _jit,
 		    jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, _NOREG, _SCL1);
-    jit_ldr_s(r0, _RSP);
-    jit_stxi_s(sizeof(long), _RSP, r0);
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
+    FSTCWm(0, JIT_SP, _NOREG, _SCL1);
+    jit_ldr_s(r0, JIT_SP);
+    jit_stxi_s(sizeof(long), JIT_SP, r0);
 
     /* clear top bits and select down (round towards minus infinity) */
     if (jit_reg8_p(r0))
@@ -1152,21 +1152,21 @@ x87_safe_floorr_d_i(jit_state_t _jit,
 #endif
 
     /* load new control word and convert integer */
-    jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, _NOREG, _SCL1);
+    jit_str_s(JIT_SP, r0);
+    FLDCWm(0, JIT_SP, _NOREG, _SCL1);
 
     if (f0 == _ST0)
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
 	FXCHr(f0);
     }
 
     /* load integer and restore state */
-    FLDCWm(sizeof(long), _RSP, _NOREG, _SCL1);
-    jit_ldr_i(r0, _RSP);
-    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+    FLDCWm(sizeof(long), JIT_SP, _NOREG, _SCL1);
+    jit_ldr_i(r0, JIT_SP);
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -1189,7 +1189,7 @@ x87_i386_floorr_d_i(jit_state_t _jit,
     FLD1_();
     FSUBRPr(_ST1);
     jit_patch_rel_char_at(label, _jit->x.pc);
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_popr_i(r0);
@@ -1212,7 +1212,7 @@ x87_i686_floorr_d_i(jit_state_t _jit,
     FCOMIr((jit_fpr_t)(f0 + 1));
     FXCHr((jit_fpr_t)(f0 + 1));
     /* store integer */
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     jit_popr_i(r0);
     JPESm(_jit->x.pc + 3);
     label = _jit->x.pc;
@@ -1240,10 +1240,10 @@ x87_safe_ceilr_d_i(jit_state_t _jit,
 		   jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
-    jit_subi_l(_RSP, _RSP, sizeof(long) << 1);
-    FSTCWm(0, _RSP, _NOREG, _SCL1);
-    jit_ldr_s(r0, _RSP);
-    jit_stxi_s(sizeof(long), _RSP, r0);
+    jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
+    FSTCWm(0, JIT_SP, _NOREG, _SCL1);
+    jit_ldr_s(r0, JIT_SP);
+    jit_stxi_s(sizeof(long), JIT_SP, r0);
 
     /* clear top bits and select up (round towards positive infinity) */
     if (jit_reg8_p(r0))
@@ -1257,20 +1257,20 @@ x87_safe_ceilr_d_i(jit_state_t _jit,
 #endif
 
     /* load new control word and convert integer */
-    jit_str_s(_RSP, r0);
-    FLDCWm(0, _RSP, _NOREG, _SCL1);
+    jit_str_s(JIT_SP, r0);
+    FLDCWm(0, JIT_SP, _NOREG, _SCL1);
     if (f0 == _ST0)
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
     else {
 	FXCHr(f0);
-	FISTLm(0, _RSP, _NOREG, _SCL1);
+	FISTLm(0, JIT_SP, _NOREG, _SCL1);
 	FXCHr(f0);
     }
 
     /* load integer and restore state */
-    FLDCWm(sizeof(long), _RSP, _NOREG, _SCL1);
-    jit_ldr_i(r0, _RSP);
-    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+    FLDCWm(sizeof(long), JIT_SP, _NOREG, _SCL1);
+    jit_ldr_i(r0, JIT_SP);
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 }
 
 __jit_inline void
@@ -1293,7 +1293,7 @@ x87_i386_ceilr_d_i(jit_state_t _jit,
     FLD1_();
     FADDPr(_ST1);
     jit_patch_rel_char_at(label, _jit->x.pc);
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
 	XCHGLrr(_RAX, r0);
     jit_popr_i(r0);
@@ -1314,7 +1314,7 @@ x87_i686_ceilr_d_i(jit_state_t _jit,
     /* compare and set flags */
     FCOMIr((jit_fpr_t)(f0 + 1));
     /* store integer */
-    FISTPLm(0, _RSP, _NOREG, _SCL1);
+    FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     jit_popr_i(r0);
     JPESm(_jit->x.pc + 4);
     label = _jit->x.pc;

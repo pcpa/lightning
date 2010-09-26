@@ -341,8 +341,8 @@ sse_movi_f(jit_state_t _jit,
     else {
 #if __WORDSIZE == 32
 	jit_pushi_i(data.i);
-	sse_ldr_f(_jit, f0, _RSP);
-	jit_addi_l(_RSP, _RSP, sizeof(long));
+	sse_ldr_f(_jit, f0, JIT_SP);
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
 #else
 	jit_movi_i(JIT_REXTMP, data.i);
 	MOVDLXrr(JIT_REXTMP, f0);
@@ -366,8 +366,8 @@ sse_movi_d(jit_state_t _jit,
 #if __WORDSIZE == 32
 	jit_pushi_i(data.i[1]);
 	jit_pushi_i(data.i[0]);
-	sse_ldr_d(_jit, f0, _RSP);
-	jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+	sse_ldr_d(_jit, f0, JIT_SP);
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 #else
 	jit_movi_l(JIT_REXTMP, data.l);
 	MOVDQXrr(JIT_REXTMP, f0);
@@ -488,14 +488,14 @@ sse_negr_f(jit_state_t _jit,
 #if __WORDSIZE == 32
     jit_pushi_i(0x80000000);
     if (f0 == f1) {
-	sse_ldr_f(_jit, JIT_FPTMP0, _RSP);
+	sse_ldr_f(_jit, JIT_FPTMP0, JIT_SP);
 	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
-	sse_ldr_f(_jit, f0, _RSP);
+	sse_ldr_f(_jit, f0, JIT_SP);
 	XORPSrr(f1, f0);
     }
-    jit_addi_l(_RSP, _RSP, sizeof(long));
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
 #else
     jit_movi_i(JIT_REXTMP, 0x80000000);
     if (f0 == f1) {
@@ -517,14 +517,14 @@ sse_negr_d(jit_state_t _jit,
     jit_pushi_i(0x80000000);
     jit_pushi_i(0);
     if (f0 == f1) {
-	sse_ldr_d(_jit, JIT_FPTMP0, _RSP);
+	sse_ldr_d(_jit, JIT_FPTMP0, JIT_SP);
 	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
-	sse_ldr_d(_jit, f0, _RSP);
+	sse_ldr_d(_jit, f0, JIT_SP);
 	XORPSrr(f1, f0);
     }
-    jit_addi_l(_RSP, _RSP, sizeof(long) << 1);
+    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 #else
     jit_movi_l(JIT_REXTMP, 0x8000000000000000);
     if (f0 == f1) {
@@ -542,23 +542,23 @@ __jit_inline void
 sse_rnd_enter(jit_state_t _jit,
 	      jit_gpr_t r0, int mode)
 {
-    jit_subi_l(_RSP, _RSP, 8);
-    STMXCSRrm(0, _RSP, _NOREG, _SCL1);
-    jit_ldr_i(r0, _RSP);
-    jit_stxi_i(4, _RSP, r0);
+    jit_subi_l(JIT_SP, JIT_SP, 8);
+    STMXCSRrm(0, JIT_SP, _NOREG, _SCL1);
+    jit_ldr_i(r0, JIT_SP);
+    jit_stxi_i(4, JIT_SP, r0);
     jit_andi_i(r0, r0, ~MXCSR_RND_MASK);
     if (mode)
 	jit_ori_i(r0, r0, mode);
-    jit_str_i(_RSP, r0);
-    LDMXCSRmr(0, _RSP, _NOREG, _SCL1);
+    jit_str_i(JIT_SP, r0);
+    LDMXCSRmr(0, JIT_SP, _NOREG, _SCL1);
 }
 
 __jit_inline void
 sse_rnd_leave(jit_state_t _jit,
 	      int extra)
 {
-    LDMXCSRmr(4, _RSP, _NOREG, _SCL1);
-    jit_addi_l(_RSP, _RSP, 8 + extra);
+    LDMXCSRmr(4, JIT_SP, _NOREG, _SCL1);
+    jit_addi_l(JIT_SP, JIT_SP, 8 + extra);
 }
 
 __jit_inline void
@@ -614,20 +614,20 @@ sse_roundr_f_i(jit_state_t _jit,
 	sse_extr_i_f(_jit, JIT_FPTMP0, r0);
 	/* check difference of fractional part with value in stack */
 	SUBSSrr(f0, JIT_FPTMP0);
-	UCOMISSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	UCOMISSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
 	JNESm(_jit->x.pc);
 	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_f(_jit, JIT_FPTMP0, f0);
-	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_f_i(_jit, r0, JIT_FPTMP0);
 	jit_patch_rel_char_at(label, _jit->x.pc);
-	jit_addi_l(_RSP, _RSP, sizeof(long));
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
     }
     else {
 	sse_movr_f(_jit, JIT_FPTMP0, f0);
-	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rnd_enter(_jit, r0, MXCSR_RND_CHOP);
 	sse_rintr_f_i(_jit, r0, JIT_FPTMP0);
 	sse_rnd_leave(_jit, sizeof(long));
@@ -656,20 +656,20 @@ sse_roundr_f_l(jit_state_t _jit,
 	sse_extr_l_f(_jit, JIT_FPTMP0, r0);
 	/* check difference of fractional part with value in stack */
 	SUBSSrr(f0, JIT_FPTMP0);
-	UCOMISSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	UCOMISSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
 	JNESm(_jit->x.pc);
 	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_f(_jit, JIT_FPTMP0, f0);
-	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_f_l(_jit, r0, JIT_FPTMP0);
 	jit_patch_rel_char_at(label, _jit->x.pc);
-	jit_addi_l(_RSP, _RSP, sizeof(long));
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
     }
     else {
 	sse_movr_f(_jit, JIT_FPTMP0, f0);
-	SUBSSmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSSmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rnd_enter(_jit, r0, MXCSR_RND_CHOP);
 	sse_rintr_f_l(_jit, r0, JIT_FPTMP0);
 	sse_rnd_leave(_jit, sizeof(long));
@@ -704,20 +704,20 @@ sse_roundr_d_i(jit_state_t _jit,
 	sse_extr_i_d(_jit, JIT_FPTMP0, r0);
 	/* check difference of fractional part with value in stack */
 	SUBSDrr(f0, JIT_FPTMP0);
-	UCOMISDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	UCOMISDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
 	JNESm(_jit->x.pc);
 	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_d(_jit, JIT_FPTMP0, f0);
-	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_d_i(_jit, r0, JIT_FPTMP0);
 	jit_patch_rel_char_at(label, _jit->x.pc);
-	jit_addi_l(_RSP, _RSP, sizeof(double));
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(double));
     }
     else {
 	sse_movr_d(_jit, JIT_FPTMP0, f0);
-	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rnd_enter(_jit, r0, MXCSR_RND_CHOP);
 	sse_rintr_d_i(_jit, r0, JIT_FPTMP0);
 	sse_rnd_leave(_jit, sizeof(double));
@@ -747,20 +747,20 @@ sse_roundr_d_l(jit_state_t _jit,
 	sse_extr_l_d(_jit, JIT_FPTMP0, r0);
 	/* check difference of fractional part with value in stack */
 	SUBSDrr(f0, JIT_FPTMP0);
-	UCOMISDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	UCOMISDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	/* if not zero round is already correct */
 	JNESm(_jit->x.pc);
 	label = _jit->x.pc;
 	/* adjust and round again */
 	sse_movr_d(_jit, JIT_FPTMP0, f0);
-	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rintr_d_l(_jit, r0, JIT_FPTMP0);
 	jit_patch_rel_char_at(label, _jit->x.pc);
-	jit_addi_l(_RSP, _RSP, sizeof(double));
+	jit_addi_l(JIT_SP, JIT_SP, sizeof(double));
     }
     else {
 	sse_movr_d(_jit, JIT_FPTMP0, f0);
-	SUBSDmr(0, _RSP, _NOREG, _SCL1, JIT_FPTMP0);
+	SUBSDmr(0, JIT_SP, _NOREG, _SCL1, JIT_FPTMP0);
 	sse_rnd_enter(_jit, r0, MXCSR_RND_CHOP);
 	sse_rintr_d_l(_jit, r0, JIT_FPTMP0);
 	sse_rnd_leave(_jit, sizeof(double));

@@ -78,7 +78,7 @@ x86_allocai(jit_state_t _jit, int n)
     s = (_jitl.alloca_slack - n) & 15;
     if (n >= _jitl.alloca_slack) {
 	_jitl.alloca_slack += n + s;
-	SUBQir(n + s, _RSP);
+	SUBQir(n + s, JIT_SP);
     }
     _jitl.alloca_slack -= n;
     return (_jitl.alloca_offset -= n);
@@ -135,8 +135,8 @@ x86_prolog(jit_state_t _jit, int n)
     PUSHQr(_R12);
     PUSHQr(_R13);
     PUSHQr(_R14);
-    PUSHQr(_RBP);
-    MOVQrr(_RSP, _RBP);
+    PUSHQr(JIT_FP);
+    MOVQrr(JIT_SP, JIT_FP);
 }
 
 #define jit_ret()			x86_ret(_jit)
