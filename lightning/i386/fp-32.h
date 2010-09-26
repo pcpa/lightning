@@ -79,52 +79,44 @@ x86_retval_d(jit_state_t _jit,
 __jit_inline void
 x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 {
-    int		pad = _jitl.argssize & 3;
-
-    if (pad) {
-	/* only true if first argument to a function with
-	 * stack arguments not aligned at 16 bytes */
-	pad = 4 - pad;
-	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(float));
-	_jitl.argssize += pad;
-    }
-    else
-	jit_subi_i(JIT_SP, JIT_SP, sizeof(float));
-    jit_str_f(JIT_SP, f0);
+    _jitl.stack_offset -= sizeof(float);
+    assert(_jitl.stack_offset >= 0);
+    jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
 }
 
 #define jit_pusharg_d(f0)		x86_pusharg_d(_jit, f0)
 __jit_inline void
 x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
-    int		pad = _jitl.argssize & 3;
-
-    if (pad) {
-	/* only true if first argument to a function with
-	 * stack arguments not aligned at 16 bytes */
-	pad = 4 - pad;
-	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(double));
-	_jitl.argssize += pad;
-    }
-    else
-	jit_subi_i(JIT_SP, JIT_SP, sizeof(double));
-    jit_str_d(JIT_SP, f0);
+    _jitl.stack_offset -= sizeof(double);
+    assert(_jitl.stack_offset >= 0);
+    jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
 }
 
 #define jit_prepare_f(nf)		x86_prepare_f(_jit, nf)
 __jit_inline void
-x86_prepare_f(jit_state_t _jit,
-	      int nf)
+x86_prepare_f(jit_state_t _jit, int count)
 {
-    _jitl.argssize += nf;
+    assert(count >= 0);
+    _jitl.stack_offset += count << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	*_jitl.stack = 12 + ((_jitl.alloca_offset +
+			      _jitl.stack_length + 16) & ~15);
+    }
 }
 
 #define jit_prepare_d(nd)		x86_prepare_d(_jit, nd)
 __jit_inline void
-x86_prepare_d(jit_state_t _jit,
-	      int nd)
+x86_prepare_d(jit_state_t _jit, int count)
 {
-    _jitl.argssize += nd << 1;
+    assert(count >= 0);
+    _jitl.stack_offset += count << 3;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	*_jitl.stack = 12 + ((_jitl.alloca_offset +
+			      _jitl.stack_length + 16) & ~15);
+    }
 }
 
 #define jit_arg_f()			x86_arg_f(_jit)

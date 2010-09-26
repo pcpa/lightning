@@ -111,9 +111,10 @@ struct {
 #if defined(__i386__) && !defined(__x86_64__)
 struct jit_local_state {
     int		 framesize;
-    int		 argssize;
-    int		 alloca_offset;
-    int		 alloca_slack;
+    int		 alloca_offset;	/* alloca offset from %ebp */
+    int		 stack_length;	/* maximum number of arguments */
+    int		 stack_offset;	/* argument offset */
+    int		*stack;		/* patch address for immediate %esp adjust */
     jit_insn	*label;
 };
 #elif defined(__x86_64__)

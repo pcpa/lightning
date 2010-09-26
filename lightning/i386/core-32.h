@@ -83,18 +83,34 @@ x86_patch_at(jit_state_t _jit,
 
 #define jit_prolog(n)			x86_prolog(_jit, n)
 __jit_inline void
-x86_prolog(jit_state_t _jit,
-	   int n)
+x86_prolog(jit_state_t _jit, int n)
 {
     _jitl.framesize = 20;
-    _jitl.alloca_offset = 0;
-    _jitl.alloca_slack = 12;
     PUSHLr(_RBX);
     PUSHLr(_RSI);
     PUSHLr(_RDI);
     PUSHLr(_RBP);
     MOVLrr(_RSP, _RBP);
-    SUBLir(12, JIT_SP);
+
+    /*   Inline emit of stack align/adjust so that arguments can be passed
+     * relative to %esp and can be patched on the fly when jit_allocai
+     * or jit_prepare* are called.
+     *   Note that it is inlined here so that if jit_allocai or
+     * jit_prepare* are never called, it is already correct, and also,
+     * this avoids a possibly not reliable check on jit_ret, as the
+     * jit code may end in a call to abort or a longjump, etc, what
+     * are valid cases to not need to call jit_ret.
+     *   Also, it cannot call SUBLir(12, JIT_SP) because that would emit
+     * a shorter opcode, with a byte immediate. */
+    _O(0x81);
+    _Mrm(_b11, X86_SUB, _rA(JIT_SP));
+    _jit_I(12);
+
+    /*   Relies on knowledge of opcode format, that has the int32 argument
+     * last. Note that patching does not care about alignment, and this
+     * int32 may not be 4 bytes aligned. */
+    _jitl.stack = ((int *)_jit->x.pc) - 1;
+    _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
 }
 
 #define jit_ret()			x86_ret(_jit)
@@ -110,33 +126,31 @@ x86_ret(jit_state_t _jit)
 
 #define jit_allocai(n)			x86_allocai(_jit, n)
 __jit_inline int
-x86_allocai(jit_state_t _jit,
-	    int n)
+x86_allocai(jit_state_t _jit, int length)
 {
-    int		s = (_jitl.alloca_slack - n) & 15;
-    if (n >= _jitl.alloca_slack) {
-	_jitl.alloca_slack += n + s;
-	if (n + s == sizeof(int))
-	    PUSHLr(_RAX);
-	else
-	    SUBLir(n + s, _RSP);
-    }
-    _jitl.alloca_slack -= n;
-    return (_jitl.alloca_offset -= n);
+    assert(length >= 0);
+    _jitl.alloca_offset += length;
+    if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
+	*_jitl.stack += (length + 16) & ~15;
+    return (-_jitl.alloca_offset);
 }
 
 #define jit_prepare_i(ni)		x86_prepare_i(_jit, ni)
 __jit_inline void
-x86_prepare_i(jit_state_t _jit,
-	      int ni)
+x86_prepare_i(jit_state_t _jit, int count)
 {
-    _jitl.argssize = ni;
+    assert(count >= 0 && _jitl.stack_offset == 0);
+    _jitl.stack_offset = count << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	*_jitl.stack = 12 + ((_jitl.alloca_offset +
+			      _jitl.stack_length + 16) & ~15);
+    }
 }
 
 #define jit_calli(p0)			x86_calli(_jit, p0)
 __jit_inline jit_insn *
-x86_calli(jit_state_t _jit,
-	  void *p0)
+x86_calli(jit_state_t _jit, void *p0)
 {
     CALLm(p0);
     return (_jitl.label = _jit->x.pc);
@@ -144,8 +158,7 @@ x86_calli(jit_state_t _jit,
 
 #define jit_callr(r0)			x86_callr(_jit, r0)
 __jit_inline void
-x86_callr(jit_state_t _jit,
-	  jit_gpr_t r0)
+x86_callr(jit_state_t _jit, jit_gpr_t r0)
 {
     CALLsr(r0);
 }
@@ -160,42 +173,20 @@ x86_patch_calli(jit_state_t _jit,
 
 #define jit_finish(p0)			x86_finish(_jit, p0)
 __jit_inline jit_insn *
-x86_finish(jit_state_t _jit,
-	   void *p0)
+x86_finish(jit_state_t _jit, void *p0)
 {
+    assert(_jitl.stack_offset == 0);
     jit_calli(p0);
-    jit_addi_i(JIT_SP, JIT_SP, _jitl.argssize << 2);
-    _jitl.argssize = 0;
 
     return (_jitl.label);
 }
 
 #define jit_finishr(r0)			x86_finishr(_jit, r0)
 __jit_inline void
-x86_finishr(jit_state_t _jit,
-	    jit_gpr_t r0)
+x86_finishr(jit_state_t _jit, jit_gpr_t r0)
 {
+    assert(_jitl.stack_offset == 0);
     jit_callr(r0);
-    jit_addi_i(JIT_SP, JIT_SP, _jitl.argssize << 2);
-    _jitl.argssize = 0;
-}
-
-#define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
-__jit_inline void
-x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
-{
-    int		pad = _jitl.argssize & 3;
-
-    if (pad) {
-	/* only true if first argument to a function with
-	 * stack arguments not aligned at 16 bytes */
-	pad = 4 - pad;
-	jit_subi_i(JIT_SP, JIT_SP, (pad << 2) + sizeof(int));
-	_jitl.argssize += pad;
-	jit_str_i(JIT_SP, r0);
-    }
-    else
-	PUSHLr(r0);
 }
 
 #define jit_arg_i()			x86_arg_i(_jit)
@@ -478,6 +469,15 @@ x86_stxi_i(jit_state_t _jit,
 	   long i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     MOVLrm(r1, i0, r0, _NOREG, _SCL1);
+}
+
+#define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
+__jit_inline void
+x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    _jitl.stack_offset -= sizeof(int);
+    assert(_jitl.stack_offset >= 0);
+    jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
 }
 
 #endif /* __lightning_core_h */
