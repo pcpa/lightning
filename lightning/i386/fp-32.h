@@ -102,7 +102,7 @@ x86_prepare_f(jit_state_t _jit, int count)
     if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
-			      _jitl.stack_length + 16) & ~15);
+			      _jitl.stack_length + 15) & ~15);
     }
 }
 
@@ -115,7 +115,7 @@ x86_prepare_d(jit_state_t _jit, int count)
     if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
-			      _jitl.stack_length + 16) & ~15);
+			      _jitl.stack_length + 15) & ~15);
     }
 }
 

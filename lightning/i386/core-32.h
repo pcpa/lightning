@@ -131,7 +131,7 @@ x86_allocai(jit_state_t _jit, int length)
     assert(length >= 0);
     _jitl.alloca_offset += length;
     if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
-	*_jitl.stack += (length + 16) & ~15;
+	*_jitl.stack += (length + 15) & ~15;
     return (-_jitl.alloca_offset);
 }
 
@@ -144,7 +144,7 @@ x86_prepare_i(jit_state_t _jit, int count)
     if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
-			      _jitl.stack_length + 16) & ~15);
+			      _jitl.stack_length + 15) & ~15);
     }
 }
 
