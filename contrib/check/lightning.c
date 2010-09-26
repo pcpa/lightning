@@ -35,6 +35,10 @@
 #  include <dlfcn.h>
 #endif
 
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
+#  include <fpu_control.h>
+#endif
+
 #if defined(__GNUC__)
 #  define noreturn		__attribute__ ((noreturn))
 #  define printf_format(f, v)	__attribute__ ((format (printf, f, v)))
@@ -4349,6 +4353,20 @@ main(int argc, char *argv[])
     parser.string = (char *)xmalloc(parser.length = 4096);
 
     labels = new_hash();
+
+#if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
+    /*	double precision		0x200
+     *	round nearest			0x000
+     *	invalid operation mask		0x001
+     *	denormalized operand mask	0x002
+     *	zero divide mask		0x004
+     *	precision (inexact) mask	0x020
+     */
+    {
+	fpu_control_t fpu_control = 0x027f;
+	_FPU_SETCW(fpu_control);
+    }
+#endif
 
     parse();
 #if PREPROCESSOR
