@@ -34,16 +34,32 @@
 #endif
 
 #include <stdio.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
-static char codeBuffer[1024];
+char *codeBuffer;
 
 typedef int (*pifii)(int, int);	/* Pointer to Int Function of Int, Int */
 
 int main()
 {
-  pifii myFunction= (pifii) (jit_set_ip(codeBuffer).iptr);
+  pifii myFunction;
   int	arg;				/* offset of the argument */
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
+
+  myFunction = (pifii) (jit_set_ip(codeBuffer).iptr);
 
   jit_leaf(2);
   arg = jit_arg_i();

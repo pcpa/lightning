@@ -15,6 +15,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef int (* stakumilo_t) (int);
@@ -29,9 +30,22 @@ static stakumilo_t
 generate_push_pop (void)
 {
   static const char msg[] = "we got %i\n";
-  static char buffer[1024];
+  char *buffer;
   stakumilo_t result;
   int arg;
+  int retval;
+  
+  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(buffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   result = (stakumilo_t)(jit_set_ip (buffer).ptr);
   jit_prolog (1);

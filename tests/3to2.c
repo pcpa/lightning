@@ -36,10 +36,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 #ifdef JIT_FPR
-static jit_insn codeBuffer[1024];
+jit_insn *codeBuffer;
 
 double
 test_double (int a, int b, int c)
@@ -104,6 +105,20 @@ test_int (int a, int b, int c)
 int
 main ()
 {
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
+
   test_double (JIT_FPR0, JIT_FPR0, JIT_FPR0);
   test_double (JIT_FPR0, JIT_FPR0, JIT_FPR1);
   test_double (JIT_FPR0, JIT_FPR1, JIT_FPR0);

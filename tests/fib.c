@@ -34,9 +34,10 @@
 #endif
 
 #include <stdio.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
-static jit_insn codeBuffer[1024];
+jit_insn *codeBuffer;
 
 typedef int (*pifi)(int);	/* Pointer to Int Function of Int */
 
@@ -45,6 +46,21 @@ int main()
   pifi      nfibs = (pifi) (jit_set_ip(codeBuffer).iptr);
   int	    in;				/* offset of the argument */
   jit_insn  *ref;			/* to patch the forward reference */
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
+
+  nfibs = (pifi) (jit_set_ip(codeBuffer).iptr);
 
         jit_prolog   (1);
   in =  jit_arg_ui   ();

@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef int (* int_return_int_t) (int);
@@ -28,11 +29,24 @@ static int_return_int_t
 generate_function_proxy (int_return_int_t func)
 {
   static const char failure_message[] = "numbers don't add up to zero\n";
-  static char buffer[1024];
+  char *buffer;
+  int retval;
 
   int_return_int_t result;
   int arg, arg_offset, argneg_offset;
   jit_insn *branch;
+
+  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(buffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   result = (int_return_int_t)(jit_set_ip (buffer).ptr);
   jit_prolog (1);

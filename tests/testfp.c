@@ -35,10 +35,11 @@
 #endif
 
 #include <stdio.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 #ifdef JIT_FPR
-static jit_insn codeBuffer[300];
+jit_insn *codeBuffer;
 static double a;
 
 void
@@ -56,6 +57,20 @@ main()
 {
   jit_code code;
   volatile double x = 0.0;
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
+
   code.ptr = (char *) codeBuffer;
 
   jit_set_ip(codeBuffer);

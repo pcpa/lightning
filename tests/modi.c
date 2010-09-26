@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef int (* mod_t) (int);
@@ -20,9 +21,22 @@ typedef int (* mod_t) (int);
 mod_t
 generate_modi (int operand)
 {
-  static char buffer[1024];
+  char *buffer;
   mod_t result;
   int arg;
+  int retval;
+
+  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(buffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   result = (mod_t)(jit_set_ip (buffer).iptr);
   jit_leaf (1);

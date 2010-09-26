@@ -39,10 +39,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 
 #include "lightning.h"
 
-static jit_insn codeBuffer[1024];
+jit_insn *codeBuffer;
 
 typedef int (*pifi) (int);	/* Pointer to Int Function of Int */
 
@@ -440,6 +441,19 @@ main ()
 {
   pifi c2f, f2c;
   int i;
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   jit_set_ip (codeBuffer);
   c2f = compile_rpn ("32 x 9 * 5 / +");

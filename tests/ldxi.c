@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef char (* loader_t) (int);
@@ -22,9 +23,22 @@ typedef char (* loader_t) (int);
 static loader_t
 generate_ldxi_big_operand (const void *operand)
 {
-  static char buffer[1024];
+  char *buffer;
   loader_t result;
   int arg;
+  int retval;
+
+  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(buffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   /* printf ("si?=%i ui?=%i\n", _siP (16, operand), _uiP (16, operand)); */
 

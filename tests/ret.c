@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef int (* int_return_int_t) (int);
@@ -26,9 +27,22 @@ identity (int arg)
 static int_return_int_t
 generate_function_proxy (int_return_int_t func)
 {
-  static char buffer[1024];
+  char *buffer;
   int_return_int_t result;
   int arg;
+  int retval;
+  
+  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(buffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   result = (int_return_int_t)(jit_set_ip (buffer).ptr);
   jit_prolog (1);

@@ -36,6 +36,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 typedef int (*pifi)(int);
@@ -45,10 +46,25 @@ void test(void);
 
 int main(void)
 {
-  jit_insn *codeBuffer = calloc(1, 1024);
+  jit_insn *codeBuffer;
   pifi incr = (pifi) (jit_set_ip(codeBuffer).iptr);
   int in;
-     
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
+
+  incr = (pifi) (jit_set_ip(codeBuffer).iptr);
+
   jit_leaf(1);
   in = jit_arg_i();
   jit_getarg_i(JIT_R0, in);

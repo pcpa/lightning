@@ -35,10 +35,11 @@
 #endif
 
 #include <stdio.h>
+#include <sys/mman.h>
 #include "lightning.h"
 
 #ifdef JIT_FPR
-static jit_insn codeBuffer[300];
+jit_insn *codeBuffer;
 
 typedef int (*intFunc) (int, int);
 typedef double (*dblFunc) (double, double);
@@ -162,6 +163,19 @@ main (int argc, char *argv[])
   floatFunc myFunc3, callIt2;
   double y;
   float a, b, z;
+  int retval;
+
+  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  if (retval != 0) {
+    perror("posix_memalign");
+    exit(0);
+  }
+  retval = mprotect(codeBuffer, getpagesize(),
+                    PROT_READ | PROT_WRITE | PROT_EXEC);
+  if (retval != 0) {
+    perror("mprotect");
+    exit(0);
+  }
 
   jit_set_ip (codeBuffer);
   myFunc2 = makeDblFunc ();
