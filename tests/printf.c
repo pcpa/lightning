@@ -84,8 +84,8 @@ int main()
   disassemble(stderr, codeBuffer, end);
 #endif
 #ifndef LIGHTNING_CROSS
-  /* call the generated code, passing its size as argument */
-  myFunction(sizeof(codeBuffer));
+  /* call the generated code, with a dummy argument */
+  myFunction(1024);
 #endif
   return 0;
 }
