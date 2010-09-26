@@ -111,6 +111,7 @@ struct {
 #if defined(__i386__) && !defined(__x86_64__)
 struct jit_local_state {
     int		 framesize;
+    int		 float_offset;	/* %ebp offset for float conversion */
     int		 alloca_offset;	/* alloca offset from %ebp */
     int		 stack_length;	/* maximum number of arguments */
     int		 stack_offset;	/* argument offset */

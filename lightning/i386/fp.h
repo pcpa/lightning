@@ -61,9 +61,45 @@
  * work when using it on operations that do not include an sse
  * register.
  */
+#if __WORDSIZE == 32
 __jit_inline void
-sse_from_x87_f(jit_state_t _jit,
-	       jit_fpr_t f0, jit_fpr_t f1)
+sse_from_x87_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    x87_stxi_f(_jit, _jitl.float_offset, JIT_FP, f1);
+    sse_ldxi_f(_jit, f0, JIT_FP, _jitl.float_offset);
+}
+
+__jit_inline void
+sse_from_x87_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    x87_stxi_d(_jit, _jitl.float_offset, JIT_FP, f1);
+    sse_ldxi_d(_jit, f0, JIT_FP, _jitl.float_offset);
+}
+
+__jit_inline void
+x87_from_sse_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    sse_stxi_f(_jit, _jitl.float_offset, JIT_FP, f1);
+    x87_ldxi_f(_jit, f0, JIT_FP, _jitl.float_offset);
+}
+
+__jit_inline void
+x87_from_sse_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
+{
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    sse_stxi_d(_jit, _jitl.float_offset, JIT_FP, f1);
+    x87_ldxi_d(_jit, f0, JIT_FP, _jitl.float_offset);
+}
+#else
+__jit_inline void
+sse_from_x87_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_subi_l(JIT_SP, JIT_SP, sizeof(long));
     x87_str_f(_jit, JIT_SP, f1);
@@ -72,8 +108,7 @@ sse_from_x87_f(jit_state_t _jit,
 }
 
 __jit_inline void
-sse_from_x87_d(jit_state_t _jit,
-	       jit_fpr_t f0, jit_fpr_t f1)
+sse_from_x87_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
     x87_str_d(_jit, JIT_SP, f1);
@@ -82,8 +117,7 @@ sse_from_x87_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_from_sse_f(jit_state_t _jit,
-	       jit_fpr_t f0, jit_fpr_t f1)
+x87_from_sse_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_subi_l(JIT_SP, JIT_SP, sizeof(long));
     sse_str_f(_jit, JIT_SP, f1);
@@ -92,14 +126,14 @@ x87_from_sse_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_from_sse_d(jit_state_t _jit,
-	       jit_fpr_t f0, jit_fpr_t f1)
+x87_from_sse_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
     sse_str_d(_jit, JIT_SP, f1);
     x87_ldr_d(_jit, f0, JIT_SP);
     jit_addi_l(JIT_SP, JIT_SP, sizeof(double));
 }
+#endif
 
 #define jit_absr_f(f0, f1)		x86_absr_f(_jit, f0, f1)
 __jit_inline void

@@ -328,8 +328,7 @@ sse_stxi_d(jit_state_t _jit,
 }
 
 __jit_inline void
-sse_movi_f(jit_state_t _jit,
-	   jit_fpr_t f0, float i0)
+sse_movi_f(jit_state_t _jit, jit_fpr_t f0, float i0)
 {
     union {
 	int	i;
@@ -340,9 +339,10 @@ sse_movi_f(jit_state_t _jit,
 	XORPSrr(f0, f0);
     else {
 #if __WORDSIZE == 32
-	jit_pushi_i(data.i);
-	sse_ldr_f(_jit, f0, JIT_SP);
-	jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
+	if (_jitl.float_offset == 0)
+	    _jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	MOVLim(data.i, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
+	sse_ldxi_f(_jit, f0, JIT_FP, _jitl.float_offset);
 #else
 	jit_movi_i(JIT_REXTMP, data.i);
 	MOVDLXrr(JIT_REXTMP, f0);
@@ -351,8 +351,7 @@ sse_movi_f(jit_state_t _jit,
 }
 
 __jit_inline void
-sse_movi_d(jit_state_t _jit,
-	   jit_fpr_t f0, double i0)
+sse_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
 {
     union {
 	int	i[2];
@@ -364,10 +363,11 @@ sse_movi_d(jit_state_t _jit,
 	XORPDrr(f0, f0);
     else {
 #if __WORDSIZE == 32
-	jit_pushi_i(data.i[1]);
-	jit_pushi_i(data.i[0]);
-	sse_ldr_d(_jit, f0, JIT_SP);
-	jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
+	if (_jitl.float_offset == 0)
+	    _jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	MOVLim(data.i[0], _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
+	MOVLim(data.i[1], _jitl.float_offset + 4, JIT_FP, _NOREG, _SCL1);
+	sse_ldxi_d(_jit, f0, JIT_FP, _jitl.float_offset);
 #else
 	jit_movi_l(JIT_REXTMP, data.l);
 	MOVDQXrr(JIT_REXTMP, f0);
@@ -482,20 +482,20 @@ sse_sqrtr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-sse_negr_f(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1)
+sse_negr_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
 #if __WORDSIZE == 32
-    jit_pushi_i(0x80000000);
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    MOVLim(0x80000000, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
     if (f0 == f1) {
-	sse_ldr_f(_jit, JIT_FPTMP0, JIT_SP);
+	sse_ldxi_f(_jit, JIT_FPTMP0, JIT_FP, _jitl.float_offset);
 	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
-	sse_ldr_f(_jit, f0, JIT_SP);
+	sse_ldxi_f(_jit, f0, JIT_FP, _jitl.float_offset);
 	XORPSrr(f1, f0);
     }
-    jit_addi_l(JIT_SP, JIT_SP, sizeof(long));
 #else
     jit_movi_i(JIT_REXTMP, 0x80000000);
     if (f0 == f1) {
@@ -510,21 +510,21 @@ sse_negr_f(jit_state_t _jit,
 }
 
 __jit_inline void
-sse_negr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1)
+sse_negr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
 #if __WORDSIZE == 32
-    jit_pushi_i(0x80000000);
-    jit_pushi_i(0);
+    if (_jitl.float_offset == 0)
+	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+    MOVLim(0, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
+    MOVLim(0x80000000, _jitl.float_offset + 4, JIT_FP, _NOREG, _SCL1);
     if (f0 == f1) {
-	sse_ldr_d(_jit, JIT_FPTMP0, JIT_SP);
+	sse_ldxi_d(_jit, JIT_FPTMP0, JIT_FP, _jitl.float_offset);
 	XORPSrr(JIT_FPTMP0, f0);
     }
     else {
-	sse_ldr_d(_jit, f0, JIT_SP);
+	sse_ldxi_d(_jit, f0, JIT_FP, _jitl.float_offset);
 	XORPSrr(f1, f0);
     }
-    jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 #else
     jit_movi_l(JIT_REXTMP, 0x8000000000000000);
     if (f0 == f1) {

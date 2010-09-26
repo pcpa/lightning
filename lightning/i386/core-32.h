@@ -111,6 +111,7 @@ x86_prolog(jit_state_t _jit, int n)
      * int32 may not be 4 bytes aligned. */
     _jitl.stack = ((int *)_jit->x.pc) - 1;
     _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
+    _jitl.float_offset = 0;
 }
 
 #define jit_ret()			x86_ret(_jit)
