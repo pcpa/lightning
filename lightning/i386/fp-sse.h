@@ -340,7 +340,8 @@ sse_movi_f(jit_state_t _jit, jit_fpr_t f0, float i0)
     else {
 #if __WORDSIZE == 32
 	if (_jitl.float_offset == 0)
-	    _jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	    _jitl.float_offset = jit_allocai(8 +
+					     (4 - (_jitl.alloca_offset & 3)));
 	MOVLim(data.i, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
 	sse_ldxi_f(_jit, f0, JIT_FP, _jitl.float_offset);
 #else
@@ -364,7 +365,8 @@ sse_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
     else {
 #if __WORDSIZE == 32
 	if (_jitl.float_offset == 0)
-	    _jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	    _jitl.float_offset = jit_allocai(8 +
+					     (4 - (_jitl.alloca_offset & 3)));
 	MOVLim(data.i[0], _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
 	MOVLim(data.i[1], _jitl.float_offset + 4, JIT_FP, _NOREG, _SCL1);
 	sse_ldxi_d(_jit, f0, JIT_FP, _jitl.float_offset);
@@ -486,7 +488,7 @@ sse_negr_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
 #if __WORDSIZE == 32
     if (_jitl.float_offset == 0)
-	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	_jitl.float_offset = jit_allocai(8 + (4 - (_jitl.alloca_offset & 3)));
     MOVLim(0x80000000, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
     if (f0 == f1) {
 	sse_ldxi_f(_jit, JIT_FPTMP0, JIT_FP, _jitl.float_offset);
@@ -514,7 +516,7 @@ sse_negr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
 #if __WORDSIZE == 32
     if (_jitl.float_offset == 0)
-	_jitl.float_offset = jit_allocai(8 + (4 - _jitl.alloca_offset & 3));
+	_jitl.float_offset = jit_allocai(8 + (4 - (_jitl.alloca_offset & 3)));
     MOVLim(0, _jitl.float_offset, JIT_FP, _NOREG, _SCL1);
     MOVLim(0x80000000, _jitl.float_offset + 4, JIT_FP, _NOREG, _SCL1);
     if (f0 == f1) {
