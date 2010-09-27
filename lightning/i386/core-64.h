@@ -890,38 +890,63 @@ x86_divr_l_(jit_state_t _jit,
 {
     jit_gpr_t	div;
 
-    div = (r2 == _RAX || r2 == _RDX) ? JIT_REXTMP : r2;
-    if (r0 == _RAX)
+    if (r0 != _RDX)
 	jit_pushr_l(_RDX);
-    else if (r0 == _RDX)
+    if (r0 != _RAX)
 	jit_pushr_l(_RAX);
-    else if (div == JIT_REXTMP) {
-	jit_pushr_l(_RAX);
-	jit_pushr_l(_RDX);
+
+    if (r2 == _RAX) {
+	if (r0 == _RAX || r0 == _RDX) {
+	    div = JIT_REXTMP;
+	    MOVQrr(_RAX, div);
+	    if (r1 != _RAX)
+		MOVQrr(r1, _RAX);
+	}
+	else {
+	    if (r0 == r1)
+		XCHGQrr(_RAX, r0);
+	    else {
+		if (r0 != _RAX)
+		    MOVQrr(_RAX, r0);
+		if (r1 != _RAX)
+		    MOVQrr(r1, _RAX);
+	    }
+	    div = r0;
+	}
+    }
+    else if (r2 == _RDX) {
+	if (r0 == _RAX || r0 == _RDX) {
+	    div = JIT_REXTMP;
+	    MOVQrr(_RDX, div);
+	    if (r1 != _RAX)
+		MOVQrr(r1, _RAX);
+	}
+	else {
+	    if (r1 != _RAX)
+		MOVQrr(r1, _RAX);
+	    MOVQrr(_RDX, r0);
+	    div = r0;
+	}
     }
     else {
-	jit_pushr_l(_RDX);
-	MOVQrr(_RAX, JIT_REXTMP);
+	if (r1 != _RAX)
+	    MOVQrr(r1, _RAX);
+	div = r2;
     }
-    jit_movr_l(div, r2);
-    jit_movr_l(_RAX, r1);
 
     if (is_signed) {
 	CQO_();
 	IDIVQr(div);
     }
     else {
-	XORQrr(_RDX, _RDX);
+	XORLrr(_RDX, _RDX);
 	DIVQr(div);
     }
 
     if (r0 != _RAX) {
 	if (is_divide)
 	    MOVQrr(_RAX, r0);
-	if (div == JIT_REXTMP)
-	    jit_popr_l(_RAX);
-	else
-	    MOVQrr(JIT_REXTMP, _RAX);
+	jit_popr_l(_RAX);
     }
     if (r0 != _RDX) {
 	if (!is_divide)

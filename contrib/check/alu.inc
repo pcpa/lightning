@@ -233,6 +233,28 @@ OP##T##N##rc2_0##R0##R1##R2:				\
 	ERROR##T(OP, R2, R1, R0, V)			\
 OP##T##N##rc2_1##R0##R1##R2:
 
+/* reg0 = reg1 op reg1 */
+#define ALURC3(N, T, OP, I0, V, R0, R1, R2)		\
+	movi_##T %R0 I0					\
+	movr_##T %R1 %R1				\
+	OP##r_##T %R0 %R1 %R1				\
+	bnei_##T OP##T##N##rc3_0##R0##R1##R2 %R0 V	\
+	beqr_##T OP##T##N##rc3_1##R0##R1##R2 %R1 %R2	\
+OP##T##N##rc3_0##R0##R1##R2:				\
+	ERROR##T(OP, R2, R1, R0, V)			\
+OP##T##N##rc3_1##R0##R1##R2:
+
+/* reg0 = reg2 op reg2 */
+#define ALURC4(N, T, OP, I0, V, R0, R1, R2)		\
+	movi_##T %R0 I0					\
+	movr_##T %R2 %R2				\
+	OP##r_##T %R0 %R2 %R2				\
+	bnei_##T OP##T##N##rc4_0##R0##R1##R2 %R0 V	\
+	beqr_##T OP##T##N##rc4_1##R0##R1##R2 %R1 %R2	\
+OP##T##N##rc4_0##R0##R1##R2:				\
+	ERROR##T(OP, R2, R1, R0, V)			\
+OP##T##N##rc4_1##R0##R1##R2:
+
 /* reg0 = reg0 op im */
 #define ALUIC(N, T, OP, I0, I1, V, R0, R1, R2)		\
 	movi_##T %R0 I0					\
@@ -272,9 +294,14 @@ OP##T##N##ic_##R0##R1##R2:
 	ALU3(N, T, OP, I0, I1, V, r0, r1, r2)
 
 /*====================================================================*/
-#define  ALUC1(N, T, OP, I0, V, R0, R1, R2)		\
+#define ALUC0(N, T, OP, I0, V, R0, R1, R2)		\
 	ALURC2(N, T, OP, I0, V, R0, R1, R2)		\
-	ALURC2(N, T, OP, I0, V, R0, R2, R1)
+	ALURC3(N, T, OP, I0, V, R0, R1, R2)		\
+	ALURC4(N, T, OP, I0, V, R0, R1, R2)
+
+#define  ALUC1(N, T, OP, I0, V, R0, R1, R2)		\
+	ALUC0(N, T, OP, I0, V, R0, R1, R2)		\
+	ALUC0(N, T, OP, I0, V, R0, R2, R1)
 
 #define ALUC2(N, T, OP, I0, V, R0, R1, R2)		\
 	ALUC1(N, T, OP, I0, V, R0, R1, R2)		\
