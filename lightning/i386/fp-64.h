@@ -131,32 +131,33 @@ x86_ceilr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 #define jit_prolog_d(nf)		x86_prolog_f(_jit, nf)
 #define jit_prolog_f(nf)		x86_prolog_f(_jit, nf)
 __jit_inline void
-x86_prolog_f(jit_state_t _jit, int nf)
+x86_prolog_f(jit_state_t _jit, int count)
 {
-    /* update counter of float arguments */
-    if ((_jitl.fp_args += nf) > JIT_FP_ARG_MAX) {
-	/* have float arguments on stack */
-	if ((_jitl.st_args = _jitl.gp_args - JIT_ARG_MAX) < 0)
-	    _jitl.st_args = 0;
-	_jitl.st_args += _jitl.fp_args - JIT_FP_ARG_MAX;
-    }
+    /* Space reserved to add assertions about prolog*
+     * matching arg* and getarg* calls */
 }
 
 #define jit_prepare_d(nf)		x86_prepare_f(_jit, nf)
 #define jit_prepare_f(nf)		x86_prepare_f(_jit, nf)
 __jit_inline void
-x86_prepare_f(jit_state_t _jit, int nf)
+x86_prepare_f(jit_state_t _jit, int count)
 {
-    if ((_jitl.nextarg_putfp += nf) > JIT_FP_ARG_MAX) {
-	/* need floats on stack */
-	if ((_jitl.argssize = _jitl.gp_args - JIT_ARG_MAX) < 0)
-	    _jitl.argssize = 0;
-	_jitl.argssize += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
+    assert(count >= 0);
+    _jitl.nextarg_putfp += count;
+    if (_jitl.nextarg_putfp > JIT_FP_ARG_MAX) {
+	if ((count = (_jitl.nextarg_puti - JIT_ARG_MAX)) < 0)
+	    count = 0;
+	count += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
+	_jitl.stack_offset = count << 3;
+	if (_jitl.stack_length < _jitl.stack_offset) {
+	    _jitl.stack_length = _jitl.stack_offset;
+	    *_jitl.stack = (_jitl.alloca_offset +
+			    _jitl.stack_length + 15) & ~15;
+	}
 	_jitl.fprssize = JIT_FP_ARG_MAX;
     }
     else
-	/* update counter of float argument registers */
-	_jitl.fprssize += nf;
+	_jitl.fprssize += count;
 }
 
 #define jit_arg_d()			x86_arg_f(_jit)
@@ -166,30 +167,19 @@ x86_arg_f(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.st_args & 1) {
-	/* true if first argument to a function with odd number
-	 * of arguments that also requires arguments on stack */
-	PUSHQr(_RAX);
-	++_jitl.st_args;
-
-	/* must call jit_allocai after aknowledging all arguments */
-	assert(_jitl.alloca_offset == 0);
-
-	_jitl.alloca_slack = sizeof(long);
-    }
     if (_jitl.nextarg_getfp < JIT_FP_ARG_MAX)
 	ofs = _jitl.nextarg_getfp++;
     else {
 	ofs = _jitl.framesize;
 	_jitl.framesize += sizeof(double);
     }
+
     return (ofs);
 }
 
 #define jit_getarg_f(f0, ofs)		x86_getarg_f(_jit, f0, ofs)
 __jit_inline void
-x86_getarg_f(jit_state_t _jit,
-	     jit_fpr_t f0, int ofs)
+x86_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_FP_ARG_MAX)
 	jit_movr_f(f0, (jit_fpr_t)(_XMM0 + ofs));
@@ -199,8 +189,7 @@ x86_getarg_f(jit_state_t _jit,
 
 #define jit_getarg_d(f0, ofs)		x86_getarg_d(_jit, f0, ofs)
 __jit_inline void
-x86_getarg_d(jit_state_t _jit,
-	     jit_fpr_t f0, int ofs)
+x86_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_FP_ARG_MAX)
 	jit_movr_d(f0, (jit_fpr_t)(_XMM0 + ofs));
@@ -212,68 +201,28 @@ x86_getarg_d(jit_state_t _jit,
 __jit_inline void
 x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (_jitl.argssize & 1) {
-	/* true if first argument to a function with odd number
-	 * of arguments that also requires arguments on stack */
-	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	    /* adjust and pass argument in stack */
-	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double) << 1);
-	    jit_str_f(JIT_SP, f0);
-	}
-	else {
-	    /* adjust stack and pass argument in register */
-	    PUSHQr(_RAX);
-	    jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
-	}
-	++_jitl.argssize;
+    assert(_jitl.nextarg_putfp > 0);
+    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	_jitl.stack_offset -= sizeof(double);
+	assert(_jitl.stack_offset >= 0);
+	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
     }
-    else {
-	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	    /* pass argument in stack */
-	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
-	    jit_str_f(JIT_SP, f0);
-	}
-	else
-	    /* pass argument in register */
-	    jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
-    }
-
-    /* only true if jit_prolog argument is less than jit_pusharg calls */
-    assert(_jitl.nextarg_putfp >= 0);
+    else
+	jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
 }
 
 #define jit_pusharg_d(f0)		x86_pusharg_d(_jit, f0)
 __jit_inline void
 x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
-    if (_jitl.argssize & 1) {
-	/* true if first argument to a function with odd number
-	 * of arguments that also requires arguments on stack */
-	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	    /* adjust and pass argument in stack */
-	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double) << 1);
-	    jit_str_d(JIT_SP, f0);
-	}
-	else {
-	    /* adjust stack and pass argument in register */
-	    PUSHQr(_RAX);
-	    jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
-	}
-	++_jitl.argssize;
+    assert(_jitl.nextarg_putfp > 0);
+    if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
+	_jitl.stack_offset -= sizeof(double);
+	assert(_jitl.stack_offset >= 0);
+	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
     }
-    else {
-	if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
-	    /* pass argument in stack */
-	    jit_subi_l(JIT_SP, JIT_SP, sizeof(double));
-	    jit_str_d(JIT_SP, f0);
-	}
-	else
-	    /* pass argument in register */
-	    jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
-    }
-
-    /* only true if jit_prolog argument is less than jit_pusharg calls */
-    assert(_jitl.nextarg_putfp >= 0);
+    else
+	jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
 }
 
 #endif /* __lightning_fp_h */

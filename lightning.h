@@ -125,14 +125,13 @@ struct jit_local_state {
     int		 nextarg_putfp;
     int		 nextarg_geti;
     int		 nextarg_puti;
-    int		 gp_args;	/* sum of register/stack int args */
-    int		 fp_args;	/* sum of register/stack float args */
-    int		 st_args;	/* number of arguments in stack */
     int		 framesize;
-    int		 argssize;
     int		 fprssize;
+    int		 float_offset;
     int		 alloca_offset;
-    int		 alloca_slack;
+    int		 stack_length;
+    int		 stack_offset;
+    int		*stack;
     jit_insn	*label;
 };
 #elif defined(__ppc__)
