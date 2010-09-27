@@ -483,12 +483,8 @@ __jit_inline void
 x86_xorr_i(jit_state_t _jit,
 	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r1 == r2) {
-	if (r0 != r1)
-	    MOVLrr(r1, r0);
-	else
-	    XORLrr(r0, r0);
-    }
+    if (r1 == r2)
+	XORLrr(r0, r0);
     else if (r0 == r1)
 	XORLrr(r2, r0);
     else if (r0 == r2)
