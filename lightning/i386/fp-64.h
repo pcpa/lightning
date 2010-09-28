@@ -149,7 +149,9 @@ x86_prepare_f(jit_state_t _jit, int count)
 	    count = 0;
 	count += _jitl.nextarg_putfp - JIT_FP_ARG_MAX;
 	_jitl.stack_offset = count << 3;
-	if (_jitl.stack_length < _jitl.stack_offset) {
+	if (jit_push_pop_p())
+	    _jitl.stack_length = _jitl.stack_offset;
+	else if (_jitl.stack_length < _jitl.stack_offset) {
 	    _jitl.stack_length = _jitl.stack_offset;
 	    *_jitl.stack = (_jitl.alloca_offset +
 			    _jitl.stack_length + 15) & ~15;
@@ -205,7 +207,14 @@ x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
     if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
 	_jitl.stack_offset -= sizeof(double);
 	assert(_jitl.stack_offset >= 0);
-	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
+	if (jit_push_pop_p()) {
+	    int	pad = -_jitl.stack_length & 15;
+	    _jitl.stack_length += pad;
+	    jit_subi_l(JIT_SP, JIT_SP, pad + sizeof(double));
+	    jit_str_f(JIT_SP, f0);
+	}
+	else
+	    jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
     }
     else
 	jit_movr_f((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);
@@ -219,7 +228,14 @@ x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
     if (--_jitl.nextarg_putfp >= JIT_FP_ARG_MAX) {
 	_jitl.stack_offset -= sizeof(double);
 	assert(_jitl.stack_offset >= 0);
-	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
+	if (jit_push_pop_p()) {
+	    int	pad = -_jitl.stack_length & 15;
+	    _jitl.stack_length += pad;
+	    jit_subi_l(JIT_SP, JIT_SP, pad + sizeof(double));
+	    jit_str_d(JIT_SP, f0);
+	}
+	else
+	    jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
     }
     else
 	jit_movr_d((jit_fpr_t)(_XMM0 + _jitl.nextarg_putfp), f0);

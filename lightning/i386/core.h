@@ -51,6 +51,8 @@
 #define JIT_SP			_RSP
 #define JIT_RET			_RAX
 
+#define jit_push_pop_p()		jit_flags.push_pop
+
 #define jit_can_zero_extend_char_p(im)					\
     ((im) >= 0 && (im) <= 0x80)
 

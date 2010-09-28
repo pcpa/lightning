@@ -186,50 +186,14 @@ x86_prepare_i(jit_state_t _jit, int count)
     /* update stack offset and check if need to patch stack adjustment */
     if (_jitl.nextarg_puti > JIT_ARG_MAX) {
 	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_ARG_MAX) << 3;
-	if (_jitl.stack_length < _jitl.stack_offset) {
+	if (jit_push_pop_p())
+	    _jitl.stack_length = _jitl.stack_offset;
+	else if (_jitl.stack_length < _jitl.stack_offset) {
 	    _jitl.stack_length = _jitl.stack_offset;
 	    *_jitl.stack = (_jitl.alloca_offset +
 			    _jitl.stack_length + 15) & ~15;
 	}
     }
-}
-
-#define jit_finish(p0)			x86_finish(_jit, p0)
-__jit_inline jit_insn *
-x86_finish(jit_state_t _jit, void *p0)
-{
-    assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0 &&
-	   _jitl.nextarg_putfp	== 0);
-    if (_jitl.fprssize) {
-	MOVBir(_jitl.fprssize, _RAX);
-	_jitl.fprssize = 0;
-    }
-    else
-	MOVBir(0, _RAX);
-    jit_calli(p0);
-    return (_jitl.label);
-}
-
-#define jit_finishr(rs)			x86_finishr(_jit, rs)
-__jit_inline void
-x86_finishr(jit_state_t _jit, jit_gpr_t r0)
-{
-    assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0 &&
-	   _jitl.nextarg_putfp	== 0);
-    if (r0 == _RAX) {
-	/* clobbered with # of fp registers (for varargs) */
-	MOVQrr(_RAX, JIT_REXTMP);
-	r0 = JIT_REXTMP;
-    }
-    if (_jitl.fprssize) {
-	MOVBir(_jitl.fprssize, _RAX);
-	_jitl.fprssize = 0;
-    }
-    else
-	MOVBir(0, _RAX);
-    jit_callr(r0);
 }
 
 #define jit_patch_at(jump, label)	x86_patch_at(_jit, jump, label)
@@ -2221,6 +2185,53 @@ x86_extr_i_ul(jit_state_t _jit,
     MOVLrr(r1, r0);
 }
 
+#define jit_finish(p0)			x86_finish(_jit, p0)
+__jit_inline jit_insn *
+x86_finish(jit_state_t _jit, void *p0)
+{
+    assert(_jitl.stack_offset	== 0 &&
+	   _jitl.nextarg_puti	== 0 &&
+	   _jitl.nextarg_putfp	== 0);
+    if (_jitl.fprssize) {
+	MOVBir(_jitl.fprssize, _RAX);
+	_jitl.fprssize = 0;
+    }
+    else
+	MOVBir(0, _RAX);
+    jit_calli(p0);
+    if (jit_push_pop_p() && _jitl.stack_length) {
+	jit_addi_l(JIT_SP, JIT_SP, _jitl.stack_length);
+	_jitl.stack_length = 0;
+    }
+
+    return (_jitl.label);
+}
+
+#define jit_finishr(rs)			x86_finishr(_jit, rs)
+__jit_inline void
+x86_finishr(jit_state_t _jit, jit_gpr_t r0)
+{
+    assert(_jitl.stack_offset	== 0 &&
+	   _jitl.nextarg_puti	== 0 &&
+	   _jitl.nextarg_putfp	== 0);
+    if (r0 == _RAX) {
+	/* clobbered with # of fp registers (for varargs) */
+	MOVQrr(_RAX, JIT_REXTMP);
+	r0 = JIT_REXTMP;
+    }
+    if (_jitl.fprssize) {
+	MOVBir(_jitl.fprssize, _RAX);
+	_jitl.fprssize = 0;
+    }
+    else
+	MOVBir(0, _RAX);
+    jit_callr(r0);
+    if (jit_push_pop_p() && _jitl.stack_length) {
+	jit_addi_l(JIT_SP, JIT_SP, _jitl.stack_length);
+	_jitl.stack_length = 0;
+    }
+}
+
 #define jit_pusharg_i(r0)		x86_pusharg_i(_jit, r0)
 #define jit_pusharg_l(r0)		x86_pusharg_i(_jit, r0)
 __jit_inline void
@@ -2230,7 +2241,18 @@ x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
     if (--_jitl.nextarg_puti >= JIT_ARG_MAX) {
 	_jitl.stack_offset -= sizeof(long);
 	assert(_jitl.stack_offset >= 0);
-	jit_stxi_l(_jitl.stack_offset, JIT_SP, r0);
+	if (jit_push_pop_p()) {
+	    int	pad = -_jitl.stack_length & 15;
+	    if (pad) {
+		jit_subi_l(JIT_SP, JIT_SP, pad + sizeof(long));
+		_jitl.stack_length += pad;
+		jit_str_l(JIT_SP, r0);
+	    }
+	    else
+		jit_pushr_l(r0);
+	}
+	else
+	    jit_stxi_l(_jitl.stack_offset, JIT_SP, r0);
     }
     else
 	jit_movr_l(jit_arg_reg_order[_jitl.nextarg_puti], r0);

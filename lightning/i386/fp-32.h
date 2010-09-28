@@ -81,7 +81,14 @@ x86_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
 {
     _jitl.stack_offset -= sizeof(float);
     assert(_jitl.stack_offset >= 0);
-    jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
+    if (jit_push_pop_p()) {
+	int	pad = -_jitl.stack_length & 15;
+	_jitl.stack_length += pad;
+	jit_subi_l(JIT_SP, JIT_SP, pad + sizeof(float));
+	jit_str_f(JIT_SP, f0);
+    }
+    else
+	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
 }
 
 #define jit_pusharg_d(f0)		x86_pusharg_d(_jit, f0)
@@ -90,7 +97,14 @@ x86_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
     _jitl.stack_offset -= sizeof(double);
     assert(_jitl.stack_offset >= 0);
-    jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
+    if (jit_push_pop_p()) {
+	int	pad = -_jitl.stack_length & 15;
+	_jitl.stack_length += pad;
+	jit_subi_l(JIT_SP, JIT_SP, pad + sizeof(double));
+	jit_str_d(JIT_SP, f0);
+    }
+    else
+	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
 }
 
 #define jit_prepare_f(nf)		x86_prepare_f(_jit, nf)
@@ -99,7 +113,9 @@ x86_prepare_f(jit_state_t _jit, int count)
 {
     assert(count >= 0);
     _jitl.stack_offset += count << 2;
-    if (_jitl.stack_length < _jitl.stack_offset) {
+    if (jit_push_pop_p())
+	_jitl.stack_length = _jitl.stack_offset;
+    else  if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
 			      _jitl.stack_length + 15) & ~15);
@@ -112,7 +128,9 @@ x86_prepare_d(jit_state_t _jit, int count)
 {
     assert(count >= 0);
     _jitl.stack_offset += count << 3;
-    if (_jitl.stack_length < _jitl.stack_offset) {
+    if (jit_push_pop_p())
+	_jitl.stack_length = _jitl.stack_offset;
+    else  if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
 			      _jitl.stack_length + 15) & ~15);

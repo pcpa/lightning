@@ -102,6 +102,11 @@ struct {
 struct {
     /* round to nearest? */
     _ui		rnd_near	: 1;
+    /* force push/pop for arguments and stack space float conversion?
+     * this is useful in some very rare special cases, if generating
+     * code that jumps from function to function, to make the stack
+     * logic not dependent on patched value in jit_prolog */
+    _ui		push_pop	: 1;
 } jit_flags;
 #else
 #  define	jit_gpr_t	int

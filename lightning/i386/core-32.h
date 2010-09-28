@@ -142,7 +142,9 @@ x86_prepare_i(jit_state_t _jit, int count)
 {
     assert(count >= 0 && _jitl.stack_offset == 0);
     _jitl.stack_offset = count << 2;
-    if (_jitl.stack_length < _jitl.stack_offset) {
+    if (jit_push_pop_p())
+	_jitl.stack_length = _jitl.stack_offset;
+    else if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	*_jitl.stack = 12 + ((_jitl.alloca_offset +
 			      _jitl.stack_length + 15) & ~15);
@@ -178,6 +180,10 @@ x86_finish(jit_state_t _jit, void *p0)
 {
     assert(_jitl.stack_offset == 0);
     jit_calli(p0);
+    if (jit_push_pop_p() && _jitl.stack_length) {
+	jit_addi_i(JIT_SP, JIT_SP, _jitl.stack_length);
+	_jitl.stack_length = 0;
+    }
 
     return (_jitl.label);
 }
@@ -188,6 +194,10 @@ x86_finishr(jit_state_t _jit, jit_gpr_t r0)
 {
     assert(_jitl.stack_offset == 0);
     jit_callr(r0);
+    if (jit_push_pop_p() && _jitl.stack_length) {
+	jit_addi_i(JIT_SP, JIT_SP, _jitl.stack_length);
+	_jitl.stack_length = 0;
+    }
 }
 
 #define jit_arg_i()			x86_arg_i(_jit)
@@ -478,7 +488,18 @@ x86_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
     _jitl.stack_offset -= sizeof(int);
     assert(_jitl.stack_offset >= 0);
-    jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
+    if (jit_push_pop_p()) {
+	int	pad = -_jitl.stack_length & 15;
+	if (pad) {
+	    jit_subi_i(JIT_SP, JIT_SP, pad + sizeof(int));
+	    _jitl.stack_length += pad;
+	    jit_str_i(JIT_SP, r0);
+	}
+	else
+	    jit_pushr_i(r0);
+    }
+    else
+	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
 }
 
 #endif /* __lightning_core_h */
