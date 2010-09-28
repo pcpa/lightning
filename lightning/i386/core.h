@@ -745,6 +745,15 @@ x86_divi_i_(jit_state_t _jit,
 		break;
 	}
     }
+    else if (i0 == 1 || (is_signed && i0 == -1)) {
+	XORLrr(r0, r0);
+	return;
+    }
+    else if (!is_signed && i0 > 0 && !(i0 & (i0 - 1))) {
+	jit_movr_i(r0, r1);
+	ANDLir(i0 - 1, r0);
+	return;
+    }
 
     if (r0 != _RDX)
 	jit_pushr_i(_RDX);

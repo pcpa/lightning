@@ -860,6 +860,25 @@ x86_divi_l_(jit_state_t _jit,
 		break;
 	}
     }
+    else if (i0 == 1 || (is_signed && i0 == -1)) {
+	XORLrr(r0, r0);
+	return;
+    }
+    else if (!is_signed && i0 > 0 && !(i0 & (i0 - 1))) {
+	if (jit_can_sign_extend_int_p(i0)) {
+	    jit_movr_l(r0, r1);
+	    ANDQir(i0 - 1, r0);
+	}
+	else if (r0 != r1) {
+	    MOVQir(i0 - 1, r0);
+	    ANDQrr(r1, r0);
+	}
+	else {
+	    MOVQir(i0 - 1, JIT_REXTMP);
+	    ANDQrr(JIT_REXTMP, r0);
+	}
+	return;
+    }
 
     if (r0 == _RAX) {
 	jit_pushr_l(_RDX);
