@@ -107,6 +107,7 @@ setup:
 
 /*--------------------------------------------------------------------*/
 error:
+.flags	push_pop	1
 /* not a function - to jump on errors, with r0 being the offset in tbl,
  * of the clobbered register; stops immediately on clobber detection */
 	movi_p %v0 tbl
@@ -124,6 +125,7 @@ error:
 	finish @exit
 	calli @abort
 	ret
+.flags	push_pop	0
 
 /*--------------------------------------------------------------------*/
 main:

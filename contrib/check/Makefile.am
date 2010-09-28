@@ -15,9 +15,10 @@
 #	Paulo Cesar Pereira de Andrade
 #
 
-bin_PROGRAMS = lightning
+check_PROGRAMS = lightning
 
 ACLOCAL_AMFLAGS = -I m4
+AM_CPPFLAGS = -I../.. -I../../lightning -I../../lightning/$(cpu)
 AM_CFLAGS = $(WARN_CFLAGS) $(DEBUG_CFLAGS) $(LIGHTNING_CFLAGS)
 
 lightning_LDADD = $(LIGHTNING_LIBS)
@@ -32,3 +33,7 @@ functions_la_LTLIBRARIES = functions.la
 functions_la_LDFLAGS = -module -avoid-version
 functions_la_SOURCES = functions.c
 functions_ladir = $(libdir)
+# do not install functions.so
+install::
+
+TESTS=test.sh

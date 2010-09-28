@@ -19,6 +19,7 @@ dnl  Process this file with autoconf to create configure.
 
 AC_PREREQ([2.57])
 AC_INIT(check, [0.0.1], paulo.cesar.pereira.de.andrade@gmail.com, check)
+AC_CANONICAL_TARGET
 AC_CONFIG_SRCDIR([Makefile.am])
 AM_INIT_AUTOMAKE([dist-bzip2])
 AC_CONFIG_MACRO_DIR([m4])
@@ -104,6 +105,15 @@ AC_SUBST([WARN_CFLAGS])
 
 LIGHTNING_LIBS="$LIGHTNING_LIBS -lm"
 LIGHTNING_CFLAGS="$LIGHTNING_CFLAGS -std=c99 -pthread $VISIBILITY_FLAGS -D_GNU_SOURCE=1"
+
+case "$target_cpu" in
+  i?86)    cpu=i386	;;
+  x86_64)  cpu=x86_64	;;
+  sparc*)  cpu=sparc	;;
+  powerpc) cpu=ppc	;;
+  *)		        ;;
+esac
+AC_SUBST(cpu)
 
 AC_SUBST([LIGHTNING_LIBS])
 AC_SUBST([LIGHTNING_CFLAGS])

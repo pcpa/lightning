@@ -2,7 +2,7 @@
 AUTOMAKE_OPTIONS = 1.8 gnu
 ACLOCAL_AMFLAGS = -I build-aux
 
-SUBDIRS = . doc lightning opcode tests
+SUBDIRS = . doc lightning opcode tests contrib/check
 EXTRA_DIST = build-aux/texi2dvi build-aux/help2man
 
 include_HEADERS = lightning.h

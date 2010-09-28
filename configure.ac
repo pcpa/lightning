@@ -83,6 +83,7 @@ AC_CONFIG_FILES(Makefile doc/Makefile tests/Makefile opcode/Makefile
 	lightning/Makefile)
 AC_CONFIG_FILES(lightningize, chmod +x lightningize)
 
+AC_CONFIG_SUBDIRS([contrib/check])
 AC_OUTPUT
 
 # A small sanity check

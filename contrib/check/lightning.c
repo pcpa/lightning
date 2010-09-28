@@ -2443,6 +2443,7 @@ dot(void)
 	    (void)identifier(ch);
 	    break;
 	default:
+	    ungetch(ch);
 	    if (skipws() != '$')
 		error("expecting symbol");
 	    /* allow spaces before an expression */
@@ -2494,6 +2495,39 @@ dot(void)
 	data += size;
 	check_data();
     }
+    else if (strcmp(parser.string, "flags") == 0) {
+	if (primary(skip_ws) != tok_symbol)
+	    error("expecting jit flag");
+	ch = !!get_int(skip_ws);
+#if defined(__i386__) || defined(__x86_64__)
+	if (strcmp(parser.string, "rnd_near") == 0)
+	    jit_flags.rnd_near = ch;
+	else if (strcmp(parser.string, "push_pop") == 0)
+	    jit_flags.push_pop = ch;
+#endif
+	else
+	    warn("ignoring \".flags %s %d\"", parser.string, ch);
+    }
+    else if (strcmp(parser.string, "cpu") == 0) {
+	if (primary(skip_ws) != tok_symbol)
+	    error("expecting cpu flag");
+	ch = !!get_int(skip_ws);
+	if (strcmp(parser.string, "sse2") == 0)
+#if defined(__i386__)
+	    /* only meaningful for i386 as there is no x87 path for x86_64
+	     * and should only use just after jit_prolog and not mix with
+	     * code that uses xmm registers */
+	    jit_cpu.sse2 = ch;
+#endif
+	else if (strcmp(parser.string, "sse4_1") == 0)
+#if defined(__i386__) || defined(__x86_64__)
+	    jit_cpu.sse4_1 = ch;
+#endif
+	else
+	    warn("ignoring \".cpu %s %d\"", parser.string, ch);
+    }
+    else
+	error("unknown command .%s", parser.string);
 }
 
 static token_t
