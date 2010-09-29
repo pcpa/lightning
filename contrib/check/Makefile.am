@@ -34,6 +34,6 @@ functions_la_LDFLAGS = -module -avoid-version
 functions_la_SOURCES = functions.c
 functions_ladir = $(libdir)
 # do not install functions.so
-install::
+install:
 
 TESTS=test.sh
