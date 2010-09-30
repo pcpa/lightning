@@ -18,7 +18,10 @@
 check_PROGRAMS = lightning
 
 ACLOCAL_AMFLAGS = -I m4
-AM_CPPFLAGS = -I../.. -I../../lightning -I../../lightning/$(cpu)
+AM_CPPFLAGS =					\
+	-I$(srcdir)/../..			\
+	-I$(srcdir)/../../lightning		\
+	-I$(srcdir)/../../lightning/$(cpu)
 AM_CFLAGS = $(WARN_CFLAGS) $(DEBUG_CFLAGS) $(LIGHTNING_CFLAGS)
 
 lightning_LDADD = $(LIGHTNING_LIBS)
@@ -37,3 +40,62 @@ functions_ladir = $(libdir)
 install:
 
 TESTS=test.sh
+
+EXTRA_DIST = 			\
+	test.sh			\
+	alu_add.tst		\
+	alu_and.tst		\
+	alu_div.tst		\
+	alu_hmul.tst		\
+	alu.inc			\
+	alu_lsh.tst		\
+	alu_mod.tst		\
+	alu_mul.tst		\
+	alu_neg.tst		\
+	alu_not.tst		\
+	alu_or.tst		\
+	alu_rsb.tst		\
+	alu_rsh.tst		\
+	alu_sub.tst		\
+	alux_add.tst		\
+	alu_xor.tst		\
+	alux_sub.tst		\
+	args.tst		\
+	bottles.tst		\
+	branch_cmp.tst		\
+	branch.inc		\
+	branch.tst		\
+	call.tst		\
+	c_call.tst		\
+	clobber.tst		\
+	consts.inc		\
+	cvt.tst			\
+	fcvt.tst		\
+	float_branch.inc	\
+	fop_abs.tst		\
+	fop_atan.tst		\
+	fop_cos.tst		\
+	fop_log10.tst		\
+	fop_log2.tst		\
+	fop_log.tst		\
+	fop_sin.tst		\
+	fop_sqrt.tst		\
+	fop_tan.tst		\
+	hello.tst		\
+	incr.tst		\
+	ldst_consts.inc		\
+	ldst_i.tst		\
+	ldst.tst		\
+	ldst_xi.tst		\
+	ldst_xr-clobber.tst	\
+	ldst_xr.tst		\
+	movi.tst		\
+	nfibs.tst		\
+	printf.tst		\
+	rfibs.tst		\
+	rpn-non-portable.tst	\
+	rpn.tst			\
+	scanf.tst		\
+	self.tst		\
+	stack.tst		\
+	varargs.tst

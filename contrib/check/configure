@@ -10850,11 +10850,10 @@ LIGHTNING_LIBS="$LIGHTNING_LIBS -lm"
 LIGHTNING_CFLAGS="$LIGHTNING_CFLAGS -std=c99 -pthread $VISIBILITY_FLAGS -D_GNU_SOURCE=1"
 
 case "$target_cpu" in
-  i?86)    cpu=i386	;;
-  x86_64)  cpu=x86_64	;;
-  sparc*)  cpu=sparc	;;
-  powerpc) cpu=ppc	;;
-  *)		        ;;
+  i?86|x86_64)	cpu=i386	;;
+  sparc*)	cpu=sparc	;;
+  powerpc)	cpu=ppc		;;
+  *)			        ;;
 esac
 
 

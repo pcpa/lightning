@@ -3,10 +3,6 @@
 PROGRAM=./lightning
 STATUS=0
 
-if [ ! -f $PROGRAM ]; then
-    exit -1
-fi
-
 for test in \
     ldst ldst_xi ldst_xr ldst_xr-clobber ldst_i movi \
     cvt \
@@ -23,13 +19,19 @@ for test in \
     fop_log fop_log2 fop_log10;
 do
     echo "$test"
-    ERROR=`$PROGRAM $test.tst`
-    [ $? -ne 0 -o "x$ERROR" != "x" ] && STATUS=1
+    ERROR=`$PROGRAM $srcdir/$test.tst`
+    if [ $? -ne 0 -o "x$ERROR" != "x" ]; then
+	STATUS=1
+	echo "  ERROR"
+    fi
 done
 
 test=c_call
 echo "$test"
-ERROR=`LD_PRELOAD=.libs/functions.so $PROGRAM $test.tst`
-[ $? -ne 0 -o "x$ERROR" != "x" ] && STATUS=1
+ERROR=`LD_PRELOAD=.libs/functions.so $PROGRAM $srcdir/$test.tst`
+if [ $? -ne 0 -o "x$ERROR" != "x" ]; then
+    STATUS=1
+    echo "  ERROR"
+fi
 
 exit $STATUS

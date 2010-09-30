@@ -2517,12 +2517,14 @@ dot(void)
 	    /* only meaningful for i386 as there is no x87 path for x86_64
 	     * and should only use just after jit_prolog and not mix with
 	     * code that uses xmm registers */
-	    jit_cpu.sse2 = ch;
+	    jit_cpu.sse2 = ch
 #endif
+	;
 	else if (strcmp(parser.string, "sse4_1") == 0)
 #if defined(__i386__) || defined(__x86_64__)
-	    jit_cpu.sse4_1 = ch;
+	    jit_cpu.sse4_1 = ch
 #endif
+	;
 	else
 	    warn("ignoring \".cpu %s %d\"", parser.string, ch);
     }
@@ -4401,6 +4403,8 @@ main(int argc, char *argv[])
 	_FPU_SETCW(fpu_control);
     }
 #endif
+
+    jit_flags.push_pop = 0;
 
     parse();
 #if PREPROCESSOR
