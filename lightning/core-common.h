@@ -260,14 +260,24 @@ typedef union jit_code {
 #define jit_rsbr_p(d, s1, s2)		jit_subr_p((d), (s2), (s1))
 
 /* Unary */
-#define jit_notr_c(d, rs)		jit_xori_c((d), (rs), 255)
-#define jit_notr_uc(d, rs)		jit_xori_c((d), (rs), 255)
-#define jit_notr_s(d, rs)		jit_xori_s((d), (rs), 65535)
-#define jit_notr_us(d, rs)		jit_xori_s((d), (rs), 65535)
-#define jit_notr_i(d, rs)		jit_xori_i((d), (rs), ~0)
-#define jit_notr_ui(d, rs)		jit_xori_i((d), (rs), ~0)
-#define jit_notr_l(d, rs)		jit_xori_l((d), (rs), ~0L)
-#define jit_notr_ul(d, rs)		jit_xori_l((d), (rs), ~0L)
+#ifndef jit_notr_i
+#  define jit_notr_i(d, rs)		jit_xori_i((d), (rs), ~0)
+#endif
+#ifndef jit_notr_l
+#  define jit_notr_l(d, rs)		jit_xori_l((d), (rs), ~0L)
+#endif
+#ifndef jit_notr_c
+#  define jit_notr_c(d, rs)		jit_notr_i((d), (rs))
+#  define jit_notr_uc(d, rs)		jit_notr_i((d), (rs))
+#  define jit_notr_s(d, rs)		jit_notr_i((d), (rs))
+#  define jit_notr_us(d, rs)		jit_notr_i((d), (rs))
+#endif
+#ifndef jit_notr_ui
+#  define jit_notr_ui(d, rs)		jit_notr_i((d), (rs))
+#endif
+#ifndef jit_notr_ul
+#  define jit_notr_ul(d, rs)		jit_notr_l((d), (rs))
+#endif
 
 #ifndef jit_extr_c_ui
 #  define jit_extr_c_ui(d, rs)		jit_andi_ui((d), (rs), 0xFF)

@@ -207,8 +207,7 @@ x86_retval_i(jit_state_t _jit,
 /* ALU */
 #define jit_negr_i(r0, r1)		x86_negr_i(_jit, r0, r1)
 __jit_inline void
-x86_negr_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1)
+x86_negr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r0 == r1)
 	NEGLr(r0);
@@ -216,6 +215,14 @@ x86_negr_i(jit_state_t _jit,
 	XORLrr(r0, r0);
 	SUBLrr(r1, r0);
     }
+}
+
+#define jit_notr_i(r0, r1)		x86_notr_i(_jit, r0, r1)
+__jit_inline void
+x86_notr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    jit_movr_i(r0, r1);
+    NOTLr(r0);
 }
 
 #define jit_addi_i(r0, r1, i0)		x86_addi_i(_jit, r0, r1, i0)

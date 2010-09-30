@@ -210,15 +210,22 @@ x86_patch_at(jit_state_t _jit,
 /* ALU */
 #define jit_negr_l(r0, r1)		x86_negr_l(_jit, r0, r1)
 __jit_inline void
-x86_negr_l(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1)
+x86_negr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r0 == r1)
 	NEGQr(r0);
     else {
-	XORQrr(r0, r0);
+	XORLrr(r0, r0);
 	SUBQrr(r1, r0);
     }
+}
+
+#define jit_notr_l(r0, r1)		x86_notr_l(_jit, r0, r1)
+__jit_inline void
+x86_notr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    jit_movr_l(r0, r1);
+    NOTQr(r0);
 }
 
 #define jit_addi_l(r0, r1, i0)		x86_addi_l(_jit, r0, r1, i0)
