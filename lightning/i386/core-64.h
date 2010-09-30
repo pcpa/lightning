@@ -1191,10 +1191,12 @@ x86_lei_l(jit_state_t _jit,
 
 #define jit_ler_l(r0, r1, r2)		x86_ler_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_ler_l(jit_state_t _jit,
-	  jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_ler_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_LE);
+    if (r1 == r2)
+	MOVLir(1, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_LE);
 }
 
 #define jit_eqi_l(r0, r1, i0)		x86_eqi_l(_jit, r0, r1, i0)
@@ -1210,10 +1212,12 @@ x86_eqi_l(jit_state_t _jit,
 
 #define jit_eqr_l(r0, r1, r2)		x86_eqr_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_eqr_l(jit_state_t _jit,
-	  jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_eqr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_E);
+    if (r1 == r2)
+	MOVLir(1, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_E);
 }
 
 #define jit_gei_l(r0, r1, i0)		x86_gei_l(_jit, r0, r1, i0)
@@ -1229,10 +1233,12 @@ x86_gei_l(jit_state_t _jit,
 
 #define jit_ger_l(r0, r1, r2)		x86_ger_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_ger_l(jit_state_t _jit,
-	  jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_ger_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_GE);
+    if (r1 == r2)
+	MOVLir(1, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_GE);
 }
 
 #define jit_gti_l(r0, r1, i0)		x86_gti_l(_jit, r0, r1, i0)
@@ -1264,10 +1270,12 @@ x86_nei_l(jit_state_t _jit,
 
 #define jit_ner_l(r0, r1, r2)		x86_ner_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_ner_l(jit_state_t _jit,
-	  jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_ner_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_NE);
+    if (r1 == r2)
+	XORLrr(r0, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_NE);
 }
 
 #define jit_lti_ul(r0, r1, i0)		x86_lti_ul(_jit, r0, r1, i0)
@@ -1299,10 +1307,12 @@ x86_lei_ul(jit_state_t _jit,
 
 #define jit_ler_ul(r0, r1, r2)		x86_ler_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_ler_ul(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_ler_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_BE);
+    if (r1 == r2)
+	MOVLir(1, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_BE);
 }
 
 #define jit_gei_ul(r0, r1, i0)		x86_gei_ul(_jit, r0, r1, i0)
@@ -1318,10 +1328,12 @@ x86_gei_ul(jit_state_t _jit,
 
 #define jit_ger_ul(r0, r1, r2)		x86_ger_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_ger_ul(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_ger_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_cmp_rr64(r0, r1, r2,		X86_CC_AE);
+    if (r1 == r2)
+	MOVLir(1, r0);
+    else
+	jit_cmp_rr64(r0, r1, r2,	X86_CC_AE);
 }
 
 #define jit_gti_ul(r0, r1, i0)		x86_gti_ul(_jit, r0, r1, i0)
@@ -1360,8 +1372,7 @@ x86_bcmp_ri64(jit_state_t _jit,
 
 #define jit_btest_r64(i0, r0, i1)	x86_btest_r64(_jit, i0, r0, i1)
 __jit_inline void
-x86_btest_r64(jit_state_t _jit,
-	      jit_insn *label, jit_gpr_t r0, x86_cc_t code)
+x86_btest_r64(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, x86_cc_t code)
 {
     TESTQrr(r0, r0);
     JCCim(code, label);
@@ -1378,8 +1389,7 @@ x86_bcmp_rr64(jit_state_t _jit,
 
 #define jit_blti_l(label, r0, i0)	x86_blti_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_blti_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_blti_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     if (i0)
 	jit_bcmp_ri64(label, r0, i0,	X86_CC_L);
@@ -1390,8 +1400,7 @@ x86_blti_l(jit_state_t _jit,
 
 #define jit_bltr_l(label, r0, r1)	x86_bltr_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bltr_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bltr_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_bcmp_rr64(label, r0, r1,	X86_CC_L);
     return (_jit->x.pc);
@@ -1399,8 +1408,7 @@ x86_bltr_l(jit_state_t _jit,
 
 #define jit_blei_l(label, r0, i0)	x86_blei_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_blei_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_blei_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     jit_bcmp_ri64(label, r0, i0,	X86_CC_LE);
     return (_jit->x.pc);
@@ -1408,17 +1416,18 @@ x86_blei_l(jit_state_t _jit,
 
 #define jit_bler_l(label, r0, r1)	x86_bler_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bler_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bler_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_bcmp_rr64(label, r0, r1,	X86_CC_LE);
+    if (r0 == r1)
+	JMPm(label);
+    else
+	jit_bcmp_rr64(label, r0, r1,	X86_CC_LE);
     return (_jit->x.pc);
 }
 
 #define jit_beqi_l(label, r0, i0)	x86_beqi_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_beqi_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_beqi_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     if (i0)
 	jit_bcmp_ri64(label, r0, i0,	X86_CC_E);
@@ -1429,17 +1438,18 @@ x86_beqi_l(jit_state_t _jit,
 
 #define jit_beqr_l(label, r0, r1)	x86_beqr_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_beqr_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_beqr_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_bcmp_rr64(label, r0, r1,	X86_CC_E);
+    if (r0 == r1)
+	JMPm(label);
+    else
+	jit_bcmp_rr64(label, r0, r1,	X86_CC_E);
     return (_jit->x.pc);
 }
 
 #define jit_bgei_l(label, r0, i0)	x86_bgei_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_bgei_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_bgei_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     if (i0)
 	jit_bcmp_ri64(label, r0, i0,	X86_CC_GE);
@@ -1450,17 +1460,18 @@ x86_bgei_l(jit_state_t _jit,
 
 #define jit_bger_l(label, r0, r1)	x86_bger_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bger_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bger_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_bcmp_rr64(label, r0, r1,	X86_CC_GE);
+    if (r0 == r1)
+	JMPm(label);
+    else
+	jit_bcmp_rr64(label, r0, r1,	X86_CC_GE);
     return (_jit->x.pc);
 }
 
 #define jit_bgti_l(label, r0, i0)	x86_bgti_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_bgti_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_bgti_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     jit_bcmp_ri64(label, r0, i0,	X86_CC_G);
     return (_jit->x.pc);
@@ -1468,8 +1479,7 @@ x86_bgti_l(jit_state_t _jit,
 
 #define jit_bgtr_l(label, r0, r1)	x86_bgtr_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bgtr_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bgtr_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_bcmp_rr64(label, r0, r1,	X86_CC_G);
     return (_jit->x.pc);
@@ -1477,8 +1487,7 @@ x86_bgtr_l(jit_state_t _jit,
 
 #define jit_bnei_l(label, r0, i0)	x86_bnei_l(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_bnei_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, long i0)
+x86_bnei_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, long i0)
 {
     if (i0)
 	jit_bcmp_ri64(label, r0, i0,	X86_CC_NE);
@@ -1489,26 +1498,25 @@ x86_bnei_l(jit_state_t _jit,
 
 #define jit_bner_l(label, r0, r1)	x86_bner_l(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bner_l(jit_state_t _jit,
-	   jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bner_l(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
+    /* need to return a patchable address even if r0 == r1 */
     jit_bcmp_rr64(label, r0, r1,	X86_CC_NE);
     return (_jit->x.pc);
 }
 
 #define jit_blti_ul(label, r0, i0)	x86_blti_ul(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_blti_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, unsigned long i0)
+x86_blti_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, unsigned long i0)
 {
+    /* need to return a patchable address even if i0 == 0 */
     jit_bcmp_ri64(label, r0, i0,	X86_CC_B);
     return (_jit->x.pc);
 }
 
 #define jit_bltr_ul(label, r0, r1)	x86_bltr_ul(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bltr_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bltr_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_bcmp_rr64(label, r0, r1,	X86_CC_B);
     return (_jit->x.pc);
@@ -1516,47 +1524,49 @@ x86_bltr_ul(jit_state_t _jit,
 
 #define jit_blei_ul(label, r0, i0)	x86_blei_ul(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_blei_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, unsigned long i0)
+x86_blei_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, unsigned long i0)
 {
-    if (i0)
-	jit_bcmp_ri64(label, r0, i0,	X86_CC_BE);
-    else
-	jit_btest_r64(label, r0,	X86_CC_E);
+    /* need to return a patchable address even if i0 == 0 */
+    jit_bcmp_ri64(label, r0, i0,	X86_CC_BE);
     return (_jit->x.pc);
 }
 
 #define jit_bler_ul(label, r0, r1)	x86_bler_ul(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bler_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bler_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_bcmp_rr64(label, r0, r1,	X86_CC_BE);
+    if (r0 == r1)
+	JMPm(label);
+    else
+	jit_bcmp_rr64(label, r0, r1,	X86_CC_BE);
     return (_jit->x.pc);
 }
 
 #define jit_bgei_ul(label, r0, i0)	x86_bgei_ul(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_bgei_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, unsigned long i0)
+x86_bgei_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, unsigned long i0)
 {
-    jit_bcmp_ri64(label, r0, i0,	X86_CC_AE);
+    if (i0 == 0)
+	JMPm(label);
+    else
+	jit_bcmp_ri64(label, r0, i0,	X86_CC_AE);
     return (_jit->x.pc);
 }
 
 #define jit_bger_ul(label, r0, r1)	x86_bger_ul(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bger_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bger_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
-    jit_bcmp_rr64(label, r0, r1,	X86_CC_AE);
+    if (r0 == r1)
+	JMPm(label);
+    else
+	jit_bcmp_rr64(label, r0, r1,	X86_CC_AE);
     return (_jit->x.pc);
 }
 
 #define jit_bgti_ul(label, r0, i0)	x86_bgti_ul(_jit, label, r0, i0)
 __jit_inline jit_insn *
-x86_bgti_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, unsigned long i0)
+x86_bgti_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, unsigned long i0)
 {
     if (i0)
 	jit_bcmp_ri64(label, r0, i0,	X86_CC_A);
@@ -1567,8 +1577,7 @@ x86_bgti_ul(jit_state_t _jit,
 
 #define jit_bgtr_ul(label, r0, r1)	x86_bgtr_ul(_jit, label, r0, r1)
 __jit_inline jit_insn *
-x86_bgtr_ul(jit_state_t _jit,
-	    jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
+x86_bgtr_ul(jit_state_t _jit, jit_insn *label, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_bcmp_rr64(label, r0, r1,	X86_CC_A);
     return (_jit->x.pc);

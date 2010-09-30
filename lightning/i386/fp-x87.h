@@ -1423,8 +1423,7 @@ x87_i686_fp_cmp(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ltr_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_A);
@@ -1433,8 +1432,7 @@ x87_ltr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ler_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_AE);
@@ -1443,8 +1441,7 @@ x87_ler_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_eqr_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t			fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1478,8 +1475,7 @@ x87_eqr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ger_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_AE);
@@ -1488,8 +1484,7 @@ x87_ger_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_gtr_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_gtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_A);
@@ -1498,8 +1493,7 @@ x87_gtr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ner_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1533,8 +1527,7 @@ x87_ner_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_unltr_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_NAE);
@@ -1543,54 +1536,57 @@ x87_unltr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_unler_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_i686_p())
+    if (f0 == f1)
+	MOVLir(1, r0);
+    else if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f0, f1,	X86_CC_NA);
     else
 	x87_i386_fp_cmp(_jit, r0, f0, f1,	8, 0x45, X86_CC_NZ);
 }
 
 __jit_inline void
-x87_ltgtr_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
-    if (jit_i686_p())
+    if (f0 == f1)
+	XORLrr(r0, r0);
+    else if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_NE);
     else
 	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	15, 0, (x86_cc_t)-1);
 }
 
 __jit_inline void
-x87_uneqr_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_uneqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
-    if (jit_i686_p())
+    if (f0 == f1)
+	MOVLir(1, r0);
+    else if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, fr0, fr1,	X86_CC_E);
     else
 	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	15, 0, (x86_cc_t)0);
 }
 
 __jit_inline void
-x87_unger_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_i686_p())
+    if (f0 == f1)
+	MOVLir(1, r0);
+    else if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_NA);
     else
 	x87_i386_fp_cmp(_jit, r0, f1, f0,	8, 0x45, X86_CC_NZ);
 }
 
 __jit_inline void
-x87_ungtr_d(jit_state_t _jit,
-	    jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ungtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_cmp(_jit, r0, f1, f0,	X86_CC_NAE);
@@ -1599,8 +1595,7 @@ x87_ungtr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ordr_d(jit_state_t _jit,
-	   jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1612,8 +1607,7 @@ x87_ordr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_unordr_d(jit_state_t _jit,
-	     jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+x87_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1660,8 +1654,7 @@ x87_i686_fp_bcmp(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bltr_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bltr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_A);
@@ -1671,8 +1664,7 @@ x87_bltr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bler_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bler_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_AE);
@@ -1682,8 +1674,7 @@ x87_bler_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_beqr_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_beqr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1708,8 +1699,7 @@ x87_beqr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bger_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bger_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_AE);
@@ -1719,8 +1709,7 @@ x87_bger_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bgtr_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bgtr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_A);
@@ -1730,8 +1719,7 @@ x87_bgtr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bner_d(jit_state_t _jit,
-	   jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bner_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1761,8 +1749,7 @@ x87_bner_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bunltr_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunltr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_NAE);
@@ -1772,10 +1759,11 @@ x87_bunltr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bunler_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunler_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_i686_p())
+    if (f0 == f1)
+	JMPm(label);
+    else if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f0, f1,	X86_CC_NA);
     else
 	x87_i386_fp_bcmp(_jit, label, f0, f1,	8, 0x45, 0, X86_CC_NZ);
@@ -1783,8 +1771,7 @@ x87_bunler_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bltgtr_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bltgtr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1797,13 +1784,14 @@ x87_bltgtr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_buneqr_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_buneqr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
     else		fr0 = f0, fr1 = f1;
-    if (jit_i686_p())
+    if (f0 == f1)
+	JMPm(label);
+    else if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, fr0, fr1,	X86_CC_E);
     else
 	x87_i386_fp_bcmp(_jit, label, fr0, fr1,	15, 0, 0, X86_CC_C);
@@ -1811,10 +1799,11 @@ x87_buneqr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bunger_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunger_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
-    if (jit_i686_p())
+    if (f0 == f1)
+	JMPm(label);
+    else if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_NA);
     else
 	x87_i386_fp_bcmp(_jit, label, f1, f0,	8, 0x45, 0, X86_CC_NZ);
@@ -1822,8 +1811,7 @@ x87_bunger_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bungtr_d(jit_state_t _jit,
-	     jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bungtr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (jit_i686_p())
 	x87_i686_fp_bcmp(_jit, label, f1, f0,	X86_CC_NAE);
@@ -1833,8 +1821,7 @@ x87_bungtr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bordr_d(jit_state_t _jit,
-	    jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bordr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
@@ -1847,8 +1834,7 @@ x87_bordr_d(jit_state_t _jit,
 }
 
 __jit_inline jit_insn *
-x87_bunordr_d(jit_state_t _jit,
-	      jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
+x87_bunordr_d(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1)
 {
     jit_fpr_t		fr0, fr1;
     if (f1 == _ST0)	fr0 = f1, fr1 = f0;
