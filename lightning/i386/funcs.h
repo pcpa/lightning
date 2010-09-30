@@ -238,6 +238,13 @@ jit_get_cpu(void)
 
     /* default to round to nearest */
     jit_flags.rnd_near	= 1;
+
+    /* default to use push/pop for arguments and float conversion;
+     * this generates several redundant stack adjustments, but is
+     * not dependent on patching stack adjustment in jit_prolog,
+     * and this way, works with any possible code that jumps from/to
+     * code after different jit_prolog */
+    jit_flags.push_pop	= 1;
 }
 
 #endif /* __lightning_funcs_h */
