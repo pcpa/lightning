@@ -2,6 +2,7 @@
 
 PROGRAM=./lightning
 STATUS=0
+[ "x$srcdir" = "x" ] && srcdir=.
 
 for test in \
     ldst ldst_xi ldst_xr ldst_xr-clobber ldst_i movi \
