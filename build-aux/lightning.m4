@@ -16,6 +16,7 @@ case "$target_cpu" in
   x86_64)  cpu=i386	;;
   sparc*)  cpu=sparc	;;
   powerpc) cpu=ppc      ;;
+  mips*)   cpu=mips	;;
   *)		        ;;
 esac
 if test -n "$cpu" && test -d "$srcdir/lightning/$cpu"; then

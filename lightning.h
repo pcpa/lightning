@@ -108,7 +108,7 @@ struct {
      * logic not dependent on patched value in jit_prolog */
     _ui		push_pop	: 1;
 } jit_flags;
-#else
+#elif !defined(mips)
 #  define	jit_gpr_t	int
 #  define	jit_fpr_t	int
 #endif
@@ -159,6 +159,10 @@ struct jit_local_state {
     int		 alloca_offset; /* Current offset to the alloca'd memory
 				 * (negative offset relative to %fp) */
     jit_insn	 delay;
+};
+#elif defined(__mips__)
+struct jit_local_state {
+    int		 nextarg_puti;
 };
 #else
 #  error GNU lightning does not support the current target

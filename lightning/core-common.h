@@ -232,18 +232,20 @@ typedef union jit_code {
 
 /* NEG is not mandatory -- pick an appropriate implementation */
 #ifndef jit_negr_i
-# ifdef JIT_RZERO
-#  define jit_negr_i(d, rs)		jit_subr_i((d), JIT_RZERO, (rs))
-#  define jit_negr_l(d, rs)		jit_subr_l((d), JIT_RZERO, (rs))
-# else /* !JIT_RZERO */
-#  ifndef jit_rsbi_i
-#   define jit_negr_i(d, rs)		(jit_xori_i((d), (rs), -1), jit_addi_l((d), (d), 1))
-#   define jit_negr_l(d, rs)		(jit_xori_l((d), (rs), -1), jit_addi_l((d), (d), 1))
-#  else /* jit_rsbi_i */
-#   define jit_negr_i(d, rs)		jit_rsbi_i((d), (rs), 0)
-#   define jit_negr_l(d, rs)		jit_rsbi_l((d), (rs), 0)
-#  endif /* jit_rsbi_i */
-# endif /* !JIT_RZERO */
+#  ifdef JIT_RZERO
+#    define jit_negr_i(d, rs)		jit_subr_i((d), JIT_RZERO, (rs))
+#      if __WORDSIZE == 64
+#        define jit_negr_l(d, rs)	jit_subr_l((d), JIT_RZERO, (rs))
+#      endif
+#  else /* !JIT_RZERO */
+#    ifndef jit_rsbi_i
+#      define jit_negr_i(d, rs)		(jit_xori_i((d), (rs), -1), jit_addi_l((d), (d), 1))
+#      define jit_negr_l(d, rs)		(jit_xori_l((d), (rs), -1), jit_addi_l((d), (d), 1))
+#    else /* jit_rsbi_i */
+#      define jit_negr_i(d, rs)		jit_rsbi_i((d), (rs), 0)
+#      define jit_negr_l(d, rs)		jit_rsbi_l((d), (rs), 0)
+#    endif /* jit_rsbi_i */
+#  endif /* !JIT_RZERO */
 #endif /* !jit_negr_i */
 
 /* Common 'shortcut' implementations */
@@ -371,7 +373,9 @@ typedef union jit_code {
 #define jit_ldi_uc(rd, is)		jit_ldxi_uc((rd), JIT_RZERO, (is))		
 #define jit_ldi_us(rd, is)		jit_ldxi_us((rd), JIT_RZERO, (is))		
 #define jit_ldi_ui(rd, is)		jit_ldxi_ui((rd), JIT_RZERO, (is))		
-#define jit_ldi_ul(rd, is)		jit_ldxi_ul((rd), JIT_RZERO, (is))		
+#  if __WORDSIZE == 64
+#    define jit_ldi_ul(rd, is)		jit_ldxi_ul((rd), JIT_RZERO, (is))
+#  endif
 #endif
 
 #ifndef jit_ldr_c
@@ -386,7 +390,9 @@ typedef union jit_code {
 #define jit_ldr_uc(rd, rs)		jit_ldxr_uc((rd), JIT_RZERO, (rs))		
 #define jit_ldr_us(rd, rs)		jit_ldxr_us((rd), JIT_RZERO, (rs))		
 #define jit_ldr_ui(rd, rs)		jit_ldxr_ui((rd), JIT_RZERO, (rs))		
-#define jit_ldr_ul(rd, rs)		jit_ldxr_ul((rd), JIT_RZERO, (rs))		
+#  if __WORDSIZE == 64
+#    define jit_ldr_ul(rd, rs)		jit_ldxr_ul((rd), JIT_RZERO, (rs))
+#  endif
 #endif
 #endif
 

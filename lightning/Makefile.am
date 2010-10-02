@@ -7,7 +7,8 @@ EXTRA_DIST = i386/Makefile.frag \
         i386/fp-x87.h i386/fp-sse.h \
         i386/funcs.h \
         sparc/asm.h sparc/core.h sparc/funcs.h sparc/fp.h \
-        ppc/asm.h ppc/core.h ppc/funcs.h ppc/fp.h
+        ppc/asm.h ppc/core.h ppc/funcs.h ppc/fp.h \
+        mips/asm.h mips/core.h mips/fp.h mips/funcs.h
 
 @lightning_frag@
 

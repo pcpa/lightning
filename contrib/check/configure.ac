@@ -106,6 +106,7 @@ case "$target_cpu" in
   i?86|x86_64)	cpu=i386	;;
   sparc*)	cpu=sparc	;;
   powerpc)	cpu=ppc		;;
+  mips*)	cpu=mips	;;
   *)			        ;;
 esac
 AC_SUBST(cpu)
