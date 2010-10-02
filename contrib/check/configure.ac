@@ -28,10 +28,6 @@ AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LIBTOOL
 
-AC_CHECK_HEADER([lightning.h], [LIGHTNING="yes"], [LIGHTNING="no"])
-if test "x$LIGHTNING" = "xno"; then
-    AC_MSG_ERROR([lightning not found, see http://www.gnu.org/software/lightning/])
-fi
 AC_ARG_ENABLE(disassembler,
 	      AS_HELP_STRING([--enable-disassembler],
 			     [Enable jit disassembler using binutils]),
