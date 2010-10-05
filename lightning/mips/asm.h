@@ -64,7 +64,7 @@ typedef enum {
     _K1		= 0x1b,
     _GP		= 0x1c,		/* (callee saved) global pointer */
     _SP		= 0x1d,		/* (callee saved) stack pointer */
-    _BP		= 0x1e,		/* (callee saved) frame pointer */
+    _FP		= 0x1e,		/* (callee saved) frame pointer */
     _RA		= 0x1f,		/* return address */
 } jit_gpr_t;
 

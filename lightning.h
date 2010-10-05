@@ -162,6 +162,7 @@ struct jit_local_state {
 };
 #elif defined(__mips__)
 struct jit_local_state {
+    int		 framesize;
     int		 nextarg_puti;
 };
 #else
