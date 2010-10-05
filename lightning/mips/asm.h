@@ -1,6 +1,6 @@
 /******************************** -*- C -*- ****************************
  *
- *	Run-time assembler for the i386
+ *	Run-time assembler for the mips
  *
  ***********************************************************************/
 
@@ -68,169 +68,232 @@ typedef enum {
     _RA		= 0x1f,		/* return address */
 } jit_gpr_t;
 
-/* FIXME these are most likely reversed... */
 typedef union {
     struct {
-	_ui	h : 16;
-	_ui	d : 5;
-	_ui	c : 11;
-    } b;
-    int		o;
-} mips_coder_t;
-
-typedef union {
+	_ui	tc : 11;
+	_ui	rd : 5;
+	_ui	hc : 16;
+    } ___r_t;
     struct {
-	_ui	h : 6;
-	_ui	s : 5;
-	_ui	t : 5;
-	_ui	d : 5;
-	_ui	c : 11;
-    } b;
-    int		o;
-} mips_alur_t;
-
-typedef union {
+	_ui	tc : 21;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } _r___t;
     struct {
-	_ui	h : 6;
-	_ui	s : 5;
-	_ui	t : 5;
-	_ui	i : 16;
-    } b;
-    int		o;
-} mips_alui_t;
-
-typedef union {
+	_ui	tc : 11;
+	_ui	rd : 5;
+	_ui	rt : 5;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } _rrr_t;
     struct {
-	_ui	h : 6;
-	_ui	s : 5;
-	_ui	t : 5;
-	_ui	d : 5;
-	_ui	v : 5;
-	_ui	c : 6;
-    } b;
-    int		o;
-} mips_shift_t;
+	_ui	im : 16;
+	_ui	rt : 5;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } hrri;
+    struct {
+	_ui	tc : 6;
+	_ui	im : 5;
+	_ui	rd : 5;
+	_ui	rt : 5;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } hrrrit;
+    struct {
+	_ui	tc : 6;
+	_ui	im : 5;
+	_ui	rd : 5;
+	_ui	rt : 5;
+	_ui	hc : 11;
+    } __rrit;
+    struct {
+	_ui	tc : 6;
+	_ui	im : 5;
+	_ui	rt : 10;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } _r_it;
+    struct  {
+	_ui	im : 26;
+	_ui	hc : 6;
+    } hi;
+    int		op;
+} mips_code_t;
 
 typedef enum {
+    MIPS_J	= 0x02,
+    MIPS_TMUL	= 0x02,		/* pair to HMUL */
     MIPS_SLLV	= 0x04,
     MIPS_SRLV	= 0x06,
+    MIPS_SRAV	= 0x06,
+    MIPS_JR	= 0x08,
     MIPS_MFHI	= 0x10,
-    MIPS_MFLO	= 0x10,
+    MIPS_MTHI	= 0x11,
+    MIPS_MFLO	= 0x12,
+    MIPS_MTLO	= 0x13,
     MIPS_ADD	= 0x20,
     MIPS_ADDU	= 0x21,
     MIPS_AND	= 0x24,
-    MIPS_MUL	= 0x18,
-    MIPS_MULU	= 0x19,
+    MIPS_MULT	= 0x18,
+    MIPS_MULTU	= 0x19,
     MIPS_DIV	= 0x1a,
     MIPS_DIVU	= 0x1b,
     MIPS_SUB	= 0x22,
     MIPS_SUBU	= 0x23,
     MIPS_OR	= 0x25,
     MIPS_XOR	= 0x26,
+    MIPS_NOR	= 0x27,
     MIPS_SLT	= 0x2a,
     MIPS_SLTU	= 0x2b,
-} mips_rcode_t;
+} mips_tcode_t;
 
 typedef enum {
-    MIPS_SLL	= 0x0,
-    MIPS_SRL	= 0x2,
-    MIPS_SRA	= 0x3,
-    MIPS_ADDI	= 0x8,
-    MIPS_ADDIU	= 0x9,
-    MIPS_ANDI	= 0xc,
-    MIPS_ORI	= 0xd,
-    MIPS_XORI	= 0xe,
-    MIPS_LUI	= 0xf,
-} mips_icode_t;
+    MIPS_SLL	= 0x00,
+    MIPS_SRL	= 0x02,
+    MIPS_SRA	= 0x03,
+    MIPS_BEQ	= 0x04,
+    MIPS_ADDI	= 0x08,
+    MIPS_ADDIU	= 0x09,
+    MIPS_ANDI	= 0x0c,
+    MIPS_ORI	= 0x0d,
+    MIPS_XORI	= 0x0e,
+    MIPS_LUI	= 0x0f,
+    MIPS_HMUL	= 0x1c,		/* pair to TMUL */
+    MIPS_LB	= 0x20,
+    MIPS_LH	= 0x21,
+    MIPS_LW	= 0x23,
+    MIPS_LBU	= 0x24,
+    MIPS_LHU	= 0x25,
+    MIPS_SB	= 0x28,
+    MIPS_SH	= 0x29,
+    MIPS_SW	= 0x2b,
+} mips_hcode_t;
 
 __jit_inline void
-mips_coder(jit_state_t _jit, mips_rcode_t code, jit_gpr_t r0)
+mips___r_t(jit_state_t _jit, jit_gpr_t r0, mips_tcode_t tc)
 {
-    mips_coder_t	c;
+    mips_code_t		cc;
 
-    c.b.h = 0;
-    c.b.d = r0;
-    c.b.c = code;
+    cc.___r_t.tc = tc;
+    cc.___r_t.rd = r0;
+    cc.___r_t.hc = 0;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
 }
 
 __jit_inline void
-mips_coderi(jit_state_t _jit, mips_icode_t code, jit_gpr_t r0, int i0)
+mips_r___t(jit_state_t _jit, jit_gpr_t r0, mips_tcode_t tc)
 {
-    mips_alui_t		c;
+    mips_code_t		cc;
 
-    c.b.h = code;
-    c.b.s = 0;		/* ignored */
-    c.b.t = r0;
-    c.b.i = _s16(i0);
+    cc._r___t.tc = tc;
+    cc._r___t.rs = r0;
+    cc._r___t.hc = 0;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
 }
 
 __jit_inline void
-mips_alurrr(jit_state_t _jit, mips_rcode_t code,
-	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+mipsh_ri(jit_state_t _jit, mips_hcode_t hc, jit_gpr_t rt, int im)
 {
-    mips_alur_t		c;
+    mips_code_t		cc;
 
-    c.b.h = 0;
-    c.b.s = r1;
-    c.b.t = r2;
-    c.b.d = r0;
-    c.b.c = code;
+    cc.hrri.im = _s16(im);
+    cc.hrri.rt = rt;
+    cc.hrri.rs = 0;	/* ignored */
+    cc.hrri.hc = hc;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
 }
 
 __jit_inline void
-mips_alurri(jit_state_t _jit, mips_icode_t code,
-	    jit_gpr_t r0, jit_gpr_t r1, int i0)
+mipshrri(jit_state_t _jit, mips_hcode_t hc, jit_gpr_t rt, jit_gpr_t rs, int im)
 {
-    mips_alui_t		c;
+    mips_code_t		cc;
 
-    c.b.h = code;
-    c.b.s = r1;
-    c.b.t = r0;
-    c.b.i = _s16(i0);
+    cc.hrri.im = _s16(im);
+    cc.hrri.rt = rt;
+    cc.hrri.rs = rs;
+    cc.hrri.hc = hc;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
 }
 
 __jit_inline void
-mips_shiftrri(jit_state_t _jit, mips_rcode_t code,
-	      jit_gpr_t r0, jit_gpr_t r1, int i0)
+mipshrrr_t(jit_state_t _jit, mips_hcode_t hc,
+	   jit_gpr_t rs, jit_gpr_t rt, jit_gpr_t rd, mips_tcode_t tc)
 {
-    mips_shift_t	c;
+    mips_code_t		cc;
 
-    c.b.h = 0;
-    c.b.s = 0;		/* ignored? */
-    c.b.t = r1;
-    c.b.d = r0;
-    c.b.v = _u5(i0);
-    c.b.c = code;
+    cc.hrrrit.tc = tc;
+    cc.hrrrit.im = 0;
+    cc.hrrrit.rd = rd;
+    cc.hrrrit.rt = rt;
+    cc.hrrrit.rs = rs;
+    cc.hrrrit.hc = hc;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
 }
 
 __jit_inline void
-mips_shiftrrr(jit_state_t _jit, mips_rcode_t code,
-	      jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+mips_rrr_t(jit_state_t _jit,
+	   jit_gpr_t rs, jit_gpr_t rt, jit_gpr_t rd, mips_tcode_t tc)
 {
-    mips_shift_t	c;
+    mips_code_t		cc;
 
-    c.b.h = 0;
-    c.b.s = r2;
-    c.b.t = r1;
-    c.b.d = r0;
-    c.b.v = 0;		/* ignored */
-    c.b.c = code;
+    cc._rrr_t.tc = tc;
+    cc._rrr_t.rd = rd;
+    cc._rrr_t.rt = rt;
+    cc._rrr_t.rs = rs;
+    cc._rrr_t.hc = 0;
 
-    _jit_I(c.o);
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mips__rrit(jit_state_t _jit,
+	   jit_gpr_t rt, jit_gpr_t rd, int im, mips_tcode_t tc)
+{
+    mips_code_t		cc;
+
+    cc.__rrit.tc = tc;
+    cc.__rrit.im = _u5(im);
+    cc.__rrit.rd = rd;
+    cc.__rrit.rt = rt;
+    cc.__rrit.hc = 0;
+
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mips_r_it(jit_state_t _jit, mips_tcode_t tc, int im, jit_gpr_t rs)
+{
+    mips_code_t		cc;
+
+    cc._r_it.tc = tc;
+    cc._r_it.im = im;	/* hint */
+    cc._r_it.rt = 0;
+    cc._r_it.rs = rs;
+    cc._r_it.hc = 0;
+
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mipshi(jit_state_t _jit, mips_tcode_t hc, int im)
+{
+    mips_code_t		cc;
+
+    cc.hi.im = _s26(im);
+    cc.hi.hc = hc;
+
+    _jit_I(cc.op);
 }
 
 /* Reference:
  *	http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
+ *	MIPS32(r) Architecture Volume II: The MIPS32(r) Instrunction Set
  */
 
 #endif /* __lightning_asm_h */
