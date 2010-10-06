@@ -71,20 +71,8 @@ mips_noop(jit_state_t _jit, int n)
 __jit_inline void
 mips_movr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (r0 != r1) {
-#if 0	/* oops, bad guess that {_V0, V1} maps to {LO, HI} ... */
-	if (r1 == _V0)
-	    mips___r_t(_jit, r0, MIPS_MFLO);
-	else if (r1 == _V1)
-	    mips___r_t(_jit, r0, MIPS_MFHI);
-	else if (r0 == _V0)
-	    mips_r___t(_jit, r1, MIPS_MTLO);
-	else if (r0 == _V1)
-	    mips_r___t(_jit, r1, MIPS_MTHI);
-	else
-#endif
-	    mips_rrr_t(_jit, r1, JIT_RZERO, r0, MIPS_OR);
-    }
+    if (r0 != r1)
+	mips_rrr_t(_jit, r1, JIT_RZERO, r0, MIPS_OR);
 }
 
 #define jit_movi_i(r0, i0)		mips_movi_i(_jit, r0, i0)
@@ -96,7 +84,7 @@ mips_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
     else {
 	mipsh_ri(_jit, MIPS_LUI, r0, (unsigned)i0 >> 16);
 	if (i0 & 0xffff)
-	    mipsh_ri(_jit, MIPS_ORI, r0, i0 & 0xffff);
+	    mipshrri(_jit, MIPS_ORI, r0, r0, i0 & 0xffff);
     }
 }
 
@@ -105,7 +93,7 @@ __jit_inline void
 mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
 {
     mipsh_ri(_jit, MIPS_LUI, r0, (unsigned)i0 >> 16);
-    mipsh_ri(_jit, MIPS_ORI, r0, (unsigned)i0 & 0xffff);
+    mipshrri(_jit, MIPS_ORI, r0, r0, (unsigned)i0 & 0xffff);
 }
 
 #define jit_negr_i(r0, r1)		mips_negr_i(_jit, r0, r1)
@@ -671,10 +659,20 @@ mips_getarg_i(jit_state_t _jit, jit_gpr_t r0, int ofs)
 	jit_ldxi_i(r0, JIT_FP, ofs);
 }
 
+#define jit_callr(r0)			mips_callr(_jit, r0)
+__jit_inline void
+mips_callr(jit_state_t _jit, jit_gpr_t r0)
+{
+    /* other registers can be used instead of _RA */
+    mips_r_rit(_jit, r0, _RA, 0, MIPS_JALR);
+    jit_nop(1);
+}
+
 #define jit_calli(i0)			mips_calli(_jit, i0)
 __jit_inline jit_insn *
 mips_calli(jit_state_t _jit, void *i0)
 {
+#if 0
     long	pc = (long)_jit->x.pc;
     long	lb = (long)i0;
 
@@ -687,16 +685,14 @@ mips_calli(jit_state_t _jit, void *i0)
 	mips_r_rit(_jit, JIT_RTEMP, _RA, 0, MIPS_JALR);
     }
     jit_nop(1);
-    return (_jit->x.pc);
-}
+#else
 
-#define jit_callr(r0)			mips_callr(_jit, r0)
-__jit_inline void
-mips_callr(jit_state_t _jit, jit_gpr_t r0)
-{
-    /* other registers can be used instead of _RA */
-    mips_r_rit(_jit, r0, _RA, 0, MIPS_JALR);
-    jit_nop(1);
+    /* if calling a pic function, _T9 *must* hold the function pointer */
+
+    jit_movi_i(_T9, (long)i0);
+    jit_callr(_T9);
+#endif
+    return (_jit->x.pc);
 }
 
 #define jit_finish(i0)			mips_finish(_jit, i0)

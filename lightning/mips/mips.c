@@ -132,12 +132,14 @@ main(int argc, char *argv[])
     end = jit_get_label();
 #endif
 
+    label = jit_get_label();
+
+#if 0
     /*	int f(int a, int b)
      *  {
      *		return a + b;
      *	}
      */
-    label = jit_get_label();
     jit_prolog(2);
     {
 	int	a0, a1;
@@ -154,8 +156,9 @@ main(int argc, char *argv[])
     jit_flush_code(code, jit_get_label());
     i_ii = (i_ii_t)code;
     printf("%d\n", (*i_ii)(1, 1));
+#endif
 
-#if 0 /* FIXME figure out proper varargs abi... */
+#if 1 /* FIXME figure out proper varargs abi... */
     jit_set_ip(code);
     jit_prolog(0);
     jit_prepare(1);
