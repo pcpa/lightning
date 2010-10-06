@@ -93,6 +93,13 @@ typedef union {
 	_ui	hc : 6;
     } hrri;
     struct {
+	_ui	tc : 11;
+	_ui	rd : 5;
+	_ui	rt : 5;
+	_ui	rs : 5;
+	_ui	hc : 6;
+    } h_rrt;
+    struct {
 	_ui	tc : 6;
 	_ui	im : 5;
 	_ui	rd : 5;
@@ -125,7 +132,7 @@ typedef enum {
     MIPS_TMUL	= 0x02,		/* pair to HMUL */
     MIPS_SLLV	= 0x04,
     MIPS_SRLV	= 0x06,
-    MIPS_SRAV	= 0x06,
+    MIPS_SRAV	= 0x07,
     MIPS_JR	= 0x08,
     MIPS_JALR	= 0x09,
     MIPS_MFHI	= 0x10,
@@ -146,6 +153,8 @@ typedef enum {
     MIPS_NOR	= 0x27,
     MIPS_SLT	= 0x2a,
     MIPS_SLTU	= 0x2b,
+    MIPS_TSEB	= 0x420,	/* pair to HSEB (11 bits composed) */
+    MIPS_TSEH	= 0x620,	/* pair to HSEH (11 bits composed) */
 } mips_tcode_t;
 
 typedef enum {
@@ -163,6 +172,8 @@ typedef enum {
     MIPS_LUI	= 0x0f,
     MIPS_HMUL	= 0x1c,		/* pair to TMUL */
     MIPS_LB	= 0x20,
+    MIPS_HSEB	= 0x1f,		/* pair to TSEB */
+    MIPS_HSEH	= 0x1f,		/* pair to TSEH */
     MIPS_LH	= 0x21,
     MIPS_LW	= 0x23,
     MIPS_LBU	= 0x24,
@@ -234,6 +245,21 @@ mipshrrr_t(jit_state_t _jit, mips_hcode_t hc,
     cc.hrrrit.rt = rt;
     cc.hrrrit.rs = rs;
     cc.hrrrit.hc = hc;
+
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mipsh_rrt(jit_state_t _jit, mips_hcode_t hc,
+	  jit_gpr_t rt, jit_gpr_t rd, mips_tcode_t tc)
+{
+    mips_code_t		cc;
+
+    cc.h_rrt.tc = tc;
+    cc.h_rrt.rd = rd;
+    cc.h_rrt.rt = rt;
+    cc.h_rrt.rs = 0;
+    cc.h_rrt.hc = hc;
 
     _jit_I(cc.op);
 }

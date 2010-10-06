@@ -11,6 +11,7 @@ jit_insn	*code;
 jit_insn	*end;
 
 typedef int (*i_ii_t)(int, int);
+typedef int (*i_i_t)(int);
 typedef void (*v_t)(void);
 
 void
@@ -24,6 +25,7 @@ main(int argc, char *argv[])
 {
     jit_insn	*label;
     v_t	 	 v;
+    i_i_t	 i_i;
     i_ii_t	 i_ii;
 
     code = mmap(NULL, 16384, PROT_EXEC | PROT_READ | PROT_WRITE,
@@ -135,6 +137,28 @@ main(int argc, char *argv[])
     label = jit_get_label();
 
 #if 0
+    /*	int f(int a)
+     *  {
+     *		return a + 1;
+     *	}
+     */
+    jit_prolog(1);
+    {
+	int	a0;
+
+	a0 = jit_arg_i();
+	jit_getarg_i(JIT_R0, a0);
+	jit_addi_i(JIT_R0, JIT_R0, 1);
+	jit_movr_i(JIT_RET, JIT_R0);
+    }
+    jit_ret();
+
+    jit_flush_code(code, jit_get_label());
+    i_i = (i_i_t)code;
+    printf("%d\n", (*i_i)(1));
+#endif
+
+#if 1
     /*	int f(int a, int b)
      *  {
      *		return a + b;
@@ -148,17 +172,18 @@ main(int argc, char *argv[])
 	a1 = jit_arg_i();
 	jit_getarg_i(JIT_R0, a0);
 	jit_getarg_i(JIT_R1, a1);
-	jit_addr_i(JIT_R0, JIT_R0, JIT_R1);
+	//jit_addr_i(JIT_R0, JIT_R0, JIT_R1);
+	jit_rshr_i(JIT_R0, JIT_R0, JIT_R1);
 	jit_movr_i(JIT_RET, JIT_R0);
     }
     jit_ret();
 
     jit_flush_code(code, jit_get_label());
     i_ii = (i_ii_t)code;
-    printf("%d\n", (*i_ii)(1, 1));
+    printf("%d\n", (*i_ii)(-32, 2));
 #endif
 
-#if 1 /* FIXME figure out proper varargs abi... */
+#if 0 /* FIXME figure out proper varargs abi... */
     jit_set_ip(code);
     jit_prolog(0);
     jit_prepare(1);
