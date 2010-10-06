@@ -122,12 +122,12 @@ typedef union {
 } mips_code_t;
 
 typedef enum {
-    MIPS_J	= 0x02,
     MIPS_TMUL	= 0x02,		/* pair to HMUL */
     MIPS_SLLV	= 0x04,
     MIPS_SRLV	= 0x06,
     MIPS_SRAV	= 0x06,
     MIPS_JR	= 0x08,
+    MIPS_JALR	= 0x09,
     MIPS_MFHI	= 0x10,
     MIPS_MTHI	= 0x11,
     MIPS_MFLO	= 0x12,
@@ -150,7 +150,9 @@ typedef enum {
 
 typedef enum {
     MIPS_SLL	= 0x00,
+    MIPS_J	= 0x02,
     MIPS_SRL	= 0x02,
+    MIPS_JAL	= 0x03,
     MIPS_SRA	= 0x03,
     MIPS_BEQ	= 0x04,
     MIPS_ADDI	= 0x08,
@@ -267,7 +269,7 @@ mips__rrit(jit_state_t _jit,
 }
 
 __jit_inline void
-mips_r_it(jit_state_t _jit, mips_tcode_t tc, int im, jit_gpr_t rs)
+mips_r_it(jit_state_t _jit, jit_gpr_t rs, int im, mips_tcode_t tc)
 {
     mips_code_t		cc;
 
@@ -280,8 +282,25 @@ mips_r_it(jit_state_t _jit, mips_tcode_t tc, int im, jit_gpr_t rs)
     _jit_I(cc.op);
 }
 
+
 __jit_inline void
-mipshi(jit_state_t _jit, mips_tcode_t hc, int im)
+mips_r_rit(jit_state_t _jit,
+	   jit_gpr_t rs, jit_gpr_t rd, int im, mips_tcode_t tc)
+{
+    mips_code_t		cc;
+
+    cc.hrrrit.tc = tc;
+    cc.hrrrit.im = im;
+    cc.hrrrit.rd = rd;
+    cc.hrrrit.rt = 0;
+    cc.hrrrit.rs = rs;
+    cc.hrrrit.hc = 0;
+
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mipshi(jit_state_t _jit, mips_hcode_t hc, int im)
 {
     mips_code_t		cc;
 

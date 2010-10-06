@@ -163,7 +163,12 @@ struct jit_local_state {
 #elif defined(__mips__)
 struct jit_local_state {
     int		 framesize;
+    int		 nextarg_geti;
     int		 nextarg_puti;
+    int		 alloca_offset;
+    int		 stack_length;
+    int		 stack_offset;
+    short	*stack;
 };
 #else
 #  error GNU lightning does not support the current target
