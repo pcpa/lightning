@@ -702,10 +702,7 @@ The registers that are saved (@code{%ebx}, @code{%esi}, @code{%edi}) are
 mapped to the @code{V0} through @code{V2} registers in the @lightning{}
 instruction set.
 
-Argument passing is more tricky.  There are basically three
-cases@footnote{For speed and ease of implementation, @lightning{} does not
-currently support passing some of the parameters on the stack and some
-in registers.}:
+Argument passing is more tricky.  There are basically three cases:
 @table @b
 @item Register windows
 Output registers are different from input registers---the prolog takes
@@ -800,18 +797,12 @@ followed).  Since the stack has to be cleaned up after the call,
 and @code{jit_finish} adjusts the stack pointer after the call.
 
 @example
-#define jit_prepare_i(numargs) (_jitl.args += (numargs))
+#define jit_prepare_i(numargs) (_jitl.args = (numargs))
 #define jit_pusharg_i(rs)      PUSHLr(rs)
 #define jit_finish(sub)        (jit_calli((sub)),              \
                                ADDLir(4 * _jitl.args, JIT_SP), \
-                               _jitl.numargs = 0)
+                               _jitl.args = 0)
 @end example
-
-Note the usage of @code{+=} in @code{jit_prepare_i}.  This is done
-so that one can defer the popping of the arguments that were saved
-on the stack (@dfn{stack pollution}).  To do so, it is sufficient to
-use @code{jit_calli} instead of @code{jit_finish} in all but the
-last call.
 
 On the caller's side, @code{arg} returns an offset relative to the
 frame pointer, and @code{getarg} loads the argument from the stack:
