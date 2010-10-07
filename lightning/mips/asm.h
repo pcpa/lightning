@@ -129,36 +129,55 @@ typedef union {
 } mips_code_t;
 
 typedef enum {
-    MIPS_TMUL	= 0x02,		/* pair to HMUL */
+    MIPS_SLL	= 0x00,
+    MIPS_TMUL	= 0x02,
     MIPS_SLLV	= 0x04,
+    MIPS_TINS	= 0x04,
     MIPS_SRLV	= 0x06,
     MIPS_SRAV	= 0x07,
+    MIPS_TDINS	= 0x07,
     MIPS_JR	= 0x08,
     MIPS_JALR	= 0x09,
     MIPS_MFHI	= 0x10,
     MIPS_MTHI	= 0x11,
     MIPS_MFLO	= 0x12,
     MIPS_MTLO	= 0x13,
-    MIPS_ADD	= 0x20,
-    MIPS_ADDU	= 0x21,
-    MIPS_AND	= 0x24,
+    MIPS_DSLLV	= 0x14,
+    MIPS_DSRLV	= 0x16,
+    MIPS_DSRAV	= 0x17,
     MIPS_MULT	= 0x18,
     MIPS_MULTU	= 0x19,
     MIPS_DIV	= 0x1a,
     MIPS_DIVU	= 0x1b,
+    MIPS_DMULT	= 0x1c,
+    MIPS_DMULTU	= 0x1d,
+    MIPS_DDIV	= 0x1e,
+    MIPS_DDIVU	= 0x1f,
+    MIPS_ADD	= 0x20,
+    MIPS_ADDU	= 0x21,
     MIPS_SUB	= 0x22,
     MIPS_SUBU	= 0x23,
+    MIPS_AND	= 0x24,
     MIPS_OR	= 0x25,
     MIPS_XOR	= 0x26,
     MIPS_NOR	= 0x27,
     MIPS_SLT	= 0x2a,
     MIPS_SLTU	= 0x2b,
-    MIPS_TSEB	= 0x420,	/* pair to HSEB (11 bits composed) */
-    MIPS_TSEH	= 0x620,	/* pair to HSEH (11 bits composed) */
+    MIPS_DADD	= 0x2c,
+    MIPS_DADDU	= 0x2d,
+    MIPS_DSUB	= 0x2e,
+    MIPS_DSUBU	= 0x2f,
+    MIPS_DSLL	= 0x38,
+    MIPS_DSRL	= 0x3a,
+    MIPS_DSRA	= 0x3b,
+    MIPS_DSLL32	= 0x3c,
+    MIPS_DSRL32	= 0x3e,
+    MIPS_DSRA32	= 0x3f,
+    MIPS_TSEB	= 0x420,
+    MIPS_TSEH	= 0x620,
 } mips_tcode_t;
 
 typedef enum {
-    MIPS_SLL	= 0x00,
     MIPS_J	= 0x02,
     MIPS_SRL	= 0x02,
     MIPS_JAL	= 0x03,
@@ -170,17 +189,24 @@ typedef enum {
     MIPS_ORI	= 0x0d,
     MIPS_XORI	= 0x0e,
     MIPS_LUI	= 0x0f,
-    MIPS_HMUL	= 0x1c,		/* pair to TMUL */
+    MIPS_HMUL	= 0x1c,
+    MIPS_DADDI	= 0x18,
+    MIPS_DADDIU	= 0x19,
+    MIPS_HINS	= 0x1f,
+    MIPS_HDINS	= 0x1f,
     MIPS_LB	= 0x20,
-    MIPS_HSEB	= 0x1f,		/* pair to TSEB */
-    MIPS_HSEH	= 0x1f,		/* pair to TSEH */
+    MIPS_HSEB	= 0x1f,
+    MIPS_HSEH	= 0x1f,
     MIPS_LH	= 0x21,
     MIPS_LW	= 0x23,
     MIPS_LBU	= 0x24,
     MIPS_LHU	= 0x25,
+    MIPS_LWU	= 0x27,
     MIPS_SB	= 0x28,
     MIPS_SH	= 0x29,
     MIPS_SW	= 0x2b,
+    MIPS_LD	= 0x37,
+    MIPS_SD	= 0x3f,
 } mips_hcode_t;
 
 __jit_inline void
@@ -332,6 +358,22 @@ mipshi(jit_state_t _jit, mips_hcode_t hc, int im)
 
     cc.hi.im = _s26(im);
     cc.hi.hc = hc;
+
+    _jit_I(cc.op);
+}
+
+__jit_inline void
+mipshrriit(jit_state_t _jit, mips_hcode_t hc,
+	   jit_gpr_t rs, jit_gpr_t rt, int rd, int im, mips_tcode_t tc)
+{
+    mips_code_t		cc;
+
+    cc.hrrrit.tc = tc;
+    cc.hrrrit.im = im;
+    cc.hrrrit.rd = rd;
+    cc.hrrrit.rt = rt;
+    cc.hrrrit.rs = rs;
+    cc.hrrrit.hc = hc;
 
     _jit_I(cc.op);
 }

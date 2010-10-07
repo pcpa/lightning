@@ -10,6 +10,7 @@
 jit_insn	*code;
 jit_insn	*end;
 
+typedef long long (*l_ll_t)(long long, long long);
 typedef int (*i_ii_t)(int, int);
 typedef int (*i_i_t)(int);
 typedef void (*v_t)(void);
@@ -27,6 +28,7 @@ main(int argc, char *argv[])
     v_t	 	 v;
     i_i_t	 i_i;
     i_ii_t	 i_ii;
+    l_ll_t	 l_ll;
 
     code = mmap(NULL, 16384, PROT_EXEC | PROT_READ | PROT_WRITE,
 		MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
@@ -158,7 +160,7 @@ main(int argc, char *argv[])
     printf("%d\n", (*i_i)(1));
 #endif
 
-#if 1
+#if 0
     /*	int f(int a, int b)
      *  {
      *		return a + b;
@@ -172,8 +174,7 @@ main(int argc, char *argv[])
 	a1 = jit_arg_i();
 	jit_getarg_i(JIT_R0, a0);
 	jit_getarg_i(JIT_R1, a1);
-	//jit_addr_i(JIT_R0, JIT_R0, JIT_R1);
-	jit_rshr_i(JIT_R0, JIT_R0, JIT_R1);
+	jit_addr_i(JIT_R0, JIT_R0, JIT_R1);
 	jit_movr_i(JIT_RET, JIT_R0);
     }
     jit_ret();
@@ -194,6 +195,30 @@ main(int argc, char *argv[])
     jit_flush_code(code, jit_get_label());
     v = (v_t)code;
     (*v)();
+#endif
+
+#if 0
+    /*	long long f(long long a, long long b)
+     *  {
+     *		return a + b;
+     *	}
+     */
+    jit_prolog(2);
+    {
+	int	a0, a1;
+
+	a0 = jit_arg_ll();
+	a1 = jit_arg_ll();
+	jit_getarg_ll(JIT_R0, a0);
+	jit_getarg_ll(JIT_R1, a1);
+	jit_addr_ll(JIT_R0, JIT_R0, JIT_R1);
+	jit_movr_ll(JIT_RET, JIT_R0);
+    }
+    jit_ret();
+
+    jit_flush_code(code, jit_get_label());
+    l_ll = (l_ll_t)code;
+    printf("%llx\n", (*l_ll)(0x3000000000000001LL, 0x1000000000000003LL));
 #endif
 
     d();

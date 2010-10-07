@@ -388,7 +388,7 @@ typedef union jit_code {
 #define jit_ldr_l(rd, rs)		jit_ldxr_l((rd), JIT_RZERO, (rs))		
 #define jit_str_l(rd, rs)		jit_stxr_l(JIT_RZERO, (rd), (rs))		
 #define jit_ldr_uc(rd, rs)		jit_ldxr_uc((rd), JIT_RZERO, (rs))		
-#define jit_ldr_us(rd, rs)		jit_ldxr_us((rd), JIT_RZERO, (rs))		
+#define jit_ldr_us(rd, rs)		jit_ldxr_us((rd), JIT_RZERO, (rs))
 #define jit_ldr_ui(rd, rs)		jit_ldxr_ui((rd), JIT_RZERO, (rs))		
 #  if __WORDSIZE == 64
 #    define jit_ldr_ul(rd, rs)		jit_ldxr_ul((rd), JIT_RZERO, (rs))
@@ -611,8 +611,12 @@ typedef union jit_code {
 #  define jit_ldxi_l(d, rs, is)		jit_ldxi_i((d), (rs), (is))
 #  define jit_stxr_l(d, s1, s2)		jit_stxr_i((d), (s1), (s2))
 #  define jit_stxi_l(d, rs, is)		jit_stxi_i((d), (rs), (is))
-#  define jit_ldxr_ui(d, s1, s2)	jit_ldxr_i((d), (s1), (s2))
-#  define jit_ldxi_ui(d, rs, is)	jit_ldxi_i((d), (rs), (is))
+#  if !defined (jit_ldxr_ui)
+#    define jit_ldxr_ui(d, s1, s2)	jit_ldxr_i((d), (s1), (s2))
+#  endif
+#  if !defined (jit_ldxi_ui)
+#    define jit_ldxi_ui(d, rs, is)	jit_ldxi_i((d), (rs), (is))
+#  endif
 
 
 /* Boolean */

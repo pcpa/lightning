@@ -59,9 +59,9 @@ jit_a_order[JIT_A_NUM] = {
     _A0, _A1, _A2, _A3
 };
 
-#define jit_nop(n)			mips_noop(_jit, n)
+#define jit_nop(n)			mips_nop(_jit, n)
 __jit_inline void
-mips_noop(jit_state_t _jit, int n)
+mips_nop(jit_state_t _jit, int n)
 {
     while (n--)
 	_jit_I(0);
@@ -327,10 +327,11 @@ mips_lshr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_lshi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(i0 >= 0 && i0 <= 31);
     mips__rrit(_jit, r1, r0, i0, MIPS_SLL);
 }
 
-#define jit_rshr_i(r0, r1, i0)		mips_rshr_i(_jit, r0, r1, i0)
+#define jit_rshr_i(r0, r1, r2)		mips_rshr_i(_jit, r0, r1, r2)
 __jit_inline void
 mips_rshr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
@@ -341,6 +342,7 @@ mips_rshr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_rshi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(i0 >= 0 && i0 <= 31);
     mips__rrit(_jit, r1, r0, i0, MIPS_SRA);
 }
 
@@ -355,6 +357,7 @@ mips_rshr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_rshi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(i0 >= 0 && i0 <= 31);
     mips__rrit(_jit, r1, r0, i0, MIPS_SRL);
 }
 
@@ -437,7 +440,7 @@ __jit_inline void
 mips_ldxr_x(jit_state_t _jit, mips_hcode_t hc,
 	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_addr_i(JIT_RTEMP, r1, r2);
+    jit_addr_l(JIT_RTEMP, r1, r2);
     mipshrri(_jit, hc, r0, JIT_RTEMP, 0);
 }
 
@@ -448,7 +451,7 @@ mips_ldxr_x(jit_state_t _jit, mips_hcode_t hc,
 #define jit_ldxi_i(r0, r1, i0)		mips_ldxi_x(_jit, MIPS_LW,  r0, r1, i0)
 __jit_inline void
 mips_ldxi_x(jit_state_t _jit, mips_hcode_t hc,
-	    jit_gpr_t r0, jit_gpr_t r1, int i0)
+	    jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
 	mipshrri(_jit, hc, r0, r1, i0);
@@ -544,9 +547,7 @@ mips_prolog(jit_state_t _jit, int n)
     _jitl.framesize = 40;
     _jitl.nextarg_geti = 0;
 
-    /* jit_subi_p */
     jit_subi_i(JIT_SP, JIT_SP, 40);
-
     jit_stxi_i(36, JIT_SP, _RA);
     jit_stxi_i(32, JIT_SP, _FP);
     jit_stxi_i(28, JIT_SP, _S7);
@@ -557,8 +558,6 @@ mips_prolog(jit_state_t _jit, int n)
     jit_stxi_i( 8, JIT_SP, _S2);
     jit_stxi_i( 4, JIT_SP, _S1);
     jit_stxi_i( 0, JIT_SP, _S0);
-
-    /* jit_movr_p */
     jit_movr_i(JIT_FP, JIT_SP);
 
     /* patch alloca and stack adjustment */
@@ -742,9 +741,7 @@ mips_retval_i(jit_state_t _jit, jit_gpr_t r0)
 __jit_inline void
 mips_ret(jit_state_t jit)
 {
-    /* jit_movr_p */
     jit_movr_i(JIT_SP, JIT_FP);
-
     jit_ldxi_i(_S0, JIT_SP,  0);
     jit_ldxi_i(_S1, JIT_SP,  4);
     jit_ldxi_i(_S2, JIT_SP,  8);
@@ -755,12 +752,15 @@ mips_ret(jit_state_t jit)
     jit_ldxi_i(_S7, JIT_SP, 28);
     jit_ldxi_i(_FP, JIT_SP, 32);
     jit_ldxi_i(_RA, JIT_SP, 36);
-
     jit_jmpr(_RA);
-
-    /* jit_addi_p */
     /* restore sp in delay slot */
     jit_addi_i(JIT_SP, JIT_SP, 40);
 }
+
+#if LIGHTNING_CROSS \
+	? LIGHTNING_TARGET == LIGHTNING_MIPS64 \
+	: defined (__mips64)
+#  include "core-64.h"
+#endif
 
 #endif /* __lightning_core_mips_h */
