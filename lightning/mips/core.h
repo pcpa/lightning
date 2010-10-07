@@ -4,7 +4,6 @@
  *
  ***********************************************************************/
 
-
 /***********************************************************************
  *
  * Copyright 2010 Free Software Foundation, Inc.
@@ -81,6 +80,8 @@ mips_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 == 0)
 	mips_rrr_t(_jit, r0, r0, r0, MIPS_XOR);
+    else if (_s16P(i0))
+	mipshrri(_jit, MIPS_ADDIU, JIT_RZERO, r0, i0);
     else {
 	mipsh_ri(_jit, MIPS_LUI, r0, (unsigned)i0 >> 16);
 	if (i0 & 0xffff)
@@ -361,6 +362,71 @@ mips_rshi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     mips__rrit(_jit, r1, r0, i0, MIPS_SRL);
 }
 
+#define jit_ltr_i(r0, r1, i0)		mips_ltr_i(_jit, r0, r1, i0)
+__jit_inline void
+mips_ltr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    mips_rrr_t(_jit, r2, r1, r0, MIPS_SLT);
+}
+
+#define jit_ltr_ui(r0, r1, i0)		mips_ltr_ui(_jit, r0, r1, i0)
+__jit_inline void
+mips_ltr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    mips_rrr_t(_jit, r2, r1, r0, MIPS_SLTU);
+}
+
+#define jit_lti_i(r0, r1, i0)		mips_lti_i(_jit, r0, r1, i0)
+__jit_inline void
+mips_lti_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    if (_s16P(i0))
+	mipshrri(_jit, MIPS_SLTI, r0, r1, i0);
+    else {
+	jit_movi_i(JIT_RTEMP, i0);
+	jit_ltr_i(r0, r1, JIT_RTEMP);
+    }
+}
+
+#define jit_lti_ui(r0, r1, i0)		mips_lti_ui(_jit, r0, r1, i0)
+__jit_inline void
+mips_lti_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+{
+    /* value is sign extended */
+    if (i0 <= 0x7fff || i0 >= 0xffff8000)
+	mipshrri(_jit, MIPS_SLTIU, r0, r1, i0);
+    else {
+	jit_movi_i(JIT_RTEMP, i0);
+	jit_ltr_ui(r0, r1, JIT_RTEMP);
+    }
+}
+
+#define jit_eqr_i(r0, r1, r2)		mips_eqr_i(_jit, r0, r1, r2)
+__jit_inline void
+mips_eqr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    mipshrri(_jit, MIPS_ORI, JIT_RTEMP, JIT_RTEMP, 1);	/* _at = 1; */
+    jit_subr_i(r0, r1, r2);				/* r0 = r1 - r2; */
+    mips_rrr_t(_jit, JIT_RTEMP, r0, r0, MIPS_MOVN);	/* if (r0) r0 = _at; */
+}
+
+#define jit_eqi_i(r0, r1, i0)		mips_eqi_i(_jit, r0, r1, i0)
+__jit_inline void
+mips_eqr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    if (i0) {
+	/* r0 = r1 - i0; */
+	jit_subi_i(r0, r1, i0);
+	/* _at = 1; */
+	mipshrri(_jit, MIPS_ORI, JIT_RTEMP, JIT_RTEMP, 1);
+	/* if (r0) r0 = _at; */
+	mips_rrr_t(_jit, JIT_RTEMP, r0, r0, MIPS_MOVN);
+    }
+    else
+	/* r0 = 0 < (uint32_t)r0; */
+	mips_rrr_t(_jit, JIT_RZERO, r0, r0, MIPS_SLTU);
+}
+
 #define jit_jmpr(i0)			mips_jmpr(_jit, i0)
 __jit_inline void
 mips_jmpr(jit_state_t _jit, jit_gpr_t r0)
@@ -440,7 +506,7 @@ __jit_inline void
 mips_ldxr_x(jit_state_t _jit, mips_hcode_t hc,
 	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_addr_l(JIT_RTEMP, r1, r2);
+    jit_addr_i(JIT_RTEMP, r1, r2);
     mipshrri(_jit, hc, r0, JIT_RTEMP, 0);
 }
 
@@ -493,8 +559,8 @@ __jit_inline void
 mips_stxr_x(jit_state_t _jit, mips_hcode_t hc,
 	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    jit_addr_i(JIT_RTEMP, r1, r2);
-    mipshrri(_jit, hc, JIT_RTEMP, r0, 0);
+    jit_addr_i(JIT_RTEMP, r0, r1);
+    mipshrri(_jit, hc, JIT_RTEMP, r2, 0);
 }
 
 #define jit_stxi_c(i0, r0, r1)		mips_stxi_x(_jit, MIPS_SB, i0, r0, r1)
@@ -507,8 +573,8 @@ mips_stxi_x(jit_state_t _jit, mips_hcode_t hc,
     if (_s16P(i0))
 	mipshrri(_jit, hc, r1, r0, i0);
     else {
-	jit_addi_i(JIT_RTEMP, r1, i0);
-	mipshrri(_jit, hc, JIT_RTEMP, r0, 0);
+	jit_addi_i(JIT_RTEMP, r0, i0);
+	mipshrri(_jit, hc, JIT_RTEMP, r1, 0);
     }
 }
 
@@ -538,88 +604,6 @@ __jit_inline void
 mips_extr_s_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     mipshrri(_jit, MIPS_ANDI, r0, r1, 0xffff);
-}
-
-#define jit_prolog(n)			mips_prolog(_jit, n)
-__jit_inline void
-mips_prolog(jit_state_t _jit, int n)
-{
-    _jitl.framesize = 40;
-    _jitl.nextarg_geti = 0;
-
-    jit_subi_i(JIT_SP, JIT_SP, 40);
-    jit_stxi_i(36, JIT_SP, _RA);
-    jit_stxi_i(32, JIT_SP, _FP);
-    jit_stxi_i(28, JIT_SP, _S7);
-    jit_stxi_i(24, JIT_SP, _S6);
-    jit_stxi_i(20, JIT_SP, _S5);
-    jit_stxi_i(16, JIT_SP, _S4);
-    jit_stxi_i(12, JIT_SP, _S3);
-    jit_stxi_i( 8, JIT_SP, _S2);
-    jit_stxi_i( 4, JIT_SP, _S1);
-    jit_stxi_i( 0, JIT_SP, _S0);
-    jit_movr_i(JIT_FP, JIT_SP);
-
-    /* patch alloca and stack adjustment */
-    jit_subi_i(JIT_SP, JIT_SP, 0);
-    _jitl.stack = ((short *)_jit->x.pc) - 1;
-    _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
-}
-
-#define jit_prepare_i(count)		mips_prepare_i(_jit, count)
-__jit_inline void
-mips_prepare_i(jit_state_t _jit, int count)
-{
-    assert(count		>= 0 &&
-	   _jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0);
-
-    _jitl.nextarg_puti = count;
-    if (_jitl.nextarg_puti > JIT_A_NUM) {
-	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 2;
-	if (_jitl.stack_length < _jitl.stack_offset) {
-	    _jitl.stack_length = _jitl.stack_offset;
-	    *_jitl.stack = (_jitl.alloca_offset +
-			    _jitl.stack_length + 7) & ~7;
-	}
-    }
-}
-
-#define jit_pusharg_i(r0)		mips_pusharg_i(_jit, r0)
-__jit_inline void
-mips_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
-{
-    assert(_jitl.nextarg_puti > 0);
-    if (--_jitl.nextarg_puti >= JIT_A_NUM) {
-	_jitl.stack_offset -= sizeof(int);
-	assert(_jitl.stack_offset >= 0);
-	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
-    }
-    else
-	jit_movr_i(jit_a_order[_jitl.nextarg_puti], r0);
-}
-
-#define jit_arg_i()			mips_arg_i(_jit)
-#define jit_arg_c()			mips_arg_i(_jit)
-#define jit_arg_uc()			mips_arg_i(_jit)
-#define jit_arg_s()			mips_arg_i(_jit)
-#define jit_arg_us()			mips_arg_i(_jit)
-#define jit_arg_ui()			mips_arg_i(_jit)
-__jit_inline int
-mips_arg_i(jit_state_t _jit)
-{
-    int		ofs;
-
-    if (_jitl.nextarg_geti < JIT_A_NUM) {
-	ofs = _jitl.nextarg_geti;
-	++_jitl.nextarg_geti;
-    }
-    else {
-	ofs = _jitl.framesize;
-	_jitl.framesize += sizeof(int);
-    }
-
-    return (ofs);
 }
 
 #define jit_getarg_c(r0, ofs)		mips_getarg_c(_jit, r0, ofs)
@@ -681,46 +665,6 @@ mips_callr(jit_state_t _jit, jit_gpr_t r0)
     jit_nop(1);
 }
 
-#define jit_calli(i0)			mips_calli(_jit, i0)
-__jit_inline jit_insn *
-mips_calli(jit_state_t _jit, void *i0)
-{
-#if 0
-    /* FIXME still usable to call jit functions that are not really
-     * position independent code */
-
-    long	pc = (long)_jit->x.pc;
-    long	lb = (long)i0;
-
-    /* FIXME return an address that can be patched so, should always
-     * call register to not be limited to same 256Mb segment */
-    if ((pc & 0xf0000000) == (lb & 0xf0000000))
-	mipshi(_jit, MIPS_JAL, ((long)i0) >> 2);
-    else {
-	jit_movi_i(JIT_RTEMP, lb);
-	mips_r_rit(_jit, JIT_RTEMP, _RA, 0, MIPS_JALR);
-    }
-    jit_nop(1);
-#else
-    /* if calling a pic function, _T9 *must* hold the function pointer */
-
-    jit_movi_i(_T9, (long)i0);
-    jit_callr(_T9);
-#endif
-    return (_jit->x.pc);
-}
-
-#define jit_finish(i0)			mips_finish(_jit, i0)
-__jit_inline jit_insn *
-mips_finish(jit_state_t _jit, void *i0)
-{
-    assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0);
-    jit_calli(i0);
-    /* FIXME return patchable address */
-    return (_jit->x.pc);
-}
-
 #define jit_finishr(rs)			x86_finishr(_jit, rs)
 __jit_inline void
 mips_finishr(jit_state_t _jit, jit_gpr_t r0)
@@ -730,37 +674,12 @@ mips_finishr(jit_state_t _jit, jit_gpr_t r0)
     jit_callr(r0);
 }
 
-#define jit_retval_i(r0)		mips_retval_i(_jit, r0)
-__jit_inline void
-mips_retval_i(jit_state_t _jit, jit_gpr_t r0)
-{
-    jit_movr_i(r0, JIT_RET);
-}
-
-#define jit_ret()			mips_ret(_jit)
-__jit_inline void
-mips_ret(jit_state_t jit)
-{
-    jit_movr_i(JIT_SP, JIT_FP);
-    jit_ldxi_i(_S0, JIT_SP,  0);
-    jit_ldxi_i(_S1, JIT_SP,  4);
-    jit_ldxi_i(_S2, JIT_SP,  8);
-    jit_ldxi_i(_S3, JIT_SP, 12);
-    jit_ldxi_i(_S4, JIT_SP, 16);
-    jit_ldxi_i(_S5, JIT_SP, 20);
-    jit_ldxi_i(_S6, JIT_SP, 24);
-    jit_ldxi_i(_S7, JIT_SP, 28);
-    jit_ldxi_i(_FP, JIT_SP, 32);
-    jit_ldxi_i(_RA, JIT_SP, 36);
-    jit_jmpr(_RA);
-    /* restore sp in delay slot */
-    jit_addi_i(JIT_SP, JIT_SP, 40);
-}
-
 #if LIGHTNING_CROSS \
 	? LIGHTNING_TARGET == LIGHTNING_MIPS64 \
 	: defined (__mips64)
 #  include "core-64.h"
+#else
+#  include "core-32.h"
 #endif
 
 #endif /* __lightning_core_mips_h */

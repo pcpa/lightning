@@ -1,9 +1,8 @@
 /******************************** -*- C -*- ****************************
  *
- *	Platform-independent layer (mips version)
+ *	Platform-independent layer (mips64 version)
  *
  ***********************************************************************/
-
 
 /***********************************************************************
  *
@@ -63,6 +62,25 @@ mips_movi_l(jit_state_t _jit, jit_gpr_t r0, long i0)
 	if ((ms = i0 & 0xffff))
 	    mipshrri(_jit, MIPS_ORI, r0, r0, ms);
     }
+}
+
+#define jit_movi_p(r0, i0)		mips_movi_p(_jit, r0, i0)
+__jit_inline void
+mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
+{
+    unsigned long	ms;
+
+    ms = i0 & 0xffff000000000000L;
+    mipshrri(_jit, MIPS_ORI, JIT_RZER0, r0, ms >> 48);
+    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    ms = i0 & 0x0000ffff00000000L;
+    mipshrri(_jit, MIPS_ORI, r0, r0, ms >> 32);
+    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    ms = i0 & 0x00000000ffff0000L;
+    mipshrri(_jit, MIPS_ORI, r0, r0, ms >> 16);
+    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    ms = i0 & 0x000000000000ffffL;
+    mipshrri(_jit, MIPS_ORI, r0, r0, ms);
 }
 
 #define jit_negr_l(r0, r1)		mips_negr_l(_jit, r0, r1)
@@ -377,7 +395,53 @@ mips_extr_i_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
     mipshrriit(_jit, r0, MIPS_HDINS, JIT_RZERO, 32, 32, MIPS_TDINS);
 }
 
-#define jit_pusharg_ul(r0)		mips_pusharg_l(_jit, r0)
+#define jit_prolog(n)			mips_prolog(_jit, n)
+__jit_inline void
+mips_prolog(jit_state_t _jit, int n)
+{
+    _jitl.framesize = 80;
+    _jitl.nextarg_geti = 0;
+
+    jit_subi_l(JIT_SP, JIT_SP, 80);
+    jit_stxi_l(72, JIT_SP, _RA);
+    jit_stxi_l(64, JIT_SP, _FP);
+    jit_stxi_l(56, JIT_SP, _S7);
+    jit_stxi_l(48, JIT_SP, _S6);
+    jit_stxi_l(40, JIT_SP, _S5);
+    jit_stxi_l(32, JIT_SP, _S4);
+    jit_stxi_l(34, JIT_SP, _S3);
+    jit_stxi_l(16, JIT_SP, _S2);
+    jit_stxi_l( 8, JIT_SP, _S1);
+    jit_stxi_l( 0, JIT_SP, _S0);
+    jit_movr_l(JIT_FP, JIT_SP);
+
+    /* patch alloca and stack adjustment */
+    jit_subi_i(JIT_SP, JIT_SP, 0);
+    /* FIXME should not limit to 15 bits */
+    _jitl.stack = ((short *)_jit->x.pc) - 2;
+    _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
+}
+
+#define jit_prepare_i(count)		mips_prepare_i(_jit, count)
+__jit_inline void
+mips_prepare_i(jit_state_t _jit, int count)
+{
+    assert(count		>= 0 &&
+	   _jitl.stack_offset	== 0 &&
+	   _jitl.nextarg_puti	== 0);
+
+    _jitl.nextarg_puti = count;
+    if (_jitl.nextarg_puti > JIT_A_NUM) {
+	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 2;
+	if (_jitl.stack_length < _jitl.stack_offset) {
+	    _jitl.stack_length = _jitl.stack_offset;
+	    *_jitl.stack = (_jitl.alloca_offset +
+			    _jitl.stack_length + 7) & ~7;
+	}
+    }
+}
+
+#define jit_pusharg_i(r0)		mips_pusharg_l(_jit, r0)
 #define jit_pusharg_l(r0)		mips_pusharg_l(_jit, r0)
 __jit_inline void
 mips_pusharg_l(jit_state_t _jit, jit_gpr_t r0)
@@ -392,8 +456,14 @@ mips_pusharg_l(jit_state_t _jit, jit_gpr_t r0)
 	jit_movr_l(jit_a_order[_jitl.nextarg_puti], r0);
 }
 
-#define jit_arg_ul()			mips_arg_l(_jit)
 #define jit_arg_l()			mips_arg_l(_jit)
+#define jit_arg_i()			mips_arg_l(_jit)
+#define jit_arg_c()			mips_arg_l(_jit)
+#define jit_arg_uc()			mips_arg_l(_jit)
+#define jit_arg_s()			mips_arg_l(_jit)
+#define jit_arg_us()			mips_arg_l(_jit)
+#define jit_arg_ui()			mips_arg_l(_jit)
+#define jit_arg_ul()			mips_arg_l(_jit)
 __jit_inline int
 mips_arg_l(jit_state_t _jit)
 {
@@ -421,6 +491,33 @@ mips_getarg_l(jit_state_t _jit, jit_gpr_t r0, int ofs)
 	jit_movr_l(r0, jit_a_order[ofs]);
     else
 	jit_ldxi_l(r0, JIT_FP, ofs);
+}
+
+#define jit_retval_i(r0)		mips_retval_l(_jit, r0)
+__jit_inline void
+mips_retval_l(jit_state_t _jit, jit_gpr_t r0)
+{
+    jit_movr_l(r0, JIT_RET);
+}
+
+#define jit_ret()			mips_ret(_jit)
+__jit_inline void
+mips_ret(jit_state_t jit)
+{
+    jit_movr_l(JIT_SP, JIT_FP);
+    jit_ldxi_l(_S0, JIT_SP,  0);
+    jit_ldxi_l(_S1, JIT_SP,  8);
+    jit_ldxi_l(_S2, JIT_SP, 16);
+    jit_ldxi_l(_S3, JIT_SP, 24);
+    jit_ldxi_l(_S4, JIT_SP, 32);
+    jit_ldxi_l(_S5, JIT_SP, 40);
+    jit_ldxi_l(_S6, JIT_SP, 48);
+    jit_ldxi_l(_S7, JIT_SP, 56);
+    jit_ldxi_l(_FP, JIT_SP, 64);
+    jit_ldxi_l(_RA, JIT_SP, 72);
+    jit_jmpr(_RA);
+    /* restore sp in delay slot */
+    jit_addi_l(JIT_SP, JIT_SP, 80);
 }
 
 #endif /* __lightning_core_h */

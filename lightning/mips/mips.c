@@ -133,9 +133,67 @@ main(int argc, char *argv[])
 
     jit_ldxr_ui(JIT_R0, JIT_R1, JIT_R2);
     jit_stxr_ui(JIT_R2, JIT_R0, JIT_R1);
-    end = jit_get_label();
-#endif
 
+    jit_movr_f(JIT_FPR0, JIT_FPR1);
+    jit_movr_d(JIT_FPR0, JIT_FPR1);
+
+    jit_absr_f(JIT_FPR0, JIT_FPR1);
+    jit_absr_d(JIT_FPR0, JIT_FPR1);
+
+    jit_negr_f(JIT_FPR0, JIT_FPR1);
+    jit_negr_d(JIT_FPR0, JIT_FPR1);
+
+    jit_sqrtr_f(JIT_FPR0, JIT_FPR1);
+    jit_sqrtr_d(JIT_FPR0, JIT_FPR1);
+
+    jit_addr_f(JIT_FPR0, JIT_FPR1, JIT_FPR2);
+    jit_addr_d(JIT_FPR0, JIT_FPR1, JIT_FPR2);
+
+    jit_ldr_f(JIT_FPR0, JIT_R0);
+    jit_ldi_f(JIT_FPR0, (void *)0xdeadbeef);
+    jit_ldxr_f(JIT_FPR0, JIT_R0, JIT_R1);
+    jit_ldxi_f(JIT_FPR0, JIT_R0, 32);
+    jit_ldxi_f(JIT_FPR0, JIT_R0, 0xdeadbeef);
+
+    jit_ldr_d(JIT_FPR0, JIT_R0);
+    jit_ldi_d(JIT_FPR0, (void *)0xdeadbeef);
+    jit_ldxr_d(JIT_FPR0, JIT_R0, JIT_R1);
+    jit_ldxi_d(JIT_FPR0, JIT_R0, 32);
+    jit_ldxi_d(JIT_FPR0, JIT_R0, 0xdeadbeef);
+
+    jit_str_f(JIT_R0, JIT_FPR0);
+    jit_sti_f((void *)0xdeadbeef, JIT_FPR0);
+    jit_stxr_f(JIT_R0, JIT_R1, JIT_FPR0);
+    jit_stxi_f(0xdeadbeef, JIT_R1, JIT_FPR0);
+
+    jit_str_d(JIT_R0, JIT_FPR0);
+    jit_sti_d((void *)0xdeadbeef, JIT_FPR0);
+    jit_stxr_d(JIT_R0, JIT_R1, JIT_FPR0);
+    jit_stxi_d(0xdeadbeef, JIT_R1, JIT_FPR0);
+
+    jit_extr_i_f(JIT_FPR1, JIT_R1);
+    jit_extr_i_d(JIT_FPR2, JIT_R2);
+    jit_extr_f_d(JIT_FPR1, JIT_FPR2);
+    jit_extr_d_f(JIT_FPR3, JIT_FPR4);
+
+    jit_roundr_f_i(JIT_R1, JIT_FPR3);
+    jit_roundr_d_i(JIT_R2, JIT_FPR4);
+
+    jit_truncr_f_i(JIT_R1, JIT_FPR3);
+    jit_truncr_d_i(JIT_R2, JIT_FPR4);
+
+    jit_ceilr_f_i(JIT_R1, JIT_FPR3);
+    jit_ceilr_d_i(JIT_R2, JIT_FPR4);
+
+    jit_floorr_f_i(JIT_R1, JIT_FPR3);
+    jit_floorr_d_i(JIT_R2, JIT_FPR4);
+
+#endif
+    jit_ltr_i(JIT_R0, JIT_R1, JIT_R2);
+    jit_lti_i(JIT_R0, JIT_R1, 10);
+    jit_lti_i(JIT_R0, JIT_R1, 0xffffff);
+
+    end = jit_get_label();
     label = jit_get_label();
 
 #if 0
@@ -220,6 +278,7 @@ main(int argc, char *argv[])
     jit_flush_code(code, jit_get_label());
     l_ll = (l_ll_t)code;
     printf("%lx\n", (*l_ll)(0x3000000000000001L, 0x1000000000000003L));
+#endif
 #endif
 
     d();
