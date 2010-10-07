@@ -381,6 +381,7 @@ mipshrriit(jit_state_t _jit, mips_hcode_t hc,
 /* Reference:
  *	http://www.mrc.uidaho.edu/mrc/people/jff/digital/MIPSir.html
  *	MIPS32(r) Architecture Volume II: The MIPS32(r) Instrunction Set
+ *	MIPS64(r) Architecture Volume II: The MIPS64(r) Instrunction Set
  */
 
 #endif /* __lightning_asm_h */

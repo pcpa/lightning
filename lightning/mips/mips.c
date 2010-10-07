@@ -10,7 +10,7 @@
 jit_insn	*code;
 jit_insn	*end;
 
-typedef long long (*l_ll_t)(long long, long long);
+typedef long (*l_ll_t)(long, long);
 typedef int (*i_ii_t)(int, int);
 typedef int (*i_i_t)(int);
 typedef void (*v_t)(void);
@@ -197,8 +197,9 @@ main(int argc, char *argv[])
     (*v)();
 #endif
 
+#if defined(__mips64__)
 #if 0
-    /*	long long f(long long a, long long b)
+    /* long f(long a, long b)
      *  {
      *		return a + b;
      *	}
@@ -207,18 +208,18 @@ main(int argc, char *argv[])
     {
 	int	a0, a1;
 
-	a0 = jit_arg_ll();
-	a1 = jit_arg_ll();
-	jit_getarg_ll(JIT_R0, a0);
-	jit_getarg_ll(JIT_R1, a1);
-	jit_addr_ll(JIT_R0, JIT_R0, JIT_R1);
-	jit_movr_ll(JIT_RET, JIT_R0);
+	a0 = jit_arg_l();
+	a1 = jit_arg_l();
+	jit_getarg_l(JIT_R0, a0);
+	jit_getarg_l(JIT_R1, a1);
+	jit_addr_l(JIT_R0, JIT_R0, JIT_R1);
+	jit_movr_l(JIT_RET, JIT_R0);
     }
     jit_ret();
 
     jit_flush_code(code, jit_get_label());
     l_ll = (l_ll_t)code;
-    printf("%llx\n", (*l_ll)(0x3000000000000001LL, 0x1000000000000003LL));
+    printf("%lx\n", (*l_ll)(0x3000000000000001L, 0x1000000000000003L));
 #endif
 
     d();
