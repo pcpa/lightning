@@ -276,7 +276,7 @@ mips_lshi_ll(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     if (i0 < 32)
 	mips__rrit(_jit, r1, r0, i0, MIPS_DSLL);
     else
-	mips__rrit(_jit, r1, r0, i0, MIPS_DSLL32);
+	mips__rrit(_jit, r1, r0, i0 - 32, MIPS_DSLL32);
 }
 
 #define jit_rshr_ll(r0, r1, r2)		mips_rshr_ll(_jit, r0, r1, r2)
@@ -294,7 +294,7 @@ mips_rshi_ll(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     if (i0 < 32)
 	mips__rrit(_jit, r1, r0, i0, MIPS_DSRA);
     else
-	mips__rrit(_jit, r1, r0, i0, MIPS_DSRA32);
+	mips__rrit(_jit, r1, r0, i0 - 32, MIPS_DSRA32);
 }
 
 #define jit_rshr_ull(r0, r1, r2)	mips_rshr_ull(_jit, r0, r1, r2)
@@ -312,7 +312,7 @@ mips_rshi_ull(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     if (i0 < 32)
 	mips__rrit(_jit, r1, r0, i0, MIPS_DSRL);
     else
-	mips__rrit(_jit, r1, r0, i0, MIPS_DSRL32);
+	mips__rrit(_jit, r1, r0, i0 - 32, MIPS_DSRL32);
 }
 
 #define jit_ldr_ui(r0, r1)		mips_ldr_x(_jit,  MIPS_LWU, r0, r1)
