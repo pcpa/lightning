@@ -84,7 +84,7 @@ mips_truncr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 mips_ceilr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    mips_fp1(_jit, MIPS_fmt_S, f0, JIT_FPTMP, MIPS_CEIL_fmt_L);
+    _CEIL_L_S(JIT_FPTMP, f0);
     mips_xrf(_jit, MIPS_fmt_dl, r0, JIT_FPTMP);
 }
 
@@ -92,7 +92,7 @@ mips_ceilr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 mips_ceilr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    mips_fp1(_jit, MIPS_fmt_D, f0, JIT_FPTMP, MIPS_CEIL_fmt_L);
+    _CEIL_L_D(JIT_FPTMP, f0);
     mips_xrf(_jit, MIPS_fmt_ld, r0, JIT_FPTMP);
 }
 

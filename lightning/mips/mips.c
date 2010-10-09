@@ -188,15 +188,15 @@ main(int argc, char *argv[])
     jit_floorr_f_i(JIT_R1, JIT_FPR3);
     jit_floorr_d_i(JIT_R2, JIT_FPR4);
 
-#endif
     jit_ltr_i(JIT_R0, JIT_R1, JIT_R2);
     jit_lti_i(JIT_R0, JIT_R1, 10);
     jit_lti_i(JIT_R0, JIT_R1, 0xffffff);
+#endif
 
     end = jit_get_label();
     label = jit_get_label();
 
-#if 0
+#if 1
     /*	int f(int a)
      *  {
      *		return a + 1;
@@ -208,14 +208,14 @@ main(int argc, char *argv[])
 
 	a0 = jit_arg_i();
 	jit_getarg_i(JIT_R0, a0);
-	jit_addi_i(JIT_R0, JIT_R0, 1);
+	jit_lti_i(JIT_R0, JIT_R0, 0xffffffff);
 	jit_movr_i(JIT_RET, JIT_R0);
     }
     jit_ret();
 
     jit_flush_code(code, jit_get_label());
     i_i = (i_i_t)code;
-    printf("%d\n", (*i_i)(1));
+    printf("%d\n", (*i_i)(0));
 #endif
 
 #if 0
