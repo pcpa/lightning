@@ -378,10 +378,46 @@ mips_ldxi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
     }
 }
 
-#define jit_str_l(r0, r1)		mips_str_x(_jit,  MIPS_SD,  r0, r1)
-#define jit_sti_l(i0, r0)		mips_sti_x(_jit,  MIPS_SD,  i0, r0)
-#define jit_stxr_l(r0, r1, r2)		mips_stxr_x(_jit, MIPS_SD,  r0, r1, r2)
-#define jit_stxi_l(i0, r0, r1)		mips_stxi_x(_jit, MIPS_SD,  i0, r0, r1)
+#define jit_str_l(r0, r1)		mips_str_l(_jit, r0, r1)
+__jit_inline void
+mips_str_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _SD(r1, r0, 0);
+}
+
+#define jit_sti_l(i0, r0)		mips_sti_l(_jit, i0, r0)
+__jit_inline void
+mips_sti_l(jit_state_t _jit, void *i0, jit_gpr_t r0)
+{
+    long	ds = (long)i0;
+
+    if (_s16P(ds))
+	_SD(r0, ds, JIT_RZERO);
+    else {
+	jit_movi_i(JIT_RTEMP, ds);
+	_SD(r0, 0, JIT_RTEMP);
+    }
+}
+
+#define jit_stxr_l(r0, r1, r2)		mips_stxr_l(_jit, r0, r1, r2)
+__jit_inline void
+mips_stxr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    jit_addr_i(JIT_RTEMP, r0, r1);
+    _SD(r2, 0, JIT_RTEMP);
+}
+
+#define jit_stxi_l(i0, r0, r1)		mips_stxi_l(_jit, i0, r0, r1)
+__jit_inline void
+mips_stxi_l(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
+{
+    if (_s16P(i0))
+	_SD(r1, i0, r0);
+    else {
+	jit_addi_i(JIT_RTEMP, r0, i0);
+	_SD(r1, 0, JIT_RTEMP);
+    }
+}
 
 #define jit_extr_c_l(r0, r1)		mips_extr_c_l(_jit, r0, r1)
 __jit_inline void
