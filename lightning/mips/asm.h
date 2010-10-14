@@ -121,6 +121,7 @@ typedef union {
 } mips_code_t;
 
 typedef enum {
+    MIPS_SPECIAL	= 0x00,
     MIPS_REGIMM		= 0x01,
     MIPS_J		= 0x02,
     MIPS_SRL		= 0x02,
@@ -138,6 +139,7 @@ typedef enum {
     MIPS_ORI		= 0x0d,
     MIPS_XORI		= 0x0e,
     MIPS_LUI		= 0x0f,
+    MIPS_COP0		= 0x10,
     MIPS_COP1		= 0x11,
     MIPS_COP2		= 0x12,
     MIPS_COP1X		= 0x13,
@@ -147,23 +149,31 @@ typedef enum {
     MIPS_BGTZL		= 0x17,
     MIPS_DADDI		= 0x18,
     MIPS_DADDIU		= 0x19,
+    MIPS_LDL		= 0x1a,
+    MIPS_LDR		= 0x1b,
     MIPS_SPECIAL2	= 0x1c,
-    MIPS_HINS		= 0x1f,
-    MIPS_HDINS		= 0x1f,
+    MIPS_JALX		= 0x1d,
+    MIPS_SPECIAL3	= 0x1f,
     MIPS_LB		= 0x20,
     MIPS_HSEB		= 0x1f,
     MIPS_HSEH		= 0x1f,
     MIPS_LH		= 0x21,
+    MIPS_LWL		= 0x22,
     MIPS_LW		= 0x23,
     MIPS_LBU		= 0x24,
     MIPS_LHU		= 0x25,
+    MIPS_LWR		= 0x26,
     MIPS_LWU		= 0x27,
     MIPS_SB		= 0x28,
     MIPS_SH		= 0x29,
     MIPS_SW		= 0x2b,
     MIPS_CACHE		= 0x2f,
+    MIPS_LL		= 0x30,
     MIPS_LWC1		= 0x31,
+    MIPS_LWC2		= 0x32,
+    MIPS_LLD		= 0x34,
     MIPS_LDC1		= 0x35,
+    MIPS_LDC2		= 0x36,
     MIPS_LD		= 0x37,
     MIPS_SDC1		= 0x3d,
     MIPS_SWC1		= 0x39,
@@ -171,9 +181,15 @@ typedef enum {
 } mips_hc_t;
 
 typedef enum {
+    MIPS_MF		= 0x00,
+    MIPS_DMF		= 0x01,
     MIPS_CF		= 0x02,
+    MIPS_MFH		= 0x03,
+    MIPS_DMT		= 0x05,
+    MIPS_CT		= 0x06,
     MIPS_BC		= 0x08,
     MIPS_BGZAL		= 0x11,
+    MIPS_MFMC0		= 0x11,
 } mips_r1_t;
 
 typedef enum {
@@ -190,14 +206,26 @@ typedef enum {
     MIPS_BGEZALL	= 0x13,
 } mips_r2_t;
 
+#define MIPS_DBSH		0x02
+#define MIPS_DSHD		0x05
+
 typedef enum {
+    MIPS_MADD		= 0x00,
     MIPS_SLL		= 0x00,
+    MIPS_EXT		= 0x00,
+    MIPS_DEXTM		= 0x01,
+    MIPS_MADDU		= 0x01,
+    MIPS_MOVF		= 0x01,
     MIPS_MUL		= 0x02,
+    MIPS_DEXTU		= 0x02,
+    MIPS_DEXT		= 0x03,
     MIPS_SLLV		= 0x04,
-    MIPS_TINS		= 0x04,
+    MIPS_INS		= 0x04,
+    MIPS_DINSM		= 0x05,
     MIPS_SRLV		= 0x06,
+    MIPS_DINSU		= 0x06,
     MIPS_SRAV		= 0x07,
-    MIPS_TDINS		= 0x07,
+    MIPS_DINS		= 0x07,
     MIPS_JR		= 0x08,
     MIPS_JALR		= 0x09,
     MIPS_MOVZ		= 0x0a,
@@ -211,6 +239,7 @@ typedef enum {
     MIPS_DSRLV		= 0x16,
     MIPS_DSRAV		= 0x17,
     MIPS_MULT		= 0x18,
+    MIPS_ERET		= 0x18,
     MIPS_MULTU		= 0x19,
     MIPS_DIV		= 0x1a,
     MIPS_DIVU		= 0x1b,
@@ -218,6 +247,7 @@ typedef enum {
     MIPS_DMULTU		= 0x1d,
     MIPS_DDIV		= 0x1e,
     MIPS_DDIVU		= 0x1f,
+    MIPS_DERET		= 0x1f,
     MIPS_ADD		= 0x20,
     MIPS_CLZ		= 0x20,
     MIPS_ADDU		= 0x21,
@@ -225,7 +255,10 @@ typedef enum {
     MIPS_SUB		= 0x22,
     MIPS_SUBU		= 0x23,
     MIPS_AND		= 0x24,
+    MIPS_DCLZ		= 0x24,
+    MIPS_DBSHFL		= 0x24,
     MIPS_OR		= 0x25,
+    MIPS_DCLO		= 0x25,
     MIPS_XOR		= 0x26,
     MIPS_NOR		= 0x27,
     MIPS_SLT		= 0x2a,
@@ -253,6 +286,7 @@ typedef enum {
     MIPS_DIV_fmt	= 0x03,
     MIPS_SQRT_fmt	= 0x04,
     MIPS_ABS_fmt	= 0x05,
+    MIPS_LUXC1		= 0x05,
     MIPS_MOV_fmt	= 0x06,
     MIPS_NEG_fmt	= 0x07,
     MIPS_SWXC1		= 0x08,
@@ -268,6 +302,9 @@ typedef enum {
     MIPS_CVT_fmt_D	= 0x21,
     MIPS_CVT_fmt_W	= 0x24,
     MIPS_CVT_fmt_L	= 0x25,
+    MIPS_MADD_fmt_S	= 0x30,
+    MIPS_MADD_fmt_D	= 0x31,
+    MIPS_MADD_fmt_PS	= 0x36,
 } mips_fc_t;
 
 typedef enum {
@@ -282,6 +319,8 @@ typedef enum {
     MIPS_fmt_W		= 0x14,		/* int32 */
     MIPS_fmt_L		= 0x15,		/* int64 */
     MIPS_fmt_PS		= 0x16,		/* 2 x float32 */
+    MIPS_fmt_S_PU	= 0x20,
+    MIPS_fmt_S_PL	= 0x26,
 } mips_fmt_t;
 
 typedef enum {
@@ -307,11 +346,9 @@ __jit_inline void
 mips___r_t(jit_state_t _jit, jit_gpr_t rd, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.rd.b = rd;
-
     _jit_I(c.op);
 }
 
@@ -319,11 +356,9 @@ __jit_inline void
 mips_r___t(jit_state_t _jit, jit_gpr_t rs, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.rs.b = rs;
     c.tc.b = tc;
-
     _jit_I(c.op);
 }
 
@@ -331,12 +366,10 @@ __jit_inline void
 mipsh_ri(jit_state_t _jit, mips_hc_t hc, jit_gpr_t rt, int im)
 {
     mips_code_t		c;
-
     c.is.b = _s16(im);
     c.rt.b = rt;
     c.rs.b = 0;		/* ignored */
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -344,12 +377,10 @@ __jit_inline void
 mipshrri(jit_state_t _jit, mips_hc_t hc, jit_gpr_t rt, jit_gpr_t rs, int im)
 {
     mips_code_t		c;
-
     c.is.b = _s16(im);
     c.rt.b = rt;
     c.rs.b = rs;
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -358,14 +389,39 @@ mipshrrr_t(jit_state_t _jit, mips_hc_t hc,
 	   jit_gpr_t rs, jit_gpr_t rt, jit_gpr_t rd, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.ic.b = 0;
     c.rd.b = rd;
     c.rt.b = rt;
     c.rs.b = rs;
     c.hc.b = hc;
+    _jit_I(c.op);
+}
 
+__jit_inline void
+mipshrr__t(jit_state_t _jit, mips_hc_t hc,
+	   jit_gpr_t rs, jit_gpr_t rt, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.op = 0;
+    c.tc.b = tc;
+    c.rt.b = rt;
+    c.rs.b = rs;
+    c.hc.b = hc;
+    _jit_I(c.op);
+}
+
+__jit_inline void
+mips_hrrrit(jit_state_t _jit, mips_hc_t hc,
+	    jit_gpr_t rs, jit_gpr_t rt, jit_gpr_t rd, int ic, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.ic.b = ic;
+    c.rd.b = rd;
+    c.rt.b = rt;
+    c.rs.b = rs;
+    c.hc.b = hc;
     _jit_I(c.op);
 }
 
@@ -374,13 +430,11 @@ mipsh_rrt(jit_state_t _jit, mips_hc_t hc,
 	  jit_gpr_t rt, jit_gpr_t rd, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.rd.b = rd;
     c.rt.b = rt;
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -389,13 +443,11 @@ mips_rrr_t(jit_state_t _jit, jit_gpr_t rs,
 	   jit_gpr_t rt, jit_gpr_t rd, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.rd.b = rd;
     c.rt.b = rt;
     c.rs.b = rs;
-
     _jit_I(c.op);
 }
 
@@ -403,13 +455,11 @@ __jit_inline void
 mips__rrit(jit_state_t _jit, jit_gpr_t rt, jit_gpr_t rd, int im, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.ic.b = _u5(im);
     c.rd.b = rd;
     c.rt.b = rt;
-
     _jit_I(c.op);
 }
 
@@ -417,27 +467,22 @@ __jit_inline void
 mips_r_it(jit_state_t _jit, jit_gpr_t rs, int im, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.ic.b = im;	/* hint */
     c.rs.b = rs;
-
     _jit_I(c.op);
 }
-
 
 __jit_inline void
 mips_r_rit(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rd, int im, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.tc.b = tc;
     c.ic.b = im;
     c.rd.b = rd;
     c.rs.b = rs;
-
     _jit_I(c.op);
 }
 
@@ -445,10 +490,8 @@ __jit_inline void
 mipshi(jit_state_t _jit, mips_hc_t hc, int im)
 {
     mips_code_t		c;
-
     c.ii.b = _s26(im);
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -457,14 +500,26 @@ mipshrriit(jit_state_t _jit, mips_hc_t hc, jit_gpr_t rs,
 	   jit_gpr_t rt, int rd, int im, mips_tc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.ic.b = im;
     c.rd.b = rd;
     c.rt.b = rt;
     c.rs.b = rs;
     c.hc.b = hc;
+    _jit_I(c.op);
+}
 
+__jit_inline void
+mips_hirrit(jit_state_t _jit, mips_hc_t hc, int rs,
+	    jit_gpr_t rt, jit_gpr_t rd, int im, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.ic.b = im;
+    c.rd.b = rd;
+    c.rt.b = rt;
+    c.rs.b = rs;
+    c.hc.b = hc;
     _jit_I(c.op);
 }
 
@@ -473,14 +528,12 @@ mips_fp1(jit_state_t _jit, mips_fmt_t fm,
 	 jit_fpr_t fs, jit_fpr_t fd, mips_fc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.fd.b = fd;
     c.fs.b = fs;
     c.ft.b = 0;
     c.fm.b = fm;
     c.hc.b = MIPS_COP1;
-
     _jit_I(c.op);
 }
 
@@ -489,14 +542,26 @@ mips_fp2(jit_state_t _jit, mips_fmt_t fm,
 	 jit_fpr_t ft, jit_fpr_t fs, jit_fpr_t fd, mips_fc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.fd.b = fd;
     c.fs.b = fs;
     c.ft.b = ft;
     c.fm.b = fm;
     c.hc.b = MIPS_COP1;
+    _jit_I(c.op);
+}
 
+__jit_inline void
+mips_fp2x(jit_state_t _jit, jit_fpr_t fr,
+	  jit_fpr_t ft, jit_fpr_t fs, jit_fpr_t fd, mips_fc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.fd.b = fd;
+    c.fs.b = fs;
+    c.ft.b = ft;
+    c.fm.b = fr;
+    c.hc.b = MIPS_COP1X;
     _jit_I(c.op);
 }
 
@@ -504,27 +569,22 @@ __jit_inline void
 mips_xrf(jit_state_t _jit, mips_fmt_t fm, jit_gpr_t rt, jit_gpr_t fs)
 {
     mips_code_t		c;
-
     c.op = 0;
     c.fs.b = fs;
     c.ft.b = rt;
     c.fm.b = fm;
     c.hc.b = MIPS_COP1;
-
     _jit_I(c.op);
 }
 
 __jit_inline void
-mipshrfi(jit_state_t _jit, mips_hc_t hc,
-	 mips_fmt_t fm, jit_gpr_t rs, jit_gpr_t ft, int im)
+mipshrfi(jit_state_t _jit, mips_hc_t hc, jit_gpr_t rs, jit_gpr_t ft, int im)
 {
     mips_code_t		c;
-
     c.is.b = im;
     c.rs.b = rs;
     c.rt.b = ft;
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -533,14 +593,12 @@ mips_rrf_(jit_state_t _jit, jit_gpr_t rs,
 	  jit_gpr_t rt, jit_fpr_t fs, mips_fc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.ic.b = 0;
     c.rd.b = fs;
     c.rt.b = rt;
     c.rs.b = rs;
     c.hc.b = MIPS_COP1X;
-
     _jit_I(c.op);
 }
 
@@ -549,14 +607,12 @@ mips_rr_f(jit_state_t _jit, jit_gpr_t rs,
 	  jit_gpr_t rt, jit_fpr_t fd, mips_fc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.is.b = fd;
     c.rd.b = 0;
     c.rt.b = rt;
     c.rs.b = rs;
     c.hc.b = MIPS_COP1X;
-
     _jit_I(c.op);
 }
 
@@ -565,14 +621,12 @@ mips_rffft(jit_state_t _jit, jit_gpr_t rs,
 	   jit_fpr_t ft, jit_fpr_t fs, jit_fpr_t fd, mips_fc_t tc)
 {
     mips_code_t		c;
-
     c.tc.b = tc;
     c.fd.b = fd;
     c.fs.b = fs;
     c.ft.b = ft;
     c.fm.b = rs;
     c.hc.b = MIPS_COP1X;
-
     _jit_I(c.op);
 }
 
@@ -580,12 +634,10 @@ __jit_inline void
 mips_hxxs(jit_state_t _jit, mips_hc_t hc, mips_r1_t r1, mips_r2_t r2, int im)
 {
     mips_code_t		c;
-
     c.is.b = _s16(im);
     c.rt.b = r2;
     c.rs.b = r1;
     c.hc.b = hc;
-
     _jit_I(c.op);
 }
 
@@ -593,12 +645,47 @@ __jit_inline void
 mips_hrxs(jit_state_t _jit, mips_hc_t hc, jit_gpr_t rs, mips_r2_t r2, int im)
 {
     mips_code_t		c;
-
     c.is.b = _s16(im);
     c.rt.b = r2;
     c.rs.b = rs;
     c.hc.b = hc;
+    _jit_I(c.op);
+}
 
+__jit_inline void
+mips_hxrr_(jit_state_t _jit, mips_hc_t hc, mips_r1_t r1,
+	   jit_gpr_t rt, jit_gpr_t rd)
+{
+    mips_code_t		c;
+    c.cc.b = 0;
+    c.rd.b = rd;
+    c.rt.b = rt;
+    c.rs.b = r1;
+    c.hc.b = hc;
+    _jit_I(c.op);
+}
+
+__jit_inline void
+mips_hxrf_(jit_state_t _jit, mips_hc_t hc, mips_r1_t r1,
+	   jit_gpr_t rt, jit_fpr_t fs)
+{
+    mips_code_t		c;
+    c.cc.b = 0;
+    c.fs.b = fs;
+    c.rt.b = rt;
+    c.rs.b = r1;
+    c.hc.b = hc;
+    _jit_I(c.op);
+}
+
+__jit_inline void
+mips_hxrs(jit_state_t _jit, mips_hc_t hc, mips_r1_t r1, jit_gpr_t rt, int impl)
+{
+    mips_code_t		c;
+    c.is.b = _s16(impl);
+    c.rt.b = rt;
+    c.rs.b = r1;
+    c.hc.b = hc;
     _jit_I(c.op);
 }
 
@@ -607,16 +694,57 @@ mips_c_cond_fmt(jit_state_t _jit, mips_fmt_t fm,
 		jit_fpr_t ft, jit_fpr_t fs, mips_cond_t cc)
 {
     mips_code_t		c;
-
     c.cc.b = cc;
     c.fs.b = fs;
     c.ft.b = ft;
     c.fm.b = fm;
     c.hc.b = MIPS_COP1;
-
     _jit_I(c.op);
 }
 
+__jit_inline void
+mips_rirt(jit_state_t _jit, jit_gpr_t rs, int im, jit_gpr_t rd, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.op = 0;
+    c.tc.b = tc;
+    c.rd.b = rd;
+    c.rt.b = im;
+    c.rs.b = rs;
+    _jit_I(c.op);
+}
+
+__jit_inline void
+mips_fp1x(jit_state_t _jit, mips_fmt_t fm,
+	  jit_fpr_t fs, int im, jit_fpr_t fd, mips_fc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.fd.b = fd;
+    c.fs.b = fs;
+    c.ft.b = im;
+    c.fm.b = fm;
+    c.hc.b = MIPS_COP1;
+    _jit_I(c.op);
+}
+
+__jit_inline void
+mips_ext(jit_state_t _jit, jit_gpr_t rs, jit_gpr_t rt,
+	 int size, int pos, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.ic.b = _u5(pos);
+    c.rd.b = _u5(size);
+    c.rt.b = rt;
+    c.rs.b = rs;
+    c.hc.b = MIPS_SPECIAL3;
+    _jit_I(c.op);
+}
+
+#define _ABS_S(fd,fs)		mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_ABS_fmt)
+#define _ABS_D(fd,fs)		mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_ABS_fmt)
+#define _ABS_PS(fd,fs)		mips_fp1(_jit,MIPS_fmt_PS,fs,fd,MIPS_ABS_fmt)
 #define _ADD(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_ADD)
 #define _ADD_S(fd,fs,ft)	mips_fp2(_jit,MIPS_fmt_S,ft,fs,fd,MIPS_ADD_fmt)
 #define _ADD_D(fd,fs,ft)	mips_fp2(_jit,MIPS_fmt_D,ft,fs,fd,MIPS_ADD_fmt)
@@ -637,31 +765,29 @@ mips_c_cond_fmt(jit_state_t _jit, mips_fmt_t fm,
 #define _BC2FL(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BC1FL,im)
 #define _BC2T(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BC1T,im)
 #define _BC2TL(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BC1TL,im)
-#define _BEQ(rs,rt,im)		mipshrri(_jit,MIPS_BEQ,r0,r1,im)
-#define _BEQL(rs,rt,im)		mipshrri(_jit,MIPS_BEQL,r0,r1,im)
-#define _BGEZ(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZ,im)
-#define _BGEZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZAL,im)
-#define _BGEZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZALL,im)
-#define _BGEZL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZL,im)
-#define _BGTZ(rs,im)		mipshrri(_jit,MIPS_BGTZ,rs,_ZERO,im)
-#define _BGTZL(rs,im)		mipshrri(_jit,MIPS_BGTZL,rs,_ZERO,im)
-#define _BLEZ(rs,im)		mipshrri(_jit,MIPS_BLEZ,rs,_ZERO,im)
-#define _BLEZL(rs,im)		mipshrri(_jit,MIPS_BLEZL,rs,_ZERO,im)
-#define _BLTZ(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZ,im)
-#define _BLTZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZAL,im)
-#define _BLTZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZALL,im)
-#define _BLTZL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZL,im)
-#define _BNE(rs,rt,im)		mipshrri(_jit,MIPS_BNE,r0,r1,im)
-#define _BNEL(rs,rt,im)		mipshrri(_jit,MIPS_BNEL,r0,r1,im)
+#define _BEQ(rs,rt,im)		mipshrri(_jit,MIPS_BEQ,r0,r1,im>>2)
+#define _BEQL(rs,rt,im)		mipshrri(_jit,MIPS_BEQL,r0,r1,im>>2)
+#define _BGEZ(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZ,im>>2)
+#define _BGEZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZAL,im>>2)
+#define _BGEZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZALL,im>>2)
+#define _BGEZL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZL,im>>2)
+#define _BGTZ(rs,im)		mipshrri(_jit,MIPS_BGTZ,rs,_ZERO,im>>2)
+#define _BGTZL(rs,im)		mipshrri(_jit,MIPS_BGTZL,rs,_ZERO,im>>2)
+#define _BLEZ(rs,im)		mipshrri(_jit,MIPS_BLEZ,rs,_ZERO,im>>2)
+#define _BLEZL(rs,im)		mipshrri(_jit,MIPS_BLEZL,rs,_ZERO,im>>2)
+#define _BLTZ(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZ,im>>2)
+#define _BLTZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZAL,im>>2)
+#define _BLTZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZALL,im>>2)
+#define _BLTZL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZL,im>>2)
+#define _BNE(rs,rt,im)		mipshrri(_jit,MIPS_BNE,r0,r1,im>>2)
+#define _BNEL(rs,rt,im)		mipshrri(_jit,MIPS_BNEL,r0,r1,im>>2)
 __jit_inline void
 mips_break(jit_state_t _jit, int code)
 {
     mips_code_t		c;
-
     c.tc.b = MIPS_BREAK;
     c.br.b = _s20(code);
     c.hc.b = 0;
-
     _jit_I(c.op);
 }
 #define _BREAK(code)		mips_break(_jit, code)
@@ -718,12 +844,10 @@ __jit_inline void
 mips_cache(jit_state_t _jit, jit_gpr_t base, int op, int offset)
 {
     mips_code_t		c;
-
     c.is.b = _s16(offset);
     c.rt.b = op;
     c.rs.b = base;
     c.hc.b = MIPS_CACHE;
-
     _jit_I(c.op);
 }
 #define _CEIL_L_S(fd,fs)	mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_CEIL_fmt_L)
@@ -735,13 +859,11 @@ __jit_inline void
 mips_cfc1(jit_state_t _jit, jit_gpr_t rt, jit_fpr_t fs)
 {
     mips_code_t		c;
-
     c.cc.b = 0;
     c.fs.b = fs;
     c.rt.b = rt;
     c.rs.b = MIPS_CF;
     c.hc.b = MIPS_COP1;
-
     _jit_I(c.op);
 }
 #define _CFC2(rt,impl)		mips_cfc2(_jit,rt,impl)
@@ -749,49 +871,178 @@ __jit_inline void
 mips_cfc2(jit_state_t _jit, jit_gpr_t rt, int impl)
 {
     mips_code_t		c;
-
     c.is.b = _s16(impl);
     c.rs.b = MIPS_CF;
     c.hc.b = MIPS_COP2;
-
     _jit_I(c.op);
 }
 #define _CLO(rd,rs)		mipshrrr_t(_jit,MIPS_SPECIAL2,rs,rd,rd,MIPS_CLO)
-#define _COP2(func)
+#define _COP2(func)		mips_cop2(_jit,func)
 __jit_inline void
 mips_cop2(jit_state_t _jit, int func)
 {
     mips_code_t		c;
-
-    c.hc.b = MIPS_COP2;
     c.ii.b = (1 << 25) | _u25(func);
-
+    c.hc.b = MIPS_COP2;
     _jit_I(c.op);
 }
 #define _CLZ(rd,rs)		mipshrrr_t(_jit,MIPS_SPECIAL2,rs,rd,rd,MIPS_CLZ)
-
-
+#define _CTC1(rt,fs)		mips_ctc1(_jit,rt,fs)
+__jit_inline void
+mips_ctc1(jit_state_t _jit, jit_gpr_t rt, jit_fpr_t fs)
+{
+    mips_code_t		c;
+    c.cc.b = 0;
+    c.fs.b = fs;
+    c.rt.b = rt;
+    c.rs.b = MIPS_CT;
+    c.hc.b = MIPS_COP1;
+    _jit_I(c.op);
+}
+#define _CTC2(rt,imp)		mips_ctc2(rt,imp)
+__jit_inline void
+mips_ctc2(jit_state_t _jit, jit_gpr_t rt, int imp)
+{
+    mips_code_t		c;
+    c.is.b = imp;
+    c.rt.b = rt;
+    c.hc.b = MIPS_COP2;
+    _jit_I(c.op);
+}
+#define _CVT_D_S(fd,fs)		mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_CVT_fmt_D)
+#define _CVT_D_W(fd,fs)		mips_fp1(_jit,MIPS_fmt_W,fs,fd,MIPS_CVT_fmt_D)
+#define _CVT_D_L(fd,fs)		mips_fp1(_jit,MIPS_fmt_L,fs,fd,MIPS_CVT_fmt_D)
+#define _CVT_L_S(fd,fs)		mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_CVT_fmt_L)
+#define _CVT_L_D(fd,fs)		mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_CVT_fmt_L)
+#define _CVT_PS_S(fd,fs)	mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_CVT_fmt_PS)
+#define _CVT_S_D(fd,fs)		mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_CVT_fmt_S)
+#define _CVT_S_W(fd,fs)		mips_fp1(_jit,MIPS_fmt_W,fs,fd,MIPS_CVT_fmt_S)
+#define _CVT_S_L(fd,fs)		mips_fp1(_jit,MIPS_fmt_L,fs,fd,MIPS_CVT_fmt_S)
+#define _CVT_S_PL(fd,fs)	mips_fp1(_jit,MIPS_fmt_PS,fs,fd,MIPS_CVT_fmt_S_PL)
+#define _CVT_S_PU(fd,fs)	mips_fp1(_jit,MIPS_fmt_PS,fs,fd,MIPS_CVT_fmt_S_PU)
+#define _CVT_W_S(fd,fs)		mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_CVT_fmt_W)
+#define _CVT_W_D(fd,fs)		mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_CVT_fmt_W)
 #define _DADD(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_DADD)
 #define _DADDI(rt,rs,im)	mipshrri(_jit,MIPS_DADDI,rs,rt,im)
 #define _DADDU(rd,rs,rt)	mips_rrr_t(_jit,rs,rt,rd,MIPS_DADDU)
 #define _DADDIU(rt,rs,im)	mipshrri(_jit,MIPS_DADDIU,rs,rt,im)
-
+#define _DCLO(rd,rs)		mipshrrr_t(_jit,MIPS_SPECIAL2,rs,rd,rd,MIPS_DCLO)
+#define _DCLZ(rd,rs)		mipshrrr_t(_jit,MIPS_SPECIAL2,rs,rd,rd,MIPS_DCLZ)
 #define _DDIV(rs,rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DDIV)
 #define _DDIVU(rs,rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DDIVU)
-
+#define _DERET()		mips_return(_jit,MIPS_DERET)
+__jit_inline void
+mips_return(jit_state_t _jit, mips_tc_t tc)
+{
+    mips_code_t		c;
+    c.tc.b = tc;
+    c.br.b = 1 << 19;
+    c.hc.b = MIPS_COP0;
+    _jit_I(c.op);
+}
+#define _DEXT(rt,rs,pos,size)	mips_ext(rs,rt,pos,size-1,MIPS_DEXT)
+#define _DEXTM(rt,rs,pos,size)	mips_ext(rs,rt,pos,size-1-32,MIPS_DEXTM)
+#define _DEXTU(rt,rs,pos,size)	mips_ext(rs,rt,pos-32,size-1,MIPS_DEXTU)
+#define _DI(rt)			mips_interrupt(_jit,rt,0)
+__jit_inline void
+mips_interrupt(jit_state_t _jit, jit_gpr_t rt, int enable)
+{
+    mips_code_t		c;
+    c.cc.b = (!!enable) << 5;
+    c.rd.b = 12;
+    c.rt.b = rt;
+    c.rs.b = MIPS_MFMC0;
+    c.hc.b = MIPS_COP0;
+    _jit_I(c.op);
+}
+#define _DINS(rt,rs,pos,size)	mipshrriit(_jit,MIPS_SPECIAL3,rs,rt,pos,pos+size-1,MIPS_DINS)
+#define _DINSM(rt,rs,pos,size)	mipshrriit(_jit,MIPS_SPECIAL3,rs,rt,pos,pos+size-33,MIPS_DINSM)
+#define _DINSU(rt,rs,pos,size)	mipshrriit(_jit,MIPS_SPECIAL3,rs,rt,pos-32,pos+size-33,MIPS_DINSU)
 #define _DIV(rs,rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DIV)
+#define _DIV_S(fd,fs,ft)	mips_fp2(_jit,MIPS_fmt_S,ft,fs,fd,MIPS_DIV_fmt)
+#define _DIV_D(fd,fs,ft)	mips_fp2(_jit,MIPS_fmt_D,ft,fs,fd,MIPS_DIV_fmt)
 #define _DIVU(rs,rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DIVU)
-
+#define _DMFC0(rt,rd)		mips_hxrr_(_jit,MIPS_COP0,MIPS_DMF,rt,rd)
+#define _DMFC1(rt,fs)		mips_hxrf_(_jit,MIPS_COP1,MIPS_DMF,rt,fs)
+#define _DMFC2(rt,impl)		mips_hxrs(_jit,MIPS_COP2,MIPS_DMF,rt,impl)
+#define _DMTC0(rt,rd)		mips_hxrr_(_jit,MIPS_COP0,MIPS_DMT,rt,rd)
+#define _DMTC1(rt,fs)		mips_hxrf_(_jit,MIPS_COP1,MIPS_DMT,rt,fs)
+#define _DMTC2(rt,impl)		mips_hxrs(_jit,MIPS_COP2,MIPS_DMT,rt,impl)
 #define _DMULT(rs, rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DMULT)
 #define _DMULTU(rs, rt)		mips_rrr_t(_jit,rs,rt,JIT_RZERO,MIPS_DMULTU)
-
+#define _DROTR(rd,rt,sa)	mips_hirrit(_jit,MIPS_SPECIAL,1,rt,rd,sa,MIPS_DSRL)
+#define _DROTR32(rd,rt,sa)	mips_hirrit(_jit,MIPS_SPECIAL,1,rt,rd,sa-32,MIPS_DSRL32)
+#define _DROTRV(rd,rt,rs)	mips_hrrrit(_jit,MIPS_SPECIAL,rs,rt,rd,1,MIPS_DSRLV)
+#define _DSBH(rd,rt)		mips_hirrit(_jit,MIPS_SPECIAL3,0,rt,rd,MIPS_DBSH,MIPS_DBSHFL)
+#define _DSHD(rd,rt)		mips_hirrit(_jit,MIPS_SPECIAL3,0,rt,rd,MIPS_DBHD,MIPS_DBSHFL)
+#define _DSLL(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_DSLL)
+#define _DSLL32(rd,rt,sa)	mips__rrit(_jit,rt,rd,sa-32,MIPS_DSLL32)
+#define _DSLLV(rd,rt,rs)	mips_rrr_t(_jit,rs,rt,rd,MIPS_DSLLV)
+#define _DSRA(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_DSRA)
+#define _DSRA32(rd,rt,sa)	mips__rrit(_jit,rt,rd,sa-32,MIPS_DSRA32)
+#define _DSRAV(rd,rt,rs)	mips_rrr_t(_jit,rs,rt,rd,MIPS_DSRAV)
+#define _DSRL(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_DSRL)
+#define _DSRL32(rd,rt,sa)	mips__rrit(_jit,rt,rd,sa-32,MIPS_DSRL32)
+#define _DSRLV(rd,rt,rs)	mips_rrr_t(_jit,rs,rt,rd,MIPS_DSRLV)
 #define _DSUB(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_DSUB)
 #define _DSUBU(rd,rs,rt)	mips_rrr_t(_jit,rs,rt,rd,MIPS_DSUBU)
-
+#define _EHB()			_SLL(JIT_RZERO,JIT_RZERO,3)
+#define _EI()			mips_interrupt(_jit,rt,1)
+#define _ERET()			mips_return(_jit,MIPS_ERET)
+#define _EXT(rt,rs,pos,size)	mips_ext(rs,rt,pos,size-1,MIPS_EXT)
+#define _FLOOR_L_S(fd,fs)	mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_FLOOR_fmt_L)
+#define _FLOOR_L_D(fd,fs)	mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_FLOOR_fmt_L)
+#define _FLOOR_W_S(fd,fs)	mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_FLOOR_fmt_W)
+#define _FLOOR_W_D(fd,fs)	mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_FLOOR_fmt_W)
+#define _INS(rt,rs,pos,size)	mipshrriit(_jit,MIPS_SPECIAL3,rs,rt,pos,pos+size-1,MIPS_INS)
+#define _J(target)		mipshi(_jit,MIPS_J,((long)target)>>2)
+#define _JAL(target)		mipshi(_jit,MIPS_JAL,((long)target)>>2)
+#define _JALR(rs)		mips_r_rit(_jit,rs,_RA,0,MIPS_JALR)
+#define _JALR_HB(rs)		mips_r_rit(_jit,rs,_RA,1<<4,MIPS_JALR)
+#define _JALX(target)		mipshi(_jit,MIPS_JALX,((long)target)>>2)
+#define _JR(rs)			mips_r_it(_jit,rs,0,MIPS_JR)
+#define _JR_HB(rs)		mips_r_it(_jit,rs,1<<4,MIPS_JR)
+#define _LB(rt,offset,base)	mipshrri(_jit,MIPS_LB,rt,base,offset)
+#define _LBU(rt,offset,base)	mipshrri(_jit,MIPS_LBU,rt,base,offset)
+#define _LD(rt,offset,base)	mipshrri(_jit,MIPS_LD,rt,base,offset)
+#define _LDC1(ft,offset,base)	mipshrfi(_jit,MIPS_LDC1,base,ft,offset)
+#define _LDC2(ft,offset,base)	mipshrfi(_jit,MIPS_LDC2,base,ft,offset)
+#define _LDL(rt,offset,base)	mipshrri(_jit,MIPS_LDL,base,rt,offset)
+#define _LDR(rt,offset,base)	mipshrri(_jit,MIPS_LDR,base,rt,offset)
+#define _LDXC1(fd,index,base)	mips_rr_f(_jit,base,index,fd,MIPS_LDXC1)
+#define _LH(rt,offset,base)	mipshrri(_jit,MIPS_LH,rt,base,offset)
+#define _LHU(rt,offset,base)	mipshrri(_jit,MIPS_LHU,rt,base,offset)
+#define _LL(rt,offset,base)	mipshrri(_jit,MIPS_LL,rt,base,offset)
+#define _LLD(rt,offset,base)	mipshrri(_jit,MIPS_LLD,rt,base,offset)
 #define _LUI(rt,im)		mipsh_ri(_jit,MIPS_LUI,rt,im)
-
+#define _LUXC1(fd,index,base)	mips_rr_f(_jit,base,index,fd,MIPS_LUXC1)
+#define _LW(rt,offset,base)	mipshrri(_jit,MIPS_LW,rt,base,offset)
+#define _LWC1(ft,offset,base)	mipshrfi(_jit,MIPS_LWC1,base,ft,offset)
+#define _LWC2(ft,offset,base)	mipshrfi(_jit,MIPS_LWC2,base,ft,offset)
+#define _LWL(rt,offset,base)	mipshrri(_jit,MIPS_LWL,base,rt,offset)
+#define _LWR(rt,offset,base)	mipshrri(_jit,MIPS_LWR,base,rt,offset)
+#define _LWU(rt,offset,base)	mipshrri(_jit,MIPS_LWU,rt,base,offset)
+#define _LWXC1(fd,index,base)	mips_rr_f(_jit,base,index,fd,MIPS_LWXC1)
+#define _MADD(rs,rt)		mipshrr__t(_jit,MIPS_SPECIAL2,rs,rt,MIPS_MADD)
+#define _MADD_S(fd,fr,fs,ft)	mips_fp2x(_jit,fr,ft,fs,fd,MIPS_MADD_fmt_S)
+#define _MADD_D(fd,fr,fs,ft)	mips_fp2x(_jit,fr,ft,fs,fd,MIPS_MADD_fmt_D)
+#define _MADD_PS(fd,fr,fs,ft)	mips_fp2x(_jit,fr,ft,fs,fd,MIPS_MADD_fmt_PS)
+#define _MADDU(rs,rt)		mipshrr__t(_jit,MIPS_SPECIAL2,rs,rt,MIPS_MADDU)
+#define _MFC0(rt,rd)		mips_hxrr_(_jit,MIPS_COP0,MIPS_MF,rt,rd)
+#define _MFC1(rt,fs)		mips_hxrf_(_jit,MIPS_COP1,MIPS_MF,rt,fs)
+#define _MFC2(rt,impl)		mips_hxrs(_jit,MIPS_COP2,MIPS_MF,rt,impl)
+#define _MFHC1(rt,fs)		mips_hxrf_(_jit,MIPS_COP1,MIPS_MFH,rt,fs)
+#define _MFHC2(rt,impl)		mips_hxrs(_jit,MIPS_COP2,MIPS_MFH,rt,impl)
 #define _MFHI(rd)		mips___r_t(_jit, rd, MIPS_MFHI)
 #define _MFLO(rd)		mips___r_t(_jit, rd, MIPS_MFLO)
+#define _MOV_S(fd,fs)		mips_fp1(_jit,MIPS_fmt_S,fs,fd,MIPS_MOV_fmt)
+#define _MOV_D(fd,fs)		mips_fp1(_jit,MIPS_fmt_D,fs,fd,MIPS_MOV_fmt)
+#define _MOV_PS(fd,fs)		mips_fp1(_jit,MIPS_fmt_PS,fs,fd,MIPS_MOV_fmt)
+#define _MOVF(rs,rd)		mips_rirt(_jit,rs,0,rd,MIPS_MOVF)
+#define _MOVF_S(fd,fs)		mips_fp1x(_jit,MIPS_fmt_S,0,fs,fd,MIPS_MOVF)
+#define _MOVF_D(fd,fs)		mips_fp1x(_jit,MIPS_fmt_D,0,fs,fd,MIPS_MOVF)
+#define _MOVF_PS(fd,fs)		mips_fp1x(_jit,MIPS_fmt_PS,0,fs,fd,MIPS_MOVF)
+#define _MOVN(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_MOVN)
 
 #define _MUL(rd,rs,rt)		mipshrrr_t(_jit,MIPS_SPECIAL2,rs,rt,rd,MIPS_MUL)
 #define _MUL_S(fd,fs,ft)	mips_fp2(_jit,MIPS_fmt_S,ft,fs,fd,MIPS_MUL_fmt)
@@ -802,6 +1053,14 @@ mips_cop2(jit_state_t _jit, int func)
 
 #define _OR(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_OR)
 #define _ORI(rt,rs,im)		mipshrri(_jit,MIPS_ORI,rs,rt,im)
+
+#define _SLL(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_SLL)
+#define _SLLV(rd,rt,rs)		mips_rrr_t(_jit,rs,rt,rd,MIPS_SLLV)
+
+#define _SRA(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_SRA)
+#define _SRAV(rd,rt,rs)		mips_rrr_t(_jit,rs,rt,rd,MIPS_SRAV)
+#define _SRL(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_SRL)
+#define _SRLV(rd,rt,rs)		mips_rrr_t(_jit,rs,rt,rd,MIPS_SRLV)
 
 #define _SLT(rd,rs,rt)		mips_rrr_t(_jit,rs,rt,rd,MIPS_SLT)
 #define _SLTI(rt,rs,im)		mipshrri(_jit,MIPS_SLTI,rs,rt,im)

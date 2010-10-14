@@ -45,7 +45,7 @@ mips_jmpi(jit_state_t _jit, void *i0)
      * jump to register, to not be limited to same 256Mb segment */
 
     if ((pc & 0xf0000000) == (lb & 0xf0000000))
-	mipshi(_jit, MIPS_J, ((long)i0) >> 2);
+	_J(i0);
     else {
 	jit_movi_i(JIT_RTEMP, lb);
 	mips_r_it(_jit, JIT_RTEMP, 0, MIPS_JR);
@@ -151,7 +151,7 @@ mips_calli(jit_state_t _jit, void *i0)
     /* FIXME return an address that can be patched so, should always
      * call register to not be limited to same 256Mb segment */
     if ((pc & 0xf0000000) == (lb & 0xf0000000))
-	mipshi(_jit, MIPS_JAL, ((long)i0) >> 2);
+	_JAL(i0);
     else {
 	jit_movi_i(JIT_RTEMP, lb);
 	mips_r_rit(_jit, JIT_RTEMP, _RA, 0, MIPS_JALR);
