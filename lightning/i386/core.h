@@ -363,9 +363,14 @@ x86_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	SUBLrr(r2, r0);
-    else {
+    else if (r0 != r2) {
 	MOVLrr(r1, r0);
 	SUBLrr(r2, r0);
+    }
+    else {
+	XCHGLrr(r0, r1);
+	SUBLrr(r0, r1);
+	XCHGLrr(r0, r1);
     }
 }
 
@@ -387,9 +392,14 @@ x86_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	SBBLrr(r2, r0);
-    else {
+    else if (r0 != r2) {
 	MOVLrr(r1, r0);
 	SBBLrr(r2, r0);
+    }
+    else {
+	XCHGLrr(r0, r1);
+	SBBLrr(r0, r1);
+	XCHGLrr(r0, r1);
     }
 }
 
