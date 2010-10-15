@@ -17,7 +17,8 @@ for test in \
     clobber \
     fcvt fop_abs fop_sqrt \
     fop_sin fop_cos fop_tan fop_atan \
-    fop_log fop_log2 fop_log10;
+    fop_log fop_log2 fop_log10 \
+    carry;
 do
     echo "$test"
     ERROR=`$PROGRAM $srcdir/$test.tst`

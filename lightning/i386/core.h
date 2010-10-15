@@ -368,9 +368,10 @@ x86_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 	SUBLrr(r2, r0);
     }
     else {
+	jit_pushr_i(r1);
 	XCHGLrr(r0, r1);
-	SUBLrr(r0, r1);
-	XCHGLrr(r0, r1);
+	SUBLrr(r1, r0);
+	jit_popr_i(r1);
     }
 }
 
@@ -397,9 +398,10 @@ x86_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 	SBBLrr(r2, r0);
     }
     else {
+	jit_pushr_i(r1);
 	XCHGLrr(r0, r1);
-	SBBLrr(r0, r1);
-	XCHGLrr(r0, r1);
+	SBBLrr(r1, r0);
+	jit_popr_i(r1);
     }
 }
 
