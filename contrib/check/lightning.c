@@ -2504,8 +2504,8 @@ dot(void)
 	    jit_flags.rnd_near = ch;
 	else if (strcmp(parser.string, "push_pop") == 0)
 	    jit_flags.push_pop = ch;
-#endif
 	else
+#endif
 	    warn("ignoring \".flags %s %d\"", parser.string, ch);
     }
     else if (strcmp(parser.string, "cpu") == 0) {
@@ -4404,7 +4404,9 @@ main(int argc, char *argv[])
     }
 #endif
 
+#if defined(jit_push_pop_p)
     jit_flags.push_pop = 0;
+#endif
 
     parse();
 #if PREPROCESSOR

@@ -108,7 +108,7 @@ struct {
      * logic not dependent on patched value in jit_prolog */
     _ui		push_pop	: 1;
 } jit_flags;
-#elif !defined(mips)
+#elif !defined(__mips__)
 #  define	jit_gpr_t	int
 #  define	jit_fpr_t	int
 #endif

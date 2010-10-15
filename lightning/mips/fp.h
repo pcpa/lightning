@@ -396,6 +396,510 @@ mips_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
     _MFC1(r0, JIT_FPTMP);
 }
 
+#define jit_ltr_f(r0, f0, f1)		mips_ltr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLT_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ltr_d(r0, f0, f1)		mips_ltr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLT_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ler_f(r0, f0, f1)		mips_ler_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLE_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ler_d(r0, f0, f1)		mips_ler_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLE_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_eqr_f(r0, f0, f1)		mips_eqr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_eqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_EQ_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_eqr_d(r0, f0, f1)		mips_eqr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_EQ_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ger_f(r0, f0, f1)		mips_ger_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLT_S(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ger_d(r0, f0, f1)		mips_ger_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLT_D(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_gtr_f(r0, f0, f1)		mips_gtr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_gtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLE_S(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_gtr_d(r0, f0, f1)		mips_gtr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_gtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_OLE_D(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ner_f(r0, f0, f1)		mips_ner_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_EQ_S(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_ner_d(r0, f0, f1)		mips_ner_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_EQ_D(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_unltr_f(r0, f0, f1)		mips_unltr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_unltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULT_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_unltr_d(r0, f0, f1)		mips_unltr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_unltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULT_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_unler_f(r0, f0, f1)		mips_unler_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_unler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULE_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_unler_d(r0, f0, f1)		mips_unler_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_unler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULE_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_uneqr_f(r0, f0, f1)		mips_uneqr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_uneqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UEQ_S(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_uneqr_d(r0, f0, f1)		mips_uneqr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_uneqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UEQ_D(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_unger_f(r0, f0, f1)		mips_unger_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_unger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULT_S(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_unger_d(r0, f0, f1)		mips_unger_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_unger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULT_D(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ungtr_f(r0, f0, f1)		mips_ungtr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ungtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULE_S(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ungtr_d(r0, f0, f1)		mips_ungtr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ungtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_ULE_D(f1, f0);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_ltgtr_f(r0, f0, f1)		mips_ltgtr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UEQ_S(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_ltgtr_d(r0, f0, f1)		mips_ltgtr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UEQ_D(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_ordr_f(r0, f0, f1)		mips_ordr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UN_S(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_ordr_d(r0, f0, f1)		mips_ordr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UN_D(f0, f1);
+    _MOVT(r0, JIT_RZERO);
+}
+
+#define jit_unordr_f(r0, f0, f1)	mips_unordr_f(_jit, r0, f0, f1)
+__jit_inline void
+mips_unordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UN_S(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_unordr_d(r0, f0, f1)	mips_unordr_d(_jit, r0, f0, f1)
+__jit_inline void
+mips_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    jit_movi_i(r0, 1);
+    _C_UN_D(f0, f1);
+    _MOVF(r0, JIT_RZERO);
+}
+
+#define jit_bltr_f(i0, f0, f1)		mips_bltr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLT_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bltr_d(i0, f0, f1)		mips_bltr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bltr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLT_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bler_f(i0, f0, f1)		mips_bler_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bler_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLE_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bler_d(i0, f0, f1)		mips_bler_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bler_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLE_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_beqr_f(i0, f0, f1)		mips_beqr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_beqr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_EQ_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_beqr_d(i0, f0, f1)		mips_beqr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_beqr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_EQ_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bger_f(i0, f0, f1)		mips_bger_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bger_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLT_S(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bger_d(i0, f0, f1)		mips_bger_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bger_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLT_D(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bgtr_f(i0, f0, f1)		mips_bgtr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bgtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLE_S(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bgtr_d(i0, f0, f1)		mips_bgtr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bgtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_OLE_D(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bner_f(i0, f0, f1)		mips_bner_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bner_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_EQ_S(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bner_d(i0, f0, f1)		mips_bner_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bner_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_EQ_D(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunltr_f(i0, f0, f1)	mips_bunltr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunltr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULT_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunltr_d(i0, f0, f1)	mips_bunltr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunltr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULT_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunler_f(i0, f0, f1)	mips_bunler_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunler_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULE_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunler_d(i0, f0, f1)	mips_bunler_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunler_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULE_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_buneqr_f(i0, f0, f1)	mips_buneqr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_buneqr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UEQ_S(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_buneqr_d(i0, f0, f1)	mips_buneqr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_buneqr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UEQ_D(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunger_f(i0, f0, f1)	mips_bunger_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunger_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULT_S(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunger_d(i0, f0, f1)	mips_bunger_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunger_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULT_D(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bungtr_f(i0, f0, f1)	mips_bungtr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bungtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULE_S(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bungtr_d(i0, f0, f1)	mips_bungtr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bungtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_ULE_D(f1, f0);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bltgtr_f(i0, f0, f1)	mips_bltgtr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bltgtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UEQ_S(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bltgtr_d(i0, f0, f1)	mips_bltgtr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bltgtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UEQ_D(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bordr_f(i0, f0, f1)		mips_bordr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bordr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UN_S(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bordr_d(i0, f0, f1)		mips_bordr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bordr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UN_D(f0, f1);
+    _BC1F((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunordr_f(i0, f0, f1)	mips_bunordr_f(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunordr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UN_S(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunordr_d(i0, f0, f1)	mips_bunordr_d(_jit, i0, f0, f1)
+__jit_inline jit_insn *
+mips_bunordr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
+{
+    _C_UN_D(f0, f1);
+    _BC1T((long)i0);
+    return (_jit->x.pc);
+}
+
 #if LIGHTNING_CROSS \
 	? LIGHTNING_TARGET == LIGHTNING_MIPS64 \
 	: defined (__mips64)
