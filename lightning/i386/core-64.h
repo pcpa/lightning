@@ -909,7 +909,7 @@ x86_divr_l_(jit_state_t _jit,
 	}
 	else {
 	    if (r0 == r1)
-		XCHGQrr(_RAX, r0);
+		jit_xchgr_l(_RAX, r0);
 	    else {
 		if (r0 != _RAX)
 		    MOVQrr(_RAX, r0);

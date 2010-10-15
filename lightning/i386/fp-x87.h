@@ -991,7 +991,7 @@ x87_386_roundr_d_i(jit_state_t _jit,
     FISTPLm(0, JIT_SP, _NOREG, _SCL1);
 
     if (r0 != _RAX)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
     jit_popr_i(r0);
 }
 
@@ -1054,7 +1054,7 @@ x87_safe_roundr_d_i(jit_state_t _jit,
     /* load result and restore state */
     FLDCWm(sizeof(long), JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
     jit_ldr_i(r0, JIT_SP);
     jit_addi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
 }
@@ -1191,7 +1191,7 @@ x87_i386_floorr_d_i(jit_state_t _jit,
     jit_patch_rel_char_at(label, _jit->x.pc);
     FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
     jit_popr_i(r0);
 }
 
@@ -1295,7 +1295,7 @@ x87_i386_ceilr_d_i(jit_state_t _jit,
     jit_patch_rel_char_at(label, _jit->x.pc);
     FISTPLm(0, JIT_SP, _NOREG, _SCL1);
     if (r0 != _RAX)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
     jit_popr_i(r0);
 }
 
@@ -1393,7 +1393,7 @@ x87_i386_fp_cmp(jit_state_t _jit,
     else
 	SBBBir(-1, _RAX);
     if (r0 != _RAX)
-	XCHGLrr(r0, _RAX);
+	jit_xchgr_i(r0, _RAX);
 }
 
 __jit_inline void
@@ -1419,7 +1419,7 @@ x87_i686_fp_cmp(jit_state_t _jit,
     }
     SETCCir(code, reg);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1468,7 +1468,7 @@ x87_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	SETCCir(X86_CC_E, reg);
 	jit_patch_rel_char_at(label, _jit->x.pc);
 	if (!rc)
-	    XCHGLrr(_RAX, r0);
+	    jit_xchgr_i(_RAX, r0);
     }
     else
 	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_E);
@@ -1520,7 +1520,7 @@ x87_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 	SETCCir(X86_CC_NE, reg);
 	jit_patch_rel_char_at(label, _jit->x.pc);
 	if (!rc)
-	    XCHGLrr(_RAX, r0);
+	    jit_xchgr_i(_RAX, r0);
     }
     else
 	x87_i386_fp_cmp(_jit, r0, fr0, fr1,	8, 0x45, (x86_cc_t)-X86_CC_NE);

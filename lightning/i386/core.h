@@ -78,42 +78,44 @@
 #define jit_pushr_i(r0)			x86_pushr_i(_jit, r0)
 #define jit_pushi_i(i0)			x86_pushi_i(_jit, i0)
 #define jit_popr_i(r0)			x86_popr_i(_jit, r0)
+#define jit_xchgr_i(r0, r1)		x86_xchgr_i(_jit, r0, r1)
 #if __WORDSIZE == 32
 __jit_inline void
-x86_movr_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1)
+x86_movr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r0 != r1)
 	MOVLrr(r1, r0);
 }
 
 __jit_inline void
-x86_pushr_i(jit_state_t _jit,
-	    jit_gpr_t r0)
+x86_pushr_i(jit_state_t _jit, jit_gpr_t r0)
 {
     PUSHLr(r0);
 }
 
 __jit_inline void
-x86_pushi_i(jit_state_t _jit,
-	    int i0)
+x86_pushi_i(jit_state_t _jit, int i0)
 {
     PUSHLi(i0);
 }
 
 __jit_inline void
-x86_popr_i(jit_state_t _jit,
-	   jit_gpr_t r0)
+x86_popr_i(jit_state_t _jit, jit_gpr_t r0)
 {
     POPLr(r0);
+}
+
+__jit_inline void
+x86_xchgr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    XCHGLrr(r0, r1);
 }
 #else
 #  define jit_movr_l(r0, r1)		x86_movr_i(_jit, r0, r1)
 #  define jit_movr_ul(r0, r1)		x86_movr_i(_jit, r0, r1)
 #  define jit_movr_p(r0, r1)		x86_movr_i(_jit, r0, r1)
 __jit_inline void
-x86_movr_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1)
+x86_movr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (r0 != r1)
 	MOVQrr(r1, r0);
@@ -121,25 +123,29 @@ x86_movr_i(jit_state_t _jit,
 
 #define jit_pushr_l(r0)			x86_pushr_i(_jit, r0)
 __jit_inline void
-x86_pushr_i(jit_state_t _jit,
-	    jit_gpr_t r0)
+x86_pushr_i(jit_state_t _jit, jit_gpr_t r0)
 {
     PUSHQr(r0);
 }
 
 __jit_inline void
-x86_pushi_i(jit_state_t _jit,
-	    long i0)
+x86_pushi_i(jit_state_t _jit, long i0)
 {
     PUSHQi(i0);
 }
 
 #define jit_popr_l(r0)			x86_popr_i(_jit, r0)
 __jit_inline void
-x86_popr_i(jit_state_t _jit,
-	   jit_gpr_t r0)
+x86_popr_i(jit_state_t _jit, jit_gpr_t r0)
 {
     POPQr(r0);
+}
+
+#define jit_xchgr_l(r0, r1)		x86_xchgr_i(_jit, r0, r1)
+__jit_inline void
+x86_xchgr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    XCHGQrr(r0, r1);
 }
 #endif	/* __WORDSIZE == 32 */
 
@@ -369,7 +375,7 @@ x86_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
     }
     else {
 	jit_pushr_i(r1);
-	XCHGLrr(r0, r1);
+	jit_xchgr_i(r0, r1);
 	SUBLrr(r1, r0);
 	jit_popr_i(r1);
     }
@@ -399,7 +405,7 @@ x86_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
     }
     else {
 	jit_pushr_i(r1);
-	XCHGLrr(r0, r1);
+	jit_xchgr_i(r0, r1);
 	SBBLrr(r1, r0);
 	jit_popr_i(r1);
     }
@@ -835,7 +841,7 @@ x86_divr_i_(jit_state_t _jit,
 	}
 	else {
 	    if (r0 == r1)
-		XCHGLrr(_RAX, r0);
+		jit_xchgr_i(_RAX, r0);
 	    else {
 		if (r0 != _RAX)
 		    MOVLrr(_RAX, r0);
@@ -963,7 +969,7 @@ x86_shift32(jit_state_t _jit,
     if (r1 == _RCX) {
 	if (r0 != _RCX) {
 	    if (r0 == r2)
-		XCHGLrr(_RCX, r0);
+		jit_xchgr_i(_RCX, r0);
 	    else {
 		MOVLrr(_RCX, r0);
 		MOVLrr(r2, _RCX);
@@ -978,7 +984,7 @@ x86_shift32(jit_state_t _jit,
 	}
 	else {
 	    jit_pushr_i(r2);
-	    XCHGLrr(_RCX, r2);
+	    jit_xchgr_i(_RCX, r2);
 	    lsh = r2;
 	}
     }
@@ -1084,7 +1090,7 @@ x86_cmp_ri32(jit_state_t _jit,
 	XORLrr(reg, reg);
 	CMPLir(i0, r1);
 	SETCCir(code, reg);
-	XCHGLrr(reg, r0);
+	jit_xchgr_i(reg, r0);
     }
 }
 
@@ -1110,7 +1116,7 @@ x86_test_r32(jit_state_t _jit,
 	XORLrr(reg, reg);
 	TESTLrr(r1, r1);
 	SETCCir(code, reg);
-	XCHGLrr(reg, r0);
+	jit_xchgr_i(reg, r0);
     }
 }
 
@@ -1143,7 +1149,7 @@ x86_cmp_rr32(jit_state_t _jit,
 	XORLrr(reg, reg);
 	CMPLrr(r2, r1);
 	SETCCir(code, reg);
-	XCHGLrr(reg, r0);
+	jit_xchgr_i(reg, r0);
     }
 }
 
@@ -1729,14 +1735,14 @@ x86_extr_c_i(jit_state_t _jit,
 	else
 	    rep = _RAX;
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else {
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
 	MOVSBLrr(rep, r0);
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else
 	    jit_popr_i(rep);
     }
@@ -1757,14 +1763,14 @@ x86_extr_c_ui(jit_state_t _jit,
 	else
 	    rep = _RAX;
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else {
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
 	MOVZBLrr(rep, r0);
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else
 	    jit_popr_i(rep);
     }

@@ -1084,7 +1084,7 @@ sse_fp_cmp_f(jit_state_t _jit,
     UCOMISSrr(f0, f1);
     SETCCir(code, reg);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1103,7 +1103,7 @@ sse_fp_cmp_d(jit_state_t _jit,
     UCOMISDrr(f0, f1);
     SETCCir(code, reg);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1148,7 +1148,7 @@ sse_eqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     SETEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1169,7 +1169,7 @@ sse_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     SETEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1214,7 +1214,7 @@ sse_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     SETNEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void
@@ -1235,7 +1235,7 @@ sse_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
     SETNEr(reg);
     jit_patch_rel_char_at(_jitl.label, _jit->x.pc);
     if (!rc)
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 }
 
 __jit_inline void

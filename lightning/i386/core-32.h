@@ -292,9 +292,9 @@ x86_sti_c(jit_state_t _jit,
     if (jit_reg8_p(r0))
 	MOVBrm(r0, (long)i0, _NOREG, _NOREG, _SCL1);
     else {
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
 	MOVBrm(_RAX, (long)i0, _NOREG, _NOREG, _SCL1);
-	XCHGLrr(_RAX, r0);
+	jit_xchgr_i(_RAX, r0);
     }
 }
 
@@ -313,14 +313,14 @@ x86_stxi_c(jit_state_t _jit,
 	else
 	    rep = _RAX;
 	if (r0 != r1) 
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else {
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
 	MOVBrm(rep, i0, r0, _NOREG, _SCL1);
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else
 	    jit_popr_i(rep);
     }
@@ -341,14 +341,14 @@ x86_str_c(jit_state_t _jit,
 	else
 	    rep = _RAX;
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else {
 	    jit_pushr_i(rep);
 	    MOVLrr(r1, rep);
 	}
 	MOVBrm(rep, 0, r0, _NOREG, _SCL1);
 	if (r0 != r1)
-	    XCHGLrr(rep, r1);
+	    jit_xchgr_i(rep, r1);
 	else
 	    jit_popr_i(rep);
     }
@@ -373,14 +373,14 @@ x86_stxr_c(jit_state_t _jit,
 	else
 	    rep = _RAX;
 	if (r0 != r2 && r1 != r2)
-	    XCHGLrr(rep, r2);
+	    jit_xchgr_i(rep, r2);
 	else {
 	    jit_pushr_i(rep);
 	    MOVLrr(r2, rep);
 	}
 	MOVBrm(rep, 0, r0, r1, _SCL1);
 	if (r0 != r2 && r1 != r2)
-	    XCHGLrr(rep, r2);
+	    jit_xchgr_i(rep, r2);
 	else
 	    jit_popr_i(rep);
     }
