@@ -230,8 +230,7 @@ x86_notr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 
 #define jit_addi_l(r0, r1, i0)		x86_addi_l(_jit, r0, r1, i0)
 __jit_inline void
-x86_addi_l(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, long i0)
+x86_addi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (i0 == 0)
 	jit_movr_l(r0, r1);
@@ -261,8 +260,7 @@ x86_addi_l(jit_state_t _jit,
 
 #define jit_addr_l(r0, r1, r2)		x86_addr_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_addr_l(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_addr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	ADDQrr(r2, r0);
@@ -304,8 +302,7 @@ x86_subi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 
 #define jit_subr_l(r0, r1, r2)		x86_subr_l(_jit, r0, r1, r2)
 __jit_inline void
-x86_subr_l(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r1 == r2)
 	XORQrr(r0, r0);
@@ -326,8 +323,7 @@ x86_subr_l(jit_state_t _jit,
 /* Commutative */
 #define jit_addci_ul(r0, r1, i0)	x86_addci_ul(_jit, r0, r1, i0)
 __jit_inline void
-x86_addci_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
+x86_addci_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     if (jit_can_sign_extend_int_p(i0)) {
 	jit_movr_l(r0, r1);
@@ -345,8 +341,8 @@ x86_addci_ul(jit_state_t _jit,
 
 #define jit_addcr_ul(r0, r1, r2)	x86_addcr_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_addcr_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2) {
+x86_addcr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
     if (r0 == r2)
 	ADDQrr(r1, r0);
     else if (r0 == r1)
@@ -359,8 +355,7 @@ x86_addcr_ul(jit_state_t _jit,
 
 #define jit_addxi_ul(r0, r1, i0)	x86_addxi_ul(_jit, r0, r1, i0)
 __jit_inline void
-x86_addxi_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
+x86_addxi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     if (jit_can_sign_extend_int_p(i0)) {
 	jit_movr_l(r0, r1);
@@ -378,8 +373,7 @@ x86_addxi_ul(jit_state_t _jit,
 
 #define jit_addxr_ul(r0, r1, r2)	x86_addxr_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_addxr_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_addxr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r2)
 	ADCQrr(r1, r0);
@@ -394,8 +388,7 @@ x86_addxr_ul(jit_state_t _jit,
 /* Non commutative */
 #define jit_subci_ul(r0, r1, i0)	x86_subci_ul(_jit, r0, r1, i0)
 __jit_inline void
-x86_subci_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
+x86_subci_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     jit_movr_l(r0, r1);
     if (jit_can_sign_extend_int_p(i0))
@@ -408,8 +401,7 @@ x86_subci_ul(jit_state_t _jit,
 
 #define jit_subcr_ul(r0, r1, r2)	x86_subcr_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_subcr_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subcr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r2) {
 	MOVQrr(r0, JIT_REXTMP);
@@ -424,8 +416,7 @@ x86_subcr_ul(jit_state_t _jit,
 
 #define jit_subxi_ul(r0, r1, i0)	x86_subxi_ul(_jit, r0, r1, i0)
 __jit_inline void
-x86_subxi_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
+x86_subxi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     jit_movr_l(r0, r1);
     if (jit_can_sign_extend_int_p(i0))
@@ -438,8 +429,7 @@ x86_subxi_ul(jit_state_t _jit,
 
 #define jit_subxr_ul(r0, r1, r2)	x86_subxr_ul(_jit, r0, r1, r2)
 __jit_inline void
-x86_subxr_ul(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subxr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r2) {
 	MOVQrr(r0, JIT_REXTMP);

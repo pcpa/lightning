@@ -227,8 +227,7 @@ x86_notr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 
 #define jit_addi_i(r0, r1, i0)		x86_addi_i(_jit, r0, r1, i0)
 __jit_inline void
-x86_addi_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, int i0)
+x86_addi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     if (i0 == 0)
 	jit_movr_i(r0, r1);
@@ -248,8 +247,7 @@ x86_addi_i(jit_state_t _jit,
 
 #define jit_addr_i(r0, r1, r2)		x86_addr_i(_jit, r0, r1, r2)
 __jit_inline void
-x86_addr_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_addr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	ADDLrr(r2, r0);
@@ -281,8 +279,7 @@ x86_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 
 #define jit_subr_i(r0, r1, r2)		x86_subr_i(_jit, r0, r1, r2)
 __jit_inline void
-x86_subr_i(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r1 == r2)
 	XORLrr(r0, r0);
@@ -298,8 +295,7 @@ x86_subr_i(jit_state_t _jit,
 
 #define jit_addci_ui(r0, r1, i0)	x86_addci_ui(_jit, r0, r1, i0)
 __jit_inline void
-x86_addci_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+x86_addci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
 	ADDLir((int)i0, r0);
@@ -311,8 +307,7 @@ x86_addci_ui(jit_state_t _jit,
 
 #define jit_addcr_ui(r0, r1, r2)	x86_addcr_ui(_jit, r0, r1, r2)
 __jit_inline void
-x86_addcr_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_addcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r2)
 	ADDLrr(r1, r0);
@@ -326,8 +321,7 @@ x86_addcr_ui(jit_state_t _jit,
 
 #define jit_addxi_ui(r0, r1, i0)	x86_addxi_ui(_jit, r0, r1, i0)
 __jit_inline void
-x86_addxi_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+x86_addxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
 	ADCLir((int)i0, r0);
@@ -339,8 +333,8 @@ x86_addxi_ui(jit_state_t _jit,
 
 #define jit_addxr_ui(r0, r1, r2)	x86_addxr_ui(_jit, r0, r1, r2)
 __jit_inline void
-x86_addxr_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2) {
+x86_addxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
     if (r0 == r2)
 	ADCLrr(r1, r0);
     else if (r0 == r1)
@@ -353,8 +347,7 @@ x86_addxr_ui(jit_state_t _jit,
 
 #define jit_subci_ui(r0, r1, i0)	x86_subci_ui(_jit, r0, r1, i0)
 __jit_inline void
-x86_subci_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+x86_subci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
 	SUBLir((int)i0, r0);
@@ -366,21 +359,19 @@ x86_subci_ui(jit_state_t _jit,
 
 #define jit_subcr_ui(r0, r1, r2)	x86_subcr_ui(_jit, r0, r1, r2)
 __jit_inline void
-x86_subcr_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	SUBLrr(r2, r0);
     else {
 	MOVLrr(r1, r0);
-	SUBLir(r2, r0);
+	SUBLrr(r2, r0);
     }
 }
 
 #define jit_subxi_ui(r0, r1, i0)	x86_subxi_ui(_jit, r0, r1, i0)
 __jit_inline void
-x86_subxi_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
+x86_subxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1)
 	SBBLir((int)i0, r0);
@@ -392,14 +383,13 @@ x86_subxi_ui(jit_state_t _jit,
 
 #define jit_subxr_ui(r0, r1, r2)	x86_subxr_ui(_jit, r0, r1, r2)
 __jit_inline void
-x86_subxr_ui(jit_state_t _jit,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+x86_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1)
 	SBBLrr(r2, r0);
     else {
 	MOVLrr(r1, r0);
-	SBBLir(r2, r0);
+	SBBLrr(r2, r0);
     }
 }
 
