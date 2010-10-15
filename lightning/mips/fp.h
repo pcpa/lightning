@@ -70,6 +70,19 @@ mips_movr_f(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 	_MOV_S(f0, f1);
 }
 
+#define jit_movi_f(f0, i0)		mips_movi_f(_jit, f0, i0)
+__jit_inline void
+mips_movi_f(jit_state_t _jit, jit_fpr_t f0, float i0)
+{
+    union {
+	int	i;
+	float	f;
+    } data;
+    data.f = i0;
+    jit_movi_i(JIT_RTEMP, data.i);
+    _MTC1(JIT_RTEMP, f0);
+}
+
 #define jit_movr_d(f0, f1)		mips_movr_d(_jit, f0, f1)
 __jit_inline void
 mips_movr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
@@ -78,13 +91,34 @@ mips_movr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 	_MOV_D(f0, f1);
 }
 
+#define jit_movi_d(f0, i0)		mips_movi_d(_jit, f0, i0)
+__jit_inline void
+mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
+{
+    union {
+	int	i[2];
+	long	l;
+	double	d;
+    } data;
+    data.d = i0;
+#if __WORDSIZE == 32
+    /* FIXME misplaced and also probably reversed order */
+    jit_movi_i(JIT_RTEMP, data.i[0]);
+    _MTC1(JIT_RTEMP, f0);
+    jit_movi_i(JIT_RTEMP, data.i[1]);
+    _MTHC1(JIT_RTEMP, f0);
+#else
+    jit_movi_l(JIT_RTEMP, data.l);
+    _DMTC1(JIT_RTEMP, f0);
+#endif
+}
+
 #define jit_negr_f(f0, f1)	_NEG_S(f0, f1)
 #define jit_negr_d(f0, f1)	_NEG_D(f0, f1)
 
 #define jit_ldr_f(f0, r0)	mips_ldr_f(_jit, f0, r0)
 __jit_inline void
-mips_ldr_f(jit_state_t _jit, mips_hc_t hc, mips_fmt_t fm,
-	   jit_fpr_t f0, jit_gpr_t r0)
+mips_ldr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
     _LWC1(f0, 0, r0);
 }
@@ -184,8 +218,7 @@ mips_ldxi_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 
 #define jit_str_f(r0, f0)		mips_str_f(_jit, r0, f0)
 __jit_inline void
-mips_str_f(jit_state_t _jit, mips_hc_t hc, mips_fmt_t fm,
-	   jit_gpr_t r0, jit_fpr_t f0)
+mips_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     _SWC1(f0, 0, r0);
 }
@@ -199,8 +232,7 @@ mips_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 
 #define jit_sti_f(i0, f0)		mips_sti_f(_jit, i0, f0)
 __jit_inline void
-mips_sti_f(jit_state_t _jit, mips_hc_t hc, mips_fmt_t fm,
-	   void *i0, jit_fpr_t f0)
+mips_sti_f(jit_state_t _jit, void *i0, jit_fpr_t f0)
 {
     long	ds = (long)i0;
 

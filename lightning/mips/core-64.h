@@ -60,7 +60,7 @@ mips_movi_l(jit_state_t _jit, jit_gpr_t r0, long i0)
 }
 
 #define jit_movi_p(r0, i0)		mips_movi_p(_jit, r0, i0)
-__jit_inline void
+__jit_inline jit_insn *
 mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
 {
     unsigned long	ms;
@@ -76,6 +76,7 @@ mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
     mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
     ms = i0 & 0x000000000000ffffL;
     _ORI(r0, r0, ms);
+    return (_jit->x.pc);
 }
 
 #define jit_negr_l(r0, r1)		mips_negr_l(_jit, r0, r1)
@@ -591,6 +592,17 @@ mips_ret(jit_state_t jit)
     jit_jmpr(_RA);
     /* restore sp in delay slot */
     jit_addi_l(JIT_SP, JIT_SP, 80);
+}
+
+#define jit_allocai(n)			mips_allocai(_jit, n)
+__jit_inline int
+mips_allocai(jit_state_t _jit, int length)
+{
+    assert(length >= 0);
+    _jitl.alloca_offset += length;
+    if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
+	*_jitl.stack += (length + 8) & ~7;
+    return (-_jitl.alloca_offset);
 }
 
 #endif /* __lightning_core_h */

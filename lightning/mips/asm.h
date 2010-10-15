@@ -872,8 +872,8 @@ mips_tlb(jit_state_t _jit, mips_tc_t tc)
 #define _BLTZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZAL,im>>2)
 #define _BLTZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZALL,im>>2)
 #define _BLTZL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BLTZL,im>>2)
-#define _BNE(rs,rt,im)		mipshrri(_jit,MIPS_BNE,r0,r1,im>>2)
-#define _BNEL(rs,rt,im)		mipshrri(_jit,MIPS_BNEL,r0,r1,im>>2)
+#define _BNE(rs,rt,im)		mipshrri(_jit,MIPS_BNE,rs,rt,im>>2)
+#define _BNEL(rs,rt,im)		mipshrri(_jit,MIPS_BNEL,rs,rt,im>>2)
 __jit_inline void
 mips_break(jit_state_t _jit, int code)
 {

@@ -32,6 +32,21 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
+#define jit_ldi_ui(r0, i0)		jit_ldi_i(r0, i0)
+#define jit_ldi_l(r0, i0)		jit_ldi_i(r0, i0)
+#define jit_ldr_ui(r0, r1)		jit_ldr_i(r0, r1)
+#define jit_ldr_l(r0, r1)		jit_ldr_i(r0, r1)
+#define jit_sti_l(r0, i0)		jit_sti_i(r0, i0)
+#define jit_str_l(r0, r1)		jit_str_i(r0, r1)
+#define jit_arg_ui()			mips_arg_i(_jit)
+#define jit_arg_l()			mips_arg_i(_jit)
+#define jit_arg_ul()			mips_arg_i(_jit)
+#define jit_arg_p()			mips_arg_i(_jit)
+#define jit_getarg_ui(r0, ofs)		jit_getarg_i(r0, ofs)
+#define jit_getarg_l(r0, ofs)		jit_getarg_i(r0, ofs)
+#define jit_getarg_ul(r0, ofs)		jit_getarg_i(r0, ofs)
+#define jit_getarg_p(r0, ofs)		jit_getarg_i(r0, ofs)
+
 #define jit_jmpi(i0)			mips_jmpi(_jit, i0)
 __jit_inline jit_insn *
 mips_jmpi(jit_state_t _jit, void *i0)
@@ -202,6 +217,17 @@ mips_ret(jit_state_t jit)
     jit_jmpr(_RA);
     /* restore sp in delay slot */
     jit_addi_i(JIT_SP, JIT_SP, 40);
+}
+
+#define jit_allocai(n)			mips_allocai(_jit, n)
+__jit_inline int
+mips_allocai(jit_state_t _jit, int length)
+{
+    assert(length >= 0);
+    _jitl.alloca_offset += length;
+    if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
+	*_jitl.stack += (length + 8) & ~7;
+    return (-_jitl.alloca_offset);
 }
 
 #endif /* __lightning_core_h */
