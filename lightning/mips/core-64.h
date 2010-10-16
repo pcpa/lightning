@@ -166,7 +166,7 @@ mips_hmulr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_hmuli_ul(r0, r1, i0)	mips_hmuli_ul(_jit, r0, r1, i0)
 __jit_inline void
-mips_hmuli_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
+mips_hmuli_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     jit_movi_l(JIT_RTEMP, i0);
     jit_hmulr_ul(r0, r1, JIT_RTEMP);
@@ -198,7 +198,7 @@ mips_divr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_divi_ul(r0, r1, i0)		mips_divi_ul(_jit, r0, r1, i0)
 __jit_inline void
-mips_divi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
+mips_divi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     jit_movi_l(JIT_RTEMP, i0);
     jit_divr_ul(r0, r1, JIT_RTEMP);
@@ -230,7 +230,7 @@ mips_modr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_modi_ul(r0, r1, i0)		mips_modi_ul(_jit, r0, r1, i0)
 __jit_inline void
-mips_modi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
+mips_modi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 {
     jit_movi_l(JIT_RTEMP, i0);
     jit_modr_ul(r0, r1, JIT_RTEMP);
@@ -252,9 +252,9 @@ mips_lshr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_lshi_l(r0, r1, i0)		mips_lshi_l(_jit, r0, r1, i0)
 __jit_inline void
-mips_lshi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+mips_lshi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
-    assert(i0 >= 0 && i0 <= 63);
+    assert(i0 <= 63);
     if (i0 < 32)
 	_DSLL(r0, r1, i0);
     else
@@ -270,9 +270,9 @@ mips_rshr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_rshi_l(r0, r1, i0)		mips_rshi_l(_jit, r0, r1, i0)
 __jit_inline void
-mips_rshi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+mips_rshi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
-    assert(i0 >= 0 && i0 <= 63);
+    assert(i0 <= 63);
     if (i0 < 32)
 	_DSRA(r0, r1, i0);
     else
@@ -288,9 +288,9 @@ mips_rshr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 
 #define jit_rshi_ul(r0, r1, i0)		mips_rshi_ul(_jit, r0, r1, i0)
 __jit_inline void
-mips_rshi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+mips_rshi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned char i0)
 {
-    assert(i0 >= 0 && i0 <= 63);
+    assert(i0 <= 63);
     if (i0 < 32)
 	_DSRL(r0, r1, i0);
     else

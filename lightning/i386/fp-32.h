@@ -51,8 +51,7 @@ jit_sse_order[JIT_FPR_NUM] = {
 
 #define jit_retval_f(f0)		x86_retval_f(_jit, f0)
 __jit_inline void
-x86_retval_f(jit_state_t _jit,
-	     jit_fpr_t f0)
+x86_retval_f(jit_state_t _jit, jit_fpr_t f0)
 {
     if (jit_sse_reg_p(f0)) {
 	FSTPr(_ST1);
@@ -64,8 +63,7 @@ x86_retval_f(jit_state_t _jit,
 
 #define jit_retval_d(f0)		x86_retval_d(_jit, f0)
 __jit_inline void
-x86_retval_d(jit_state_t _jit,
-	     jit_fpr_t f0)
+x86_retval_d(jit_state_t _jit, jit_fpr_t f0)
 {
     if (jit_sse_reg_p(f0)) {
 	FSTPr(_ST1);
@@ -157,16 +155,14 @@ x86_arg_d(jit_state_t _jit)
 
 #define jit_getarg_f(f0, ofs)		x86_getarg_f(_jit, f0, ofs)
 __jit_inline void
-x86_getarg_f(jit_state_t _jit,
-	     jit_fpr_t f0, int ofs)
+x86_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     jit_ldxi_f(f0, JIT_FP, ofs);
 }
 
 #define jit_getarg_d(f0, ofs)		x86_getarg_d(_jit, f0, ofs)
 __jit_inline void
-x86_getarg_d(jit_state_t _jit,
-	     jit_fpr_t f0, int ofs)
+x86_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     jit_ldxi_d(f0, JIT_FP, ofs);
 }

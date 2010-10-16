@@ -72,8 +72,7 @@
    (and similarly for immediates, using the stack) */
 
 __jit_inline void
-x87_absr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1)
+x87_absr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -92,8 +91,7 @@ x87_absr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_negr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1)
+x87_negr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -112,8 +110,7 @@ x87_negr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_sqrtr_d(jit_state_t _jit,
-	    jit_fpr_t f0, jit_fpr_t f1)
+x87_sqrtr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 == f1) {
 	if (f0 == _ST0)
@@ -455,8 +452,7 @@ x87_log10r_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 }
 
 __jit_inline void
-x87_addr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_addr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -488,8 +484,7 @@ x87_addr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_subr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_subr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -521,8 +516,7 @@ x87_subr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_mulr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_mulr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -554,8 +548,7 @@ x87_mulr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_divr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
+x87_divr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1, jit_fpr_t f2)
 {
     if (f0 == f1) {
 	if (f2 == _ST0)
@@ -587,72 +580,63 @@ x87_divr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ldi_f(jit_state_t _jit,
-	  jit_fpr_t f0, void *i0)
+x87_ldi_f(jit_state_t _jit, jit_fpr_t f0, void *i0)
 {
     FLDSm((long)i0, _NOREG, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldr_f(jit_state_t _jit,
-	  jit_fpr_t f0, jit_gpr_t r0)
+x87_ldr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDSm(0, r0, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldxi_f(jit_state_t _jit,
-	   jit_fpr_t f0, jit_gpr_t r0, long i0)
+x87_ldxi_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDSm(i0, r0, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldxr_f(jit_state_t _jit,
-	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
+x87_ldxr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDSm(0, r0, r1, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldi_d(jit_state_t _jit,
-	  jit_fpr_t f0, void *i0)
+x87_ldi_d(jit_state_t _jit, jit_fpr_t f0, void *i0)
 {
     FLDLm((long)i0, _NOREG, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldr_d(jit_state_t _jit,
-	  jit_fpr_t f0, jit_gpr_t r0)
+x87_ldr_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
     FLDLm(0, r0, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldxi_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_gpr_t r0, long i0)
+x87_ldxi_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     FLDLm(i0, r0, _NOREG, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_ldxr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
+x87_ldxr_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
     FLDLm(0, r0, r1, _SCL1);
     FSTPr((jit_fpr_t)(f0 + 1));
 }
 
 __jit_inline void
-x87_sti_f(jit_state_t _jit,
-	  void *i0, jit_fpr_t f0)
+x87_sti_f(jit_state_t _jit, void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm((long)i0, _NOREG, _NOREG, _SCL1);
@@ -664,8 +648,7 @@ x87_sti_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_str_f(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0)
+x87_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(0, r0, _NOREG, _SCL1);
@@ -677,8 +660,7 @@ x87_str_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_stxi_f(jit_state_t _jit,
-	   long i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_f(jit_state_t _jit, long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(i0, r0, _NOREG, _SCL1);
@@ -690,8 +672,7 @@ x87_stxi_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_stxr_f(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
+x87_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTSm(0, r0, r1, _SCL1);
@@ -703,8 +684,7 @@ x87_stxr_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_sti_d(jit_state_t _jit,
-	  void *i0, jit_fpr_t f0)
+x87_sti_d(jit_state_t _jit, void *i0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm((long)i0, _NOREG, _NOREG, _SCL1);
@@ -716,8 +696,7 @@ x87_sti_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_str_d(jit_state_t _jit,
-	  jit_gpr_t r0, jit_fpr_t f0)
+x87_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(0, r0, _NOREG, _SCL1);
@@ -729,8 +708,7 @@ x87_str_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_stxi_d(jit_state_t _jit,
-	   long i0, jit_gpr_t r0, jit_fpr_t f0)
+x87_stxi_d(jit_state_t _jit, long i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(i0, r0, _NOREG, _SCL1);
@@ -742,8 +720,7 @@ x87_stxi_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_stxr_d(jit_state_t _jit,
-	   jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
+x87_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
     if (f0 == _ST0)
 	FSTLm(0, r0, r1, _SCL1);
@@ -755,8 +732,7 @@ x87_stxr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_movi_f(jit_state_t _jit,
-	   jit_fpr_t f0, float i0)
+x87_movi_f(jit_state_t _jit, jit_fpr_t f0, float i0)
 {
     union {
 	int	i;
@@ -799,8 +775,7 @@ x87_movi_f(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_movi_d(jit_state_t _jit,
-	   jit_fpr_t f0, double i0)
+x87_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
 {
     union {
 	int	i[2];
@@ -849,8 +824,7 @@ x87_movi_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_movr_d(jit_state_t _jit,
-	   jit_fpr_t f0, jit_fpr_t f1)
+x87_movr_d(jit_state_t _jit, jit_fpr_t f0, jit_fpr_t f1)
 {
     if (f0 != f1) {
 	if (f1 == _ST0)
@@ -867,8 +841,7 @@ x87_movr_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_extr_i_d(jit_state_t _jit,
-	     jit_fpr_t f0, jit_gpr_t r0)
+x87_extr_i_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
     jit_pushr_i(r0);
     FILDLm(0, JIT_SP, _NOREG, _SCL1);
@@ -877,8 +850,7 @@ x87_extr_i_d(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_rintr_d_i(jit_state_t _jit,
-	      jit_gpr_t r0, jit_fpr_t f0)
+x87_rintr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
     /* store integer using current rounding mode */
@@ -896,8 +868,7 @@ x87_rintr_d_i(jit_state_t _jit,
  * adjusting the rounding mode as done in _safe_roundr_d_i
  */
 __jit_inline void
-x87_386_roundr_d_i(jit_state_t _jit,
-		   jit_gpr_t r0, jit_fpr_t f0)
+x87_386_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -996,8 +967,7 @@ x87_386_roundr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_safe_roundr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -1060,8 +1030,7 @@ x87_safe_roundr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_roundr_d_i(jit_state_t _jit,
-	       jit_gpr_t r0, jit_fpr_t f0)
+x87_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p())
 	x87_386_roundr_d_i(_jit, r0, f0);
@@ -1070,8 +1039,7 @@ x87_roundr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i386_truncr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
@@ -1110,8 +1078,7 @@ x87_i386_truncr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i686_truncr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_pushr_i(_RAX);
     FLDr(f0);
@@ -1120,8 +1087,7 @@ x87_i686_truncr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_truncr_d_i(jit_state_t _jit,
-	       jit_gpr_t r0, jit_fpr_t f0)
+x87_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_i686_p())
 	x87_i686_truncr_d_i(_jit, r0, f0);
@@ -1131,8 +1097,7 @@ x87_truncr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_safe_floorr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
@@ -1170,8 +1135,7 @@ x87_safe_floorr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i386_floorr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -1196,8 +1160,7 @@ x87_i386_floorr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i686_floorr_d_i(jit_state_t _jit,
-		    jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -1222,8 +1185,7 @@ x87_i686_floorr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_floorr_d_i(jit_state_t _jit,
-	       jit_gpr_t r0, jit_fpr_t f0)
+x87_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p()) {
 	if (jit_i686_p())
@@ -1236,8 +1198,7 @@ x87_floorr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_safe_ceilr_d_i(jit_state_t _jit,
-		   jit_gpr_t r0, jit_fpr_t f0)
+x87_safe_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     /* make room, store control word and copy */
     jit_subi_l(JIT_SP, JIT_SP, sizeof(long) << 1);
@@ -1274,8 +1235,7 @@ x87_safe_ceilr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i386_ceilr_d_i(jit_state_t _jit,
-		   jit_gpr_t r0, jit_fpr_t f0)
+x87_i386_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -1300,8 +1260,7 @@ x87_i386_ceilr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i686_ceilr_d_i(jit_state_t _jit,
-		   jit_gpr_t r0, jit_fpr_t f0)
+x87_i686_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     jit_insn	*label;
 
@@ -1324,8 +1283,7 @@ x87_i686_ceilr_d_i(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_ceilr_d_i(jit_state_t _jit,
-	      jit_gpr_t r0, jit_fpr_t f0)
+x87_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (jit_round_to_nearest_p()) {
 	if (jit_i686_p())
@@ -1363,9 +1321,8 @@ x87_ceilr_d_i(jit_state_t _jit,
   the operands swapped; it is more efficient this way.  */
 
 __jit_inline void
-x87_i386_fp_cmp(jit_state_t _jit,
-		jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
-		int shift, int _and, x86_cc_t code)
+x87_i386_fp_cmp(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
+		int shift, int _and, x86_cc_t cc)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1382,13 +1339,13 @@ x87_i386_fp_cmp(jit_state_t _jit,
     else
 	MOVLir(0, _RAX);
     if (shift == 8) {
-	if (code < 0) {
+	if (cc < 0) {
 	    CMPBir(0x40, _RAX);
-	    code = (x86_cc_t)-code;
+	    cc = (x86_cc_t)-cc;
 	}
-	SETCCir(code, _RAX);
+	SETCCir(cc, _RAX);
     }
-    else if (code == 0)
+    else if (cc == 0)
 	ADCBir(0, _RAX);
     else
 	SBBBir(-1, _RAX);
@@ -1397,8 +1354,8 @@ x87_i386_fp_cmp(jit_state_t _jit,
 }
 
 __jit_inline void
-x87_i686_fp_cmp(jit_state_t _jit,
-		jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
+x87_i686_fp_cmp(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1,
+		x86_cc_t cc)
 {
     int		 rc;
     jit_gpr_t	 reg;
@@ -1417,7 +1374,7 @@ x87_i686_fp_cmp(jit_state_t _jit,
 	FLDr(f0);
 	FUCOMIPr((jit_fpr_t)(f1 + 1));
     }
-    SETCCir(code, reg);
+    SETCCir(cc, reg);
     if (!rc)
 	jit_xchgr_i(_RAX, r0);
 }
@@ -1621,7 +1578,7 @@ x87_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0, jit_fpr_t f1)
 __jit_inline void
 x87_i386_fp_bcmp(jit_state_t _jit,
 		 jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
-		 int shift, int _and, int cmp, x86_cc_t code)
+		 int shift, int _and, int cmp, x86_cc_t cc)
 {
     if (f0 == _ST0)
 	FUCOMr(f1);
@@ -1637,12 +1594,12 @@ x87_i386_fp_bcmp(jit_state_t _jit,
     if (cmp)
 	CMPLir(cmp, _RAX);
     jit_popr_i(_RAX);
-    JCCim(code, label);
+    JCCim(cc, label);
 }
 
 __jit_inline void
-x87_i686_fp_bcmp(jit_state_t _jit,
-		 jit_insn *label, jit_fpr_t f0, jit_fpr_t f1, x86_cc_t code)
+x87_i686_fp_bcmp(jit_state_t _jit, jit_insn *label, jit_fpr_t f0, jit_fpr_t f1,
+		 x86_cc_t cc)
 {
     if (f0 == _ST0)
 	FUCOMIr(f1);
@@ -1650,7 +1607,7 @@ x87_i686_fp_bcmp(jit_state_t _jit,
 	FLDr(f0);
 	FUCOMIPr((jit_fpr_t)(f1 + 1));
     }
-    JCCim(code, label);
+    JCCim(cc, label);
 }
 
 __jit_inline jit_insn *
