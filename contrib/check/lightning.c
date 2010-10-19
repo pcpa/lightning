@@ -1104,8 +1104,8 @@ static void disassemble(void *code, int length)
 #    else
 	info.mach = bfd_mach_i386_i386;
 #    endif
-	info.print_address_func = print_address;
 #  endif
+	info.print_address_func = print_address;
     }
     info.buffer = (bfd_byte *)code;
     info.buffer_vma = (unsigned long)code;

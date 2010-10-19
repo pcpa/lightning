@@ -1,7 +1,7 @@
 .data	32
 hello:
 .c	"Hello world!\n"
-.code	64
+.code	256
 	prolog 0
 	prepare 1
 		movi_p %r0 hello

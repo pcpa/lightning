@@ -47,26 +47,141 @@
 #define jit_getarg_ul(r0, ofs)		jit_getarg_i(r0, ofs)
 #define jit_getarg_p(r0, ofs)		jit_getarg_i(r0, ofs)
 
+#define jit_movi_p(r0, i0)		mips_movi_p(_jit, r0, i0)
+__jit_inline jit_insn *
+mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
+{
+    jit_insn	*l;
+    unsigned	im = (unsigned)i0;
+
+    l = _jit->x.pc;
+    _LUI(r0, im >> 16);
+    _ORI(r0, r0, im & 0xffff);
+    return (l);
+}
+
+#define jit_patch_movi(i0, i1)		mips_patch_movi(_jit, i0, i1)
+__jit_inline void
+mips_patch_movi(jit_state_t _jit, jit_insn *i0, void *i1)
+{
+    mips_code_t		c;
+    union {
+	char		*c;
+	int		*i;
+	short		*s;
+	void		*v;
+    } u;
+    unsigned	 im = (unsigned)i1;
+
+    u.v = i0;
+
+    c.op = u.i[0];
+    assert(c.hc.b == MIPS_LUI);
+    c.is.b = im >> 16;
+    u.i[0] = c.op;
+
+    c.op = u.i[1];
+    assert(c.hc.b == MIPS_ORI);
+    c.is.b = im & 0xffff;
+    u.i[1] = c.op;
+}
+
+#define jit_patch_at(jump, label)	mips_patch_at(_jit, jump, label)
+__jit_inline void
+mips_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
+{
+    mips_code_t		c;
+    long		d;
+    union {
+	char		*c;
+	int		*i;
+	short		*s;
+	void		*v;
+    } u;
+
+    u.v = jump;
+    c.op = u.i[0];
+    switch (c.hc.b) {
+	/* 16 bit immediate opcodes */
+	case MIPS_REGIMM:
+	    switch (c.rt.b) {
+		case MIPS_BLTZ:		case MIPS_BLTZL:
+		case MIPS_BLTZAL:	case MIPS_BLTZALL:
+		case MIPS_BLEZ:		case MIPS_BLEZL:
+		case MIPS_BGEZ:		case MIPS_BGEZAL:
+		case MIPS_BGEZALL:	case MIPS_BGEZL:
+		case MIPS_BGTZ:		case MIPS_BGTZL:
+		case MIPS_TEQI:		case MIPS_TGEI:
+		case MIPS_TGEIU:	case MIPS_TLTI:
+		case MIPS_TLTIU:	case MIPS_TNEI:
+		    d = (((long)label - (long)jump) >> 2) - 1;
+		    c.is.b = _s16(d);
+		    u.i[0] = c.op;
+		    break;
+		default:
+		    assert(!"unhandled branch opcode");
+		    break;
+	    }
+	    break;
+
+	case MIPS_COP1:			case MIPS_COP2:
+	    assert(c.rs.b == MIPS_BC);
+	    switch (c.rt.b) {
+		case MIPS_BCF:		case MIPS_BCFL:
+		case MIPS_BCT:		case MIPS_BCTL:
+		    d = (((long)label - (long)jump) >> 2) - 1;
+		    c.is.b = _s16(d);
+		    u.i[0] = c.op;
+		    break;
+		default:
+		    assert(!"unhandled branch opcode");
+		    break;
+	    }
+	    break;
+
+	case MIPS_BEQ:			case MIPS_BEQL:
+	case MIPS_BNE:			case MIPS_BNEL:
+	    d = (((long)label - (long)jump) >> 2) - 1;
+	    c.is.b = _s16(d);
+	    u.i[0] = c.op;
+	    break;
+
+	case MIPS_LUI:
+	    /* move and jump to register or wrong, but works,
+	     * call ot jit_patch instead of jit_patch_movi */
+	    mips_patch_movi(_jit, jump, label);
+	    break;
+
+	case MIPS_J:			case MIPS_JAL:
+	case MIPS_JALX:
+	    d = (long)label;
+	    assert(((long)jump & 0xf0000000) == (d & 0xf0000000));
+	    c.br.b = d >> 2;
+	    break;
+
+	default:
+	    assert(!"unhandled branch opcode");
+	    break;
+    }
+}
+
 #define jit_jmpi(i0)			mips_jmpi(_jit, i0)
 __jit_inline jit_insn *
 mips_jmpi(jit_state_t _jit, void *i0)
 {
-    long	pc = (long)_jit->x.pc;
-    long	lb = (long)i0;
-
-    /* FIXME how to patch efficiently? */
-
-    /* FIXME return an address that can be patched so, should always
-     * jump to register, to not be limited to same 256Mb segment */
-
-    if ((pc & 0xf0000000) == (lb & 0xf0000000))
-	_J(i0);
-    else {
-	jit_movi_i(JIT_RTEMP, lb);
-	mips_r_it(_jit, JIT_RTEMP, 0, MIPS_JR);
+    jit_insn	*l;
+    long	 pc = (long)_jit->x.pc;
+    long	 lb = (long)i0;
+    l = _jit->x.pc;
+    if ((pc & 0xf0000000) == (lb & 0xf0000000)) {
+	_J(lb & ~0xf0000000);
+	jit_nop(1);
     }
-    jit_nop(1);
-    return (_jit->x.pc);
+    else {
+	jit_movi_p(JIT_RTEMP, i0);
+	jit_jmpr(JIT_RTEMP);
+    }
+    return (l);
 }
 
 #define jit_prolog(n)			mips_prolog(_jit, n)
@@ -90,9 +205,9 @@ mips_prolog(jit_state_t _jit, int n)
     jit_movr_i(JIT_FP, JIT_SP);
 
     /* patch alloca and stack adjustment */
-    jit_subi_i(JIT_SP, JIT_SP, 0);
-    /* FIXME should not limit to 15 bits */
-    _jitl.stack = ((short *)_jit->x.pc) - 2;
+    _jitl.stack = (int *)_jit->x.pc;
+    jit_movi_p(JIT_RTEMP, 0);
+    jit_subr_i(JIT_SP, JIT_SP, JIT_RTEMP);
     _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
 }
 
@@ -109,8 +224,8 @@ mips_prepare_i(jit_state_t _jit, int count)
 	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 2;
 	if (_jitl.stack_length < _jitl.stack_offset) {
 	    _jitl.stack_length = _jitl.stack_offset;
-	    *_jitl.stack = (_jitl.alloca_offset +
-			    _jitl.stack_length + 7) & ~7;
+	    mips_set_stack(_jit, (_jitl.alloca_offset +
+				  _jitl.stack_length + 7) & ~7);
 	}
     }
 }
@@ -156,6 +271,7 @@ mips_arg_i(jit_state_t _jit)
 __jit_inline jit_insn *
 mips_calli(jit_state_t _jit, void *i0)
 {
+    jit_insn	*l;
 #if 0
     /* FIXME still usable to call jit functions that are not really
      * position independent code */
@@ -163,22 +279,32 @@ mips_calli(jit_state_t _jit, void *i0)
     long	pc = (long)_jit->x.pc;
     long	lb = (long)i0;
 
+    l = _jit->x.pc;
     /* FIXME return an address that can be patched so, should always
      * call register to not be limited to same 256Mb segment */
     if ((pc & 0xf0000000) == (lb & 0xf0000000))
 	_JAL(i0);
     else {
-	jit_movi_i(JIT_RTEMP, lb);
-	mips_r_rit(_jit, JIT_RTEMP, _RA, 0, MIPS_JALR);
+	jit_movi_p(JIT_RTEMP, lb);
+	_JALR(JIT_RTEMP);
     }
     jit_nop(1);
 #else
     /* if calling a pic function, _T9 *must* hold the function pointer */
 
-    jit_movi_i(_T9, (long)i0);
-    jit_callr(_T9);
+    l = _jit->x.pc;
+    jit_movi_p(_T9, i0);
+    _JALR(_T9);
+    jit_nop(1);
 #endif
-    return (_jit->x.pc);
+    return (l);
+}
+
+#define jit_patch_calli(call, label)	mips_patch_calli(_jit, call, label)
+__jit_inline void
+mips_patch_calli(jit_state_t _jit, jit_insn *call, jit_insn *label)
+{
+    jit_patch_at(call, label);
 }
 
 #define jit_finish(i0)			mips_finish(_jit, i0)
@@ -187,9 +313,7 @@ mips_finish(jit_state_t _jit, void *i0)
 {
     assert(_jitl.stack_offset	== 0 &&
 	   _jitl.nextarg_puti	== 0);
-    jit_calli(i0);
-    /* FIXME return patchable address */
-    return (_jit->x.pc);
+    return (jit_calli(i0));
 }
 
 #define jit_retval_i(r0)		mips_retval_i(_jit, r0)
@@ -214,20 +338,9 @@ mips_ret(jit_state_t jit)
     jit_ldxi_i(_S7, JIT_SP, 28);
     jit_ldxi_i(_FP, JIT_SP, 32);
     jit_ldxi_i(_RA, JIT_SP, 36);
-    jit_jmpr(_RA);
+    _JR(_RA);
     /* restore sp in delay slot */
     jit_addi_i(JIT_SP, JIT_SP, 40);
-}
-
-#define jit_allocai(n)			mips_allocai(_jit, n)
-__jit_inline int
-mips_allocai(jit_state_t _jit, int length)
-{
-    assert(length >= 0);
-    _jitl.alloca_offset += length;
-    if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
-	*_jitl.stack += (length + 8) & ~7;
-    return (-_jitl.alloca_offset);
 }
 
 #endif /* __lightning_core_h */

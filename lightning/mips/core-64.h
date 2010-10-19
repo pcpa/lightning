@@ -48,12 +48,12 @@ mips_movi_l(jit_state_t _jit, jit_gpr_t r0, long i0)
     else {
 	jit_movi_i(r0, ms >> 32);
 	if ((ms = i0 & 0xffff0000)) {
-	    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+	    _SLL(r0, r0, 16);
 	    _ORI(r0, r0, ms >> 16);
-	    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+	    _SLL(r0, r0, 16);
 	}
 	else
-	    mips__rrit(_jit, r0, r0, 32, MIPS_SLL);
+	    _SLL(r0, r0, 16);
 	if ((ms = i0 & 0xffff))
 	    _ORI(r0, r0, ms);
     }
@@ -67,13 +67,13 @@ mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
 
     ms = i0 & 0xffff000000000000L;
     _ORI(r0, r0, ms >> 48);
-    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    _SLL(r0, r0, 16);
     ms = i0 & 0x0000ffff00000000L;
     _ORI(r0, r0, ms >> 32);
-    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    _SLL(r0, r0, 16);
     ms = i0 & 0x00000000ffff0000L;
     _ORI(r0, r0, ms >> 16);
-    mips__rrit(_jit, r0, r0, 16, MIPS_SLL);
+    _SLL(r0, r0, 16);
     ms = i0 & 0x000000000000ffffL;
     _ORI(r0, r0, ms);
     return (_jit->x.pc);
@@ -98,7 +98,7 @@ __jit_inline void
 mips_addi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_DADDIU(r0, r1, i0);
+	_DADDIU(r0, r1, i0 & 0xffff);
     else {
 	jit_movi_l(JIT_RTEMP, i0);
 	jit_addr_l(r0, r1, JIT_RTEMP);
@@ -117,7 +117,7 @@ __jit_inline void
 mips_subi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_DADDIU(r0, r1, -i0);
+	_DADDIU(r0, r1, -i0 & 0xffff);
     else {
 	jit_movi_l(JIT_RTEMP, i0);
 	jit_subr_l(r0, r1, JIT_RTEMP);
@@ -318,7 +318,7 @@ mips_ldi_ui(jit_state_t _jit, jit_gpr_t r0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LWU(r0, ds, JIT_RZERO);
+	_LWU(r0, ds & 0xffff, JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LWU(r0, 0, JIT_RTEMP);
@@ -332,7 +332,7 @@ mips_ldi_l(jit_state_t _jit, jit_gpr_t r0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LD(r0, ds, JIT_RZERO);
+	_LD(r0, ds & 0xffff, JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LD(r0, 0, JIT_RTEMP);
@@ -360,7 +360,7 @@ __jit_inline void
 mips_ldxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_LWU(r0, i0, r1);
+	_LWU(r0, i0 & 0xffff, r1);
     else {
 	jit_addi_i(JIT_RTEMP, r1, i0);
 	_LWU(r0, 0, JIT_RTEMP);
@@ -372,7 +372,7 @@ __jit_inline void
 mips_ldxi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_LD(r0, i0, r1);
+	_LD(r0, i0 & 0xffff, r1);
     else {
 	jit_addi_i(JIT_RTEMP, r1, i0);
 	_LD(r0, 0, JIT_RTEMP);
@@ -393,7 +393,7 @@ mips_sti_l(jit_state_t _jit, void *i0, jit_gpr_t r0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_SD(r0, ds, JIT_RZERO);
+	_SD(r0, ds & 0xffff, JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_SD(r0, 0, JIT_RTEMP);
@@ -413,7 +413,7 @@ __jit_inline void
 mips_stxi_l(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (_s16P(i0))
-	_SD(r1, i0, r0);
+	_SD(r1, i0 & 0xffff, r0);
     else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_SD(r1, 0, JIT_RTEMP);
@@ -490,9 +490,9 @@ mips_prolog(jit_state_t _jit, int n)
     jit_movr_l(JIT_FP, JIT_SP);
 
     /* patch alloca and stack adjustment */
-    jit_subi_i(JIT_SP, JIT_SP, 0);
-    /* FIXME should not limit to 15 bits */
-    _jitl.stack = ((short *)_jit->x.pc) - 2;
+    _jitl.stack = (int *)_jit->x.pc;
+    jit_movi_p(JIT_RTEMP, 0);
+    jit_subr_l(JIT_SP, JIT_SP, JIT_RTEMP);
     _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
 }
 
@@ -506,11 +506,11 @@ mips_prepare_i(jit_state_t _jit, int count)
 
     _jitl.nextarg_puti = count;
     if (_jitl.nextarg_puti > JIT_A_NUM) {
-	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 2;
+	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 3;
 	if (_jitl.stack_length < _jitl.stack_offset) {
 	    _jitl.stack_length = _jitl.stack_offset;
-	    *_jitl.stack = (_jitl.alloca_offset +
-			    _jitl.stack_length + 7) & ~7;
+	    mips_set_stack(_jit, (_jitl.alloca_offset +
+				  _jitl.stack_length + 7) & ~7);
 	}
     }
 }
@@ -589,20 +589,9 @@ mips_ret(jit_state_t jit)
     jit_ldxi_l(_S7, JIT_SP, 56);
     jit_ldxi_l(_FP, JIT_SP, 64);
     jit_ldxi_l(_RA, JIT_SP, 72);
-    jit_jmpr(_RA);
+    _JR(_RA);
     /* restore sp in delay slot */
     jit_addi_l(JIT_SP, JIT_SP, 80);
-}
-
-#define jit_allocai(n)			mips_allocai(_jit, n)
-__jit_inline int
-mips_allocai(jit_state_t _jit, int length)
-{
-    assert(length >= 0);
-    _jitl.alloca_offset += length;
-    if (_jitl.alloca_offset + _jitl.stack_length > *_jitl.stack)
-	*_jitl.stack += (length + 8) & ~7;
-    return (-_jitl.alloca_offset);
 }
 
 #endif /* __lightning_core_h */

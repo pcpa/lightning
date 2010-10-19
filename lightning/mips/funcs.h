@@ -38,7 +38,9 @@
 static void
 jit_flush_code(void *start, void *end)
 {
-    mprotect(start, (char*)end - (char*)start, PROT_READ | PROT_EXEC);
+    mprotect(start, (char*)end - (char*)start,
+	     /* FIXME should not "remap" with write permission */
+	     PROT_READ | PROT_WRITE | PROT_EXEC);
 }
 
 #endif /* __lightning_funcs_h */

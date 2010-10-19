@@ -170,7 +170,7 @@ struct jit_local_state {
     int		 alloca_offset;
     int		 stack_length;
     int		 stack_offset;
-    short	*stack;
+    int		*stack;
 };
 #else
 #  error GNU lightning does not support the current target
