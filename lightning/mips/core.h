@@ -1554,16 +1554,6 @@ mips_callr(jit_state_t _jit, jit_gpr_t r0)
     jit_nop(1);
 }
 
-#define jit_finishr(rs)			mips_finishr(_jit, rs)
-__jit_inline void
-mips_finishr(jit_state_t _jit, jit_gpr_t r0)
-{
-    assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_put	== 0 &&
-	   _jitl.nextarg_align	== 0);
-    jit_callr(r0);
-}
-
 __jit_inline int
 mips_get_stack(jit_state_t _jit)
 {
@@ -1592,7 +1582,7 @@ mips_allocai(jit_state_t _jit, int length)
     assert(length >= 0);
     _jitl.alloca_offset += length;
     if (_jitl.alloca_offset + _jitl.stack_length > stack)
-	mips_set_stack(_jit, (stack + (length + 8)) & ~7);
+	mips_set_stack(_jit, (stack + (length + 7)) & ~7);
     return (-_jitl.alloca_offset);
 }
 

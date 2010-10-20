@@ -567,6 +567,22 @@ mips_getarg_l(jit_state_t _jit, jit_gpr_t r0, int ofs)
 	jit_ldxi_l(r0, JIT_FP, ofs);
 }
 
+#define jit_finishr(rs)			mips_finishr(_jit, rs)
+__jit_inline void
+mips_finishr(jit_state_t _jit, jit_gpr_t r0)
+{
+    assert(_jitl.stack_offset == 0 && _jitl.nextarg_put == 0);
+    jit_callr(r0);
+}
+
+#define jit_finish(i0)			mips_finish(_jit, i0)
+__jit_inline jit_insn *
+mips_finish(jit_state_t _jit, void *i0)
+{
+    assert(_jitl.stack_offset == 0 && _jitl.nextarg_put == 0);
+    return (jit_calli(i0));
+}
+
 #define jit_retval_i(r0)		mips_retval_l(_jit, r0)
 __jit_inline void
 mips_retval_l(jit_state_t _jit, jit_gpr_t r0)

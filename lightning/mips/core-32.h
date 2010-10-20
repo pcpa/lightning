@@ -220,8 +220,7 @@ mips_prepare_i(jit_state_t _jit, int count)
     assert(count		>= 0 &&
 	   _jitl.stack_offset	== 0 &&
 	   _jitl.nextarg_put	== 0);
-    _jitl.nextarg_put = count;
-    _jitl.stack_offset = _jitl.nextarg_put << 2;
+    _jitl.stack_offset = count << 2;
     if (_jitl.stack_length < _jitl.stack_offset) {
 	_jitl.stack_length = _jitl.stack_offset;
 	mips_set_stack(_jit, (_jitl.alloca_offset +
@@ -233,21 +232,17 @@ mips_prepare_i(jit_state_t _jit, int count)
 __jit_inline void
 mips_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    if (_jitl.nextarg_align) {
-	_jitl.nextarg_align = 0;
-	_jitl.stack_offset -= sizeof(int);
-	--_jitl.nextarg_put;
-    }
+    int		ofs = _jitl.nextarg_put++;
 
-    --_jitl.nextarg_put;
-    _jitl.stack_offset -= sizeof(float);
-
-    if (_jitl.nextarg_put >= JIT_A_NUM) {
-	_jitl.stack_offset -= sizeof(int);
+    assert(ofs < 256);
+    _jitl.arguments[ofs] = (int *)_jit->x.pc;
+    _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
+    _jitl.stack_offset -= sizeof(int);
+    ofs = _jitl.stack_offset >> 2;
+    if (ofs >= JIT_A_NUM)
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
-    }
     else
-	jit_movr_i(jit_a_order[_jitl.nextarg_put], r0);
+	jit_movr_i(jit_a_order[ofs], r0);
 }
 
 #define jit_arg_i()			mips_arg_i(_jit)
@@ -279,7 +274,6 @@ mips_calli(jit_state_t _jit, void *i0)
 #if 0
     /* FIXME still usable to call jit functions that are not really
      * position independent code */
-
     long	pc = (long)_jit->x.pc;
     long	lb = (long)i0;
 
@@ -301,6 +295,7 @@ mips_calli(jit_state_t _jit, void *i0)
     _JALR(_T9);
     jit_nop(1);
 #endif
+
     return (l);
 }
 
@@ -311,13 +306,87 @@ mips_patch_calli(jit_state_t _jit, jit_insn *call, jit_insn *label)
     jit_patch_at(call, label);
 }
 
+__jit_inline void
+mips_patch_arguments(jit_state_t _jit)
+{
+    mips_code_t	 c;
+    int		 index;
+    int		 offset;
+
+    for (index = 0, offset = _jitl.nextarg_put >> 5; offset >= 0; offset--)
+	if (_jitl.types[offset])
+	    index++;
+    /* no double arguments that may require patching */
+    if (index == 0)
+	return;
+
+    for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
+	if (offset >= 16) {
+	    c.op = *_jitl.arguments[index];
+	    switch (c.hc.b) {
+		case MIPS_SW:		/* sp[off] = int32 */
+		case MIPS_SWC1:		/* sp[off] = float32 */
+		case MIPS_SDC1:		/* sp[off] = float64 */
+		    break;
+		case MIPS_SPECIAL:
+		    /* move a3,t(n) that now needs to go on stack
+		     * due to register "alignment" */
+		    assert(c.tc.b == MIPS_OR);
+		    c.hc.b = MIPS_SW;
+		    c.rt.b = c.rs.b;
+		    c.rs.b = JIT_SP;
+		    break;
+		case MIPS_COP1:
+		    /* swc1 a3,f(n) that now needs to go on stack
+		     * due to register "alignment" */
+		    assert(c.rs.b == MIPS_fmt_S);
+		    c.hc.b = MIPS_SWC1;
+		    c.rs.b = JIT_SP;
+		    c.rt.b = c.fd.b;
+		    /* convert to noop the extra store to %f15;
+		     * that is generated to work correctly if
+		     * calling a prototyped function */
+		    _jitl.arguments[index][1] = 0;
+		    break;
+		default:
+		    assert(!"unhandled argument opcode");
+		    break;
+	    }
+	    c.is.b = offset;
+	    *_jitl.arguments[index] = c.op;
+	}
+	if (_jitl.types[index >> 5]) {
+	    if (offset & 7)
+		offset += sizeof(int);
+	    offset += sizeof(double);
+	}
+	else
+	    offset += sizeof(int);
+    }
+    if (_jitl.stack_length < offset) {
+	_jitl.stack_length = offset;
+	mips_set_stack(_jit, (_jitl.alloca_offset +
+			      _jitl.stack_length + 7) & ~7);
+    }
+}
+
+#define jit_finishr(rs)			mips_finishr(_jit, rs)
+__jit_inline void
+mips_finishr(jit_state_t _jit, jit_gpr_t r0)
+{
+    assert(_jitl.stack_offset == 0);
+    mips_patch_arguments(_jit);
+    _jitl.nextarg_put = 0;
+    jit_callr(r0);
+}
+
 #define jit_finish(i0)			mips_finish(_jit, i0)
 __jit_inline jit_insn *
 mips_finish(jit_state_t _jit, void *i0)
 {
-    assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_put	== 0 &&
-	   _jitl.nextarg_align	== 0);
+    assert(_jitl.stack_offset == 0);
+    mips_patch_arguments(_jit);
+    _jitl.nextarg_put = 0;
     return (jit_calli(i0));
 }
 

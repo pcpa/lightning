@@ -32,6 +32,21 @@
 #ifndef __lightning_fp_h
 #define __lightning_fp_h
 
+#define jit_movi_d(f0, i0)		mips_movi_d(_jit, f0, i0)
+__jit_inline void
+mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
+{
+    union {
+	int	i[2];
+	long	l;
+	double	d;
+    } data;
+
+    data.d = i0;
+    jit_movi_l(JIT_RTEMP, data.l);
+    _DMTC1(JIT_RTEMP, f0);
+}
+
 #define jit_extr_l_f(f0, r0)		mips_extr_l_f(_jit, f0, r0)
 __jit_inline void
 mips_extr_l_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
@@ -128,6 +143,91 @@ mips_floorr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
     _FLOOR_D_S(JIT_FPTMP, f0);
     _DMFC1(r0, JIT_FPTMP);
+}
+
+#define jit_prepare_d(count)		mips_prepare_d(_jit, count)
+#define jit_prepare_f(count)		mips_prepare_d(_jit, count)
+__jit_inline void
+mips_prepare_d(jit_state_t _jit, int count)
+{
+    assert(count >= 0);
+    _jitl.nextarg_put += count;
+    _jitl.stack_offset = _jitl.nextarg_put << 3;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	mips_set_stack(_jit, (_jitl.alloca_offset +
+			      _jitl.stack_length + 7) & ~7);
+    }
+}
+
+#define jit_arg_d()			mips_arg_d(_jit)
+#define jit_arg_f()			mips_arg_d(_jit)
+__jit_inline int
+mips_arg_d(jit_state_t _jit)
+{
+    int		ofs;
+
+    if (_jitl.nextarg_get < JIT_A_NUM)
+	ofs = _jitl.nextarg_get;
+    else
+	ofs = _jitl.framesize;
+    _jitl.nextarg_get += 1;
+    _jitl.framesize += sizeof(double);
+
+    return (ofs);
+}
+
+#define jit_getarg_d(f0, ofs)		mips_getarg_d(_jit, f0, ofs)
+__jit_inline void
+mips_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
+{
+    if (ofs < JIT_A_NUM)
+	jit_movr_d(f0, jit_fa_order[ofs]);
+    else
+	jit_ldxi_d(f0, JIT_FP, ofs);
+}
+
+#define jit_getarg_f(f0, ofs)		mips_getarg_f(_jit, f0, ofs)
+__jit_inline void
+mips_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
+{
+    if (ofs < JIT_A_NUM)
+	jit_movr_f(f0, jit_fa_order[ofs]);
+    else
+	jit_ldxi_f(f0, JIT_FP, ofs);
+}
+
+#define jit_pusharg_d(f0)		mips_pusharg_d(_jit, f0)
+__jit_inline void
+mips_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
+{
+    _jitl.nextarg_put -= 1;
+    _jitl.stack_offset -= sizeof(double);
+    assert(_jitl.nextarg_put	>= 0 &&
+	   _jitl.stack_offset	>= 0);
+    if (_jitl.nextarg_put >= JIT_A_NUM)
+	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
+    else {
+	jit_movr_d(jit_fa_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put + 1], (jit_fpr_t)(f0 + 1));
+    }
+}
+
+#define jit_pusharg_f(f0)		mips_pusharg_f(_jit, f0)
+__jit_inline void
+mips_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
+{
+    _jitl.nextarg_put -= 1;
+    _jitl.stack_offset -= sizeof(double);
+    assert(_jitl.nextarg_put	>= 0 &&
+	   _jitl.stack_offset	>= 0);
+    if (_jitl.nextarg_put >= JIT_A_NUM)
+	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
+    else {
+	jit_movr_f(jit_fa_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put], f0);
+    }
 }
 
 #endif /* __lightning_fp_h */
