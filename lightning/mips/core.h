@@ -1580,7 +1580,7 @@ mips_set_stack(jit_state_t _jit, int length)
     assert(length >= 0);
     cc = (mips_code_t *)_jitl.stack;
     assert(cc != NULL && cc[0].hc.b == MIPS_LUI && cc[1].hc.b == MIPS_ORI);
-    cc[0].is.b = length << 16;
+    cc[0].is.b = length >> 16;
     cc[1].is.b = length & 0xffff;
 }
 
