@@ -38,10 +38,9 @@ jit_f_order[JIT_FPR_NUM] = {
     _F0, _F2,  _F4,  _F6, _F8, _F10
 };
 
-#define JIT_FA_NUM			2
 static const jit_fpr_t
-jit_fa_order[JIT_FA_NUM] = {
-    _F12, _F14
+jit_fa_order[JIT_A_NUM] = {
+    _F12, _F13, _F14, _F15
 };
 
 #define JIT_FPR(n)			jit_f_order[n]
@@ -106,7 +105,12 @@ mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
     jit_movi_i(JIT_RTEMP, data.i[0]);
     _MTC1(JIT_RTEMP, f0);
     jit_movi_i(JIT_RTEMP, data.i[1]);
+
+#  if 0 /* FIXME illegal instruction */
     _MTHC1(JIT_RTEMP, f0);
+#  else
+    _MTC1(JIT_RTEMP, (jit_fpr_t)(f0 + 1));
+#  endif
 #else
     jit_movi_l(JIT_RTEMP, data.l);
     _DMTC1(JIT_RTEMP, f0);
@@ -688,9 +692,9 @@ mips_bltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLT_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -703,9 +707,9 @@ mips_bltr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLT_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -718,9 +722,9 @@ mips_bler_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLE_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -733,9 +737,9 @@ mips_bler_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLE_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -748,9 +752,9 @@ mips_beqr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_EQ_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -763,9 +767,9 @@ mips_beqr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_EQ_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -778,9 +782,9 @@ mips_bger_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLT_S(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -793,9 +797,9 @@ mips_bger_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLT_D(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -808,9 +812,9 @@ mips_bgtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLE_S(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -823,8 +827,9 @@ mips_bgtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_OLE_D(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -837,9 +842,9 @@ mips_bner_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_EQ_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -852,9 +857,9 @@ mips_bner_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_EQ_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -867,9 +872,9 @@ mips_bunltr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULT_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -882,9 +887,9 @@ mips_bunltr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULT_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -897,9 +902,9 @@ mips_bunler_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULE_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -912,9 +917,9 @@ mips_bunler_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULE_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -927,9 +932,9 @@ mips_buneqr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UEQ_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -942,9 +947,9 @@ mips_buneqr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UEQ_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -957,9 +962,9 @@ mips_bunger_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULT_S(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -972,9 +977,9 @@ mips_bunger_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULT_D(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -987,9 +992,9 @@ mips_bungtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULE_S(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1002,9 +1007,9 @@ mips_bungtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_ULE_D(f1, f0);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1017,9 +1022,9 @@ mips_bltgtr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UEQ_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1032,9 +1037,9 @@ mips_bltgtr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UEQ_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1047,9 +1052,9 @@ mips_bordr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UN_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1062,9 +1067,9 @@ mips_bordr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UN_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1F(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1F(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1077,9 +1082,9 @@ mips_bunordr_f(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UN_S(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1092,9 +1097,9 @@ mips_bunordr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
     long	 d;
     _C_UN_D(f0, f1);
     l = _jit->x.pc;
-    d = (long)i0 - (long)_jit->x.pc + 5;
-    assert(_siP(18, d));
-    _BC1T(d & 0x3ffff);
+    d = (((long)i0 - (long)l) >> 2) - 1;
+    assert(_s16P(d));
+    _BC1T(d & 0xffff);
     jit_nop(1);
     return (l);
 }
@@ -1105,89 +1110,145 @@ mips_bunordr_d(jit_state_t _jit, jit_insn * i0, jit_fpr_t f0, jit_fpr_t f1)
 #  include "fp-64.h"
 #endif
 
-#define jit_prepare_d(count)		mips_prepare_f(_jit, count)
+#define jit_prepare_d(count)		mips_prepare_d(_jit, count)
+__jit_inline void
+mips_prepare_d(jit_state_t _jit, int count)
+{
+    assert(count >= 0);
+    _jitl.nextarg_put += count << 1;
+    if (_jitl.nextarg_put & 1) {
+	/* FIXME hack to have something working for now
+	 * problem is that lightning requires building a stack
+	 * frame from right to left, but the mips abi actually
+	 * works better if building from left to right, otherwise
+	 * it is required some quite complex logic to patch/adjust
+	 * stack */
+
+	/* with this hack, if there are double arguments, they must
+	 * be together, and last arguments */
+	_jitl.nextarg_align = 1;
+	++_jitl.nextarg_put;
+    }
+    _jitl.stack_offset = _jitl.nextarg_put << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	mips_set_stack(_jit, (_jitl.alloca_offset +
+			      _jitl.stack_length + 7) & ~7);
+    }
+}
+
 #define jit_prepare_f(count)		mips_prepare_f(_jit, count)
 __jit_inline void
 mips_prepare_f(jit_state_t _jit, int count)
 {
     assert(count >= 0);
-    _jitl.nextarg_putf += count;
-    if (_jitl.nextarg_putf > JIT_FA_NUM) {
-	if ((count = (_jitl.nextarg_puti - JIT_A_NUM)) < 0)
-	    count = 0;
-	count += _jitl.nextarg_putf - JIT_FA_NUM;
-	_jitl.stack_offset = count << 3;
-	if (_jitl.stack_length < _jitl.stack_offset) {
-	    _jitl.stack_length = _jitl.stack_offset;
-	    mips_set_stack(_jit, (_jitl.alloca_offset +
-				  _jitl.stack_length + 7) & ~7);
-	}
+    _jitl.nextarg_put += count;
+    _jitl.stack_offset = _jitl.nextarg_put << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	mips_set_stack(_jit, (_jitl.alloca_offset +
+			      _jitl.stack_length + 7) & ~7);
     }
 }
 
-#define jit_arg_d()			mips_arg_f(_jit)
+#define jit_arg_d()			mips_arg_d(_jit)
+__jit_inline int
+mips_arg_d(jit_state_t _jit)
+{
+    int		ofs;
+
+    if (_jitl.nextarg_get & 1) {
+	++_jitl.nextarg_get;
+	_jitl.framesize += 4;
+    }
+    if (_jitl.nextarg_get < JIT_A_NUM)
+	ofs = _jitl.nextarg_get;
+    else
+	ofs = _jitl.framesize;
+    _jitl.nextarg_get += 2;
+    _jitl.framesize += sizeof(double);
+
+    return (ofs);
+}
+
 #define jit_arg_f()			mips_arg_f(_jit)
 __jit_inline int
 mips_arg_f(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.nextarg_getf < JIT_FA_NUM)
-	ofs = _jitl.nextarg_getf++;
-    else {
+    if (_jitl.nextarg_get < JIT_A_NUM)
+	ofs = _jitl.nextarg_get;
+    else
 	ofs = _jitl.framesize;
-	_jitl.framesize += sizeof(double);
-    }
+    _jitl.nextarg_get += 1;
+    _jitl.framesize += sizeof(float);
 
     return (ofs);
-}
-
-#define jit_getarg_f(f0, ofs)		mips_getarg_f(_jit, f0, ofs)
-__jit_inline void
-mips_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
-{
-    if (ofs < JIT_FA_NUM)
-	jit_movr_f(f0, jit_fa_order[ofs]);
-    else
-	jit_ldxi_f(f0, JIT_FP, ofs);
 }
 
 #define jit_getarg_d(f0, ofs)		mips_getarg_d(_jit, f0, ofs)
 __jit_inline void
 mips_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
-    if (ofs < JIT_FA_NUM)
+    if (ofs < JIT_A_NUM)
 	jit_movr_d(f0, jit_fa_order[ofs]);
     else
 	jit_ldxi_d(f0, JIT_FP, ofs);
 }
 
-#define jit_pusharg_f(f0)		mips_pusharg_f(_jit, f0)
+#define jit_getarg_f(f0, ofs)		mips_getarg_f(_jit, f0, ofs)
 __jit_inline void
-mips_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
+mips_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
-    assert(_jitl.nextarg_putf > 0);
-    if (--_jitl.nextarg_putf >= JIT_FA_NUM) {
-	_jitl.stack_offset -= sizeof(double);
-	assert(_jitl.stack_offset >= 0);
-	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
-    }
+    if (ofs < JIT_A_NUM)
+	jit_movr_f(f0, jit_fa_order[ofs]);
     else
-	jit_movr_f(jit_fa_order[_jitl.nextarg_putf], f0);
+	jit_ldxi_f(f0, JIT_FP, ofs);
 }
 
 #define jit_pusharg_d(f0)		mips_pusharg_d(_jit, f0)
 __jit_inline void
 mips_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
 {
-    assert(_jitl.nextarg_putf > 0);
-    if (--_jitl.nextarg_putf >= JIT_FA_NUM) {
-	_jitl.stack_offset -= sizeof(double);
-	assert(_jitl.stack_offset >= 0);
+    _jitl.nextarg_put -= 2;
+    _jitl.stack_offset -= sizeof(double);
+
+    assert((_jitl.nextarg_put & 1)	== 0 &&
+	   _jitl.nextarg_put		>= 0 &&
+	   _jitl.stack_offset		>= 0);
+
+    if (_jitl.nextarg_put >= JIT_A_NUM)
 	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
+    else {
+	jit_movr_d(jit_fa_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put + 1], (jit_fpr_t)(f0 + 1));
     }
-    else
-	jit_movr_d(jit_fa_order[_jitl.nextarg_putf], f0);
+}
+
+#define jit_pusharg_f(f0)		mips_pusharg_f(_jit, f0)
+__jit_inline void
+mips_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
+{
+    if (_jitl.nextarg_align) {
+	_jitl.nextarg_align = 0;
+	_jitl.stack_offset -= sizeof(int);
+	--_jitl.nextarg_put;
+    }
+
+    --_jitl.nextarg_put;
+    _jitl.stack_offset -= sizeof(float);
+
+    assert(_jitl.nextarg_put	>= 0 &&
+	   _jitl.stack_offset	>= 0);
+
+    if (_jitl.nextarg_put >= JIT_A_NUM)
+	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
+    else {
+	jit_movr_f(jit_fa_order[_jitl.nextarg_put], f0);
+	_MFC1(jit_a_order[_jitl.nextarg_put], f0);
+    }
 }
 
 #endif /* __lightning_fp_mips_h */

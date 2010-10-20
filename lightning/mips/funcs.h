@@ -35,12 +35,23 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+#if defined(__linux__)
+#  include <sys/cachectl.h>
+#endif
+
 static void
 jit_flush_code(void *start, void *end)
 {
+#if 0	/* FIXME not compiled ...
+	 * and probably should use the cache instruction */
+    __asm__ __volatile__ ("lw $t0,%0\n\tsynci 0($t0)"
+			  : : "g" (start) : "t0");
     mprotect(start, (char*)end - (char*)start,
 	     /* FIXME should not "remap" with write permission */
 	     PROT_READ | PROT_WRITE | PROT_EXEC);
+#else
+    _flush_cache(start, (long)end - (long)start, ICACHE);
+#endif
 }
 
 #endif /* __lightning_funcs_h */

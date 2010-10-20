@@ -2,7 +2,7 @@
 format:
 .c "generated %d bytes\n"
 
-.code	128
+.code	512
 start:
 	jmpi main
 

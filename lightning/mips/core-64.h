@@ -383,7 +383,7 @@ mips_ldxi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 __jit_inline void
 mips_str_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _SD(r1, r0, 0);
+    _SD(r1, 0, r0);
 }
 
 #define jit_sti_l(i0, r0)		mips_sti_l(_jit, i0, r0)
@@ -474,7 +474,7 @@ __jit_inline void
 mips_prolog(jit_state_t _jit, int n)
 {
     _jitl.framesize = 80;
-    _jitl.nextarg_geti = 0;
+    _jitl.nextarg_get = 0;
 
     jit_subi_l(JIT_SP, JIT_SP, 80);
     jit_stxi_l(72, JIT_SP, _RA);
@@ -502,11 +502,11 @@ mips_prepare_i(jit_state_t _jit, int count)
 {
     assert(count		>= 0 &&
 	   _jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0);
+	   _jitl.nextarg_put	== 0);
 
-    _jitl.nextarg_puti = count;
-    if (_jitl.nextarg_puti > JIT_A_NUM) {
-	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 3;
+    _jitl.nextarg_put = count;
+    if (_jitl.nextarg_put > JIT_A_NUM) {
+	_jitl.stack_offset = (_jitl.nextarg_put - JIT_A_NUM) << 3;
 	if (_jitl.stack_length < _jitl.stack_offset) {
 	    _jitl.stack_length = _jitl.stack_offset;
 	    mips_set_stack(_jit, (_jitl.alloca_offset +
@@ -520,14 +520,14 @@ mips_prepare_i(jit_state_t _jit, int count)
 __jit_inline void
 mips_pusharg_l(jit_state_t _jit, jit_gpr_t r0)
 {
-    assert(_jitl.nextarg_puti > 0);
-    if (--_jitl.nextarg_puti >= JIT_A_NUM) {
+    assert(_jitl.nextarg_put > 0);
+    if (--_jitl.nextarg_put >= JIT_A_NUM) {
 	_jitl.stack_offset -= sizeof(long);
 	assert(_jitl.stack_offset >= 0);
 	jit_stxi_l(_jitl.stack_offset, JIT_SP, r0);
     }
     else
-	jit_movr_l(jit_a_order[_jitl.nextarg_puti], r0);
+	jit_movr_l(jit_a_order[_jitl.nextarg_put], r0);
 }
 
 #define jit_arg_l()			mips_arg_l(_jit)
@@ -543,9 +543,9 @@ mips_arg_l(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.nextarg_geti < JIT_A_NUM) {
-	ofs = _jitl.nextarg_geti;
-	++_jitl.nextarg_geti;
+    if (_jitl.nextarg_get < JIT_A_NUM) {
+	ofs = _jitl.nextarg_get;
+	++_jitl.nextarg_get;
     }
     else {
 	ofs = _jitl.framesize;

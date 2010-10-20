@@ -34,7 +34,7 @@ get_string:
 show_string:
 .c	"Value read is \"%s\"\n"
 
-.code	512
+.code	1024
 main:
 	prolog 0
 	prepare 1

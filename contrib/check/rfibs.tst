@@ -1,16 +1,11 @@
 // Recursive version - adapted from lightning.info
 
 .data	32
-void_start:
-.p	0
-void_end:
-// ... get sizeof(void *) - should have a predefined value...
-.$($pointer = void_end - void_start)
 format:
 .c	"rfibs(%d) = %d\n"
 
 //=======================================================================
-.code	256
+.code	512
 	jmpi main
 
 //-----------------------------------------------------------------------
@@ -49,7 +44,7 @@ main:
 	getarg_i %r0 $argc
 	blei_i default %r0 1
 	getarg_p %r0 $argv
-	addi_p %r0 %r0 $pointer
+	addi_p %r0 %r0 $(__WORDSIZE >> 3)
 	ldr_p %r0 %r0
 	prepare 1
 		pusharg_p %r0

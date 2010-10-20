@@ -107,10 +107,8 @@ mips_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
 	    switch (c.rt.b) {
 		case MIPS_BLTZ:		case MIPS_BLTZL:
 		case MIPS_BLTZAL:	case MIPS_BLTZALL:
-		case MIPS_BLEZ:		case MIPS_BLEZL:
 		case MIPS_BGEZ:		case MIPS_BGEZAL:
 		case MIPS_BGEZALL:	case MIPS_BGEZL:
-		case MIPS_BGTZ:		case MIPS_BGTZL:
 		case MIPS_TEQI:		case MIPS_TGEI:
 		case MIPS_TGEIU:	case MIPS_TLTI:
 		case MIPS_TLTIU:	case MIPS_TNEI:
@@ -139,7 +137,9 @@ mips_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
 	    }
 	    break;
 
+	case MIPS_BLEZ:			case MIPS_BLEZL:
 	case MIPS_BEQ:			case MIPS_BEQL:
+	case MIPS_BGTZ:			case MIPS_BGTZL:
 	case MIPS_BNE:			case MIPS_BNEL:
 	    d = (((long)label - (long)jump) >> 2) - 1;
 	    c.is.b = _s16(d);
@@ -148,15 +148,17 @@ mips_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
 
 	case MIPS_LUI:
 	    /* move and jump to register or wrong, but works,
-	     * call ot jit_patch instead of jit_patch_movi */
+	     * call to jit_patch instead of jit_patch_movi */
 	    mips_patch_movi(_jit, jump, label);
 	    break;
 
 	case MIPS_J:			case MIPS_JAL:
 	case MIPS_JALX:
 	    d = (long)label;
-	    assert(((long)jump & 0xf0000000) == (d & 0xf0000000));
-	    c.br.b = d >> 2;
+	    assert((((long)jump + sizeof(int)) & 0xf0000000) ==
+		   (d & 0xf0000000));
+	    c.ii.b = (d & ~0xf0000000) >> 2;
+	    u.i[0] = c.op;
 	    break;
 
 	default:
@@ -170,11 +172,11 @@ __jit_inline jit_insn *
 mips_jmpi(jit_state_t _jit, void *i0)
 {
     jit_insn	*l;
-    long	 pc = (long)_jit->x.pc;
+    long	 pc = (long)_jit->x.pc + sizeof(int);
     long	 lb = (long)i0;
     l = _jit->x.pc;
     if ((pc & 0xf0000000) == (lb & 0xf0000000)) {
-	_J(lb & ~0xf0000000);
+	_J((lb & ~0xf0000000) >> 2);
 	jit_nop(1);
     }
     else {
@@ -189,7 +191,7 @@ __jit_inline void
 mips_prolog(jit_state_t _jit, int n)
 {
     _jitl.framesize = 40;
-    _jitl.nextarg_geti = 0;
+    _jitl.nextarg_get = 0;
 
     jit_subi_i(JIT_SP, JIT_SP, 40);
     jit_stxi_i(36, JIT_SP, _RA);
@@ -217,16 +219,13 @@ mips_prepare_i(jit_state_t _jit, int count)
 {
     assert(count		>= 0 &&
 	   _jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0);
-
-    _jitl.nextarg_puti = count;
-    if (_jitl.nextarg_puti > JIT_A_NUM) {
-	_jitl.stack_offset = (_jitl.nextarg_puti - JIT_A_NUM) << 2;
-	if (_jitl.stack_length < _jitl.stack_offset) {
-	    _jitl.stack_length = _jitl.stack_offset;
-	    mips_set_stack(_jit, (_jitl.alloca_offset +
-				  _jitl.stack_length + 7) & ~7);
-	}
+	   _jitl.nextarg_put	== 0);
+    _jitl.nextarg_put = count;
+    _jitl.stack_offset = _jitl.nextarg_put << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	mips_set_stack(_jit, (_jitl.alloca_offset +
+			      _jitl.stack_length + 7) & ~7);
     }
 }
 
@@ -234,14 +233,21 @@ mips_prepare_i(jit_state_t _jit, int count)
 __jit_inline void
 mips_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    assert(_jitl.nextarg_puti > 0);
-    if (--_jitl.nextarg_puti >= JIT_A_NUM) {
+    if (_jitl.nextarg_align) {
+	_jitl.nextarg_align = 0;
 	_jitl.stack_offset -= sizeof(int);
-	assert(_jitl.stack_offset >= 0);
+	--_jitl.nextarg_put;
+    }
+
+    --_jitl.nextarg_put;
+    _jitl.stack_offset -= sizeof(float);
+
+    if (_jitl.nextarg_put >= JIT_A_NUM) {
+	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
     }
     else
-	jit_movr_i(jit_a_order[_jitl.nextarg_puti], r0);
+	jit_movr_i(jit_a_order[_jitl.nextarg_put], r0);
 }
 
 #define jit_arg_i()			mips_arg_i(_jit)
@@ -255,14 +261,12 @@ mips_arg_i(jit_state_t _jit)
 {
     int		ofs;
 
-    if (_jitl.nextarg_geti < JIT_A_NUM) {
-	ofs = _jitl.nextarg_geti;
-	++_jitl.nextarg_geti;
-    }
-    else {
+    if (_jitl.nextarg_get < JIT_A_NUM)
+	ofs = _jitl.nextarg_get;
+    else
 	ofs = _jitl.framesize;
-	_jitl.framesize += sizeof(int);
-    }
+    _jitl.nextarg_get += 1;
+    _jitl.framesize += sizeof(int);
 
     return (ofs);
 }
@@ -283,7 +287,7 @@ mips_calli(jit_state_t _jit, void *i0)
     /* FIXME return an address that can be patched so, should always
      * call register to not be limited to same 256Mb segment */
     if ((pc & 0xf0000000) == (lb & 0xf0000000))
-	_JAL(i0);
+	_JAL(((long)i0 & ~0xf0000000) >> 2);
     else {
 	jit_movi_p(JIT_RTEMP, lb);
 	_JALR(JIT_RTEMP);
@@ -312,7 +316,8 @@ __jit_inline jit_insn *
 mips_finish(jit_state_t _jit, void *i0)
 {
     assert(_jitl.stack_offset	== 0 &&
-	   _jitl.nextarg_puti	== 0);
+	   _jitl.nextarg_put	== 0 &&
+	   _jitl.nextarg_align	== 0);
     return (jit_calli(i0));
 }
 
