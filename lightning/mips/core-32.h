@@ -310,6 +310,7 @@ __jit_inline void
 mips_patch_arguments(jit_state_t _jit)
 {
     mips_code_t	 c;
+    int		 size;
     int		 index;
     int		 offset;
 
@@ -321,6 +322,13 @@ mips_patch_arguments(jit_state_t _jit)
 	return;
 
     for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
+	if (_jitl.types[index >> 5] & (1 << (index & 31))) {
+	    if (offset & 7)
+		offset += sizeof(int);
+	    size = sizeof(double);
+	}
+	else
+	    size = sizeof(int);
 	if (offset >= 16) {
 	    c.op = *_jitl.arguments[index];
 	    switch (c.hc.b) {
@@ -355,13 +363,7 @@ mips_patch_arguments(jit_state_t _jit)
 	    c.is.b = offset;
 	    *_jitl.arguments[index] = c.op;
 	}
-	if (_jitl.types[index >> 5]) {
-	    if (offset & 7)
-		offset += sizeof(int);
-	    offset += sizeof(double);
-	}
-	else
-	    offset += sizeof(int);
+	offset += size;
     }
     if (_jitl.stack_length < offset) {
 	_jitl.stack_length = offset;
