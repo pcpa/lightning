@@ -174,6 +174,11 @@ struct jit_local_state {
     int		 types[8];
 #endif
 };
+
+struct {
+    /* mips32 r2 instructions? */
+    _ui		mips2: 1;
+} jit_cpu;
 #else
 #  error GNU lightning does not support the current target
 #endif

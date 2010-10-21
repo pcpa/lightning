@@ -226,6 +226,8 @@ typedef enum {
 #define MIPS_WSBH		0x02
 #define MIPS_DBSH		0x02
 #define MIPS_DSHD		0x05
+#define MIPS_SEB		0x10
+#define MIPS_SEH		0x18
 
 typedef enum {
     MIPS_MADD		= 0x00,
@@ -308,8 +310,6 @@ typedef enum {
     MIPS_DSRL32		= 0x3e,
     MIPS_DSRA32		= 0x3f,
     MIPS_SDBPP		= 0x3f,
-    MIPS_SEB		= 0x420,
-    MIPS_SEH		= 0x620,
 } mips_tc_t;
 
 typedef enum {
@@ -468,19 +468,6 @@ mips_hrrrit(jit_state_t _jit, mips_hc_t hc,
     c.rd.b = rd;
     c.rt.b = rt;
     c.rs.b = rs;
-    c.hc.b = hc;
-    _jit_I(c.op);
-}
-
-__jit_inline void
-mipsh_rrt(jit_state_t _jit, mips_hc_t hc,
-	  jit_gpr_t rt, jit_gpr_t rd, mips_tc_t tc)
-{
-    mips_code_t		c;
-    c.op = 0;
-    c.tc.b = tc;
-    c.rd.b = rd;
-    c.rt.b = rt;
     c.hc.b = hc;
     _jit_I(c.op);
 }
@@ -859,8 +846,8 @@ mips_tlb(jit_state_t _jit, mips_tc_t tc)
 #define _BC2FL(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BCFL,im)
 #define _BC2T(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BCT,im)
 #define _BC2TL(im)		mips_hxxs(_jit,MIPS_COP2,MIPS_BC,MIPS_BCTL,im)
-#define _BEQ(rs,rt,im)		mipshrri(_jit,MIPS_BEQ,r0,r1,im)
-#define _BEQL(rs,rt,im)		mipshrri(_jit,MIPS_BEQL,r0,r1,im)
+#define _BEQ(rs,rt,im)		mipshrri(_jit,MIPS_BEQ,rs,rt,im)
+#define _BEQL(rs,rt,im)		mipshrri(_jit,MIPS_BEQL,rs,rt,im)
 #define _BGEZ(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZ,im)
 #define _BGEZAL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZAL,im)
 #define _BGEZALL(rs,im)		mips_hrxs(_jit,MIPS_REGIMM,rs,MIPS_BGEZALL,im)
@@ -1218,8 +1205,8 @@ mips_sdbpp(jit_state_t _jit, int ii)
 #define _SDL(rt,offset,base)	mipshrri(_jit,MIPS_SDL,base,rt,offset)
 #define _SDR(rt,offset,base)	mipshrri(_jit,MIPS_SDR,base,rt,offset)
 #define _SDXC1(fd,index,base)	mips_rr_f(_jit,base,index,fd,MIPS_SDXC1)
-#define _SEB(rd,rt)		mipsh_rrt(_jit,MIPS_SPECIAL3,rt,rd,MIPS_SEB)
-#define _SEH(rd,rt)		mipsh_rrt(_jit,MIPS_SPECIAL3,rt,rd,MIPS_SEH)
+#define _SEB(rd,rt)		mips_hrrrit(_jit,MIPS_SPECIAL3,_ZERO,rt,rd,MIPS_SEB,MIPS_BSHFL)
+#define _SEH(rd,rt)		mips_hrrrit(_jit,MIPS_SPECIAL3,_ZERO,rt,rd,MIPS_SEH,MIPS_BSHFL)
 #define _SH(rt,offset,base)	mipshrri(_jit,MIPS_SH,base,rt,offset)
 #define _SLL(rd,rt,sa)		mips__rrit(_jit,rt,rd,sa,MIPS_SLL)
 #define _SLLV(rd,rt,rs)		mips_rrr_t(_jit,rs,rt,rd,MIPS_SLLV)
