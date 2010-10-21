@@ -130,7 +130,7 @@ mips_subr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (_s16P(i0) && i0 != 0x8000)
+    if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	_ADDIU(r0, r1, -i0 & 0xffff);
     else {
 	jit_movi_i(JIT_RTEMP, i0);
@@ -227,7 +227,7 @@ __jit_inline void
 mips_subci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1) {
-	if (_s16P(i0) && i0 != 0x8000)
+	if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	    _ADDIU(JIT_RTEMP, r1, -i0 & 0xffff);
 	else {
 	    jit_movi_i(JIT_RTEMP, i0);
@@ -237,7 +237,7 @@ mips_subci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 	jit_movr_i(r0, JIT_RTEMP);
     }
     else {
-	if (_s16P(i0) && i0 != 0x8000)
+	if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	    _ADDIU(r0, r1, -i0 & 0xffff);
 	else {
 	    jit_movi_i(JIT_RTEMP, i0);
@@ -267,7 +267,7 @@ __jit_inline void
 mips_subxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     if (r0 == r1) {
-	if (_s16P(i0) && i0 != 0x8000)
+	if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	    _ADDIU(JIT_RTEMP, r1, -i0 & 0xffff);
 	else {
 	    jit_movi_i(JIT_RTEMP, i0 & 0xffff);
@@ -278,7 +278,7 @@ mips_subxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 	jit_movr_i(r0, JIT_RTEMP);
     }
     else {
-	if (_s16P(i0) && i0 != 0x8000)
+	if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	    _ADDIU(r0, r1, -i0 & 0xffff);
 	else {
 	    jit_movi_i(JIT_RTEMP, i0);
@@ -646,7 +646,7 @@ mips_ger_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_gei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (_s16P(i0) && i0 != 0x8000)
+    if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	_SLTI(r0, r1, -i0 & 0xffff);
     else {
 	jit_movi_i(JIT_RTEMP, i0);
@@ -1200,7 +1200,7 @@ mips_bosubi_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, unsigned int i1)
 {
     jit_insn	*l;
     long	 d;
-    if (_s16P(i1) && i1 != 0x8000)
+    if (_s16P(i1) && (i1 & 0xffff) != 0x8000)
 	_ADDIU(JIT_RTEMP, r0, -i1 & 0xffff);
     else {
 	jit_movi_i(JIT_RTEMP, i1);

@@ -116,7 +116,7 @@ mips_subr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_subi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    if (_s16P(i0) && i0 != 0x8000)
+    if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
 	_DADDIU(r0, r1, -i0 & 0xffff);
     else {
 	jit_movi_l(JIT_RTEMP, i0);
