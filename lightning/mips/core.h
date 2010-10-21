@@ -81,9 +81,11 @@ __jit_inline void
 mips_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 == 0)
-	_XOR(r0, r0, r0);
+	_AND(r0, JIT_RZERO, JIT_RZERO);
     else if (_s16P(i0))
 	_ADDIU(r0, JIT_RZERO, i0 & 0xffff);
+    else if (_u16P(i0))
+	_ORI(r0, JIT_RZERO, i0 & 0xffff);
     else {
 	_LUI(r0, (unsigned)i0 >> 16);
 	if (i0 & 0xffff)
