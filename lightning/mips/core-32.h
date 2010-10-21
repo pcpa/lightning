@@ -56,7 +56,7 @@ mips_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
 
     l = _jit->x.pc;
     _LUI(r0, im >> 16);
-    _ORI(r0, r0, im & 0xffff);
+    _ORI(r0, r0, _jit_US(im));
     return (l);
 }
 
@@ -82,7 +82,7 @@ mips_patch_movi(jit_state_t _jit, jit_insn *i0, void *i1)
 
     c.op = u.i[1];
     assert(c.hc.b == MIPS_ORI);
-    c.is.b = im & 0xffff;
+    c.is.b = _jit_US(im);
     u.i[1] = c.op;
 }
 

@@ -142,9 +142,9 @@
 #define PRINTF_F1_F0(OP, R0, F0, F1)			\
 	prepare 1					\
 	prepare_d 2					\
-		extr_d_f %F1 %F1			\
+		extr_f_d %F1 %F1			\
 		pusharg_d %F1				\
-		extr_d_f %F0 %F0			\
+		extr_f_d %F0 %F0			\
 		pusharg_d %F0				\
 		movi_p %R0 OP				\
 		pusharg_p %R0				\
@@ -152,9 +152,9 @@
 #define PRINTF_F1_F0_F1_F0(OP, R0, F0, F1)		\
 	prepare 1					\
 	prepare_d 4					\
-		extr_d_f %F1 %F1			\
+		extr_f_d %F1 %F1			\
 		pusharg_d %F1				\
-		extr_d_f %F0 %F0			\
+		extr_f_d %F0 %F0			\
 		pusharg_d %F0				\
 		pusharg_d %F1				\
 		pusharg_d %F0				\
@@ -164,10 +164,10 @@
 #define PRINTF_F1_F1_F0_F0(OP, R0, F0, F1)		\
 	prepare 1					\
 	prepare_d 4					\
-		extr_d_f %F1 %F1			\
+		extr_f_d %F1 %F1			\
 		pusharg_d %F1				\
 		pusharg_d %F1				\
-		extr_d_f %F0 %F0			\
+		extr_f_d %F0 %F0			\
 		pusharg_d %F0				\
 		pusharg_d %F0				\
 		movi_p %R0 OP				\

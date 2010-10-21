@@ -54,7 +54,7 @@ mips_movi_l(jit_state_t _jit, jit_gpr_t r0, long i0)
 	}
 	else
 	    _SLL(r0, r0, 16);
-	if ((ms = i0 & 0xffff))
+	if ((ms = _jit_US(i0)))
 	    _ORI(r0, r0, ms);
     }
 }
@@ -98,7 +98,7 @@ __jit_inline void
 mips_addi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_DADDIU(r0, r1, i0 & 0xffff);
+	_DADDIU(r0, r1, _jit_US(i0));
     else {
 	jit_movi_l(JIT_RTEMP, i0);
 	jit_addr_l(r0, r1, JIT_RTEMP);
@@ -116,8 +116,8 @@ mips_subr_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_subi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
-    if (_s16P(i0) && (i0 & 0xffff) != 0x8000)
-	_DADDIU(r0, r1, -i0 & 0xffff);
+    if (_s16P(i0) && _jit_US(i0) != 0x8000)
+	_DADDIU(r0, r1, _jit_US(-i0));
     else {
 	jit_movi_l(JIT_RTEMP, i0);
 	jit_subr_l(r0, r1, JIT_RTEMP);
@@ -318,7 +318,7 @@ mips_ldi_ui(jit_state_t _jit, jit_gpr_t r0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LWU(r0, ds & 0xffff, JIT_RZERO);
+	_LWU(r0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LWU(r0, 0, JIT_RTEMP);
@@ -332,7 +332,7 @@ mips_ldi_l(jit_state_t _jit, jit_gpr_t r0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LD(r0, ds & 0xffff, JIT_RZERO);
+	_LD(r0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LD(r0, 0, JIT_RTEMP);
@@ -360,7 +360,7 @@ __jit_inline void
 mips_ldxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_LWU(r0, i0 & 0xffff, r1);
+	_LWU(r0, _jit_US(i0), r1);
     else {
 	jit_addi_i(JIT_RTEMP, r1, i0);
 	_LWU(r0, 0, JIT_RTEMP);
@@ -372,7 +372,7 @@ __jit_inline void
 mips_ldxi_l(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, long i0)
 {
     if (_s16P(i0))
-	_LD(r0, i0 & 0xffff, r1);
+	_LD(r0, _jit_US(i0), r1);
     else {
 	jit_addi_i(JIT_RTEMP, r1, i0);
 	_LD(r0, 0, JIT_RTEMP);
@@ -393,7 +393,7 @@ mips_sti_l(jit_state_t _jit, void *i0, jit_gpr_t r0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_SD(r0, ds & 0xffff, JIT_RZERO);
+	_SD(r0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_SD(r0, 0, JIT_RTEMP);
@@ -413,7 +413,7 @@ __jit_inline void
 mips_stxi_l(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     if (_s16P(i0))
-	_SD(r1, i0 & 0xffff, r0);
+	_SD(r1, _jit_US(i0), r0);
     else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_SD(r1, 0, JIT_RTEMP);
