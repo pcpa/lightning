@@ -435,7 +435,7 @@ mips_andr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_andi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (_u16P(i0))
+    if (_s16P(i0))
 	_ANDI(r0, r1, i0);
     else {
 	jit_movi_i(JIT_RTEMP, i0);
@@ -454,7 +454,7 @@ mips_orr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_ori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (_u16P(i0))
+    if (_s16P(i0))
 	_ORI(r0, r1, i0);
     else {
 	jit_movi_i(JIT_RTEMP, i0);
@@ -473,7 +473,7 @@ mips_xorr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_xori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (_u16P(i0))
+    if (_s16P(i0))
 	_XORI(r0, r1, i0);
     else {
 	jit_movi_i(JIT_RTEMP, i0);
@@ -1595,8 +1595,7 @@ mips_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
     if (mips2_p())
 	_WSBH(r0, r1);
     else {
-	_ORI(_AT, JIT_RZERO, 0xff00);
-	_SLL(_AT, _AT, 16);
+	_LUI(_AT, 0xff00);
 	_ORI(_AT, _AT, 0xff00);
 	_AND(_T8, r1, _AT);
 	_SRL(_AT, _AT, 8);
@@ -1617,9 +1616,8 @@ mips_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
     }
     else {
 	mips_ntoh_us(_jit, r0, r1);
-	_ORI(_AT, JIT_RZERO, 0xffff);
-	_AND(_T8, r0, _AT);
-	_SLL(_AT, _AT, 16);
+	_ANDI(_T8, r0, 0xffff);
+	_LUI(_AT, 0xffff);
 	_AND(_AT, r0, _AT);
 	_SLL(_T8, _T8, 16);
 	_SRL(_AT, _AT, 16);
