@@ -4,6 +4,7 @@
 .data	1024
 ierr:
 .c	"integer error at offset %d\n"
+.align	4
 ival:
 .i	0 1 2 3 4 5 6 7 8 9
 ichk:
@@ -13,6 +14,7 @@ ifmt:
 
 derr:
 .c	"float error at offset %d\n"
+.align	8
 dval:
 .d	0 1 2 3 4 5 6 7 8 9
 dchk:
