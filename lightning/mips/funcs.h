@@ -46,12 +46,18 @@ jit_flush_code(void *start, void *end)
 	 * and probably should use the cache instruction */
     __asm__ __volatile__ ("lw $t0,%0\n\tsynci 0($t0)"
 			  : : "g" (start) : "t0");
+#endif
     mprotect(start, (char*)end - (char*)start,
-	     /* FIXME should not "remap" with write permission */
 	     PROT_READ | PROT_WRITE | PROT_EXEC);
-#else
+#if defined(__linux__)
     _flush_cache(start, (long)end - (long)start, ICACHE);
 #endif
+}
+
+#define jit_get_cpu			jit_get_cpu
+__jit_constructor static void
+jit_get_cpu(void)
+{
 }
 
 #endif /* __lightning_funcs_h */

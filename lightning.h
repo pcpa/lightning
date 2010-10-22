@@ -176,8 +176,11 @@ struct jit_local_state {
 };
 
 struct {
-    /* mips32 r2 instructions? */
-    _ui		mips2: 1;
+    /* mips32 r2 instructions available? */
+    _ui		mips2		: 1;
+
+    /* movf and movt mips32 instructions not implemented in godson/loongson */
+    _ui		movf		: 1;
 } jit_cpu;
 #else
 #  error GNU lightning does not support the current target
