@@ -32,6 +32,8 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
+#define JIT_FRAMESIZE			80
+
 #define jit_movr_l(r0, r1)		mips_movr_i(_jit, r0, r1)
 
 #define jit_movi_l(r0, i0)		mips_movi_l(_jit, r0, i0)
@@ -473,10 +475,9 @@ mips_extr_i_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 mips_prolog(jit_state_t _jit, int n)
 {
-    _jitl.framesize = 80;
-    _jitl.nextarg_get = 0;
+    _jitl.framesize = JIT_FRAMESIZE;
 
-    jit_subi_l(JIT_SP, JIT_SP, 80);
+    jit_subi_l(JIT_SP, JIT_SP, JIT_FRAMESIZE);
     jit_stxi_l(72, JIT_SP, _RA);
     jit_stxi_l(64, JIT_SP, _FP);
     jit_stxi_l(56, JIT_SP, _S7);
@@ -542,16 +543,14 @@ __jit_inline int
 mips_arg_l(jit_state_t _jit)
 {
     int		ofs;
+    int		reg;
 
-    if (_jitl.nextarg_get < JIT_A_NUM) {
-	ofs = _jitl.nextarg_get;
-	++_jitl.nextarg_get;
-    }
-    else {
+    reg = (_jitl.framesize - JIT_FRAMESIZE) >> 3;
+    if (reg < JIT_A_NUM)
+	ofs = reg;
+    else
 	ofs = _jitl.framesize;
-	assert((ofs & 7) == 0);
-	_jitl.framesize += sizeof(long);
-    }
+    _jitl.framesize += sizeof(long);
 
     return (ofs);
 }
@@ -607,7 +606,7 @@ mips_ret(jit_state_t jit)
     jit_ldxi_l(_RA, JIT_SP, 72);
     _JR(_RA);
     /* restore sp in delay slot */
-    jit_addi_l(JIT_SP, JIT_SP, 80);
+    jit_addi_l(JIT_SP, JIT_SP, JIT_FRAMESIZE);
 }
 
 #endif /* __lightning_core_h */

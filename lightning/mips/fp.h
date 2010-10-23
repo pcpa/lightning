@@ -40,11 +40,6 @@ jit_f_order[JIT_FPR_NUM] = {
     _F0, _F2,  _F4,  _F6, _F8, _F10
 };
 
-static const jit_fpr_t
-jit_fa_order[JIT_A_NUM] = {
-    _F12, _F13, _F14, _F15
-};
-
 #define JIT_FPR(n)			jit_f_order[n]
 
 #define JIT_FPRET			_F0

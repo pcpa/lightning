@@ -32,6 +32,20 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
+#define JIT_FRAMESIZE			40
+
+#define JIT_FA_NUM			4
+static const int
+jit_fa_order[JIT_FA_NUM] = {
+    _A0, _A2, _F12, _F14
+};
+
+#define JIT_DA_NUM			2
+static const int
+jit_da_order[JIT_DA_NUM] = {
+    _A0, _A2
+};
+
 #define jit_ldi_ui(r0, i0)		jit_ldi_i(r0, i0)
 #define jit_ldi_l(r0, i0)		jit_ldi_i(r0, i0)
 #define jit_ldr_ui(r0, r1)		jit_ldr_i(r0, r1)
@@ -190,10 +204,9 @@ mips_jmpi(jit_state_t _jit, void *i0)
 __jit_inline void
 mips_prolog(jit_state_t _jit, int n)
 {
-    _jitl.framesize = 40;
-    _jitl.nextarg_get = 0;
+    _jitl.framesize = JIT_FRAMESIZE;
 
-    jit_subi_i(JIT_SP, JIT_SP, 40);
+    jit_subi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);
     jit_stxi_i(36, JIT_SP, _RA);
     jit_stxi_i(32, JIT_SP, _FP);
     jit_stxi_i(28, JIT_SP, _S7);
@@ -238,11 +251,7 @@ mips_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
     _jitl.stack_offset -= sizeof(int);
-    ofs = _jitl.stack_offset >> 2;
-    if (ofs >= JIT_A_NUM)
-	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
-    else
-	jit_movr_i(jit_a_order[ofs], r0);
+    jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
 }
 
 #define jit_arg_i()			mips_arg_i(_jit)
@@ -255,12 +264,13 @@ __jit_inline int
 mips_arg_i(jit_state_t _jit)
 {
     int		ofs;
+    int		reg;
 
-    if (_jitl.nextarg_get < JIT_A_NUM)
-	ofs = _jitl.nextarg_get;
+    reg = (_jitl.framesize - JIT_FRAMESIZE) >> 2;
+    if (reg < JIT_A_NUM)
+	ofs = reg;
     else
 	ofs = _jitl.framesize;
-    _jitl.nextarg_get += 1;
     _jitl.framesize += sizeof(int);
 
     return (ofs);
@@ -310,16 +320,15 @@ __jit_inline void
 mips_patch_arguments(jit_state_t _jit)
 {
     mips_code_t	 c;
+    jit_insn	*pc;
     int		 size;
     int		 index;
     int		 offset;
+    jit_gpr_t	 gs, gd;
+    jit_fpr_t	 fs, fd;
 
-    for (index = 0, offset = _jitl.nextarg_put >> 5; offset >= 0; offset--)
-	if (_jitl.types[offset])
-	    index++;
-    /* no double arguments that may require patching */
-    if (index == 0)
-	return;
+    /* save pc because will rewrite intructions */
+    pc = _jit->x.pc;
 
     for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
 	if (_jitl.types[index >> 5] & (1 << (index & 31))) {
@@ -329,39 +338,56 @@ mips_patch_arguments(jit_state_t _jit)
 	}
 	else
 	    size = sizeof(int);
-	if (offset >= 16) {
-	    c.op = *_jitl.arguments[index];
+
+	c.op = _jitl.arguments[index][0];
+	if (offset < 16) {
+	    _jit->x.pc = (jit_insn *)_jitl.arguments[index];
 	    switch (c.hc.b) {
-		case MIPS_SW:		/* sp[off] = int32 */
-		case MIPS_SWC1:		/* sp[off] = float32 */
-		case MIPS_SDC1:		/* sp[off] = float64 */
+		case MIPS_SW:
+		    assert(size == 4);
+		    gs = (jit_gpr_t)c.rt.b;
+		    gd = jit_a_order[offset >> 2];
+		    _OR(gd, gs, JIT_RZERO);
 		    break;
-		case MIPS_SPECIAL:
-		    /* move a3,t(n) that now needs to go on stack
-		     * due to register "alignment" */
-		    assert(c.tc.b == MIPS_OR);
-		    c.hc.b = MIPS_SW;
-		    c.rt.b = c.rs.b;
-		    c.rs.b = JIT_SP;
-		    break;
-		case MIPS_COP1:
-		    /* swc1 a3,f(n) that now needs to go on stack
-		     * due to register "alignment" */
-		    assert(c.rs.b == MIPS_fmt_S);
-		    c.hc.b = MIPS_SWC1;
-		    c.rs.b = JIT_SP;
-		    c.rt.b = c.fd.b;
-		    /* convert to noop the extra store to %f15;
-		     * that is generated to work correctly if
-		     * calling a prototyped function */
-		    _jitl.arguments[index][1] = 0;
+		case MIPS_SWC1:
+		    fs = (jit_fpr_t)c.ft.b;
+		    if (size == 8) {
+			gd = (jit_gpr_t)jit_da_order[offset >> 3];
+			_MFC1(gd, fs);
+			_MFC1((jit_gpr_t)(gd + 1), (jit_fpr_t)(fs + 1));
+		    }
+		    else if (offset < 8) {
+			gd = (jit_gpr_t)jit_fa_order[offset >> 2];
+			_MFC1(gd, fs);
+		    }
+		    else {
+			fd = (jit_fpr_t)jit_fa_order[offset >> 2];
+			_MOV_S(fd, fs);
+		    }
 		    break;
 		default:
 		    assert(!"unhandled argument opcode");
-		    break;
 	    }
-	    c.is.b = offset;
-	    *_jitl.arguments[index] = c.op;
+	}
+	else {
+	    switch (c.hc.b) {
+		case MIPS_SW:
+		    assert(size == 4);
+		    c.is.b = offset;
+		    _jitl.arguments[index][0] = c.op;
+		    break;
+		case MIPS_SWC1:
+		    c.is.b = offset;
+		    _jitl.arguments[index][0] = c.op;
+		    if (size == 8) {
+			c.op = _jitl.arguments[index][1];
+			c.is.b = offset + 4;
+			_jitl.arguments[index][1] = c.op;
+		    }
+		    break;
+		default:
+		    assert(!"unhandled argument opcode");
+	    }
 	}
 	offset += size;
     }
@@ -370,6 +396,8 @@ mips_patch_arguments(jit_state_t _jit)
 	mips_set_stack(_jit, (_jitl.alloca_offset +
 			      _jitl.stack_length + 7) & ~7);
     }
+
+    _jit->x.pc = pc;
 }
 
 #define jit_finishr(rs)			mips_finishr(_jit, rs)
@@ -416,7 +444,7 @@ mips_ret(jit_state_t jit)
     jit_ldxi_i(_RA, JIT_SP, 36);
     _JR(_RA);
     /* restore sp in delay slot */
-    jit_addi_i(JIT_SP, JIT_SP, 40);
+    jit_addi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);
 }
 
 #endif /* __lightning_core_h */

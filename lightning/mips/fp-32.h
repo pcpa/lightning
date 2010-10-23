@@ -84,16 +84,15 @@ __jit_inline int
 mips_arg_d(jit_state_t _jit)
 {
     int		ofs;
+    int		reg;
 
-    if (_jitl.nextarg_get & 1) {
-	++_jitl.nextarg_get;
+    if (_jitl.framesize & 7)
 	_jitl.framesize += 4;
-    }
-    if (_jitl.nextarg_get < JIT_A_NUM)
-	ofs = _jitl.nextarg_get;
+    reg = (_jitl.framesize - JIT_FRAMESIZE) >> 3;
+    if (reg < JIT_DA_NUM)
+	ofs = reg;
     else
 	ofs = _jitl.framesize;
-    _jitl.nextarg_get += 2;
     _jitl.framesize += sizeof(double);
 
     return (ofs);
@@ -104,12 +103,18 @@ __jit_inline int
 mips_arg_f(jit_state_t _jit)
 {
     int		ofs;
+    int		regf;
+    int		regd;
 
-    if (_jitl.nextarg_get < JIT_A_NUM)
-	ofs = _jitl.nextarg_get;
+    /* first two floats use double registers */
+    regf = (_jitl.framesize - JIT_FRAMESIZE) >> 2;
+    regd = (_jitl.framesize - JIT_FRAMESIZE) >> 3;
+    if (regd < JIT_DA_NUM)
+	ofs = regd;
+    else if (regf < JIT_FA_NUM)
+	ofs = regf;
     else
 	ofs = _jitl.framesize;
-    _jitl.nextarg_get += 1;
     _jitl.framesize += sizeof(float);
 
     return (ofs);
@@ -119,18 +124,24 @@ mips_arg_f(jit_state_t _jit)
 __jit_inline void
 mips_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
-    if (ofs < JIT_A_NUM)
-	jit_movr_d(f0, jit_fa_order[ofs]);
-    else
-	jit_ldxi_d(f0, JIT_FP, ofs);
+    if (ofs < JIT_DA_NUM) {
+	_MTC1((jit_gpr_t)jit_da_order[ofs], f0);
+	_MTC1((jit_gpr_t)(jit_da_order[ofs] + 1), (jit_fpr_t)(f0 + 1));
+    }
+    else {
+	jit_ldxi_f(f0, JIT_FP, ofs);
+	jit_ldxi_f((jit_fpr_t)(f0 + 1), JIT_FP, ofs + 4);
+    }
 }
 
 #define jit_getarg_f(f0, ofs)		mips_getarg_f(_jit, f0, ofs)
 __jit_inline void
 mips_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
-    if (ofs < JIT_A_NUM)
-	jit_movr_f(f0, jit_fa_order[ofs]);
+    if (ofs < JIT_DA_NUM)
+	_MTC1((jit_gpr_t)jit_fa_order[ofs], f0);
+    else if (ofs < JIT_FA_NUM)
+	jit_movr_f(f0, (jit_fpr_t)jit_fa_order[ofs]);
     else
 	jit_ldxi_f(f0, JIT_FP, ofs);
 }
@@ -145,15 +156,8 @@ mips_pusharg_d(jit_state_t _jit, jit_fpr_t f0)
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
     _jitl.stack_offset -= sizeof(double);
-    ofs = _jitl.stack_offset >> 2;
-    if (ofs + 1 >= JIT_A_NUM)
-	jit_stxi_d(_jitl.stack_offset, JIT_SP, f0);
-    else {
-	ofs = (ofs + 1) & ~1;
-	jit_movr_d(jit_fa_order[ofs], f0);
-	_MFC1(jit_a_order[ofs], f0);
-	_MFC1(jit_a_order[ofs + 1], (jit_fpr_t)(f0 + 1));
-    }
+    jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
+    jit_stxi_f(_jitl.stack_offset + 4, JIT_SP, (jit_fpr_t)(f0 + 1));
 }
 
 #define jit_pusharg_f(f0)		mips_pusharg_f(_jit, f0)
@@ -166,13 +170,7 @@ mips_pusharg_f(jit_state_t _jit, jit_fpr_t f0)
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
     _jitl.stack_offset -= sizeof(float);
-    ofs = _jitl.stack_offset >> 2;
-    if (ofs >= JIT_A_NUM)
-	jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
-    else {
-	jit_movr_f(jit_fa_order[ofs], f0);
-	_MFC1(jit_a_order[ofs], f0);
-    }
+    jit_stxi_f(_jitl.stack_offset, JIT_SP, f0);
 }
 
 #endif /* __lightning_fp_h */

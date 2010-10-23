@@ -1716,8 +1716,12 @@ mips_getarg_c(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
 	jit_extr_c_i(r0, jit_a_order[ofs]);
-    else
-	jit_ldxi_c(r0, JIT_FP, ofs + sizeof(int) - sizeof(char));
+    else {
+#if __BYTE_ORDER == __BIG_ENDIAN
+	ofs += sizeof(int) - sizeof(char);
+#endif
+	jit_ldxi_c(r0, JIT_FP, ofs);
+    }
 }
 
 #define jit_getarg_uc(r0, ofs)		mips_getarg_uc(_jit, r0, ofs)
@@ -1726,8 +1730,12 @@ mips_getarg_uc(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
 	jit_extr_c_ui(r0, jit_a_order[ofs]);
-    else
-	jit_ldxi_uc(r0, JIT_FP, ofs + sizeof(int) - sizeof(char));
+    else {
+#if __BYTE_ORDER == __BIG_ENDIAN
+	ofs += sizeof(int) - sizeof(char);
+#endif
+	jit_ldxi_uc(r0, JIT_FP, ofs);
+    }
 }
 
 #define jit_getarg_s(r0, ofs)		mips_getarg_s(_jit, r0, ofs)
@@ -1736,8 +1744,12 @@ mips_getarg_s(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
 	jit_extr_s_i(r0, jit_a_order[ofs]);
-    else
-	jit_ldxi_s(r0, JIT_FP, ofs + sizeof(int) - sizeof(short));
+    else {
+#if __BYTE_ORDER == __BIG_ENDIAN
+	ofs += sizeof(int) - sizeof(short);
+#endif
+	jit_ldxi_s(r0, JIT_FP, ofs);
+    }
 }
 
 #define jit_getarg_us(r0, ofs)		mips_getarg_us(_jit, r0, ofs)
@@ -1746,8 +1758,12 @@ mips_getarg_us(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
 	jit_extr_s_ui(r0, jit_a_order[ofs]);
-    else
-	jit_ldxi_us(r0, JIT_FP, ofs + sizeof(int) - sizeof(short));
+    else {
+#if __BYTE_ORDER == __BIG_ENDIAN
+	ofs += sizeof(int) - sizeof(short);
+#endif
+	jit_ldxi_us(r0, JIT_FP, ofs);
+    }
 }
 
 #define jit_getarg_i(r0, ofs)		mips_getarg_i(_jit, r0, ofs)

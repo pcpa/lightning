@@ -166,13 +166,14 @@ __jit_inline int
 mips_arg_d(jit_state_t _jit)
 {
     int		ofs;
+    int		reg;
 
-    if (_jitl.nextarg_get < JIT_A_NUM)
-	ofs = _jitl.nextarg_get;
+    reg = (_jitl.framesize - JIT_FRAMESIZE) >> 3;
+    if (reg < JIT_A_NUM)
+	ofs = reg;
     else
 	ofs = _jitl.framesize;
-    _jitl.nextarg_get += 1;
-    _jitl.framesize += sizeof(double);
+    _jitl.framesize += sizeof(float);
 
     return (ofs);
 }
