@@ -32,6 +32,11 @@
 #ifndef __lightning_funcs_h
 #define __lightning_funcs_h
 
+#if defined(__linux__)
+#  include <stdio.h>
+#  include <string.h>
+#endif
+
 #include <unistd.h>
 #include <sys/mman.h>
 
@@ -42,11 +47,6 @@
 static void
 jit_flush_code(void *start, void *end)
 {
-#if 0	/* FIXME not compiled ...
-	 * and probably should use the cache instruction */
-    __asm__ __volatile__ ("lw $t0,%0\n\tsynci 0($t0)"
-			  : : "g" (start) : "t0");
-#endif
     mprotect(start, (char*)end - (char*)start,
 	     PROT_READ | PROT_WRITE | PROT_EXEC);
 #if defined(__linux__)
@@ -58,6 +58,37 @@ jit_flush_code(void *start, void *end)
 __jit_constructor static void
 jit_get_cpu(void)
 {
+#if defined(__linux__)
+    /* adapted from <gcc-base>/gcc/config/mips/driver-native.c */
+    char	 buf[128];
+    FILE	*fp;
+    static int	 initialized;
+
+    if (initialized)
+	return;
+    initialized = 1;
+    if ((fp = fopen ("/proc/cpuinfo", "r")) == NULL)
+	return;
+
+    while (fgets(buf, sizeof (buf), fp)) {
+	if (strncmp(buf, "cpu model", sizeof("cpu model") - 1) == 0) {
+	    if (strstr(buf, "Godson2 V0.2") ||
+		strstr(buf, "Loongson-2 V0.2"))
+		/* loongson2e */;
+	    else if (strstr(buf, "Godson2 V0.3") ||
+		     strstr(buf, "Loongson-2 V0.3"))
+		/* loongson2f */;
+	    else if (strstr(buf, "SiByte SB1"))
+		/* sb1 */;
+	    else if(strstr (buf, "R5000"))
+		/* r5000 */;
+	    else if(strstr(buf, "Octeon"))
+		/* octeon */;
+	    break;
+	}
+    }
+    fclose(fp);
+#endif
 }
 
 #endif /* __lightning_funcs_h */

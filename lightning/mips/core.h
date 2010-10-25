@@ -59,6 +59,10 @@ static const jit_gpr_t
 jit_a_order[JIT_A_NUM] = {
     _A0, _A1, _A2, _A3
 };
+static const int
+jit_fa_order[JIT_A_NUM] = {
+    _F12, _F13, _F14, _F15
+};
 
 #define jit_nop(n)			mips_nop(_jit, n)
 __jit_inline void

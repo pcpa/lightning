@@ -34,18 +34,6 @@
 
 #define JIT_FRAMESIZE			40
 
-#define JIT_FA_NUM			4
-static const int
-jit_fa_order[JIT_FA_NUM] = {
-    _A0, _A2, _F12, _F14
-};
-
-#define JIT_DA_NUM			2
-static const int
-jit_da_order[JIT_DA_NUM] = {
-    _A0, _A2
-};
-
 #define jit_ldi_ui(r0, i0)		jit_ldi_i(r0, i0)
 #define jit_ldi_l(r0, i0)		jit_ldi_i(r0, i0)
 #define jit_ldr_ui(r0, r1)		jit_ldr_i(r0, r1)
@@ -205,6 +193,7 @@ __jit_inline void
 mips_prolog(jit_state_t _jit, int n)
 {
     _jitl.framesize = JIT_FRAMESIZE;
+    _jitl.nextarg_int = 0;
 
     jit_subi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);
     jit_stxi_i(36, JIT_SP, _RA);
@@ -267,8 +256,10 @@ mips_arg_i(jit_state_t _jit)
     int		reg;
 
     reg = (_jitl.framesize - JIT_FRAMESIZE) >> 2;
-    if (reg < JIT_A_NUM)
+    if (reg < JIT_A_NUM) {
 	ofs = reg;
+	_jitl.nextarg_int = 1;
+    }
     else
 	ofs = _jitl.framesize;
     _jitl.framesize += sizeof(int);
@@ -321,19 +312,24 @@ mips_patch_arguments(jit_state_t _jit)
 {
     mips_code_t	 c;
     jit_insn	*pc;
+    int		 reg;
     int		 size;
     int		 index;
     int		 offset;
     jit_gpr_t	 gs, gd;
     jit_fpr_t	 fs, fd;
+    int		 nextarg_int;
 
     /* save pc because will rewrite intructions */
     pc = _jit->x.pc;
 
+    nextarg_int = 0;
     for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
 	if (_jitl.types[index >> 5] & (1 << (index & 31))) {
-	    if (offset & 7)
+	    if (offset & 7) {
+		nextarg_int = 1;
 		offset += sizeof(int);
+	    }
 	    size = sizeof(double);
 	}
 	else
@@ -341,28 +337,38 @@ mips_patch_arguments(jit_state_t _jit)
 
 	c.op = _jitl.arguments[index][0];
 	if (offset < 16) {
+	    reg = offset >> 2;
 	    _jit->x.pc = (jit_insn *)_jitl.arguments[index];
 	    switch (c.hc.b) {
 		case MIPS_SW:
+		    nextarg_int = 1;
 		    assert(size == 4);
 		    gs = (jit_gpr_t)c.rt.b;
-		    gd = jit_a_order[offset >> 2];
+		    gd = jit_a_order[reg];
 		    _OR(gd, gs, JIT_RZERO);
 		    break;
 		case MIPS_SWC1:
 		    fs = (jit_fpr_t)c.ft.b;
-		    if (size == 8) {
-			gd = (jit_gpr_t)jit_da_order[offset >> 3];
-			_MFC1(gd, fs);
-			_MFC1((jit_gpr_t)(gd + 1), (jit_fpr_t)(fs + 1));
-		    }
-		    else if (offset < 8) {
-			gd = (jit_gpr_t)jit_fa_order[offset >> 2];
+		    if (reg & 1)
+			nextarg_int = 1;
+		    if (nextarg_int) {
+			gd = jit_a_order[reg];
 			_MFC1(gd, fs);
 		    }
 		    else {
-			fd = (jit_fpr_t)jit_fa_order[offset >> 2];
+			fd = jit_fa_order[reg];
 			_MOV_S(fd, fs);
+		    }
+		    if (size == 8) {
+			fs = (jit_fpr_t)(fs + 1);
+			if (nextarg_int) {
+			    gd = (jit_gpr_t)(gd + 1);
+			    _MFC1(gd, fs);
+			}
+			else {
+			    fd = (jit_fpr_t)(fd + 1);
+			    _MOV_S(fd, fs);
+			}
 		    }
 		    break;
 		default:
@@ -398,6 +404,10 @@ mips_patch_arguments(jit_state_t _jit)
     }
 
     _jit->x.pc = pc;
+
+    /* FIXME if going to pass float/double arguments in both
+     * int and float registers, this would be the place to
+     * write something like:  jit_ldxi_f...(); jit_movr_f(...); */
 }
 
 #define jit_finishr(rs)			mips_finishr(_jit, rs)
