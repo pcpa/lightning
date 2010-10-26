@@ -311,13 +311,12 @@ __jit_inline void
 mips_patch_arguments(jit_state_t _jit)
 {
     mips_code_t	 c;
+    jit_fpr_t	 fs;
     jit_insn	*pc;
     int		 reg;
     int		 size;
     int		 index;
     int		 offset;
-    jit_gpr_t	 gs, gd;
-    jit_fpr_t	 fs, fd;
     int		 nextarg_int;
 
     /* save pc because will rewrite intructions */
@@ -343,42 +342,29 @@ mips_patch_arguments(jit_state_t _jit)
 		case MIPS_SW:
 		    nextarg_int = 1;
 		    assert(size == 4);
-		    gs = (jit_gpr_t)c.rt.b;
-		    gd = jit_a_order[reg];
-		    _OR(gd, gs, JIT_RZERO);
+		    _OR(jit_a_order[reg].g, (jit_gpr_t)c.rt.b, JIT_RZERO);
 		    break;
 		case MIPS_SWC1:
 		    fs = (jit_fpr_t)c.ft.b;
-		    if (!nextarg_int && size == 4) {
-			switch (reg) {
-			    case 0:
-				break;
-			    case 1:
-				reg = 2;
-				break;
-			    default:
-				nextarg_int = 1;
-				break;
-			}
-		    }
-		    if (nextarg_int) {
-			gd = jit_a_order[reg];
-			_MFC1(gd, fs);
-		    }
-		    else {
-			fd = jit_fa_order[reg];
-			_MOV_S(fd, fs);
-		    }
-		    if (size == 8) {
-			fs = (jit_fpr_t)(fs + 1);
-			if (nextarg_int) {
-			    gd = (jit_gpr_t)(gd + 1);
-			    _MFC1(gd, fs);
-			}
+		    if (!nextarg_int) {
+			if (reg == 0)
+			    reg = JIT_A_NUM;
 			else {
-			    fd = (jit_fpr_t)(fd + 1);
-			    _MOV_S(fd, fs);
+			    reg = JIT_A_NUM + 2;
+			    nextarg_int = 1;
 			}
+		    }
+		    if (reg < JIT_A_NUM)
+			_MFC1(jit_a_order[reg].g, fs);
+		    else
+			_MOV_S(jit_a_order[reg].f, fs);
+		    if (size == 8) {
+			++reg;
+			fs = (jit_fpr_t)(fs + 1);
+			if (reg < JIT_A_NUM)
+			    _MFC1(jit_a_order[reg].g, fs);
+			else
+			    _MOV_S(jit_a_order[reg].f, fs);
 		    }
 		    break;
 		default:
@@ -466,5 +452,27 @@ mips_ret(jit_state_t jit)
     /* restore sp in delay slot */
     jit_addi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);
 }
+
+/* need a different approach to manage arguments to allow this, so
+ * for now tests/push-pop is known to fail */
+#if 0
+#ifdef JIT_NEED_PUSH_POP
+# define jit_pushr_i(r0)		mips_pushr_i(_jit, r0)
+__jit_inline int
+mips_pushr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    jit_subi_i(JIT_SP, JIT_SP, 8);
+    jit_stxi_i(0, JIT_SP, r0);
+}
+
+# define jit_popr_i(r0)			mips_popr_i(_jit, r0)
+__jit_inline int
+mips_popr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    jit_ldxi_i(r0, JIT_SP, 0);
+    jit_addi_i(JIT_SP, JIT_SP, 8);
+}
+#endif
+#endif
 
 #endif /* __lightning_core_h */

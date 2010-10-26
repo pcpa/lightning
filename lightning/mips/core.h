@@ -55,13 +55,19 @@ jit_v_order[JIT_V_NUM] = {
 #define JIT_V(i)			jit_v_order[i]
 
 #define JIT_A_NUM			4
-static const jit_gpr_t
-jit_a_order[JIT_A_NUM] = {
-    _A0, _A1, _A2, _A3
-};
-static const int
-jit_fa_order[JIT_A_NUM] = {
-    _F12, _F13, _F14, _F15
+#define JIT_FA_NUM			8
+static const union {
+    jit_gpr_t	g;
+    jit_fpr_t	f;
+} jit_a_order[JIT_FA_NUM] = {
+    { .g = _A0, },
+    { .g = _A1, },
+    { .g = _A2, },
+    { .g = _A3, },
+    { .f = _F12 },
+    { .f = _F13 },
+    { .f = _F14 },
+    { .f = _F15 },
 };
 
 #define jit_nop(n)			mips_nop(_jit, n)
@@ -1031,12 +1037,14 @@ mips_boaddr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     _SLT(_T9, _AT, r0);			/* t9 = at < r0 */
     _SLT(_AT, r0, _AT);			/* at = r0 < at */
     _MOVZ(_AT, _T9, _T8);		/* if (t8 == 0) at = t9 */
-    _ADDU(r0, r0, r1);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
+
     _BNE(_AT, _ZERO, _jit_US(d));
-    jit_nop(1);
+    /*delay slot */
+    _ADDU(r0, r0, r1);
+
     return (l);
 }
 
@@ -1053,12 +1061,14 @@ mips_boaddi_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, int i1)
 	_SLT(_T9, r0, _AT);
 	_SLT(_AT, _AT, r0);
 	_MOVZ(_AT, _T9, _T8);
-	_ADDIU(r0, r0, _jit_US(i1));
 	l = _jit->x.pc;
 	d = (((long)i0 - (long)l) >> 2) - 1;
 	assert(_s16P(d));
+
 	_BNE(_AT, _ZERO, _jit_US(d));
-	jit_nop(1);
+	/* delay slot */
+	_ADDIU(r0, r0, _jit_US(i1));
+
 	return (l);
     }
     jit_movi_i(JIT_RTEMP, i1);
@@ -1078,12 +1088,14 @@ mips_bosubr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     _SLT(_T9, _AT, r0);			/* t9 = at < r0 */
     _SLT(_AT, r0, _AT);			/* at = r0 < at */
     _MOVZ(_AT, _T9, _T8);		/* if (t8 == 0) at = t9 */
-    _SUBU(r0, r0, r1);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
+
     _BNE(_AT, _ZERO, _jit_US(d));
-    jit_nop(1);
+    /* delay slot */
+    _SUBU(r0, r0, r1);
+
     return (l);
 }
 
@@ -1099,12 +1111,14 @@ mips_bosubi_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, int i1)
 	_SLT(_T9, _AT, r0);
 	_SLT(_AT, r0, _AT);
 	_MOVZ(_AT, _T9, _T8);
-	_ADDIU(r0, r0, _jit_US(-i1));
 	l = _jit->x.pc;
 	d = (((long)i0 - (long)l) >> 2) - 1;
 	assert(_s16P(d));
+
 	_BNE(_AT, _ZERO, _jit_US(d));
-	jit_nop(1);
+	/* delay slot */
+	_ADDIU(r0, r0, _jit_US(-i1));
+
 	return (l);
     }
     jit_movi_i(JIT_RTEMP, i1);
@@ -1123,8 +1137,11 @@ mips_boaddr_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
+
     _BNE(JIT_RZERO, _T8, _jit_US(d));
-    jit_nop(1);
+    /*delay slot */
+    _ADDU(r0, r0, r1);
+
     return (l);
 }
 
@@ -1134,20 +1151,22 @@ mips_boaddi_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, unsigned int i1)
 {
     jit_insn	*l;
     long	 d;
-    if (_s16P(i1))
+    if (_s16P(i1)) {
 	_ADDIU(JIT_RTEMP, r0, _jit_US(i1));
-    else {
-	jit_movi_i(JIT_RTEMP, i1);
-	jit_addr_i(JIT_RTEMP, r0, JIT_RTEMP);
+	_SLTU(_T8, JIT_RTEMP, r0);
+	jit_movr_i(r0, JIT_RTEMP);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 1;
+	assert(_s16P(d));
+
+	_BNE(JIT_RZERO, _T8, _jit_US(d));
+	/* delay slot */
+	_ADDIU(r0, r0, _jit_US(i1));
+
+	return (l);
     }
-    _SLTU(_T8, JIT_RTEMP, r0);
-    jit_movr_i(r0, JIT_RTEMP);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 1;
-    assert(_s16P(d));
-    _BNE(JIT_RZERO, _T8, _jit_US(d));
-    jit_nop(1);
-    return (l);
+    jit_movi_i(JIT_RTEMP, i1);
+    return (jit_boaddr_ui(i0, r0, JIT_RTEMP));
 }
 
 #define jit_bosubr_ui(i0, r0, r1)	mips_bosubr_ui(_jit, i0, r0, r1)
@@ -1162,8 +1181,11 @@ mips_bosubr_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
+
     _BNE(JIT_RZERO, _T8, _jit_US(d));
-    jit_nop(1);
+    /* delay slot */
+    _SUBU(r0, r0, r1);
+
     return (l);
 }
 
@@ -1173,20 +1195,22 @@ mips_bosubi_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, unsigned int i1)
 {
     jit_insn	*l;
     long	 d;
-    if (_s16P(i1) && _jit_US(i1) != 0x8000)
+    if (_s16P(i1) && _jit_US(i1) != 0x8000) {
 	_ADDIU(JIT_RTEMP, r0, _jit_US(-i1));
-    else {
-	jit_movi_i(JIT_RTEMP, i1);
-	jit_subr_i(JIT_RTEMP, r0, JIT_RTEMP);
+	_SLTU(_T8, r0, JIT_RTEMP);
+	jit_movr_i(r0, JIT_RTEMP);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 1;
+	assert(_s16P(d));
+
+	_BNE(JIT_RZERO, _T8, _jit_US(d));
+	/* delay slot */
+	_ADDIU(r0, r0, _jit_US(-i1));
+
+	return (l);
     }
-    _SLTU(_T8, r0, JIT_RTEMP);
-    jit_movr_i(r0, JIT_RTEMP);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 1;
-    assert(_s16P(d));
-    _BNE(JIT_RZERO, _T8, _jit_US(d));
-    jit_nop(1);
-    return (l);
+    jit_movi_i(JIT_RTEMP, i1);
+    return (jit_bosubr_ui(i0, r0, JIT_RTEMP));
 }
 
 #define jit_bmsr_i(i0, r0, r1)		mips_bmsr_i(_jit, i0, r0, r1)
@@ -1667,7 +1691,7 @@ __jit_inline void
 mips_getarg_c(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	jit_extr_c_i(r0, jit_a_order[ofs]);
+	jit_extr_c_i(r0, jit_a_order[ofs].g);
     else {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	ofs += sizeof(int) - sizeof(char);
@@ -1681,7 +1705,7 @@ __jit_inline void
 mips_getarg_uc(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	jit_extr_c_ui(r0, jit_a_order[ofs]);
+	jit_extr_c_ui(r0, jit_a_order[ofs].g);
     else {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	ofs += sizeof(int) - sizeof(char);
@@ -1695,7 +1719,7 @@ __jit_inline void
 mips_getarg_s(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	jit_extr_s_i(r0, jit_a_order[ofs]);
+	jit_extr_s_i(r0, jit_a_order[ofs].g);
     else {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	ofs += sizeof(int) - sizeof(short);
@@ -1709,7 +1733,7 @@ __jit_inline void
 mips_getarg_us(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	jit_extr_s_ui(r0, jit_a_order[ofs]);
+	jit_extr_s_ui(r0, jit_a_order[ofs].g);
     else {
 #if __BYTE_ORDER == __BIG_ENDIAN
 	ofs += sizeof(int) - sizeof(short);
@@ -1723,7 +1747,7 @@ __jit_inline void
 mips_getarg_i(jit_state_t _jit, jit_gpr_t r0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	jit_movr_i(r0, jit_a_order[ofs]);
+	jit_movr_i(r0, jit_a_order[ofs].g);
     else
 	jit_ldxi_i(r0, JIT_FP, ofs);
 }

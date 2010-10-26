@@ -609,4 +609,26 @@ mips_ret(jit_state_t jit)
     jit_addi_l(JIT_SP, JIT_SP, JIT_FRAMESIZE);
 }
 
+/* need a different approach to manage arguments to allow this, so
+ * for now tests/push-pop is known to fail */
+#if 0
+#ifdef JIT_NEED_PUSH_POP
+# define jit_pushr_i(r0)		mips_pushr_i(_jit, r0)
+__jit_inline int
+mips_pushr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    jit_subi_l(JIT_SP, JIT_SP, 8);
+    jit_stxi_l(0, JIT_SP, r0);
+}
+
+# define jit_popr_i(r0)			mips_popr_i(_jit, r0)
+__jit_inline int
+mips_popr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    jit_ldxi_l(r0, JIT_SP, 0);
+    jit_addi_l(JIT_SP, JIT_SP, 8);
+}
+#endif
+#endif
+
 #endif /* __lightning_core_h */

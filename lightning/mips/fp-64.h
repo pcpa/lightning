@@ -51,98 +51,133 @@ mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
 __jit_inline void
 mips_extr_l_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
-    _DMTC1(r0, JIT_FPTMP);
-    _CVT_S_L(f0, JIT_FPTMP);
+    _DMTC1(r0, JIT_FTMP0);
+    _CVT_S_L(f0, JIT_FTMP0);
 }
 
 #define jit_extr_l_d(f0, r0)		mips_extr_l_d(_jit, f0, r0)
 __jit_inline void
 mips_extr_l_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
-    _DMTC1(r0, JIT_FPTMP);
-    _CVT_D_L(f0, JIT_FPTMP);
+    _DMTC1(r0, JIT_FTMP0);
+    _CVT_D_L(f0, JIT_FTMP0);
 }
 
 #define jit_rintr_f_l(r0, f0)		mips_rintr_f_l(_jit, r0, f0)
 __jit_inline void
 mips_rintr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _CVT_S_L(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _CVT_L_S(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_rintr_d_l(r0, f0)		mips_rintr_d_l(_jit, r0, f0)
 __jit_inline void
 mips_rintr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _CVT_D_L(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _CVT_L_D(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_roundr_f_l(r0, f0)		mips_roundr_f_l(_jit, r0, f0)
 __jit_inline void
 mips_roundr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    /* FIXME round to nearest and even on ties... */
-    _ROUND_L_S(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+#if 0	/* if round to nearest */
+    _ROUND_L_S(JIT_FTMP0, f0);
+#else
+    jit_insn	*l;
+    _MTC1(JIT_RZERO, (jit_fpr_t)JIT_FTMP0);
+    jit_movi_i(JIT_RTEMP, 0xbf000000);
+    _MTC1(JIT_RTEMP, JIT_FTMP1);
+    _C_OLT_S(JIT_FTMP1, f0);
+    l = _jit->x.pc;
+    _BC1T(0);
+    jit_nop(1);
+    _NEG_S(JIT_FTMP1, JIT_FTMP1);
+    jit_patch(l);
+    _ADD_S(JIT_FTMP0, f0, JIT_FTMP1);
+    _TRUNC_L_S(JIT_FTMP0, JIT_FTMP0);
+#endif
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_roundr_d_l(r0, f0)		mips_roundr_d_l(_jit, r0, f0)
 __jit_inline void
 mips_roundr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    /* FIXME round to nearest and even on ties... */
-    _ROUND_L_D(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+#if 0	/* if round to nearest */
+    _ROUND_L_D(JIT_FTMP0, f0);
+#else
+    jit_insn	*l;
+    _MTC1(JIT_RZERO, (jit_fpr_t)JIT_FTMP0);
+    _MTC1(JIT_RZERO, (jit_fpr_t)(JIT_FTMP0 + 1));
+    jit_movi_i(JIT_RTEMP, 0xbfe00000);
+#if __BYTEORDER == __LITTLE_ENDIAN
+    _MTC1(JIT_RTEMP, JIT_FTMP1);
+    _MTC1(JIT_RZERO, (jit_fpr_t)(JIT_FTMP1 + 1));
+#else
+    _MTC1(JIT_RZERO, JIT_FTMP1);
+    _MTC1(JIT_RTEMP, (jit_fpr_t)(JIT_FTMP1 + 1));
+#endif
+    _C_OLT_D(JIT_FTMP1, f0);
+    l = _jit->x.pc;
+    _BC1T(0);
+    jit_nop(1);
+    _NEG_D(JIT_FTMP1, JIT_FTMP1);
+    jit_patch(l);
+    _ADD_D(JIT_FTMP0, f0, JIT_FTMP1);
+    _TRUNC_L_D(JIT_FTMP0, JIT_FTMP0);
+#endif
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_truncr_f_l(r0, f0)		mips_truncr_f_l(_jit, r0, f0)
 __jit_inline void
 mips_truncr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _TRUNC_L_S(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _TRUNC_L_S(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_truncr_d_l(r0, f0)		mips_truncr_d_l(_jit, r0, f0)
 __jit_inline void
 mips_truncr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _TRUNC_L_D(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _TRUNC_L_D(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_ceilr_f_l(r0, f0)		mips_ceilr_f_l(_jit, r0, f0)
 __jit_inline void
 mips_ceilr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _CEIL_L_S(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _CEIL_L_S(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_ceilr_d_l(r0, f0)		mips_ceilr_d_l(_jit, r0, f0)
 __jit_inline void
 mips_ceilr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _CEIL_L_D(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _CEIL_L_D(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_floorr_f_l(r0, f0)		mips_floorr_f_l(_jit, r0, f0)
 __jit_inline void
 mips_floorr_f_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _FLOOR_L_S(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _FLOOR_L_S(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_floorr_d_l(r0, f0)		mips_floorr_d_l(_jit, r0, f0)
 __jit_inline void
 mips_floorr_d_l(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _FLOOR_D_S(JIT_FPTMP, f0);
-    _DMFC1(r0, JIT_FPTMP);
+    _FLOOR_D_S(JIT_FTMP0, f0);
+    _DMFC1(r0, JIT_FTMP0);
 }
 
 #define jit_prepare_d(count)		mips_prepare_d(_jit, count)

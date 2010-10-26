@@ -43,14 +43,27 @@ mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
     } data;
 
     data.d = i0;
-    jit_movi_i(JIT_RTEMP, data.i[0]);
-    _MTC1(JIT_RTEMP, f0);
-    jit_movi_i(JIT_RTEMP, data.i[1]);
-#  if 0 /* FIXME illegal instruction */
-    _MTHC1(JIT_RTEMP, f0);
-#  else
-    _MTC1(JIT_RTEMP, (jit_fpr_t)(f0 + 1));
-#  endif
+    if (data.i[0]) {
+	jit_movi_i(JIT_RTEMP, data.i[0]);
+	_MTC1(JIT_RTEMP, f0);
+    }
+    else
+	_MTC1(JIT_RZERO, f0);
+    if (data.i[1]) {
+	jit_movi_i(JIT_RTEMP, data.i[1]);
+#if 0 /* FIXME illegal instruction */
+	_MTHC1(JIT_RTEMP, f0);
+#else
+	_MTC1(JIT_RTEMP, (jit_fpr_t)(f0 + 1));
+#endif
+    }
+    else {
+#if 0 /* FIXME illegal instruction */
+	_MTHC1(JIT_RZERO, f0);
+#else
+	_MTC1(JIT_RZERO, (jit_fpr_t)(f0 + 1));
+#endif
+    }
 }
 
 #define jit_prepare_d(count)		mips_prepare_d(_jit, count)
@@ -113,16 +126,11 @@ mips_arg_f(jit_state_t _jit)
     reg = (_jitl.framesize - JIT_FRAMESIZE) >> 2;
     if (reg < JIT_A_NUM) {
 	if (!_jitl.nextarg_int) {
-	    switch (reg) {
-		case 0:
-		    reg = JIT_A_NUM;
-		    break;
-		case 1:
-		    reg = JIT_A_NUM + 2;
-		    break;
-		default:
-		    _jitl.nextarg_int = 1;
-		    break;
+	    if (reg == 0)
+		reg = JIT_A_NUM;
+	    else {
+		reg = JIT_A_NUM + 2;
+		_jitl.nextarg_int = 1;
 	    }
 	}
 	ofs = reg;
@@ -139,12 +147,12 @@ __jit_inline void
 mips_getarg_d(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_A_NUM) {
-	_MTC1(jit_a_order[ofs], f0);
-	_MTC1(jit_a_order[ofs + 1], (jit_fpr_t)(f0 + 1));
+	_MTC1(jit_a_order[ofs].g, f0);
+	_MTC1(jit_a_order[ofs + 1].g, (jit_fpr_t)(f0 + 1));
     }
-    else if (ofs < (JIT_A_NUM << 1)) {
-	_MOV_S(f0, jit_fa_order[ofs - JIT_A_NUM]);
-	_MOV_S((jit_fpr_t)(f0 + 1), jit_fa_order[ofs - JIT_A_NUM + 1]);
+    else if (ofs < JIT_FA_NUM) {
+	_MOV_S(f0, jit_a_order[ofs].f);
+	_MOV_S((jit_fpr_t)(f0 + 1), jit_a_order[ofs + 1].f);
     }
     else {
 	jit_ldxi_f(f0, JIT_FP, ofs);
@@ -157,9 +165,9 @@ __jit_inline void
 mips_getarg_f(jit_state_t _jit, jit_fpr_t f0, int ofs)
 {
     if (ofs < JIT_A_NUM)
-	_MTC1(jit_a_order[ofs], f0);
-    else if (ofs < (JIT_A_NUM << 1))
-	_MOV_S(f0, jit_fa_order[ofs - JIT_A_NUM]);
+	_MTC1(jit_a_order[ofs].g, f0);
+    else if (ofs < JIT_FA_NUM)
+	_MOV_S(f0, jit_a_order[ofs].f);
     else
 	jit_ldxi_f(f0, JIT_FP, ofs);
 }
