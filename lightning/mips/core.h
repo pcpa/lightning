@@ -173,7 +173,7 @@ mips_addcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1) {
 	_ADDU(JIT_RTEMP, r1, r2);
-	_SLTU(_T8, r0, r1);
+	_SLTU(_T8, JIT_RTEMP, r1);
 	jit_movr_i(r0, JIT_RTEMP);
     }
     else {
@@ -186,44 +186,18 @@ mips_addcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_addxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    if (r0 == r1) {
-	if (_s16P(i0))
-	    _ADDIU(JIT_RTEMP, r1, _jit_US(i0));
-	else {
-	    jit_movi_i(JIT_RTEMP, i0);
-	    jit_addr_i(JIT_RTEMP, r1, JIT_RTEMP);
-	}
-	_ADDU(JIT_RTEMP, JIT_RTEMP, _T8);
-	_SLTU(_T8, JIT_RTEMP, r1);
-	jit_movr_i(r0, JIT_RTEMP);
-    }
-    else {
-	if (_s16P(i0))
-	    _ADDIU(r0, r1, _jit_US(i0));
-	else {
-	    jit_movi_i(JIT_RTEMP, i0);
-	    jit_addr_i(r0, r1, JIT_RTEMP);
-	}
-	_ADDU(r0, r0, _T8);
-	_SLTU(_T8, r0, r1);
-    }
+    jit_movr_i(_T9, _T8);
+    jit_addci_ui(r0, r1, i0);
+    _ADDU(r0, r0, _T9);
 }
 
 #define jit_addxr_ui(r0, r1, r2)	mips_addxr_ui(_jit, r0, r1, r2)
 __jit_inline void
 mips_addxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1) {
-	_ADDU(JIT_RTEMP, r1, r2);
-	_ADDU(JIT_RTEMP, JIT_RTEMP, _T8);
-	_SLTU(_T8, r0, r1);
-	jit_movr_i(r0, JIT_RTEMP);
-    }
-    else {
-	_ADDU(r0, r1, r2);
-	_ADDU(r0, r0, _T8);
-	_SLTU(_T8, r0, r1);
-    }
+    jit_movr_i(_T9, _T8);
+    jit_addcr_ui(r0, r1, r2);
+    _ADDU(r0, r0, _T9);
 }
 
 #define jit_subci_ui(r0, r1, i0)	mips_subci_ui(_jit, r0, r1, i0)
@@ -257,7 +231,7 @@ mips_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1) {
 	_SUBU(JIT_RTEMP, r1, r2);
-	_SLTU(_T8, r1, r0);
+	_SLTU(_T8, r1, JIT_RTEMP);
 	jit_movr_i(r0, JIT_RTEMP);
     }
     else {
@@ -270,44 +244,18 @@ mips_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_subxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    if (r0 == r1) {
-	if (_s16P(i0) && _jit_US(i0) != 0x8000)
-	    _ADDIU(JIT_RTEMP, r1, _jit_US(-i0));
-	else {
-	    jit_movi_i(JIT_RTEMP, i0);
-	    jit_subr_i(JIT_RTEMP, r1, JIT_RTEMP);
-	}
-	_SUBU(JIT_RTEMP, JIT_RTEMP, _T8);
-	_SLTU(_T8, r1, JIT_RTEMP);
-	jit_movr_i(r0, JIT_RTEMP);
-    }
-    else {
-	if (_s16P(i0) && _jit_US(i0) != 0x8000)
-	    _ADDIU(r0, r1, _jit_US(-i0));
-	else {
-	    jit_movi_i(JIT_RTEMP, i0);
-	    jit_subr_i(r0, r1, JIT_RTEMP);
-	}
-	_SUBU(r0, r0, _T8);
-	_SLTU(_T8, r1, r0);
-    }
+    jit_movr_i(_T9, _T8);
+    jit_subci_ui(r0, r1, i0);
+    _SUBU(r0, r0, _T9);
 }
 
 #define jit_subxr_ui(r0, r1, r2)	mips_subxr_ui(_jit, r0, r1, r2)
 __jit_inline void
 mips_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1) {
-	_SUBU(JIT_RTEMP, r1, r2);
-	_SUBU(JIT_RTEMP, JIT_RTEMP, _T8);
-	_SLTU(_T8, r1, r0);
-	jit_movr_i(r0, JIT_RTEMP);
-    }
-    else {
-	_SUBU(r0, r1, r2);
-	_SUBU(r0, r0, _T8);
-	_SLTU(_T8, r1, r0);
-    }
+    jit_movr_i(_T9, _T8);
+    jit_subcr_ui(r0, r1, r2);
+    _SUBU(r0, r0, _T9);
 }
 
 #define jit_mulr_i(r0, r1, r2)		mips_mulr_i(_jit, r0, r1, r2)

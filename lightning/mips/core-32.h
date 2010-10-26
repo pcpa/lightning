@@ -349,8 +349,18 @@ mips_patch_arguments(jit_state_t _jit)
 		    break;
 		case MIPS_SWC1:
 		    fs = (jit_fpr_t)c.ft.b;
-		    if (reg & 1)
-			nextarg_int = 1;
+		    if (!nextarg_int && size == 4) {
+			switch (reg) {
+			    case 0:
+				break;
+			    case 1:
+				reg = 2;
+				break;
+			    default:
+				nextarg_int = 1;
+				break;
+			}
+		    }
 		    if (nextarg_int) {
 			gd = jit_a_order[reg];
 			_MFC1(gd, fs);

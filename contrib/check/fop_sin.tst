@@ -3,6 +3,7 @@
 .code	$(1024 * 1024)
 	prolog 0
 
+#if defined(__i386__) || defined(__x86_64__)
 #define  SIN(N, T, I, V)			 FOPU(N, T, sin, I, V)
 #define USIN(N, T, I, V)			UFOPU(N, T, sin, I, V)
 	 SIN(0, f,	-0.0,		 0.0)
@@ -19,5 +20,6 @@
 	 SIN(4, d,	-0.5,		-0.4794255386042030002)
 	USIN(5, d,	$Inf,		$NaN)
 	USIN(6, d,	$NaN,		$NaN)
+#endif
 
 	ret

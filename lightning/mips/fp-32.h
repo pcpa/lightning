@@ -112,11 +112,20 @@ mips_arg_f(jit_state_t _jit)
 
     reg = (_jitl.framesize - JIT_FRAMESIZE) >> 2;
     if (reg < JIT_A_NUM) {
+	if (!_jitl.nextarg_int) {
+	    switch (reg) {
+		case 0:
+		    reg = JIT_A_NUM;
+		    break;
+		case 1:
+		    reg = JIT_A_NUM + 2;
+		    break;
+		default:
+		    _jitl.nextarg_int = 1;
+		    break;
+	    }
+	}
 	ofs = reg;
-	if (reg & 1)
-	    _jitl.nextarg_int = 1;
-	if (!_jitl.nextarg_int)
-	    ofs += JIT_A_NUM;
     }
     else
 	ofs = _jitl.framesize;

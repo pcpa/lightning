@@ -3,6 +3,7 @@
 .code	$(1024 * 1024)
 	prolog 0
 
+#if defined(__i386__) || defined(__x86_64__)
 #define  COS(N, T, I, V)			 FOPU(N, T, cos, I, V)
 #define UCOS(N, T, I, V)			UFOPU(N, T, cos, I, V)
 	 COS(0, f,	-0.0,		 1.0)
@@ -19,5 +20,6 @@
 	 COS(4, d,	-0.5,		 0.87758256189037271613)
 	UCOS(5, d,	$Inf,		$NaN)
 	UCOS(6, d,	$NaN,		$NaN)
+#endif
 
 	ret

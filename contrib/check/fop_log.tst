@@ -3,6 +3,7 @@
 .code	$(1024 * 1024)
 	prolog 0
 
+#if defined(__i386__) || defined(__x86_64__)
 #define  LOG(N, T, I, V)			 FOPU(N, T, log, I, V)
 #define ULOG(N, T, I, V)			UFOPU(N, T, log, I, V)
 	 LOG(0, f,	 0.0,		$nInf)
@@ -15,5 +16,6 @@
 	 LOG(2, d,	 0.5,		-0.69314718055994530943)
 	ULOG(3, d,	$Inf,		$Inf)
 	ULOG(4, d,	$NaN,		$NaN)
+#endif
 
 	ret
