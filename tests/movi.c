@@ -25,7 +25,7 @@ generate_movi (const void *operand)
   mover_t result;
   int retval;
 
-  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);

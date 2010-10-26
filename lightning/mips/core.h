@@ -1800,4 +1800,27 @@ mips_allocai(jit_state_t _jit, int length)
 #  include "core-32.h"
 #endif
 
+#ifdef JIT_NEED_PUSH_POP
+# define jit_pushr_i(r0)		mips_pushr_i(_jit, r0)
+__jit_inline int
+mips_pushr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    int		offset;
+    assert(_jitl.pop < sizeof(_jitl.push) / sizeof(_jitl.push[0]));
+    offset = jit_allocai(4);
+    _jitl.push[_jitl.pop++] = offset;
+    jit_stxi_i(offset, JIT_FP, r0);
+}
+
+# define jit_popr_i(r0)			mips_popr_i(_jit, r0)
+__jit_inline int
+mips_popr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    int		offset;
+    assert(_jitl.pop > 0);
+    offset = _jitl.push[--_jitl.pop];
+    jit_ldxi_i(r0, JIT_FP, offset);
+}
+#endif
+
 #endif /* __lightning_core_mips_h */

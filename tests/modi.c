@@ -26,7 +26,7 @@ generate_modi (int operand)
   int arg;
   int retval;
 
-  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);

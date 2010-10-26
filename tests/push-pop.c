@@ -34,8 +34,8 @@ generate_push_pop (void)
   stakumilo_t result;
   int arg;
   int retval;
-  
-  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+
+  retval = posix_memalign((void**)(void**)&buffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);

@@ -51,7 +51,7 @@ int main(void)
   int in;
   int retval;
 
-  retval = posix_memalign(&codeBuffer, getpagesize(), getpagesize());
+  retval = posix_memalign((void**)&codeBuffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);

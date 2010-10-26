@@ -32,7 +32,7 @@ generate_function_proxy (int_return_int_t func)
   int arg;
   int retval;
   
-  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);

@@ -36,7 +36,7 @@ generate_function_proxy (int_return_int_t func)
   int arg, arg_offset, argneg_offset;
   jit_insn *branch;
 
-  retval = posix_memalign(&buffer, getpagesize(), getpagesize());
+  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
   if (retval != 0) {
     perror("posix_memalign");
     exit(0);
