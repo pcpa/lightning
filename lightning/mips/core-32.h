@@ -32,7 +32,7 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-#define JIT_FRAMESIZE			40
+#define JIT_FRAMESIZE			56
 
 #define jit_ldi_ui(r0, i0)		jit_ldi_i(r0, i0)
 #define jit_ldi_l(r0, i0)		jit_ldi_i(r0, i0)
@@ -199,16 +199,18 @@ mips_prolog(jit_state_t _jit, int n)
 #endif
 
     jit_subi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);
-    jit_stxi_i(36, JIT_SP, _RA);
-    jit_stxi_i(32, JIT_SP, _FP);
-    jit_stxi_i(28, JIT_SP, _S7);
-    jit_stxi_i(24, JIT_SP, _S6);
-    jit_stxi_i(20, JIT_SP, _S5);
-    jit_stxi_i(16, JIT_SP, _S4);
-    jit_stxi_i(12, JIT_SP, _S3);
-    jit_stxi_i( 8, JIT_SP, _S2);
-    jit_stxi_i( 4, JIT_SP, _S1);
-    jit_stxi_i( 0, JIT_SP, _S0);
+    jit_stxi_i(52, JIT_SP, _RA);
+    jit_stxi_i(48, JIT_SP, _FP);
+    jit_stxi_i(44, JIT_SP, _S7);
+    jit_stxi_i(40, JIT_SP, _S6);
+    jit_stxi_i(36, JIT_SP, _S5);
+    jit_stxi_i(32, JIT_SP, _S4);
+    jit_stxi_i(28, JIT_SP, _S3);
+    jit_stxi_i(24, JIT_SP, _S2);
+    jit_stxi_i(20, JIT_SP, _S1);
+    jit_stxi_i(16, JIT_SP, _S0);
+    _SDC1(_F30, 8, JIT_SP);
+    _SDC1(_F28, 0, JIT_SP);
     jit_movr_i(JIT_FP, JIT_SP);
 
     /* patch alloca and stack adjustment */
@@ -441,16 +443,18 @@ __jit_inline void
 mips_ret(jit_state_t jit)
 {
     jit_movr_i(JIT_SP, JIT_FP);
-    jit_ldxi_i(_S0, JIT_SP,  0);
-    jit_ldxi_i(_S1, JIT_SP,  4);
-    jit_ldxi_i(_S2, JIT_SP,  8);
-    jit_ldxi_i(_S3, JIT_SP, 12);
-    jit_ldxi_i(_S4, JIT_SP, 16);
-    jit_ldxi_i(_S5, JIT_SP, 20);
-    jit_ldxi_i(_S6, JIT_SP, 24);
-    jit_ldxi_i(_S7, JIT_SP, 28);
-    jit_ldxi_i(_FP, JIT_SP, 32);
-    jit_ldxi_i(_RA, JIT_SP, 36);
+    _LDC1(_F28, 0, JIT_SP);
+    _LDC1(_F30, 8, JIT_SP);
+    jit_ldxi_i(_S0, JIT_SP, 16);
+    jit_ldxi_i(_S1, JIT_SP, 20);
+    jit_ldxi_i(_S2, JIT_SP, 24);
+    jit_ldxi_i(_S3, JIT_SP, 28);
+    jit_ldxi_i(_S4, JIT_SP, 32);
+    jit_ldxi_i(_S5, JIT_SP, 36);
+    jit_ldxi_i(_S6, JIT_SP, 40);
+    jit_ldxi_i(_S7, JIT_SP, 44);
+    jit_ldxi_i(_FP, JIT_SP, 48);
+    jit_ldxi_i(_RA, JIT_SP, 52);
     _JR(_RA);
     /* restore sp in delay slot */
     jit_addi_i(JIT_SP, JIT_SP, JIT_FRAMESIZE);

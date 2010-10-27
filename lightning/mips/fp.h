@@ -44,7 +44,6 @@ jit_f_order[JIT_FPR_NUM] = {
 
 #define JIT_FPRET			_F0
 
-/* FIXME actually these are callee save registers */
 #define JIT_FTMP0			_F28
 #define JIT_FTMP1			_F30
 
@@ -118,7 +117,7 @@ mips_ldi_f(jit_state_t _jit, jit_fpr_t f0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LWC1(f0, ds & 0xffff, JIT_RZERO);
+	_LWC1(f0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LWC1(f0, 0, JIT_RTEMP);
@@ -132,7 +131,7 @@ mips_ldi_d(jit_state_t _jit, jit_fpr_t f0, void *i0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_LDC1(f0, ds & 0xffff, JIT_RZERO);
+	_LDC1(f0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_LDC1(f0, 0, JIT_RTEMP);
@@ -168,7 +167,7 @@ __jit_inline void
 mips_ldxi_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (_s16P(i0))
-	_LWC1(f0, i0 & 0xffff, r0);
+	_LWC1(f0, _jit_US(i0), r0);
     else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_LWXC1(f0, JIT_RTEMP, r0);
@@ -184,7 +183,7 @@ __jit_inline void
 mips_ldxi_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (_s16P(i0))
-	_LDC1(f0, i0 & 0xffff, r0);
+	_LDC1(f0, _jit_US(i0), r0);
     else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_LDXC1(f0, JIT_RTEMP, r0);
@@ -216,7 +215,7 @@ mips_sti_f(jit_state_t _jit, void *i0, jit_fpr_t f0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_SWC1(f0, ds & 0xffff, JIT_RZERO);
+	_SWC1(f0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_SWC1(f0, 0, JIT_RTEMP);
@@ -230,7 +229,7 @@ mips_sti_d(jit_state_t _jit, void *i0, jit_fpr_t f0)
     long	ds = (long)i0;
 
     if (_s16P(ds))
-	_SDC1(f0, ds & 0xffff, JIT_RZERO);
+	_SDC1(f0, _jit_US(ds), JIT_RZERO);
     else {
 	jit_movi_i(JIT_RTEMP, ds);
 	_SDC1(f0, 0, JIT_RTEMP);
@@ -266,7 +265,7 @@ __jit_inline void
 mips_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (_s16P(i0))
-	_SWC1(f0, i0 & 0xffff, r0);
+	_SWC1(f0, _jit_US(i0), r0);
     else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_SWXC1(f0, JIT_RTEMP, r0);
@@ -282,7 +281,7 @@ __jit_inline void
 mips_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (_s16P(i0))
-	_SDC1(f0, i0 & 0xffff, r0);
+	_SDC1(f0, _jit_US(i0), r0);
     else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_SDXC1(f0, JIT_RTEMP, r0);

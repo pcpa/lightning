@@ -32,7 +32,7 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
-#define JIT_FRAMESIZE			80
+#define JIT_FRAMESIZE			96
 
 #define jit_movr_l(r0, r1)		mips_movr_i(_jit, r0, r1)
 
@@ -481,16 +481,18 @@ mips_prolog(jit_state_t _jit, int n)
 #endif
 
     jit_subi_l(JIT_SP, JIT_SP, JIT_FRAMESIZE);
-    jit_stxi_l(72, JIT_SP, _RA);
-    jit_stxi_l(64, JIT_SP, _FP);
-    jit_stxi_l(56, JIT_SP, _S7);
-    jit_stxi_l(48, JIT_SP, _S6);
-    jit_stxi_l(40, JIT_SP, _S5);
-    jit_stxi_l(32, JIT_SP, _S4);
-    jit_stxi_l(34, JIT_SP, _S3);
-    jit_stxi_l(16, JIT_SP, _S2);
-    jit_stxi_l( 8, JIT_SP, _S1);
-    jit_stxi_l( 0, JIT_SP, _S0);
+    jit_stxi_l(88, JIT_SP, _RA);
+    jit_stxi_l(80, JIT_SP, _FP);
+    jit_stxi_l(72, JIT_SP, _S7);
+    jit_stxi_l(64, JIT_SP, _S6);
+    jit_stxi_l(56, JIT_SP, _S5);
+    jit_stxi_l(48, JIT_SP, _S4);
+    jit_stxi_l(40, JIT_SP, _S3);
+    jit_stxi_l(32, JIT_SP, _S2);
+    jit_stxi_l(24, JIT_SP, _S1);
+    jit_stxi_l(16, JIT_SP, _S0);
+    _SDC1(_F30, 8, JIT_SP);
+    _SDC1(_F28, 0, JIT_SP);
     jit_movr_l(JIT_FP, JIT_SP);
 
     /* patch alloca and stack adjustment */
@@ -597,16 +599,18 @@ __jit_inline void
 mips_ret(jit_state_t jit)
 {
     jit_movr_l(JIT_SP, JIT_FP);
-    jit_ldxi_l(_S0, JIT_SP,  0);
-    jit_ldxi_l(_S1, JIT_SP,  8);
-    jit_ldxi_l(_S2, JIT_SP, 16);
-    jit_ldxi_l(_S3, JIT_SP, 24);
-    jit_ldxi_l(_S4, JIT_SP, 32);
-    jit_ldxi_l(_S5, JIT_SP, 40);
-    jit_ldxi_l(_S6, JIT_SP, 48);
-    jit_ldxi_l(_S7, JIT_SP, 56);
-    jit_ldxi_l(_FP, JIT_SP, 64);
-    jit_ldxi_l(_RA, JIT_SP, 72);
+    _LDC1(_F28, 0, JIT_SP);
+    _LDC1(_F30, 8, JIT_SP);
+    jit_ldxi_l(_S0, JIT_SP, 16);
+    jit_ldxi_l(_S1, JIT_SP, 24);
+    jit_ldxi_l(_S2, JIT_SP, 32);
+    jit_ldxi_l(_S3, JIT_SP, 40);
+    jit_ldxi_l(_S4, JIT_SP, 48);
+    jit_ldxi_l(_S5, JIT_SP, 56);
+    jit_ldxi_l(_S6, JIT_SP, 64);
+    jit_ldxi_l(_S7, JIT_SP, 72);
+    jit_ldxi_l(_FP, JIT_SP, 80);
+    jit_ldxi_l(_RA, JIT_SP, 88);
     _JR(_RA);
     /* restore sp in delay slot */
     jit_addi_l(JIT_SP, JIT_SP, JIT_FRAMESIZE);

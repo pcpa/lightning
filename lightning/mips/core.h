@@ -41,10 +41,10 @@
 #define jit_mips2_p()			jit_cpu.mips2
 #define jit_mul_p()			jit_cpu.mul
 
-#define JIT_R_NUM			8
+#define JIT_R_NUM			10
 static const jit_gpr_t
 jit_r_order[JIT_R_NUM] = {
-    _T0, _T1, _T2, _T3, _T4, _T5, _T6, _T7
+    _V0, _V1, _T0, _T1, _T2, _T3, _T4, _T5, _T6, _T7
 };
 #define JIT_R(i)			jit_r_order[i]
 
