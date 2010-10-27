@@ -186,6 +186,8 @@ struct {
 
     /* movf and movt mips32 instructions not implemented in godson/loongson */
     _ui		movf		: 1;
+
+    _ui		mul		: 1;
 } jit_cpu;
 #else
 #  error GNU lightning does not support the current target

@@ -5,14 +5,22 @@
 #define lx1		1
 #define ix2		2
 #define lx2		2
+#define ix4		4
+#define lx4		4
 #define iff		0xffffffff
 #define ife		0xfffffffe
+#define ifd		0xfffffffd
+#define ifc		0xfffffffc
 #if __WORDSIZE == 64
 #  define lff		0xffffffffffffffff
 #  define lfe		0xfffffffffffffffe
+#  define lfd		0xfffffffffffffffd
+#  define lfc		0xfffffffffffffffc
 #else
 #  define lff		iff
 #  define lfe		ife
+#  define lfd		ifd
+#  define lfc		ifc
 #endif
 fmtci:
 .c	"%d ic %x %x\n"
@@ -132,9 +140,40 @@ op##_##t##h##line##r0##r1##r2##r3:
 	xopr_4(line,i,sub,r0,r1,r2,v0,i##llo,i##lhi,i##rlo,i##rhi,i##vlo,i##vhi)	\
 	xopr_4(line,l,sub,r0,r1,r2,v0,l##llo,l##lhi,l##rlo,l##rhi,l##vlo,l##vhi)
 
+	/* 0xffffffffffffffff + 1 = 0x10000000000000000 */
 	xaddr(__LINE__, ff, ff, x1, x0, x0, x0)
+
+	/* 1 + 0xffffffffffffffff = 0x10000000000000000 */
 	xaddr(__LINE__, x1, x0, ff, ff, x0, x0)
+
+	/* 0xfffffffeffffffff + 1 = 0xffffffff00000000 */
+	xaddr(__LINE__, ff, fe, x1, x0, x0, ff)
+
+	/* 1 + 0xfffffffeffffffff = 0xffffffff00000000 */
+	xaddr(__LINE__, x1, x0, ff, fe, x0, ff)
+
+	/* 0xfffffffefffffffe + 2 = 0xffffffff00000000 */
+	xaddr(__LINE__, fe, fe, x2, x0, x0, ff)
+
+	/* 2 + 0xfffffffefffffffe = 0xffffffff00000000 */
+	xaddr(__LINE__, x2, x0, fe, fe, x0, ff)
+
+	/* 0xffffffffffffffff - 1 = 0xfffffffffffffffe */
 	xsubr(__LINE__, ff, ff, x1, x0, fe, ff)
+
+	/* 1 - 0xffffffffffffffff = -0xfffffffffffffffe */
 	xsubr(__LINE__, x1, x0, ff, ff, x2, x0)
+
+	/* 0xfffffffeffffffff - 1 = 0xfffffffefffffffe */
+	xsubr(__LINE__, ff, fe, x1, x0, fe, fe)
+
+	/* 1 - 0xfffffffeffffffff = -0xfffffffefffffffe */
+	xsubr(__LINE__, x1, x0, ff, fe, x2, x1)
+
+	/* 0xfffffffefffffffe - 2 = 0xfffffffefffffffc */
+	xsubr(__LINE__, fe, fe, x2, x0, fc, fe)
+
+	/* 2 + 0xfffffffefffffffe = -0xfffffffefffffffc */
+	xsubr(__LINE__, x2, x0, fe, fe, x4, x1)
 
 	ret

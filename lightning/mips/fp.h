@@ -143,24 +143,24 @@ mips_ldi_d(jit_state_t _jit, jit_fpr_t f0, void *i0)
 __jit_inline void
 mips_ldxr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-#if 0 /* FIXME not disassembled */
-    _LWXC1(f0, r1, r0);
-#else
-    jit_addr_i(JIT_RTEMP, r0, r1);
-    _LWC1(f0, 0, JIT_RTEMP);
-#endif
+    if (jit_mips2_p())
+	_LWXC1(f0, r1, r0);
+    else {
+	jit_addr_i(JIT_RTEMP, r0, r1);
+	_LWC1(f0, 0, JIT_RTEMP);
+    }
 }
 
 #define jit_ldxr_d(f0, r0, r1)		mips_ldxr_d(_jit, f0, r0, r1)
 __jit_inline void
 mips_ldxr_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-#if 0 /* FIXME not disassembled */
-    _LDXC1(f0, r1, r0);
-#else
-    jit_addr_i(JIT_RTEMP, r0, r1);
-    _LDC1(f0, 0, JIT_RTEMP);
-#endif
+    if (jit_mips2_p())
+	_LDXC1(f0, r1, r0);
+    else {
+	jit_addr_i(JIT_RTEMP, r0, r1);
+	_LDC1(f0, 0, JIT_RTEMP);
+    }
 }
 
 #define jit_ldxi_f(f0, r0, i0)		mips_ldxi_f(_jit, f0, r0, i0)
@@ -169,14 +169,13 @@ mips_ldxi_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (_s16P(i0))
 	_LWC1(f0, i0 & 0xffff, r0);
-    else {
-#if 0 /* FIXME not disassembled */
+    else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_LWXC1(f0, JIT_RTEMP, r0);
-#else
+    }
+    else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_LWC1(f0, 0, JIT_RTEMP);
-#endif
     }
 }
 
@@ -186,14 +185,13 @@ mips_ldxi_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
     if (_s16P(i0))
 	_LDC1(f0, i0 & 0xffff, r0);
-    else {
-#if 0 /* FIXME not disassembled */
+    else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_LDXC1(f0, JIT_RTEMP, r0);
-#else
+    }
+    else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_LDC1(f0, 0, JIT_RTEMP);
-#endif
     }
 }
 
@@ -243,24 +241,24 @@ mips_sti_d(jit_state_t _jit, void *i0, jit_fpr_t f0)
 __jit_inline void
 mips_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-#if 0	/* FIXME not disassembled */
-    _SWXC1(f0, r1, r0);
-#else
-    jit_addr_i(JIT_RTEMP, r0, r1);
-    _SWC1(f0, 0, JIT_RTEMP);
-#endif
+    if (jit_mips2_p())
+	_SWXC1(f0, r1, r0);
+    else {
+	jit_addr_i(JIT_RTEMP, r0, r1);
+	_SWC1(f0, 0, JIT_RTEMP);
+    }
 }
 
 #define jit_stxr_d(r0, r1, f0)		mips_stxr_d(_jit, r0, r1, f0)
 __jit_inline void
 mips_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-#if 0	/* FIXME not disassembled */
-    _SDXC1(f0, r1, r0);
-#else
-    jit_addr_i(JIT_RTEMP, r0, r1);
-    _SDC1(f0, 0, JIT_RTEMP);
-#endif
+    if (jit_mips2_p())
+	_SDXC1(f0, r1, r0);
+    else {
+	jit_addr_i(JIT_RTEMP, r0, r1);
+	_SDC1(f0, 0, JIT_RTEMP);
+    }
 }
 
 #define jit_stxi_f(i0, r0, f0)		mips_stxi_f(_jit, i0, r0, f0)
@@ -269,14 +267,13 @@ mips_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (_s16P(i0))
 	_SWC1(f0, i0 & 0xffff, r0);
-    else {
-#if 0	/* FIXME not disassembled */
+    else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_SWXC1(f0, JIT_RTEMP, r0);
-#else
+    }
+    else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_SWC1(f0, 0, JIT_RTEMP);
-#endif
     }
 }
 
@@ -286,14 +283,13 @@ mips_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
     if (_s16P(i0))
 	_SDC1(f0, i0 & 0xffff, r0);
-    else {
-#if 0	/* FIXME not disassembled */
+    else if (jit_mips2_p()) {
 	jit_movi_i(JIT_RTEMP, i0);
 	_SDXC1(f0, JIT_RTEMP, r0);
-#else
+    }
+    else {
 	jit_addi_i(JIT_RTEMP, r0, i0);
 	_SDC1(f0, 0, JIT_RTEMP);
-#endif
     }
 }
 

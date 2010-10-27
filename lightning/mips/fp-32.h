@@ -51,18 +51,16 @@ mips_movi_d(jit_state_t _jit, jit_fpr_t f0, double i0)
 	_MTC1(JIT_RZERO, f0);
     if (data.i[1]) {
 	jit_movi_i(JIT_RTEMP, data.i[1]);
-#if 0 /* FIXME illegal instruction */
-	_MTHC1(JIT_RTEMP, f0);
-#else
-	_MTC1(JIT_RTEMP, (jit_fpr_t)(f0 + 1));
-#endif
+	if (jit_mips2_p())
+	    _MTHC1(JIT_RTEMP, f0);
+	else
+	    _MTC1(JIT_RTEMP, (jit_fpr_t)(f0 + 1));
     }
     else {
-#if 0 /* FIXME illegal instruction */
-	_MTHC1(JIT_RZERO, f0);
-#else
-	_MTC1(JIT_RZERO, (jit_fpr_t)(f0 + 1));
-#endif
+	if (jit_mips2_p())
+	    _MTHC1(JIT_RZERO, f0);
+	else
+	    _MTC1(JIT_RZERO, (jit_fpr_t)(f0 + 1));
     }
 }
 

@@ -39,6 +39,7 @@
 #define JIT_RTEMP			_AT
 
 #define jit_mips2_p()			jit_cpu.mips2
+#define jit_mul_p()			jit_cpu.mul
 
 #define JIT_R_NUM			8
 static const jit_gpr_t
@@ -194,7 +195,7 @@ mips_addxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     jit_movr_i(_T9, _T8);
     jit_addci_ui(r0, r1, i0);
-    _ADDU(r0, r0, _T9);
+    jit_addcr_ui(r0, r0, _T9);
 }
 
 #define jit_addxr_ui(r0, r1, r2)	mips_addxr_ui(_jit, r0, r1, r2)
@@ -203,7 +204,7 @@ mips_addxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     jit_movr_i(_T9, _T8);
     jit_addcr_ui(r0, r1, r2);
-    _ADDU(r0, r0, _T9);
+    jit_addcr_ui(r0, r0, _T9);
 }
 
 #define jit_subci_ui(r0, r1, i0)	mips_subci_ui(_jit, r0, r1, i0)
@@ -252,7 +253,7 @@ mips_subxi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
     jit_movr_i(_T9, _T8);
     jit_subci_ui(r0, r1, i0);
-    _SUBU(r0, r0, _T9);
+    jit_subcr_ui(r0, r0, _T9);
 }
 
 #define jit_subxr_ui(r0, r1, r2)	mips_subxr_ui(_jit, r0, r1, r2)
@@ -261,7 +262,7 @@ mips_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     jit_movr_i(_T9, _T8);
     jit_subcr_ui(r0, r1, r2);
-    _SUBU(r0, r0, _T9);
+    jit_subcr_ui(r0, r0, _T9);
 }
 
 #define jit_mulr_i(r0, r1, r2)		mips_mulr_i(_jit, r0, r1, r2)
@@ -269,14 +270,12 @@ mips_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_mulr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-#if 1
-    _MULTU(r1, r2);
-    _MFLO(r0);
-#else
-    /* FIXME matches bits in MIPS32 documentation but not
-     * disassembled by gdb in loongson mips64 */
-    _MUL(r0, r1, r2);
-#endif
+    if (jit_mul_p())
+	_MUL(r0, r1, r2);
+    else {
+	_MULTU(r1, r2);
+	_MFLO(r0);
+    }
 }
 
 #define jit_muli_i(r0, r1, i0)		mips_muli_i(_jit, r0, r1, i0)
