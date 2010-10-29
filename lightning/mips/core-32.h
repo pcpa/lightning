@@ -405,10 +405,6 @@ mips_patch_arguments(jit_state_t _jit)
     }
 
     _jit->x.pc = pc;
-
-    /* FIXME if going to pass float/double arguments in both
-     * int and float registers, this would be the place to
-     * write something like:  jit_ldxi_f...(); jit_movr_f(...); */
 }
 
 #define jit_finishr(rs)			mips_finishr(_jit, rs)

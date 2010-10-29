@@ -73,11 +73,15 @@ jit_get_cpu(void)
     while (fgets(buf, sizeof (buf), fp)) {
 	if (strncmp(buf, "cpu model", sizeof("cpu model") - 1) == 0) {
 	    if (strstr(buf, "Godson2 V0.2") ||
-		strstr(buf, "Loongson-2 V0.2"))
-		/* loongson2e */;
+		strstr(buf, "Loongson-2 V0.2")) {
+		/* loongson2e */
+		jit_cpu.mips64 = 1;
+	    }
 	    else if (strstr(buf, "Godson2 V0.3") ||
-		     strstr(buf, "Loongson-2 V0.3"))
-		/* loongson2f */;
+		     strstr(buf, "Loongson-2 V0.3")) {
+		/* loongson2f */
+		jit_cpu.mips64	= 1;
+	    }
 	    else if (strstr(buf, "SiByte SB1"))
 		/* sb1 */;
 	    else if(strstr (buf, "R5000"))
