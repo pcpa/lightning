@@ -41,10 +41,10 @@
 #define jit_mips2_p()			jit_cpu.mips2
 #define jit_mul_p()			jit_cpu.mul
 
-#define JIT_R_NUM			10
+#define JIT_R_NUM			9
 static const jit_gpr_t
 jit_r_order[JIT_R_NUM] = {
-    _V0, _V1, _T0, _T1, _T2, _T3, _T4, _T5, _T6, _T7
+    _V0, _V1, _T0, _T1, _T2, _T3, _T4, _T5, _T6
 };
 #define JIT_R(i)			jit_r_order[i]
 
@@ -1030,6 +1030,8 @@ mips_boaddr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     /* r0 cannot be_AT, _T8, or _T9	-	r1 can be _AT */
     jit_insn	*l;
     long	 d;
+    if (r1 == _AT)
+	jit_movr_i(_T7, r1);
     /* at = r0 + r1;	overflow = r1 < 0 ? r0 < at : at < r0; */
     _SLT(_T8, r1, _ZERO);		/* t8 = r1 < 0 */
     _ADDU(_AT, r0, r1);			/* at = r0 + r1 */
@@ -1041,8 +1043,8 @@ mips_boaddr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     assert(_s16P(d));
 
     _BNE(_AT, _ZERO, _jit_US(d));
-    /*delay slot */
-    _ADDU(r0, r0, r1);
+    /* delay slot */
+    _ADDU(r0, r0, r1 == _AT ? _T7 : r1);
 
     return (l);
 }
@@ -1081,6 +1083,8 @@ mips_bosubr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     /* r0 cannot be_AT, _T8, or _T9	-	r1 can be _AT */
     jit_insn	*l;
     long	 d;
+    if (r1 == _AT)
+	jit_movr_i(_T7, r1);
     /* at = r0 - r1;	overflow = 0 < r1 ? r0 < at : at < r0; */
     _SLT(_T8, _ZERO, r1);		/* t8 = r1 < 0 */
     _SUBU(_AT, r0, r1);			/* at = r0 - r1 */
@@ -1093,7 +1097,7 @@ mips_bosubr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 
     _BNE(_AT, _ZERO, _jit_US(d));
     /* delay slot */
-    _SUBU(r0, r0, r1);
+    _SUBU(r0, r0, r1 == _AT ? _T7 : r1);
 
     return (l);
 }
@@ -1132,14 +1136,13 @@ mips_boaddr_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     long	 d;
     _ADDU(JIT_RTEMP, r0, r1);
     _SLTU(_T8, JIT_RTEMP, r0);
-    jit_movr_i(r0, JIT_RTEMP);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
 
     _BNE(JIT_RZERO, _T8, _jit_US(d));
     /*delay slot */
-    _ADDU(r0, r0, r1);
+    jit_movr_i(r0, JIT_RTEMP);
 
     return (l);
 }
@@ -1153,14 +1156,13 @@ mips_boaddi_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, unsigned int i1)
     if (_s16P(i1)) {
 	_ADDIU(JIT_RTEMP, r0, _jit_US(i1));
 	_SLTU(_T8, JIT_RTEMP, r0);
-	jit_movr_i(r0, JIT_RTEMP);
 	l = _jit->x.pc;
 	d = (((long)i0 - (long)l) >> 2) - 1;
 	assert(_s16P(d));
 
 	_BNE(JIT_RZERO, _T8, _jit_US(d));
 	/* delay slot */
-	_ADDIU(r0, r0, _jit_US(i1));
+	jit_movr_i(r0, JIT_RTEMP);
 
 	return (l);
     }
@@ -1176,14 +1178,13 @@ mips_bosubr_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     long	 d;
     _SUBU(JIT_RTEMP, r0, r1);
     _SLTU(_T8, r0, JIT_RTEMP);
-    jit_movr_i(r0, JIT_RTEMP);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
 
     _BNE(JIT_RZERO, _T8, _jit_US(d));
     /* delay slot */
-    _SUBU(r0, r0, r1);
+    jit_movr_i(r0, JIT_RTEMP);
 
     return (l);
 }
@@ -1197,14 +1198,13 @@ mips_bosubi_ui(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, unsigned int i1)
     if (_s16P(i1) && _jit_US(i1) != 0x8000) {
 	_ADDIU(JIT_RTEMP, r0, _jit_US(-i1));
 	_SLTU(_T8, r0, JIT_RTEMP);
-	jit_movr_i(r0, JIT_RTEMP);
 	l = _jit->x.pc;
 	d = (((long)i0 - (long)l) >> 2) - 1;
 	assert(_s16P(d));
 
 	_BNE(JIT_RZERO, _T8, _jit_US(d));
 	/* delay slot */
-	_ADDIU(r0, r0, _jit_US(-i1));
+	jit_movr_i(r0, JIT_RTEMP);
 
 	return (l);
     }

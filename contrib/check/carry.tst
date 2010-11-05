@@ -7,16 +7,25 @@
 #define lx2		2
 #define ix4		4
 #define lx4		4
+#define ix7fe		0x7ffffffe
+#define ix7f		0x7fffffff
+#define ix80		0x80000000
 #define iff		0xffffffff
 #define ife		0xfffffffe
 #define ifd		0xfffffffd
 #define ifc		0xfffffffc
 #if __WORDSIZE == 64
+#  define lx7fe		0x7ffffffffffffffe
+#  define lx7f		0x7fffffffffffffff
+#  define lx80		0x8000000000000000
 #  define lff		0xffffffffffffffff
 #  define lfe		0xfffffffffffffffe
 #  define lfd		0xfffffffffffffffd
 #  define lfc		0xfffffffffffffffc
 #else
+#  define lx7fe		ix7fe
+#  define lx7f		ix7f
+#  define lx80		ix80
 #  define lff		iff
 #  define lfe		ife
 #  define lfd		ifd
@@ -30,9 +39,144 @@ fmtcl:
 .c	"%d lc %lx %lx\n"
 fmtxl:
 .c	"%d lx %lx %lx\n"
+fmtbi:
+.c	"%d (%x) bi %x %x = %x\n"
+fmtbui:
+.c	"%d (%x) bui %x %x = %x\n"
+fmtbl:
+.c	"%d (%lx) bl %lx %lx = %lx\n"
+fmtbul:
+.c	"%d (%lx) bul %lx %lx = %lx\n"
 
 .code	$(1024 * 1024)
 	prolog 0
+
+#define bopr_t(line,t,op,r0,r1,l,r,v)					\
+	movi_##t %r0 l							\
+	movi_##t %r1 r							\
+	bo##op##r_##t op##t##r##line##r0##r1 %r0 %r1			\
+	/* avoid zero distance jump possibly removed */			\
+	movi_##t %r1 r							\
+op##t##r##line##r0##r1:							\
+	beqi_##t op##t##r##line##ok##r0##r1 %r0 v			\
+	prepare 6							\
+		pusharg_##t %r0						\
+		pusharg_##t %r1						\
+		movi_##t %r0 l						\
+		pusharg_##t %r0						\
+		movi_##t %r0 v						\
+		pusharg_##t %r0						\
+		movi_i %r0 line						\
+		pusharg_i %r0						\
+		movi_p %r0 fmtb##t					\
+		pusharg_p %r0						\
+	finish @printf							\
+op##t##r##line##ok##r0##r1:
+
+#define bopi_t(line,t,op,r0,l,r,v)					\
+	movi_##t %r0 l							\
+	bo##op##i_##t op##t##i##line##r0##r1 %r0 r			\
+	/* avoid zero distance jump possibly removed */			\
+	movi_##t %r1 r							\
+op##t##i##line##r0##r1:							\
+	beqi_##t op##t##i##line##ok##r0##r1 %r0 v			\
+	prepare 6							\
+		pusharg_##t %r0						\
+		movi_##t %r0 r						\
+		pusharg_##t %r0						\
+		movi_##t %r0 l						\
+		pusharg_##t %r0						\
+		movi_##t %r0 v						\
+		pusharg_##t %r0						\
+		movi_i %r0 line						\
+		pusharg_i %r0						\
+		movi_p %r0 fmtb##t					\
+		pusharg_p %r0						\
+	finish @printf							\
+op##t##i##line##ok##r0##r1:
+
+#define bopr_f(line,t,op,r0,r1,l,r,v)					\
+	movi_##t %r0 l							\
+	movi_##t %r1 r							\
+	bo##op##r_##t op##t##r##line##r0##r1 %r0 %r1			\
+	beqi_##t op##t##r##line##ok##r0##r1 %r0 v			\
+op##t##r##line##r0##r1:							\
+	prepare 6							\
+		pusharg_##t %r0						\
+		pusharg_##t %r1						\
+		movi_##t %r0 l						\
+		pusharg_##t %r0						\
+		movi_##t %r0 v						\
+		pusharg_##t %r0						\
+		movi_i %r0 line						\
+		pusharg_i %r0						\
+		movi_p %r0 fmtb##t					\
+		pusharg_p %r0						\
+	finish @printf							\
+op##t##r##line##ok##r0##r1:
+
+#define bopi_f(line,t,op,r0,l,r,v)					\
+	movi_##t %r0 l							\
+	movi_##t %r1 r							\
+	bo##op##i_##t op##t##i##line##r0##r1 %r0 r			\
+	beqi_##t op##t##i##line##ok##r0##r1 %r0 v			\
+op##t##i##line##r0##r1:							\
+	prepare 6							\
+		pusharg_##t %r0						\
+		movi_##t %r0 r						\
+		pusharg_##t %r0						\
+		movi_##t %r0 l						\
+		pusharg_##t %r0						\
+		movi_##t %r0 v						\
+		pusharg_##t %r0						\
+		movi_i %r0 line						\
+		pusharg_i %r0						\
+		movi_p %r0 fmtb##t					\
+		pusharg_p %r0						\
+	finish @printf							\
+op##t##i##line##ok##r0##r1:
+
+#define tadd_i(line, r0, r1, l_, r_, v_)				\
+	bopr_t(line, i, add, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_t(line, i, add, r0, i##l_, i##r_, i##v_)			\
+	bopr_t(line, l, add, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_t(line, l, add, r0, l##l_, l##r_, l##v_)
+#define fadd_i(line, r0, r1, l_, r_, v_)				\
+	bopr_f(line, i, add, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_f(line, i, add, r0, i##l_, i##r_, i##v_)			\
+	bopr_f(line, l, add, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_f(line, l, add, r0, l##l_, l##r_, l##v_)
+#define tadd_u(line, r0, r1, l_, r_, v_)				\
+	bopr_t(line, ui, add, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_t(line, ui, add, r0, i##l_, i##r_, i##v_)			\
+	bopr_t(line, ul, add, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_t(line, ul, add, r0, l##l_, l##r_, l##v_)
+#define fadd_u(line, r0, r1, l_, r_, v_)				\
+	bopr_f(line, ui, add, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_f(line, ui, add, r0, i##l_, i##r_, i##v_)			\
+	bopr_f(line, ul, add, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_f(line, ul, add, r0, l##l_, l##r_, l##v_)
+
+#define tsub_i(line, r0, r1, l_, r_, v_)				\
+	bopr_t(line, i, sub, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_t(line, i, sub, r0, i##l_, i##r_, i##v_)			\
+	bopr_t(line, l, sub, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_t(line, l, sub, r0, l##l_, l##r_, l##v_)
+#define fsub_i(line, r0, r1, l_, r_, v_)				\
+	bopr_f(line, i, sub, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_f(line, i, sub, r0, i##l_, i##r_, i##v_)			\
+	bopr_f(line, l, sub, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_f(line, l, sub, r0, l##l_, l##r_, l##v_)
+#define tsub_u(line, r0, r1, l_, r_, v_)				\
+	bopr_t(line, ui, sub, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_t(line, ui, sub, r0, i##l_, i##r_, i##v_)			\
+	bopr_t(line, ul, sub, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_t(line, ul, sub, r0, l##l_, l##r_, l##v_)
+#define fsub_u(line, r0, r1, l_, r_, v_)				\
+	bopr_f(line, ui, sub, r0, r1, i##l_, i##r_, i##v_)		\
+	bopi_f(line, ui, sub, r0, i##l_, i##r_, i##v_)			\
+	bopr_f(line, ul, sub, r0, r1, l##l_, l##r_, l##v_)		\
+	bopi_f(line, ul, sub, r0, l##l_, l##r_, l##v_)
 
 #define xopr6(line,t,op,r0,r1,r2,r3,r4,r5,llo,lhi,rlo,rhi,vlo,vhi)	\
 	movi_##t %r1 llo						\
@@ -139,6 +283,15 @@ op##_##t##h##line##r0##r1##r2##r3:
 	xopr4_(line,l,sub,r0,r1,r2,v0,l##llo,l##lhi,l##rlo,l##rhi,l##vlo,l##vhi)	\
 	xopr_4(line,i,sub,r0,r1,r2,v0,i##llo,i##lhi,i##rlo,i##rhi,i##vlo,i##vhi)	\
 	xopr_4(line,l,sub,r0,r1,r2,v0,l##llo,l##lhi,l##rlo,l##rhi,l##vlo,l##vhi)
+
+	tadd_i(__LINE__, r0, r1, x7f, x1, x80)
+	fadd_i(__LINE__, r0, r1, x7fe, x1, x7f)
+	tsub_i(__LINE__, r0, r1, x80, x1, x7f)
+	fsub_i(__LINE__, r0, r1, x7f, x1, x7fe)
+	tadd_u(__LINE__, r0, r1, ff, x1, x0)
+	fadd_u(__LINE__, r0, r1, x7f, x1, x80)
+	tsub_u(__LINE__, r0, r1, x0, x1, ff)
+	fsub_u(__LINE__, r0, r1, x80, x1, x7f)
 
 	/* 0xffffffffffffffff + 1 = 0x10000000000000000 */
 	xaddr(__LINE__, ff, ff, x1, x0, x0, x0)
