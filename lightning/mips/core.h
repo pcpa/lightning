@@ -1027,11 +1027,9 @@ mips_bnei_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, int i1)
 __jit_inline jit_insn *
 mips_boaddr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    /* r0 cannot be_AT, _T8, or _T9	-	r1 can be _AT */
+    /* r0 and r1 cannot be_AT, _T8, or _T9 */
     jit_insn	*l;
     long	 d;
-    if (r1 == _AT)
-	jit_movr_i(_T7, r1);
     /* at = r0 + r1;	overflow = r1 < 0 ? r0 < at : at < r0; */
     _SLT(_T8, r1, _ZERO);		/* t8 = r1 < 0 */
     _ADDU(_AT, r0, r1);			/* at = r0 + r1 */
@@ -1044,7 +1042,7 @@ mips_boaddr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 
     _BNE(_AT, _ZERO, _jit_US(d));
     /* delay slot */
-    _ADDU(r0, r0, r1 == _AT ? _T7 : r1);
+    _ADDU(r0, r0, r1);
 
     return (l);
 }
@@ -1072,19 +1070,17 @@ mips_boaddi_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, int i1)
 
 	return (l);
     }
-    jit_movi_i(JIT_RTEMP, i1);
-    return (jit_boaddr_i(i0, r0, JIT_RTEMP));
+    jit_movi_i(_T7, i1);
+    return (jit_boaddr_i(i0, r0, _T7));
 }
 
 #define jit_bosubr_i(i0, r0, r1)	mips_bosubr_i(_jit, i0, r0, r1)
 __jit_inline jit_insn *
 mips_bosubr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    /* r0 cannot be_AT, _T8, or _T9	-	r1 can be _AT */
+    /* r0 and r1 cannot be_AT, _T8, or _T9 */
     jit_insn	*l;
     long	 d;
-    if (r1 == _AT)
-	jit_movr_i(_T7, r1);
     /* at = r0 - r1;	overflow = 0 < r1 ? r0 < at : at < r0; */
     _SLT(_T8, _ZERO, r1);		/* t8 = r1 < 0 */
     _SUBU(_AT, r0, r1);			/* at = r0 - r1 */
@@ -1097,7 +1093,7 @@ mips_bosubr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 
     _BNE(_AT, _ZERO, _jit_US(d));
     /* delay slot */
-    _SUBU(r0, r0, r1 == _AT ? _T7 : r1);
+    _SUBU(r0, r0, r1);
 
     return (l);
 }
@@ -1124,8 +1120,8 @@ mips_bosubi_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, int i1)
 
 	return (l);
     }
-    jit_movi_i(JIT_RTEMP, i1);
-    return (jit_bosubr_i(i0, r0, JIT_RTEMP));
+    jit_movi_i(_T7, i1);
+    return (jit_bosubr_i(i0, r0, _T7));
 }
 
 #define jit_boaddr_ui(i0, r0, r1)	mips_boaddr_ui(_jit, i0, r0, r1)

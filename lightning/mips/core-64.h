@@ -702,8 +702,6 @@ mips_boaddr_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_insn	*l;
     long	 d;
-    if (r1 == _AT)
-	jit_movr_l(_T7, r1);
     _SLT(_T8, r1, _ZERO);
     _DADDU(_AT, r0, r1);
     _SLT(_T9, _AT, r0);
@@ -713,7 +711,7 @@ mips_boaddr_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
     _BNE(_AT, _ZERO, _jit_US(d));
-    _DADDU(r0, r0, r1 == _AT ? _T7 : r1);
+    _DADDU(r0, r0, r1);
     return (l);
 }
 
@@ -752,8 +750,8 @@ mips_boaddi_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, long i1)
 	_DADDIU(r0, r0, _jit_US(i1));
 	return (l);
     }
-    jit_movi_l(JIT_RTEMP, i1);
-    return (jit_boaddr_l(i0, r0, JIT_RTEMP));
+    jit_movi_l(_T7, i1);
+    return (jit_boaddr_l(i0, r0, _T7));
 }
 
 #define jit_boaddi_ul(i0, r0, i1)	mips_boaddi_ul(_jit, i0, r0, i1)
@@ -782,8 +780,6 @@ mips_bosubr_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_insn	*l;
     long	 d;
-    if (r1 == _AT)
-	jit_movr_i(_T7, r1);
     _SLT(_T8, _ZERO, r1);
     _DSUBU(_AT, r0, r1);
     _SLT(_T9, _AT, r0);
@@ -793,7 +789,7 @@ mips_bosubr_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
     d = (((long)i0 - (long)l) >> 2) - 1;
     assert(_s16P(d));
     _BNE(_AT, _ZERO, _jit_US(d));
-    _DSUBU(r0, r0, r1 == _AT ? _T7 : r1);
+    _DSUBU(r0, r0, r1);
     return (l);
 }
 
@@ -832,8 +828,8 @@ mips_bosubi_l(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, long i1)
 	_DADDIU(r0, r0, _jit_US(-i1));
 	return (l);
     }
-    jit_movi_l(JIT_RTEMP, i1);
-    return (jit_bosubr_l(i0, r0, JIT_RTEMP));
+    jit_movi_l(_T7, i1);
+    return (jit_bosubr_l(i0, r0, _T7));
 }
 
 #define jit_bosubi_ul(i0, r0, i1)	mips_bosubi_ul(_jit, i0, r0, i1)
