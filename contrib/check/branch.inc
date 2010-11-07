@@ -558,9 +558,18 @@
 	BRANCHF2(BRANCH, R2, F0,F1,F2,F3,F4,F5)
 
 /*--------------------------------------------------------------------*/
-#define BRANCHI1(BRANCH, N, R0, R1, R2)				\
+#if BRANCH_DIRECT
+#  define BRANCHI1(BRANCH, N, R0, R1, R2)			\
 	TESTI(BRANCH##R, N, R0, R1, R2)				\
 	TESTI(BRANCH##I, N, R0, R1, R2)
+#else
+#  define BRANCHI1(BRANCH, N, R0, R1, R2)			\
+	TESTI(BRANCH##R, N, R0, R1, R2)				\
+	TESTI(BRANCH##R, N##0, R0, R1, R0)			\
+	TESTI(BRANCH##R, N##1, R0, R1, R1)			\
+	TESTI(BRANCH##I, N, R0, R1, R2)				\
+	TESTI(BRANCH##I, N##0, R0, R0, R1)
+#endif
 
 #define BRANCHI2(BRANCH, R0, R1, R2)				\
 	BRANCHI1(BRANCH, R0##R1##R2, R0, R1, R2)		\

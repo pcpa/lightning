@@ -1067,8 +1067,9 @@ x86_cmp_ri32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0, x86_cc_t cc)
     int		op;
     jit_gpr_t	reg;
 
+    op = r0 == r1;
     if (jit_reg8_p(r0)) {
-	if (!(op = r0 == r1))
+	if (!op)
 	    XORLrr(r0, r0);
 	CMPLir(i0, r1);
 	if (op)
@@ -1077,11 +1078,19 @@ x86_cmp_ri32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0, x86_cc_t cc)
     }
     else {
 	reg = r1 == _RAX ? _RDX : _RAX;
-	MOVLrr(reg, r0);
+	if (op)
+	    jit_pushr_i(reg);
+	else
+	    MOVLrr(reg, r0);
 	XORLrr(reg, reg);
 	CMPLir(i0, r1);
 	SETCCir(cc, reg);
-	jit_xchgr_i(reg, r0);
+	if (op) {
+	    MOVLrr(reg, r0);
+	    jit_popr_i(reg);
+	}
+	else
+	    jit_xchgr_i(reg, r0);
     }
 }
 
@@ -1092,8 +1101,9 @@ x86_test_r32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, x86_cc_t cc)
     int		op;
     jit_gpr_t	reg;
 
+    op = r0 == r1;
     if (jit_reg8_p(r0)) {
-	if (!(op = r0 == r1))
+	if (!op)
 	    XORLrr(r0, r0);
 	TESTLrr(r1, r1);
 	if (op)
@@ -1102,11 +1112,19 @@ x86_test_r32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, x86_cc_t cc)
     }
     else {
 	reg = r1 == _RAX ? _RDX : _RAX;
-	MOVLrr(reg, r0);
+	if (op)
+	    jit_pushr_i(reg);
+	else
+	    MOVLrr(reg, r0);
 	XORLrr(reg, reg);
 	TESTLrr(r1, r1);
 	SETCCir(cc, reg);
-	jit_xchgr_i(reg, r0);
+	if (op) {
+	    MOVLrr(reg, r0);
+	    jit_popr_i(reg);
+	}
+	else
+	    jit_xchgr_i(reg, r0);
     }
 }
 
@@ -1118,8 +1136,9 @@ x86_cmp_rr32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2,
     int		op;
     jit_gpr_t	reg;
 
+    op = r0 == r1 || r0 == r2;
     if (jit_reg8_p(r0)) {
-	if (!(op = r0 == r1 || r0 == r2))
+	if (!op)
 	    XORLrr(r0, r0);
 	CMPLrr(r2, r1);
 	if (op)
@@ -1135,11 +1154,19 @@ x86_cmp_rr32(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2,
 	}
 	else
 	    reg = _RAX;
-	MOVLrr(reg, r0);
+	if (op)
+	    jit_pushr_i(reg);
+	else
+	    MOVLrr(reg, r0);
 	XORLrr(reg, reg);
 	CMPLrr(r2, r1);
 	SETCCir(cc, reg);
-	jit_xchgr_i(reg, r0);
+	if (op) {
+	    MOVLrr(reg, r0);
+	    jit_popr_i(reg);
+	}
+	else
+	    jit_xchgr_i(reg, r0);
     }
 }
 
