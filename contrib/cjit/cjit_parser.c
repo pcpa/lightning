@@ -912,15 +912,11 @@ unary_value(token_t token)
     expr_t	*expr, *value;
 
     switch (lookahead()) {
-	case tok_int:		case tok_float:
+	case tok_int:			case tok_float:
 	case tok_symbol:		case tok_string:
-	case tok_expr:
+	case tok_expr:			case tok_mul:
 	    break;
-	case tok_eof:
-	    error(NULL, "unexpected end of file");
 	default:
-	    if (token == tok_mul)
-		return (top_expr()->token = tok_pointer);
 	    error(top_expr(), "syntax error");
     }
 

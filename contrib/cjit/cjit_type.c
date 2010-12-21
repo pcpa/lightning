@@ -156,7 +156,7 @@ tag_type(int type)
 	put_hash(hash, (entry_t *)tag);
 	tag->hash = new_hash(hash_pointer);
 	tag->type = type;
-	tag->size = record->size;
+	tag->size = record->length;
 	tag->tag  = NULL;
     }
 
@@ -246,7 +246,7 @@ new_symbol(record_t *record, tag_t *tag, char *name)
     symbol->type = tag->type;
     symbol->table = record;
 
-    if (type->length == 0)
+    if (type->length == 0 && tag->type != (type_pointer | type_void))
 	/* open type declaration */
 	error(NULL, "syntax error");
     if (record->type & type_union) {
