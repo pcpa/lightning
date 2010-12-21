@@ -35,6 +35,7 @@ tag_t		 *int_tag;
 tag_t		 *uint_tag;
 tag_t		 *long_tag;
 tag_t		 *ulong_tag;
+tag_t		 *float_tag;
 tag_t		 *double_tag;
 void		 *pointer_string;
 
@@ -83,6 +84,7 @@ init_type(void)
     uint_tag = tag_type(type_uint);
     long_tag = tag_type(type_long);
     ulong_tag = tag_type(type_ulong);
+    float_tag = tag_type(type_float);
     double_tag = tag_type(type_double);
 }
 

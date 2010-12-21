@@ -59,6 +59,10 @@ static tag_t *
 emit_binint(expr_t *expr);
 
 static tag_t *
+emit_binary_coerce(expr_t *expr,
+		   tag_t *ltag, tag_t *rtag, value_t *lval, value_t *rval);
+
+static tag_t *
 emit_function(expr_t *expr);
 
 static void
@@ -461,844 +465,584 @@ emit_pointer(expr_t *expr)
     return (tag);
 }
 
-/* FIXME coercion of signed op unsigned (or vice versa) may be reversed,
- * that is, it does signed comparison... */
 static tag_t *
 emit_cmp(expr_t *expr)
 {
+    long	 li;
     int		 dec;
+    tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
-    int		 freg;
+    value_t	*lval;
+    value_t	*rval;
     int		 lreg;
     int		 rreg;
-    value_t	*lvalue;
-    value_t	*rvalue;
+    int		 lfreg;
+    int		 rfreg;
 
     dec = 1;
     ltag = emit_expr(expr->data._binary.lvalue);
-    lvalue = top_value_stack();
+    lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
-    rvalue = top_value_stack();
-    emit_load(lvalue);
-    lreg = lvalue->u.ival;
-
-    switch (ltag->type) {
-	case type_char:			case type_short:	case type_int:
-	    switch (rtag->type) {
-		case type_uchar:	case type_ushort:	case type_uint:
-		    warn(expr, "mixed sign comparison");
-		case type_char:		case type_short:	case type_int:
-		int_int:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_i(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_i(state, lreg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_ulong:
-		    warn(expr, "mixed sign comparison");
-		    ejit_extr_i_l(state, lreg, lreg);
-		long_rlong:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_l(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_l(state, lreg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_long:
-		int_xlong:
-		    ejit_extr_i_l(state, lreg, lreg);
-		long_xlong:
-		    if (rvalue->type == value_ltype) {
-			dec = 0;
-			switch (expr->token) {
-			    case tok_lt:
-				ejit_lti_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			    case tok_le:
-				ejit_lei_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			    case tok_eq:
-				ejit_eqi_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			    case tok_ge:
-				ejit_gei_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			    case tok_gt:
-				ejit_gti_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			    default:
-				ejit_nei_l(state, lreg, lreg, rvalue->u.lval);
-				break;
-			}
-		    }
-		    else
-			goto long_rlong;
-		    break;
-		case type_float:
-		int_float:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    freg = get_register(value_ftype);
-		    ejit_extr_i_f(state, freg, lreg);
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_f(state, freg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_f(state, freg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_f(state, freg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_f(state, freg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_f(state, freg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_f(state, freg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_double:
-		int_double:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    freg = get_register(value_dtype);
-		    ejit_extr_i_d(state, freg, lreg);
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_d(state, freg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_d(state, freg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_d(state, freg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_d(state, freg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_d(state, freg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_d(state, freg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		default:
-		    error(expr, "invalid comparison");
+    rval = top_value_stack();
+    emit_load(lval);
+    lreg = lval->u.ival;
+    if (rval->type != value_ltype) {
+	emit_load(rval);
+	rreg = rval->u.ival;
+    }
+    else
+	rreg = -1;
+    tag = emit_binary_coerce(expr, ltag, rtag, lval, rval);
+    switch (tag->type) {
+	case type_int:
+	    switch (expr->token) {
+		case tok_lt:	ejit_ltr_i(state, lreg, lreg, rreg);	break;
+		case tok_le:	ejit_ler_i(state, lreg, lreg, rreg);	break;
+		case tok_eq:	ejit_eqr_i(state, lreg, lreg, rreg);	break;
+		case tok_ge:	ejit_ger_i(state, lreg, lreg, rreg);	break;
+		case tok_gt:	ejit_gtr_i(state, lreg, lreg, rreg);	break;
+		default:	ejit_ner_i(state, lreg, lreg, rreg);	break;
 	    }
 	    break;
-	case type_uchar:		case type_ushort:	case type_uint:
-	    switch (rtag->type) {
-		case type_char:		case type_short:	case type_int:
-		    warn(expr, "mixed sign comparison");
-		    goto int_int;
-		case type_uchar:	case type_ushort:	case type_uint:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_ui(state, lreg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_ui(state, lreg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_ui(state, lreg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_ui(state, lreg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_ui(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_ui(state, lreg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_long:
-		    warn(expr, "mixed sign comparison");
-		    goto int_xlong;
-		case type_ulong:
-		    ejit_extr_ui_ul(state, lreg, lreg);
-		ulong_ulong:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_ul(state, lreg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_ul(state, lreg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_ul(state, lreg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_ul(state, lreg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_ul(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_ul(state, lreg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_float:
-		    /* FIXME unsigned */
-		    goto int_float;
-		case type_double:
-		    goto int_double;
-		default:
-		    error(expr, "invalid comparison");
+	case type_uint:
+	    switch (expr->token) {
+		case tok_lt:	ejit_ltr_ui(state, lreg, lreg, rreg);	break;
+		case tok_le:	ejit_ler_ui(state, lreg, lreg, rreg);	break;
+		case tok_eq:	ejit_eqr_ui(state, lreg, lreg, rreg);	break;
+		case tok_ge:	ejit_ger_ui(state, lreg, lreg, rreg);	break;
+		case tok_gt:	ejit_gtr_ui(state, lreg, lreg, rreg);	break;
+		default:	ejit_ner_ui(state, lreg, lreg, rreg);	break;
 	    }
 	    break;
 	case type_long:
-	    switch (rtag->type) {
-		case type_char:		case type_short:	case type_int:
-		    ejit_extr_i_l(state, lreg, lreg);
-		    goto long_rlong;
-		case type_uchar:	case type_ushort:	case type_uint:
-		    warn(expr, "mixed sign comparison");
-		    ejit_extr_ui_ul(state, lreg, lreg);
-		    goto long_rlong;
-		case type_long:
-		    goto long_xlong;
-		case type_ulong:
-		    warn(expr, "mixed sign comparison");
-		    goto long_rlong;
-		case type_float:
-		long_float:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    freg = get_register(value_ftype);
-		    ejit_extr_l_f(state, freg, lreg);
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_f(state, freg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_f(state, freg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_f(state, freg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_f(state, freg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_f(state, freg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_f(state, freg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_double:
-		long_double:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    freg = get_register(value_dtype);
-		    ejit_extr_l_d(state, freg, lreg);
-		    switch (expr->token) {
-			case tok_lt:
-			    ejit_ltr_d(state, freg, lreg, rreg);
-			    break;
-			case tok_le:
-			    ejit_ler_d(state, freg, lreg, rreg);
-			    break;
-			case tok_eq:
-			    ejit_eqr_d(state, freg, lreg, rreg);
-			    break;
-			case tok_ge:
-			    ejit_ger_d(state, freg, lreg, rreg);
-			    break;
-			case tok_gt:
-			    ejit_gtr_d(state, freg, lreg, rreg);
-			    break;
-			default:
-			    ejit_ner_d(state, freg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		default:
-		    error(expr, "invalid comparison");
+	    if (rval->type == value_ltype) {
+		dec = 0;
+		li = rval->u.lval;
+		switch (expr->token) {
+		    case tok_lt:ejit_lti_l(state, lreg, lreg, li);	break;
+		    case tok_le:ejit_lei_l(state, lreg, lreg, li);	break;
+		    case tok_eq:ejit_eqi_l(state, lreg, lreg, li);	break;
+		    case tok_ge:ejit_gei_l(state, lreg, lreg, li);	break;
+		    case tok_gt:ejit_gti_l(state, lreg, lreg, li);	break;
+		    default:	ejit_nei_l(state, lreg, lreg, li);	break;
+		}
+	    }
+	    else {
+		switch (expr->token) {
+		    case tok_lt:ejit_ltr_l(state, lreg, lreg, rreg);	break;
+		    case tok_le:ejit_ler_l(state, lreg, lreg, rreg);	break;
+		    case tok_eq:ejit_eqr_l(state, lreg, lreg, rreg);	break;
+		    case tok_ge:ejit_ger_l(state, lreg, lreg, rreg);	break;
+		    case tok_gt:ejit_gtr_l(state, lreg, lreg, rreg);	break;
+		    default:	ejit_ner_l(state, lreg, lreg, rreg);	break;
+		}
 	    }
 	    break;
 	case type_ulong:
-	    switch (rtag->type) {
-		case type_char:		case type_short:	case type_int:
-		    warn(expr, "mixed sign comparison");
-		    ejit_extr_i_l(state, lreg, lreg);
-		    goto long_rlong;
-		case type_uchar:	case type_ushort:	case type_uint:
-		    ejit_extr_ui_ul(state, lreg, lreg);
-		    goto ulong_ulong;
-		case type_long:
-		    warn(expr, "mixed sign comparison");
-		    goto long_xlong;
-		case type_ulong:
-		    goto ulong_ulong;
-		case type_float:
-		    /* FIXME unsigned */
-		    goto long_float;
-		case type_double:
-		    goto long_double;
-		default:
-		    error(expr, "invalid comparison");
+	    switch (expr->token) {
+		case tok_lt:	ejit_ltr_ul(state, lreg, lreg, rreg);	break;
+		case tok_le:	ejit_ler_ul(state, lreg, lreg, rreg);	break;
+		case tok_eq:	ejit_eqr_ul(state, lreg, lreg, rreg);	break;
+		case tok_ge:	ejit_ger_ul(state, lreg, lreg, rreg);	break;
+		case tok_gt:	ejit_gtr_ul(state, lreg, lreg, rreg);	break;
+		default:	ejit_ner_ul(state, lreg, lreg, rreg);	break;
+	    }
+	    break;
+	case type_float:
+	    lfreg = lval->u.ival;
+	    rfreg = rval->u.ival;
+	    if (ltag->type == type_float) {
+		if (rtag->type == type_float)
+		    lreg = get_register(0);
+		else
+		    lreg = rreg;
+		lval->u.ival = lreg;
+	    }
+	    /* else lreg is already an integer register */
+	    switch (expr->token) {
+		case tok_lt:	ejit_ltr_f(state, lreg, lfreg, rfreg);	break;
+		case tok_le:	ejit_ler_f(state, lreg, lfreg, rfreg);	break;
+		case tok_eq:	ejit_eqr_f(state, lreg, lfreg, rfreg);	break;
+		case tok_ge:	ejit_ger_f(state, lreg, lfreg, rfreg);	break;
+		case tok_gt:	ejit_gtr_f(state, lreg, lfreg, rfreg);	break;
+		default:	ejit_ner_f(state, lreg, lfreg, rfreg);	break;
+	    }
+	    break;
+	case type_double:
+	    lfreg = lval->u.ival;
+	    rfreg = rval->u.ival;
+	    if (ltag->type == type_float || lval->type == type_double) {
+		if (rtag->type == type_float || rtag->type == type_double)
+		    lreg = get_register(0);
+		else
+		    lreg = rreg;
+		lval->u.ival = lreg;
+	    }
+	    /* else lreg is already an integer register */
+	    switch (expr->token) {
+		case tok_lt:	ejit_ltr_d(state, lreg, lfreg, rfreg);	break;
+		case tok_le:	ejit_ler_d(state, lreg, lfreg, rfreg);	break;
+		case tok_eq:	ejit_eqr_d(state, lreg, lfreg, rfreg);	break;
+		case tok_ge:	ejit_ger_d(state, lreg, lfreg, rfreg);	break;
+		case tok_gt:	ejit_gtr_d(state, lreg, lfreg, rfreg);	break;
+		default:	ejit_ner_d(state, lreg, lfreg, rfreg);	break;
 	    }
 	    break;
 	default:
-	    if (!(ltag->type & type_pointer) || !(rtag->type & type_pointer))
-		error(expr, "invalid comparison");
-	    if (ltag != rtag)
-		warn(expr, "mixed pointer comparison");
-	    emit_load(rvalue);
-	    rreg = rvalue->u.ival;
-	    freg = get_register(value_dtype);
-	    ejit_extr_l_d(state, freg, lreg);
 	    switch (expr->token) {
-		case tok_lt:
-		    ejit_ltr_p(state, lreg, lreg, rreg);
-		    break;
-		case tok_le:
-		    ejit_ler_p(state, lreg, lreg, rreg);
-		    break;
-		case tok_eq:
-		    ejit_eqr_p(state, lreg, lreg, rreg);
-		    break;
-		case tok_ge:
-		    ejit_ger_p(state, lreg, lreg, rreg);
-		    break;
-		case tok_gt:
-		    ejit_gtr_p(state, lreg, lreg, rreg);
-		    break;
-		default:
-		    ejit_ner_p(state, lreg, lreg, rreg);
-		    break;
+		case tok_lt:	ejit_ltr_p(state, lreg, lreg, rreg);	break;
+		case tok_le:	ejit_ler_p(state, lreg, lreg, rreg);	break;
+		case tok_eq:	ejit_eqr_p(state, lreg, lreg, rreg);	break;
+		case tok_ge:	ejit_ger_p(state, lreg, lreg, rreg);	break;
+		case tok_gt:	ejit_gtr_p(state, lreg, lreg, rreg);	break;
+		default:	ejit_ner_p(state, lreg, lreg, rreg);	break;
 	    }
 	    break;
     }
-
     if (dec)
 	dec_value_stack(1);
-    lvalue->type = value_regno;
+    lval->type = value_regno;
+
     return (int_tag);
 }
 
 static tag_t *
 emit_binint(expr_t *expr)
 {
+    long	 li;
     int		 dec;
+    tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
+    value_t	*lval;
+    value_t	*rval;
     int		 lreg;
     int		 rreg;
-    long	 rval;
-    value_t	*lvalue;
-    value_t	*rvalue;
 
     dec = 1;
     ltag = emit_expr(expr->data._binary.lvalue);
-    lvalue = top_value_stack();
+    lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
-    rvalue = top_value_stack();
-    emit_load(lvalue);
-    lreg = lvalue->u.ival;
+    rval = top_value_stack();
+    emit_load(lval);
+    if (rval->type != value_ltype)
+	emit_load(rval);
+    tag = emit_binary_coerce(expr, ltag, rtag, lval, rval);
+    lreg = lval->u.ival;
+    rreg = rval->type != value_ltype ? rval->u.ival : -1;
+    switch (tag->type) {
+	case type_int:
+	    switch (expr->token) {
+		case tok_and:	ejit_andr_i(state, lreg, lreg, rreg);	break;
+		case tok_or:	ejit_orr_i(state, lreg, lreg, rreg);	break;
+		case tok_xor:	ejit_xorr_i(state, lreg, lreg, rreg);	break;
+		case tok_lsh:	ejit_lshr_i(state, lreg, lreg, rreg);	break;
+		default:	ejit_rshr_i(state, lreg, lreg, rreg);	break;
+	    }
+	    break;
+	case type_uint:
+	    switch (expr->token) {
+		case tok_and:	ejit_andr_ui(state, lreg, lreg, rreg);	break;
+		case tok_or:	ejit_orr_ui(state, lreg, lreg, rreg);	break;
+		case tok_xor:	ejit_xorr_ui(state, lreg, lreg, rreg);	break;
+		case tok_lsh:	ejit_lshr_ui(state, lreg, lreg, rreg);	break;
+		default:	ejit_rshr_ui(state, lreg, lreg, rreg);	break;
+	    }
+	    break;
+	case type_long:
+	    if (rval->type == value_ltype) {
+		dec = 0;
+		li = rval->u.lval;
+		switch (expr->token) {
+		    case tok_and:ejit_andi_l(state, lreg, lreg, li);	break;
+		    case tok_or: ejit_ori_l(state, lreg, lreg, li);	break;
+		    case tok_xor:ejit_xori_l(state, lreg, lreg, li);	break;
+		    case tok_lsh:ejit_lshi_l(state, lreg, lreg, li);	break;
+		    default:	 ejit_rshi_l(state, lreg, lreg, li);	break;
+		}
+	    }
+	    else {
+		switch (expr->token) {
+		    case tok_and:ejit_andr_l(state, lreg, lreg, rreg);	break;
+		    case tok_or: ejit_orr_l(state, lreg, lreg, rreg);	break;
+		    case tok_xor:ejit_xorr_l(state, lreg, lreg, rreg);	break;
+		    case tok_lsh:ejit_lshr_l(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_rshr_l(state, lreg, lreg, rreg);	break;
+		}
+	    }
+	    break;
+	default:
+	    switch (expr->token) {
+		case tok_and:	ejit_andr_ul(state, lreg, lreg, rreg);	break;
+		case tok_or:	ejit_orr_ul(state, lreg, lreg, rreg);	break;
+		case tok_xor:	ejit_xorr_ul(state, lreg, lreg, rreg);	break;
+		case tok_lsh:	ejit_lshr_ul(state, lreg, lreg, rreg);	break;
+		default:	ejit_rshr_ul(state, lreg, lreg, rreg);	break;
+	    }
+	    break;
+    }
 
+    return (tag);
+}
+
+static tag_t *
+emit_binary_coerce(expr_t *expr,
+		   tag_t *ltag, tag_t *rtag, value_t *lval, value_t *rval)
+{
+    tag_t	*tag;
+    int		 freg;
+    int		 lreg;
+    int		 rreg;
+
+    lreg = lval->u.ival;
+    if (rval->type != value_ltype) {
+	emit_load(rval);
+	rreg = rval->u.ival;
+    }
+    else
+	rreg = -1;
     switch (ltag->type) {
 	case type_char:			case type_short:	case type_int:
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    ltag = int_tag;
-		    lvalue->type = value_regno;
-		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_i(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_rshr_i(state, lreg, lreg, rreg);
-			    break;
-		    }
+		int_int:
+		    tag = int_tag;
+		    lval->type = 0;
 		    break;
-		case type_long:
-		    if (expr->token < tok_lsh) {
-			ejit_extr_i_l(state, lreg, lreg);
-			ltag = long_tag;
-			lvalue->type = value_ltype | value_regno;
-		    }
-		    else {
-			ltag = int_tag;
-			lvalue->type = value_regno;
-		    }
-		    if (rvalue->type == value_ltype) {
-			dec = 0;
-			rval = rvalue->u.lval;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andi_l(state, lreg, lreg, rval);
-				break;
-			    case tok_or:
-				ejit_ori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_xor:
-				ejit_xori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_lsh:
-				ejit_lshi_i(state, lreg, lreg, rval);
-				break;
-			    default:
-				ejit_rshi_i(state, lreg, lreg, rval);
-				break;
-			}
-		    }
-		    else {
-			emit_load(rvalue);
-			rreg = rvalue->u.ival;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_or:
-				ejit_orr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_xor:
-				ejit_xorr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_lsh:
-				ejit_lshr_i(state, lreg, lreg, rreg);
-				break;
-			    default:
-				ejit_rshr_i(state, lreg, lreg, rreg);
-				break;
-			}
-		    }
+		case type_long:		case type_ulong:
+		int_long:
+		    ejit_extr_i_l(state, lreg, lreg);
+		    tag = long_tag;
+		    lval->type = value_ltype;
 		    break;
-		case type_ulong:
-		    if (expr->token < tok_lsh) {
-			ejit_extr_ui_ul(state, lreg, lreg);
-			ltag = ulong_tag;
-			lvalue->type = value_ltype | value_regno;
-		    }
-		    else {
-			ltag = int_tag;
-			lvalue->type = value_regno;
-		    }
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
+		case type_float:
+		int_float:
 		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_i(state, lreg, lreg, rreg);
-			    break;
+			case tok_and:	case tok_or:		case tok_xor:
+			case tok_lsh:	case tok_rsh:
+			    error(expr, "not an integer");
 			default:
-			    ejit_rshr_i(state, lreg, lreg, rreg);
 			    break;
 		    }
+		    freg = get_register(value_ftype);
+		    ejit_extr_i_f(state, freg, rreg);
+		    tag = float_tag;
+		    lval->u.ival = freg;
+		    lval->type = value_ftype;
+		    break;
+		case type_double:
+		int_double:
+		    switch (expr->token) {
+			case tok_and:	case tok_or:		case tok_xor:
+			case tok_lsh:	case tok_rsh:
+			    error(expr, "not an integer");
+			default:
+			    break;
+		    }
+		    freg = get_register(value_dtype);
+		    ejit_extr_i_d(state, freg, rreg);
+		    tag = double_tag;
+		    lval->u.ival = freg;
+		    lval->type = value_dtype;
 		    break;
 		default:
-		    error(expr, "not an integer");
+		    switch (expr->token) {
+			case tok_lt:	case tok_le:		case tok_eq:
+			case tok_ge:	case tok_gt:		case tok_ne:
+			case tok_add:	case tok_sub:
+			    if (rtag->type & type_pointer) {
+#if __WORDSIZE == 64
+				ejit_extr_i_l(state, lreg, lreg);
+#endif
+				lval->type = value_ptype;
+				tag = rtag;
+				break;
+			    }
+			default:
+			    error(expr, "invalid operation");
+		    }
+		    break;
 	    }
 	    break;
 	case type_uchar:		case type_ushort:	case type_uint:
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
+		    /* mixed signs */
+		    goto int_int;
 		case type_uchar:	case type_ushort:	case type_uint:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    if (expr->token >= tok_lsh ||
-			(rtag->type & type_unsigned)) {
-			ltag = uint_tag;
-			lvalue->type = value_utype | value_regno;
-		    }
-		    else {
-			ltag = int_tag;
-			lvalue->type = value_regno;
-		    }
-		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_i(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_i(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_rshr_ui(state, lreg, lreg, rreg);
-			    break;
-		    }
+		    tag = uint_tag;
+		    lval->type = value_utype;
 		    break;
 		case type_long:
-		    if (expr->token < tok_lsh) {
-			ejit_extr_ui_ul(state, lreg, lreg);
-			ltag = ulong_tag;
-			lvalue->type = value_utype | value_ltype | value_regno;
-		    }
-		    else {
-			ltag = uint_tag;
-			lvalue->type = value_utype | value_regno;
-		    }
-		    if (rvalue->type == value_ltype) {
-			dec = 0;
-			rval = rvalue->u.lval;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andi_l(state, lreg, lreg, rval);
-				break;
-			    case tok_or:
-				ejit_ori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_xor:
-				ejit_xori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_lsh:
-				ejit_lshi_i(state, lreg, lreg, rval);
-				break;
-			    default:
-				ejit_rshi_ui(state, lreg, lreg, rval);
-				break;
-			}
-		    }
-		    else {
-			emit_load(rvalue);
-			rreg = rvalue->u.ival;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_or:
-				ejit_orr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_xor:
-				ejit_xorr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_lsh:
-				ejit_lshr_i(state, lreg, lreg, rreg);
-				break;
-			    default:
-				ejit_rshr_ui(state, lreg, lreg, rreg);
-				break;
-			}
-		    }
-		    break;
+		    /* mixed signs */
+		    if (expr->token == tok_lsh || expr->token == tok_rsh)
+			goto int_int;
+		    goto int_long;
 		case type_ulong:
-		    if (expr->token < tok_lsh) {
-			ejit_extr_ui_ul(state, lreg, lreg);
-			ltag = ulong_tag;
-			lvalue->type = value_utype | value_ltype | value_regno;
-		    }
-		    else {
-			ltag = uint_tag;
-			lvalue->type = value_utype | value_regno;
-		    }
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
+		    ejit_extr_ui_ul(state, lreg, lreg);
+		    tag = ulong_tag;
+		    lval->type = value_utype | value_ltype;
+		    break;
+		case type_float:
+		    /* FIXME unsigned */
+		    goto int_float;
+		case type_double:
+		    /* FIXME unsigned */
+		    goto int_double;
+		default:
 		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_i(state, lreg, lreg, rreg);
-			    break;
+			case tok_lt:	case tok_le:		case tok_eq:
+			case tok_ge:	case tok_gt:		case tok_ne:
+			case tok_add:	case tok_sub:
+			    if (rtag->type & type_pointer) {
+#if __WORDSIZE == 64
+				ejit_extr_ui_ul(state, lreg, lreg);
+#endif
+				lval->type = value_ptype;
+				tag = rtag;
+				break;
+			    }
 			default:
-			    ejit_rshr_ui(state, lreg, lreg, rreg);
-			    break;
+			    error(expr, "invalid operation");
 		    }
 		    break;
-		default:
-		    error(expr, "not an integer");
 	    }
 	    break;
 	case type_long:
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    ltag = long_tag;
-		    lvalue->type = value_ltype | value_regno;
-		    if (expr->token < tok_lsh) {
-			if (rtag->type & type_unsigned)
-			    ejit_extr_ui_ul(state, rreg, rreg);
-			else
-			    ejit_extr_i_l(state, rreg, rreg);
-		    }
-		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_l(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_rshr_l(state, lreg, lreg, rreg);
-			    break;
-		    }
-		    break;
-		case type_long:
-		    ltag = long_tag;
-		    lvalue->type = value_ltype | value_regno;
-		    if (rvalue->type == value_ltype) {
-			dec = 0;
-			rval = rvalue->u.lval;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andi_l(state, lreg, lreg, rval);
-				break;
-			    case tok_or:
-				ejit_ori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_xor:
-				ejit_xori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_lsh:
-				ejit_lshi_l(state, lreg, lreg, rval);
-				break;
-			    default:
-				ejit_rshi_l(state, lreg, lreg, rval);
-				break;
-			}
+		long_int:
+		    if (expr->token == tok_lsh || expr->token == tok_rsh) {
+			tag = int_tag;
+			lval->type = 0;
 		    }
 		    else {
-			emit_load(rvalue);
-			rreg = rvalue->u.ival;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_or:
-				ejit_orr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_xor:
-				ejit_xorr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_lsh:
-				ejit_lshr_l(state, lreg, lreg, rreg);
-				break;
-			    default:
-				ejit_rshr_l(state, lreg, lreg, rreg);
-				break;
-			}
+			ejit_extr_i_l(state, rreg, rreg);
+			tag = long_tag;
+			lval->type = value_ltype;
 		    }
 		    break;
-		case type_ulong:
-		    ltag = long_tag;
-		    lvalue->type = value_ltype | value_regno;
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
+		case type_long:		case type_ulong:
+		long_long:
+		    tag = long_tag;
+		    lval->type = value_ltype;
+		    break;
+		case type_float:
+		long_float:
 		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_i(state, lreg, lreg, rreg);
-			    break;
+			case tok_and:	case tok_or:		case tok_xor:
+			case tok_lsh:	case tok_rsh:
+			    error(expr, "not an integer");
 			default:
-			    ejit_rshr_i(state, lreg, lreg, rreg);
 			    break;
 		    }
+		    freg = get_register(value_ftype);
+		    ejit_extr_l_f(state, freg, rreg);
+		    tag = float_tag;
+		    lval->u.ival = freg;
+		    lval->type = value_ftype;
+		    break;
+		case type_double:
+		    long_double:
+		    switch (expr->token) {
+			case tok_and:	case tok_or:		case tok_xor:
+			case tok_lsh:	case tok_rsh:
+			    error(expr, "not an integer");
+			default:
+			    break;
+		    }
+		    freg = get_register(value_dtype);
+		    ejit_extr_l_d(state, freg, rreg);
+		    tag = double_tag;
+		    lval->u.ival = freg;
+		    lval->type = value_dtype;
 		    break;
 		default:
-		    error(expr, "not an integer");
+		    switch (expr->token) {
+			case tok_lt:	case tok_le:		case tok_eq:
+			case tok_ge:	case tok_gt:		case tok_ne:
+			case tok_add:	case tok_sub:
+			    if (rtag->type & type_pointer) {
+				lval->type = value_ptype;
+				tag = rtag;
+				break;
+			    }
+			default:
+			    error(expr, "invalid operation");
+		    }
+		    break;
 	    }
 	    break;
 	case type_ulong:
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
+		    goto long_int;
 		case type_uchar:	case type_ushort:	case type_uint:
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    ltag = ulong_tag;
-		    lvalue->type = value_utype | value_ltype | value_regno;
-		    if (expr->token < tok_lsh) {
-			if (rtag->type & type_unsigned)
-			    ejit_extr_ui_ul(state, rreg, rreg);
-			else
-			    ejit_extr_i_l(state, rreg, rreg);
+		    if (expr->token == tok_lsh || expr->token == tok_rsh) {
+			tag = uint_tag;
+			lval->type = value_utype;
 		    }
-		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_l(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_rshr_ul(state, lreg, lreg, rreg);
-			    break;
+		    else {
+			ejit_extr_ui_ul(state, rreg, rreg);
+			tag = ulong_tag;
+			lval->type = value_utype | value_ltype;
 		    }
 		    break;
 		case type_long:
-		    ltag = ulong_tag;
-		    lvalue->type = value_utype | value_ltype | value_regno;
-		    if (rvalue->type == value_ltype) {
-			dec = 0;
-			rval = rvalue->u.lval;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andi_l(state, lreg, lreg, rval);
+		    goto long_long;
+		case type_ulong:
+		    tag = ulong_tag;
+		    lval->type = value_utype | value_ltype;
+		    break;
+		case type_float:
+		    /* FIXME unsigned */
+		    goto long_float;
+		case type_double:
+		    /* FIXME unsigned */
+		    goto long_double;
+		default:
+		    switch (expr->token) {
+			case tok_lt:	case tok_le:		case tok_eq:
+			case tok_ge:	case tok_gt:		case tok_ne:
+			case tok_add:	case tok_sub:
+			    if (rtag->type & type_pointer) {
+				lval->type = value_ptype;
+				tag = rtag;
 				break;
-			    case tok_or:
-				ejit_ori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_xor:
-				ejit_xori_l(state, lreg, lreg, rval);
-				break;
-			    case tok_lsh:
-				ejit_lshi_l(state, lreg, lreg, rval);
-				break;
-			    default:
-				ejit_rshi_ul(state, lreg, lreg, rval);
-				break;
-			}
-		    }
-		    else {
-			emit_load(rvalue);
-			rreg = rvalue->u.ival;
-			switch (expr->token) {
-			    case tok_and:
-				ejit_andr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_or:
-				ejit_orr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_xor:
-				ejit_xorr_l(state, lreg, lreg, rreg);
-				break;
-			    case tok_lsh:
-				ejit_lshr_l(state, lreg, lreg, rreg);
-				break;
-			    default:
-				ejit_rshr_ul(state, lreg, lreg, rreg);
-				break;
-			}
+			    }
+			default:
+			    error(expr, "invalid operation");
 		    }
 		    break;
-		case type_ulong:
-		    ltag = ulong_tag;
-		    lvalue->type = value_utype | value_ltype | value_regno;
-		    emit_load(rvalue);
-		    rreg = rvalue->u.ival;
-		    switch (expr->token) {
-			case tok_and:
-			    ejit_andr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_or:
-			    ejit_orr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_xor:
-			    ejit_xorr_l(state, lreg, lreg, rreg);
-			    break;
-			case tok_lsh:
-			    ejit_lshr_l(state, lreg, lreg, rreg);
-			    break;
-			default:
-			    ejit_rshr_ul(state, lreg, lreg, rreg);
-			    break;
+	    }
+	    break;
+	case type_float:
+	    switch (expr->token) {
+		case tok_and:		case tok_or:		case tok_xor:
+		case tok_lsh:		case tok_rsh:
+		    error(expr, "not an integer");
+		default:
+		    break;
+	    }
+	    switch (rtag->type) {
+		case type_char:		case type_short:	case type_int:
+		case type_uchar:	case type_ushort:	case type_uint:
+		    freg = get_register(value_ftype);
+		    ejit_extr_i_f(state, freg, rreg);
+		    tag = float_tag;
+		    rval->u.ival = freg;
+		    rval->type = value_ftype | value_regno;
+		    break;
+		case type_long:		case type_ulong:
+		    freg = get_register(value_ftype);
+		    if (rreg == -1) {
+			emit_load(rval);
+			rreg = rval->u.ival;
 		    }
+		    ejit_extr_l_f(state, freg, rreg);
+		    tag = float_tag;
+		    rval->u.ival = freg;
+		    rval->type = value_ftype | value_regno;
+		    break;
+		case type_float:
+		    tag = float_tag;
+		    break;
+		case type_double:
+		    ejit_extr_f_d(state, lreg, lreg);
+		    tag = double_tag;
+		    lval->type = value_dtype;
 		    break;
 		default:
+		    error(expr, "invalid operation");
+	    }
+	    break;
+	case type_double:
+	    switch (expr->token) {
+		case tok_and:		case tok_or:		case tok_xor:
+		case tok_lsh:		case tok_rsh:
 		    error(expr, "not an integer");
+		default:
+		    break;
+	    }
+	    switch (rtag->type) {
+		case type_char:		case type_short:	case type_int:
+		case type_uchar:	case type_ushort:	case type_uint:
+		    freg = get_register(value_dtype);
+		    ejit_extr_i_d(state, freg, rreg);
+		    tag = double_tag;
+		    rval->u.ival = freg;
+		    rval->type = value_dtype | value_regno;
+		    break;
+		case type_long:		case type_ulong:
+		    freg = get_register(value_ftype);
+		    if (rreg == -1) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
+		    ejit_extr_l_d(state, freg, rreg);
+		    tag = double_tag;
+		    rval->u.ival = freg;
+		    rval->type = value_dtype | value_regno;
+		    break;
+		case type_float:
+		    ejit_extr_f_d(state, rreg, rreg);
+		    tag = double_tag;
+		    rval->type = value_dtype | value_regno;
+		    break;
+		case type_double:
+		    tag = double_tag;
+		    break;
+		default:
+		    error(expr, "invalid operation");
 	    }
 	    break;
 	default:
-	    error(expr, "not an integer");
+	    if (!(ltag->type & type_pointer))
+		error(expr, "invalid operation");
+	    switch (expr->token) {
+		case tok_lt:	case tok_le:		case tok_eq:
+		case tok_ge:	case tok_gt:		case tok_ne:
+		case tok_add:	case tok_sub:
+		    break;
+		default:
+		    error(expr, "invalid operation");
+	    }
+	    switch (rtag->type) {
+		case type_char:		case type_short:	case type_int:
+#if __WORDSIZE == 64
+		    ejit_extr_i_l(state, lreg, lreg);
+		    lval->type = value_ptype;
+		    tag = rtag;
+		    break;
+#endif
+		case type_uchar:	case type_ushort:	case type_uint:
+#if __WORDSIZE == 64
+		    ejit_extr_ui_ul(state, lreg, lreg);
+		    lval->type = value_ptype;
+		    tag = rtag;
+		    break;
+#endif
+		case type_long:		case type_ulong:
+		    lval->type = value_ptype;
+		    tag = rtag;
+		    break;
+		default:
+		    if (rtag->type & type_pointer) {
+			lval->type = value_ptype;
+			tag = rtag;
+			break;
+		    }
+		case type_float:	case type_double:
+		    error(expr, "invalid operation");
+	    }
+	    break;
     }
-    if (dec)
-	dec_value_stack(1);
+    lval->type |= value_regno;
 
-    return (ltag);
+    return (tag);
 }
 
 static tag_t *
@@ -1441,7 +1185,7 @@ emit_load(value_t *value)
 			    break;
 			default:
 			    /* structures by value not supported */
-			    assert(!(symbol->tag->type & type_pointer));
+			    assert(symbol->tag->type & type_pointer);
 			    value->type = value_ptype;
 			    ejit_getarg_p(state, regno, symbol->jit);
 			    break;

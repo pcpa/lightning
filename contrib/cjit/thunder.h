@@ -602,6 +602,10 @@
     ejit_fr_ir(st, code_extr_l_f, u, v)
 #define ejit_extr_l_d(st, u, v)						\
     ejit_fr_ir(st, code_extr_l_d, u, v)
+#define ejit_extr_f_d(st, u, v)						\
+    ejit_fr_fr(st, code_extr_f_d, u, v)
+#define ejit_extr_d_f(st, u, v)						\
+    ejit_fr_fr(st, code_extr_d_f, u, v)
 #define ejit_roundr_i_f(st, u, v)					\
     ejit_ir_fr(st, code_roundr_i_f, u, v)
 #define ejit_roundr_i_d(st, u, v)					\
@@ -1457,6 +1461,8 @@ typedef enum {
     code_extr_i_d,
     code_extr_l_f,
     code_extr_l_d,
+    code_extr_f_d,
+    code_extr_d_f,
     code_roundr_i_f,
     code_roundr_i_d,
     code_roundr_l_f,

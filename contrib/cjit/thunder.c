@@ -581,6 +581,8 @@ ejit_print(ejit_state_t *s)
 	    case code_extr_i_d:		printf("extr_i_d");	goto i_i;
 	    case code_extr_l_f:		printf("extr_l_f");	goto i_i;
 	    case code_extr_l_d:		printf("extr_l_d");	goto i_i;
+	    case code_extr_f_d:		printf("extr_f_d");	goto i_i;
+	    case code_extr_d_f:		printf("extr_d_f");	goto i_i;
 	    case code_roundr_i_f:	printf("roundr_i_f");	goto i_i;
 	    case code_roundr_i_d:	printf("roundr_i_d");	goto i_i;
 	    case code_roundr_l_f:	printf("roundr_l_f");	goto i_i;

@@ -441,6 +441,7 @@ extern tag_t		*int_tag;
 extern tag_t		*uint_tag;
 extern tag_t		*long_tag;
 extern tag_t		*ulong_tag;
+extern tag_t		*float_tag;
 extern tag_t		*double_tag;
 extern void		*the_data;
 
