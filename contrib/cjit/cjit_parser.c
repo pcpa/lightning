@@ -898,7 +898,8 @@ unary_loop(token_t token)
 		(void)primary();
 		expr = pop_expr();
 		expr->token = next == tok_inc ? tok_postinc : tok_postdec;
-		expr->data._unary.expr = pop_expr();
+		expr->data._unary.expr = top_expr();
+		top_expr() = expr;
 		break;
 	    default:
 		return (token);

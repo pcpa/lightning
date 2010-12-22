@@ -44,6 +44,9 @@ static tag_t *
 emit_setop(expr_t *expr);
 
 static tag_t *
+emit_incdec(expr_t *expr);
+
+static tag_t *
 emit_not(expr_t *expr);
 
 static tag_t *
@@ -214,6 +217,9 @@ emit_expr(expr_t *expr)
 	case tok_addset:	case tok_subset:
 	case tok_mulset:	case tok_divset:
 	    return (emit_setop(expr));
+	case tok_inc:		case tok_dec:
+	case tok_postinc:	case tok_postdec:
+	    return (emit_incdec(expr));
 	case tok_code:		case tok_stat:
 	    return (emit_stat(expr->data._unary.expr));
 	    break;
@@ -307,6 +313,79 @@ emit_setop(expr_t *expr)
     emit_store_symbol(expr, symbol, value);
 
     return (symbol->tag);
+}
+
+static tag_t *
+emit_incdec(expr_t *expr)
+{
+    tag_t	*tag;
+    int		 inc;
+    int		 post;
+    int		 lreg;
+    int		 rreg;
+    value_t	*value;
+    symbol_t	*symbol;
+
+    tag = emit_expr(expr->data._unary.expr);
+    value = top_value_stack();
+    if (value->type != value_symbl) {
+	warn(expr, "store of aggregate not handled");
+	return (void_tag);
+    }
+    symbol = value->u.pval;
+    emit_load(value);
+    lreg = value->u.ival;
+    inc = expr->token == tok_inc || expr->token == tok_postinc;
+    if (expr->token == tok_postinc || expr->token == tok_postdec) {
+	post = 1;
+	rreg = get_register(0);
+    }
+    else {
+	post = 0;
+	rreg = lreg;
+    }
+    switch (tag->type) {
+	case type_char:		case type_short:	case type_int:
+	    if (post)		ejit_movr_i(state, rreg, lreg);
+	    if (inc)		ejit_addi_i(state, lreg, lreg, 1);
+	    else		ejit_subi_i(state, lreg, lreg, 1);
+	    break;
+	case type_uchar:	case type_ushort:	case type_uint:
+	    if (post)		ejit_movr_ui(state, rreg, lreg);
+	    if (inc)		ejit_addi_ui(state, lreg, lreg, 1);
+	    else		ejit_addi_ui(state, lreg, lreg, 1);
+	    break;
+	case type_long:
+	    if (post)		ejit_movr_l(state, rreg, lreg);
+	    if (inc) 		ejit_addi_l(state, lreg, lreg, 1);
+	    else 		ejit_subi_l(state, lreg, lreg, 1);
+	    break;
+	case type_ulong:
+	    if (post)		ejit_movr_ul(state, rreg, lreg);
+	    if (inc)		ejit_addi_ul(state, lreg, lreg, 1);
+	    else		ejit_subi_ul(state, lreg, lreg, 1);
+	    break;
+	default:
+	    if ((tag->type & type_pointer) && tag->tag->size) {
+		if (post)	ejit_movr_p(state, rreg, lreg);
+		if (inc)	ejit_addi_p(state, lreg, lreg,
+					    (void *)tag->tag->size);
+		else		ejit_subi_p(state, lreg, lreg,
+					    (void *)tag->tag->size);
+		break;
+	    }
+	case type_float:	case type_double:
+	    error(expr, "not an integer or pointer");
+    }
+    emit_store_symbol(expr, symbol, value);
+    /* if post, change result to saved one */
+    /* note that usage of get_register() without an associated
+     * value_t on stack relies on having at least 3 register
+     * of the given class, and not allocating any other while
+     * it is "unbound" */
+    value->u.ival = rreg;
+
+    return (tag);
 }
 
 static tag_t *
