@@ -606,38 +606,38 @@
     ejit_fr_fr(st, code_extr_f_d, u, v)
 #define ejit_extr_d_f(st, u, v)						\
     ejit_fr_fr(st, code_extr_d_f, u, v)
-#define ejit_roundr_i_f(st, u, v)					\
-    ejit_ir_fr(st, code_roundr_i_f, u, v)
-#define ejit_roundr_i_d(st, u, v)					\
-    ejit_ir_fr(st, code_roundr_i_d, u, v)
-#define ejit_roundr_l_f(st, u, v)					\
-    ejit_ir_fr(st, code_roundr_l_f, u, v)
-#define ejit_roundr_l_d(st, u, v)					\
-    ejit_ir_fr(st, code_roundr_l_d, u, v)
-#define ejit_truncr_i_f(st, u, v)					\
-    ejit_ir_fr(st, code_truncr_i_f, u, v)
-#define ejit_truncr_i_d(st, u, v)					\
-    ejit_ir_fr(st, code_truncr_i_d, u, v)
-#define ejit_truncr_l_f(st, u, v)					\
-    ejit_ir_fr(st, code_truncr_l_f, u, v)
-#define ejit_truncr_l_d(st, u, v)					\
-    ejit_ir_fr(st, code_truncr_l_d, u, v)
-#define ejit_floorr_i_f(st, u, v)					\
-    ejit_ir_fr(st, code_floorr_i_f, u, v)
-#define ejit_floorr_i_d(st, u, v)					\
-    ejit_ir_fr(st, code_floorr_i_d, u, v)
-#define ejit_floorr_l_f(st, u, v)					\
-    ejit_ir_fr(st, code_floorr_l_f, u, v)
-#define ejit_floorr_l_d(st, u, v)					\
-    ejit_ir_fr(st, code_floorr_l_d, u, v)
-#define ejit_ceilr_i_f(st, u, v)					\
-    ejit_ir_fr(st, code_ceilr_i_f, u, v)
-#define ejit_ceilr_i_d(st, u, v)					\
-    ejit_ir_fr(st, code_ceilr_i_d, u, v)
-#define ejit_ceilr_l_f(st, u, v)					\
-    ejit_ir_fr(st, code_ceilr_l_f, u, v)
-#define ejit_ceilr_l_d(st, u, v)					\
-    ejit_ir_fr(st, code_ceilr_l_d, u, v)
+#define ejit_roundr_f_i(st, u, v)					\
+    ejit_ir_fr(st, code_roundr_f_i, u, v)
+#define ejit_roundr_f_l(st, u, v)					\
+    ejit_ir_fr(st, code_roundr_f_l, u, v)
+#define ejit_roundr_d_i(st, u, v)					\
+    ejit_ir_fr(st, code_roundr_d_i, u, v)
+#define ejit_roundr_d_l(st, u, v)					\
+    ejit_ir_fr(st, code_roundr_d_l, u, v)
+#define ejit_truncr_f_i(st, u, v)					\
+    ejit_ir_fr(st, code_truncr_f_i, u, v)
+#define ejit_truncr_f_l(st, u, v)					\
+    ejit_ir_fr(st, code_truncr_f_l, u, v)
+#define ejit_truncr_d_i(st, u, v)					\
+    ejit_ir_fr(st, code_truncr_d_i, u, v)
+#define ejit_truncr_d_l(st, u, v)					\
+    ejit_ir_fr(st, code_truncr_d_l, u, v)
+#define ejit_floorr_f_i(st, u, v)					\
+    ejit_ir_fr(st, code_floorr_f_i, u, v)
+#define ejit_floorr_f_l(st, u, v)					\
+    ejit_ir_fr(st, code_floorr_f_l, u, v)
+#define ejit_floorr_d_i(st, u, v)					\
+    ejit_ir_fr(st, code_floorr_d_i, u, v)
+#define ejit_floorr_d_l(st, u, v)					\
+    ejit_ir_fr(st, code_floorr_d_l, u, v)
+#define ejit_ceilr_f_i(st, u, v)					\
+    ejit_ir_fr(st, code_ceilr_f_i, u, v)
+#define ejit_ceilr_f_l(st, u, v)					\
+    ejit_ir_fr(st, code_ceilr_f_l, u, v)
+#define ejit_ceilr_d_i(st, u, v)					\
+    ejit_ir_fr(st, code_ceilr_d_i, u, v)
+#define ejit_ceilr_d_l(st, u, v)					\
+    ejit_ir_fr(st, code_ceilr_d_l, u, v)
 #define ejit_hton_us_ui(st, u, v)					\
     ejit_ir_ir(st, code_hton_ui_ui, u, v)
 #define ejit_ntoh_us_ui(st, u, v)					\
@@ -1463,22 +1463,22 @@ typedef enum {
     code_extr_l_d,
     code_extr_f_d,
     code_extr_d_f,
-    code_roundr_i_f,
-    code_roundr_i_d,
-    code_roundr_l_f,
-    code_roundr_l_d,
-    code_truncr_i_f,
-    code_truncr_i_d,
-    code_truncr_l_f,
-    code_truncr_l_d,
-    code_floorr_i_f,
-    code_floorr_i_d,
-    code_floorr_l_f,
-    code_floorr_l_d,
-    code_ceilr_i_f,
-    code_ceilr_i_d,
-    code_ceilr_l_f,
-    code_ceilr_l_d,
+    code_roundr_f_i,
+    code_roundr_f_l,
+    code_roundr_d_i,
+    code_roundr_d_l,
+    code_truncr_f_i,
+    code_truncr_f_l,
+    code_truncr_d_i,
+    code_truncr_d_l,
+    code_floorr_f_i,
+    code_floorr_f_l,
+    code_floorr_d_i,
+    code_floorr_d_l,
+    code_ceilr_f_i,
+    code_ceilr_f_l,
+    code_ceilr_d_i,
+    code_ceilr_d_l,
     code_hton_us_ui,
     code_ntoh_us_ui,
     code_ldr_c,
