@@ -961,22 +961,35 @@ emit_binary(expr_t *expr, token_t token)
 	    }
 	    break;
 	default:
+	    /* only add/sub reach here and pointer type check already done */
 	    tag = tag->tag;
-	    if (tag->size != 1)
-		ejit_muli_l(state, rreg, rreg, tag->size);
-	    switch (token) {
-		case tok_add:
-		    ejit_addr_p(state, lreg, lreg, rreg);
-		    break;
-		default:
-		    ejit_subr_p(state, lreg, lreg, rreg);
+	    if (token == tok_add) {
+		if (tag->size != 1) {
+		    if (ltag->type & type_pointer)
+			/* pointer + int */
+			ejit_muli_l(state, rreg, rreg, tag->size);
+		    else
+			/* int + pointer */
+			ejit_muli_l(state, lreg, lreg, tag->size);
+		}
+		ejit_addr_p(state, lreg, lreg, rreg);
+	    }
+	    else {
+		if ((ltag->type & type_pointer) &&
+		    (rtag->type & type_pointer)) {
 		    /* pointer - pointer only allowed in subtraction */
-		    if ((ltag->type & type_pointer) &&
-			(rtag->type & type_pointer)) {
-			tag = ulong_tag;
-			lval->type = value_utype | value_ltype | value_regno;
-		    }
-		    break;
+		    ejit_subr_p(state, lreg, lreg, rreg);
+		    if (tag->size != 1)
+			ejit_muli_l(state, lreg, lreg, tag->size);
+		    tag = ulong_tag;
+		    lval->type = value_utype | value_ltype | value_regno;
+		}
+		else {
+		    /* only "pointer - int" reach here */
+		    if (tag->size != 1)
+			ejit_muli_l(state, rreg, rreg, tag->size);
+		    ejit_subr_p(state, lreg, lreg, rreg);
+		}
 	    }
 	    break;
     }

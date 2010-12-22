@@ -329,7 +329,7 @@ tag_proto(tag_t *tag, expr_t *list)
     name = temp;
     if ((entry = (tag_t *)get_hash(tag->hash, name)) == NULL) {
 	entry = (tag_t *)xmalloc(sizeof(tag_t));
-	entry->name = pointer_string;
+	entry->name = name;
 	put_hash(tag->hash, (entry_t *)entry);
 	entry->hash = new_hash(hash_pointer);
 	entry->type = type_function | tag->type;
