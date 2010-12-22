@@ -62,6 +62,9 @@ static tag_t *
 emit_pointer(expr_t *expr);
 
 static tag_t *
+emit_field(expr_t *expr);
+
+static tag_t *
 emit_cmp(expr_t *expr);
 
 static tag_t *
@@ -184,6 +187,8 @@ emit_expr(expr_t *expr)
 		return (function->tag);
 	    }
 	    error(expr, "undefined symbol '%s'", expr->data._unary.cp);
+	case tok_dot:		case tok_arrow:
+	    return (emit_field(expr));
 	case tok_not:
 	    return (emit_not(expr));
 	case tok_neg:
@@ -384,6 +389,98 @@ emit_incdec(expr_t *expr)
      * of the given class, and not allocating any other while
      * it is "unbound" */
     value->u.ival = rreg;
+
+    return (tag);
+}
+
+static tag_t *
+emit_field(expr_t *expr)
+{
+    tag_t	*tag;
+    expr_t	*field;
+    value_t	*value;
+    int		 regno;
+    record_t	*record;
+    symbol_t	*symbol;
+
+    field = expr->data._binary.rvalue;
+    if (field->token != tok_symbol)
+	error(expr, "syntax error");
+    tag = emit_expr(expr->data._binary.lvalue);
+    if (!(tag->type & (type_struct | type_union)))
+	error(expr, "not a record");
+    value = top_value_stack();
+    emit_load(value);
+    regno = value->u.ival;
+    if (tag->type & type_pointer) {
+	if (expr->token != tok_arrow)
+	    error(expr, "value is a pointer");
+	tag = tag->tag;
+	/* FIXME parser may let it? */
+	if (tag->type & type_pointer)
+	    error(expr, "not a record");
+	ejit_ldr_p(state, regno, regno);
+    }
+    else if (expr->token != tok_dot)
+	error(expr, "not a pointer");
+    /* type punned toplevel tag */
+    record = (record_t *)tag->name;
+    symbol = (symbol_t *)get_hash((hash_t *)record, field->data._unary.cp);
+    if (symbol == NULL)
+	error(expr, "no '%s' field in '%s'", field->data._unary.cp,
+	      record->name ? record->name->name.string : "<anonymous>");
+    tag = symbol->tag;
+    switch (tag->type) {
+	case type_char:
+	    value->type = 0;
+	    ejit_ldxi_c(state, regno, regno, symbol->offset);
+	    break;
+	case type_uchar:
+	    value->type = value_utype;
+	    ejit_ldxi_uc(state, regno, regno, symbol->offset);
+	    break;
+	case type_short:
+	    value->type = 0;
+	    ejit_ldxi_s(state, regno, regno, symbol->offset);
+	    break;
+	case type_ushort:
+	    value->type = value_utype;
+	    ejit_ldxi_us(state, regno, regno, symbol->offset);
+	    break;
+	case type_int:
+	    value->type = 0;
+	    ejit_ldxi_i(state, regno, regno, symbol->offset);
+	    break;
+	case type_uint:
+	    value->type = value_utype;
+	    ejit_ldxi_ui(state, regno, regno, symbol->offset);
+	    break;
+	case type_long:
+	    value->type = value_ltype;
+	    ejit_ldxi_l(state, regno, regno, symbol->offset);
+	    break;
+	case type_ulong:
+	    value->type = value_utype | value_ltype;
+	    ejit_ldxi_ul(state, regno, regno, symbol->offset);
+	    break;
+	case type_float:
+	    regno = get_register(value_ftype);
+	    value->type = value_ftype;
+	    ejit_ldxi_f(state, regno, value->u.ival, symbol->offset);
+	    value->u.ival = regno;
+	    break;
+	case type_double:
+	    regno = get_register(value_dtype);
+	    value->type = value_dtype;
+	    ejit_ldxi_d(state, regno, value->u.ival, symbol->offset);
+	    value->u.ival = regno;
+	    break;
+	default:
+	    value->type = value_ptype;
+	    ejit_addi_p(state, regno, regno, (void *)symbol->offset);
+	    break;
+    }
+    value->type |= value_regno;
 
     return (tag);
 }
@@ -1699,10 +1796,7 @@ emit_load(value_t *value)
 			    break;
 			default:
 			    value->type = value_ptype;
-			    if (symbol->tag->type & type_pointer)
-				ejit_ldi_p(state, regno, pointer);
-			    else
-				ejit_movi_p(state, regno, pointer);
+			    ejit_movi_p(state, regno, pointer);
 			    break;
 		    }
 		}

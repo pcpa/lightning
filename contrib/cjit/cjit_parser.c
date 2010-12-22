@@ -850,6 +850,7 @@ unary(void)
     switch (token = primary()) {
 	case tok_signed:	case tok_unsigned:
 	case tok_type:		case tok_struct:
+	case tok_union:
 	    return (unary_decl());
 	case tok_symbol:		case tok_string:
 	    return (unary_loop(token));
