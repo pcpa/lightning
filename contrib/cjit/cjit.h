@@ -85,15 +85,26 @@
 #define type_uint		type_unsigned | type_int
 #define type_ulong		type_unsigned | type_long
 
-#define value_funct		0x00400000
-#define value_symbl		0x00800000
-#define value_ltype		0x01000000
+#define value_funct		0x00800000
+#define value_symbl		0x01000000
+#define value_ltype		0x02000000
 #define value_utype		0x04000000
 #define value_ptype		0x08000000
 #define value_ftype		0x10000000
-#define value_dtype		0x30000000
+#define value_dtype		0x20000000
 #define value_regno		0x40000000
 #define value_spill		0x80000000
+#define value_ultype		value_utype | value_ltype
+#define value_float_p(value)	((value)->type & (value_ftype | value_dtype))
+/* must use immediate opcode ? */
+#define value_const_p(value)	!((value)->type & value_regno)
+/* must (re)load register ? */
+#define value_load_p(value)	((value)->type &  \
+				 (value_funct	| \
+				  value_symbl	| \
+				  value_ftype	| \
+				  value_dtype	| \
+				  value_spill))
 
 /*
  * Types

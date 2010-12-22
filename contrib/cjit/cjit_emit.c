@@ -158,11 +158,23 @@ emit_expr(expr_t *expr)
     switch (expr->token) {
 	case tok_int:
 	    value = get_value_stack();
-	    value->type = value_ltype;
 	    value->disp = 0;
-	    value->u.lval = expr->data._unary.i;
+#if __WORDSIZE == 32
+	    value->type = 0;
+	    value->u.ival = expr->data._unary.i;
+#else
+	    if (expr->data._unary.i < -2147483648 ||
+		expr->data._unary.i >  2147483647) {
+		value->type = value_ltype;
+		value->u.lval = expr->data._unary.i;
+	    }
+	    else {
+		value->type = value_itype;
+		value->u.ival = expr->data._unary.i;
+	    }
+#endif
 	    inc_value_stack();
-	    return (long_tag);
+	    return (value->type ? long_tag : int_tag);
 	case tok_float:
 	    value = get_value_stack();
 	    value->type = value_dtype;
@@ -747,8 +759,8 @@ emit_pointer(expr_t *expr)
 static tag_t *
 emit_cmp(expr_t *expr)
 {
-    long	 li;
-    int		 dec;
+    long	 il;
+    void	*ip;
     tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
@@ -759,76 +771,112 @@ emit_cmp(expr_t *expr)
     int		 lfreg;
     int		 rfreg;
 
-    dec = 1;
     ltag = emit_expr(expr->data._binary.lvalue);
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
     emit_load(lval);
-    lreg = lval->u.ival;
-    if (rval->type != value_ltype) {
-	emit_load(rval);
-	rreg = rval->u.ival;
-    }
-    else
-	rreg = -1;
     tag = emit_binary_setup(expr, expr->token, ltag, rtag, lval, rval);
+    lreg = lval->u.ival;
     switch (tag->type) {
 	case type_int:
-	    switch (expr->token) {
-		case tok_lt:	ejit_ltr_i(state, lreg, lreg, rreg);	break;
-		case tok_le:	ejit_ler_i(state, lreg, lreg, rreg);	break;
-		case tok_eq:	ejit_eqr_i(state, lreg, lreg, rreg);	break;
-		case tok_ge:	ejit_ger_i(state, lreg, lreg, rreg);	break;
-		case tok_gt:	ejit_gtr_i(state, lreg, lreg, rreg);	break;
-		default:	ejit_ner_i(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_uint:
-	    switch (expr->token) {
-		case tok_lt:	ejit_ltr_ui(state, lreg, lreg, rreg);	break;
-		case tok_le:	ejit_ler_ui(state, lreg, lreg, rreg);	break;
-		case tok_eq:	ejit_eqr_ui(state, lreg, lreg, rreg);	break;
-		case tok_ge:	ejit_ger_ui(state, lreg, lreg, rreg);	break;
-		case tok_gt:	ejit_gtr_ui(state, lreg, lreg, rreg);	break;
-		default:	ejit_ner_ui(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_long:
-	    if (rval->type == value_ltype) {
-		dec = 0;
-		li = rval->u.lval;
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
 		switch (expr->token) {
-		    case tok_lt:ejit_lti_l(state, lreg, lreg, li);	break;
-		    case tok_le:ejit_lei_l(state, lreg, lreg, li);	break;
-		    case tok_eq:ejit_eqi_l(state, lreg, lreg, li);	break;
-		    case tok_ge:ejit_gei_l(state, lreg, lreg, li);	break;
-		    case tok_gt:ejit_gti_l(state, lreg, lreg, li);	break;
-		    default:	ejit_nei_l(state, lreg, lreg, li);	break;
+		    case tok_lt: ejit_lti_i(state, lreg, lreg, il);	break;
+		    case tok_le: ejit_lei_i(state, lreg, lreg, il);	break;
+		    case tok_eq: ejit_eqi_i(state, lreg, lreg, il);	break;
+		    case tok_ge: ejit_gei_i(state, lreg, lreg, il);	break;
+		    case tok_gt: ejit_gti_i(state, lreg, lreg, il);	break;
+		    default:	 ejit_nei_i(state, lreg, lreg, il);	break;
 		}
 	    }
 	    else {
+		rreg = rval->u.ival;
 		switch (expr->token) {
-		    case tok_lt:ejit_ltr_l(state, lreg, lreg, rreg);	break;
-		    case tok_le:ejit_ler_l(state, lreg, lreg, rreg);	break;
-		    case tok_eq:ejit_eqr_l(state, lreg, lreg, rreg);	break;
-		    case tok_ge:ejit_ger_l(state, lreg, lreg, rreg);	break;
-		    case tok_gt:ejit_gtr_l(state, lreg, lreg, rreg);	break;
-		    default:	ejit_ner_l(state, lreg, lreg, rreg);	break;
+		    case tok_lt: ejit_ltr_i(state, lreg, lreg, rreg);	break;
+		    case tok_le: ejit_ler_i(state, lreg, lreg, rreg);	break;
+		    case tok_eq: ejit_eqr_i(state, lreg, lreg, rreg);	break;
+		    case tok_ge: ejit_ger_i(state, lreg, lreg, rreg);	break;
+		    case tok_gt: ejit_gtr_i(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_ner_i(state, lreg, lreg, rreg);	break;
+		}
+	    }
+	    break;
+	case type_uint:
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
+		switch (expr->token) {
+		    case tok_lt: ejit_lti_ui(state, lreg, lreg, il);	break;
+		    case tok_le: ejit_lei_ui(state, lreg, lreg, il);	break;
+		    case tok_eq: ejit_eqi_ui(state, lreg, lreg, il);	break;
+		    case tok_ge: ejit_gei_ui(state, lreg, lreg, il);	break;
+		    case tok_gt: ejit_gti_ui(state, lreg, lreg, il);	break;
+		    default:	 ejit_nei_ui(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (expr->token) {
+		    case tok_lt: ejit_ltr_ui(state, lreg, lreg, rreg);	break;
+		    case tok_le: ejit_ler_ui(state, lreg, lreg, rreg);	break;
+		    case tok_eq: ejit_eqr_ui(state, lreg, lreg, rreg);	break;
+		    case tok_ge: ejit_ger_ui(state, lreg, lreg, rreg);	break;
+		    case tok_gt: ejit_gtr_ui(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_ner_ui(state, lreg, lreg, rreg);	break;
+		}
+	    }
+	    break;
+	case type_long:
+	    if (value_const_p(rval)) {
+		il = rval->u.lval;
+		switch (expr->token) {
+		    case tok_lt: ejit_lti_l(state, lreg, lreg, il);	break;
+		    case tok_le: ejit_lei_l(state, lreg, lreg, il);	break;
+		    case tok_eq: ejit_eqi_l(state, lreg, lreg, il);	break;
+		    case tok_ge: ejit_gei_l(state, lreg, lreg, il);	break;
+		    case tok_gt: ejit_gti_l(state, lreg, lreg, il);	break;
+		    default:	 ejit_nei_l(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (expr->token) {
+		    case tok_lt: ejit_ltr_l(state, lreg, lreg, rreg);	break;
+		    case tok_le: ejit_ler_l(state, lreg, lreg, rreg);	break;
+		    case tok_eq: ejit_eqr_l(state, lreg, lreg, rreg);	break;
+		    case tok_ge: ejit_ger_l(state, lreg, lreg, rreg);	break;
+		    case tok_gt: ejit_gtr_l(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_ner_l(state, lreg, lreg, rreg);	break;
 		}
 	    }
 	    break;
 	case type_ulong:
-	    switch (expr->token) {
-		case tok_lt:	ejit_ltr_ul(state, lreg, lreg, rreg);	break;
-		case tok_le:	ejit_ler_ul(state, lreg, lreg, rreg);	break;
-		case tok_eq:	ejit_eqr_ul(state, lreg, lreg, rreg);	break;
-		case tok_ge:	ejit_ger_ul(state, lreg, lreg, rreg);	break;
-		case tok_gt:	ejit_gtr_ul(state, lreg, lreg, rreg);	break;
-		default:	ejit_ner_ul(state, lreg, lreg, rreg);	break;
+	    if (value_const_p(rval)) {
+		il = rval->u.lval;
+		switch (expr->token) {
+		    case tok_lt: ejit_lti_ul(state, lreg, lreg, il);	break;
+		    case tok_le: ejit_lei_ul(state, lreg, lreg, il);	break;
+		    case tok_eq: ejit_eqi_ul(state, lreg, lreg, il);	break;
+		    case tok_ge: ejit_gei_ul(state, lreg, lreg, il);	break;
+		    case tok_gt: ejit_gti_ul(state, lreg, lreg, il);	break;
+		    default:	 ejit_nei_ul(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (expr->token) {
+		    case tok_lt: ejit_ltr_ul(state, lreg, lreg, rreg);	break;
+		    case tok_le: ejit_ler_ul(state, lreg, lreg, rreg);	break;
+		    case tok_eq: ejit_eqr_ul(state, lreg, lreg, rreg);	break;
+		    case tok_ge: ejit_ger_ul(state, lreg, lreg, rreg);	break;
+		    case tok_gt: ejit_gtr_ul(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_ner_ul(state, lreg, lreg, rreg);	break;
+		}
 	    }
 	    break;
 	case type_float:
+	    rreg  = rval->u.ival;
 	    lfreg = lval->u.ival;
 	    rfreg = rval->u.ival;
 	    if (ltag->type == type_float) {
@@ -849,6 +897,7 @@ emit_cmp(expr_t *expr)
 	    }
 	    break;
 	case type_double:
+	    rreg  = rval->u.ival;
 	    lfreg = lval->u.ival;
 	    rfreg = rval->u.ival;
 	    if (ltag->type == type_float || lval->type == type_double) {
@@ -869,17 +918,31 @@ emit_cmp(expr_t *expr)
 	    }
 	    break;
 	default:
-	    switch (expr->token) {
-		case tok_lt:	ejit_ltr_p(state, lreg, lreg, rreg);	break;
-		case tok_le:	ejit_ler_p(state, lreg, lreg, rreg);	break;
-		case tok_eq:	ejit_eqr_p(state, lreg, lreg, rreg);	break;
-		case tok_ge:	ejit_ger_p(state, lreg, lreg, rreg);	break;
-		case tok_gt:	ejit_gtr_p(state, lreg, lreg, rreg);	break;
-		default:	ejit_ner_p(state, lreg, lreg, rreg);	break;
+	    if (value_const_p(rval)) {
+		ip = rval->u.pval;
+		switch (expr->token) {
+		    case tok_lt: ejit_lti_p(state, lreg, lreg, ip);	break;
+		    case tok_le: ejit_lei_p(state, lreg, lreg, ip);	break;
+		    case tok_eq: ejit_eqi_p(state, lreg, lreg, ip);	break;
+		    case tok_ge: ejit_gei_p(state, lreg, lreg, ip);	break;
+		    case tok_gt: ejit_gti_p(state, lreg, lreg, ip);	break;
+		    default:	 ejit_nei_p(state, lreg, lreg, ip);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (expr->token) {
+		    case tok_lt: ejit_ltr_p(state, lreg, lreg, rreg);	break;
+		    case tok_le: ejit_ler_p(state, lreg, lreg, rreg);	break;
+		    case tok_eq: ejit_eqr_p(state, lreg, lreg, rreg);	break;
+		    case tok_ge: ejit_ger_p(state, lreg, lreg, rreg);	break;
+		    case tok_gt: ejit_gtr_p(state, lreg, lreg, rreg);	break;
+		    default:	 ejit_ner_p(state, lreg, lreg, rreg);	break;
+		}
 	    }
 	    break;
     }
-    if (dec)
+    if (!value_const_p(rval))
 	dec_value_stack(1);
     lval->type = value_regno;
 
@@ -889,8 +952,7 @@ emit_cmp(expr_t *expr)
 static tag_t *
 emit_binint(expr_t *expr, token_t token)
 {
-    long	 li;
-    int		 dec;
+    long	 il;
     tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
@@ -899,74 +961,112 @@ emit_binint(expr_t *expr, token_t token)
     int		 lreg;
     int		 rreg;
 
-    dec = 1;
     ltag = emit_expr(expr->data._binary.lvalue);
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
     emit_load(lval);
-    if (rval->type != value_ltype)
-	emit_load(rval);
     tag = emit_binary_setup(expr, token, ltag, rtag, lval, rval);
     lreg = lval->u.ival;
-    rreg = rval->type != value_ltype ? rval->u.ival : -1;
     switch (tag->type) {
 	case type_int:
-	    switch (token) {
-		case tok_and:	ejit_andr_i(state, lreg, lreg, rreg);	break;
-		case tok_or:	ejit_orr_i(state, lreg, lreg, rreg);	break;
-		case tok_xor:	ejit_xorr_i(state, lreg, lreg, rreg);	break;
-		case tok_lsh:	ejit_lshr_i(state, lreg, lreg, rreg);	break;
-		case tok_rsh:	ejit_rshr_i(state, lreg, lreg, rreg);	break;
-		default:	ejit_modr_i(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_uint:
-	    switch (token) {
-		case tok_and:	ejit_andr_ui(state, lreg, lreg, rreg);	break;
-		case tok_or:	ejit_orr_ui(state, lreg, lreg, rreg);	break;
-		case tok_xor:	ejit_xorr_ui(state, lreg, lreg, rreg);	break;
-		case tok_lsh:	ejit_lshr_ui(state, lreg, lreg, rreg);	break;
-		case tok_rsh:	ejit_rshr_ui(state, lreg, lreg, rreg);	break;
-		default:	ejit_modr_ui(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_long:
-	    if (rval->type == value_ltype) {
-		dec = 0;
-		li = rval->u.lval;
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
 		switch (token) {
-		    case tok_and:ejit_andi_l(state, lreg, lreg, li);	break;
-		    case tok_or: ejit_ori_l(state, lreg, lreg, li);	break;
-		    case tok_xor:ejit_xori_l(state, lreg, lreg, li);	break;
-		    case tok_lsh:ejit_lshi_l(state, lreg, lreg, li);	break;
-		    case tok_rsh:ejit_rshi_l(state, lreg, lreg, li);	break;
-		    default:	 ejit_modi_l(state, lreg, lreg, li);	break;
+		    case tok_and: ejit_andi_i(state, lreg, lreg, il);	break;
+		    case tok_or:  ejit_ori_i (state, lreg, lreg, il);	break;
+		    case tok_xor: ejit_xori_i(state, lreg, lreg, il);	break;
+		    case tok_lsh: ejit_lshi_i(state, lreg, lreg, il);	break;
+		    case tok_rsh: ejit_rshi_i(state, lreg, lreg, il);	break;
+		    default:	  ejit_modi_i(state, lreg, lreg, il);	break;
 		}
 	    }
 	    else {
+		rreg = rval->u.ival;
 		switch (token) {
-		    case tok_and:ejit_andr_l(state, lreg, lreg, rreg);	break;
-		    case tok_or: ejit_orr_l(state, lreg, lreg, rreg);	break;
-		    case tok_xor:ejit_xorr_l(state, lreg, lreg, rreg);	break;
-		    case tok_lsh:ejit_lshr_l(state, lreg, lreg, rreg);	break;
-		    case tok_rsh:ejit_rshr_l(state, lreg, lreg, rreg);	break;
-		    default:	 ejit_modr_l(state, lreg, lreg, rreg);	break;
+		    case tok_and: ejit_andr_i(state, lreg, lreg, rreg);	break;
+		    case tok_or:  ejit_orr_i (state, lreg, lreg, rreg);	break;
+		    case tok_xor: ejit_xorr_i(state, lreg, lreg, rreg);	break;
+		    case tok_lsh: ejit_lshr_i(state, lreg, lreg, rreg);	break;
+		    case tok_rsh: ejit_rshr_i(state, lreg, lreg, rreg);	break;
+		    default:	  ejit_modr_i(state, lreg, lreg, rreg);	break;
+		}
+	    }
+	    break;
+	case type_uint:
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
+		switch (token) {
+		    case tok_and: ejit_andi_ui(state, lreg, lreg, il);	break;
+		    case tok_or:  ejit_ori_ui (state, lreg, lreg, il);	break;
+		    case tok_xor: ejit_xori_ui(state, lreg, lreg, il);	break;
+		    case tok_lsh: ejit_lshi_ui(state, lreg, lreg, il);	break;
+		    case tok_rsh: ejit_rshi_ui(state, lreg, lreg, il);	break;
+		    default:	  ejit_modi_ui(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_and: ejit_andr_ui(state, lreg, lreg, rreg); break;
+		    case tok_or:  ejit_orr_ui (state, lreg, lreg, rreg); break;
+		    case tok_xor: ejit_xorr_ui(state, lreg, lreg, rreg); break;
+		    case tok_lsh: ejit_lshr_ui(state, lreg, lreg, rreg); break;
+		    case tok_rsh: ejit_rshr_ui(state, lreg, lreg, rreg); break;
+		    default:	  ejit_modr_ui(state, lreg, lreg, rreg); break;
+		}
+	    }
+	    break;
+	case type_long:
+	    if (value_const_p(rval)) {
+		il = rval->u.lval;
+		switch (token) {
+		    case tok_and: ejit_andi_l(state, lreg, lreg, il);	break;
+		    case tok_or:  ejit_ori_l (state, lreg, lreg, il);	break;
+		    case tok_xor: ejit_xori_l(state, lreg, lreg, il);	break;
+		    case tok_lsh: ejit_lshi_l(state, lreg, lreg, il);	break;
+		    case tok_rsh: ejit_rshi_l(state, lreg, lreg, il);	break;
+		    default:	  ejit_modi_l(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_and: ejit_andr_l(state, lreg, lreg, rreg);	break;
+		    case tok_or:  ejit_orr_l (state, lreg, lreg, rreg);	break;
+		    case tok_xor: ejit_xorr_l(state, lreg, lreg, rreg);	break;
+		    case tok_lsh: ejit_lshr_l(state, lreg, lreg, rreg);	break;
+		    case tok_rsh: ejit_rshr_l(state, lreg, lreg, rreg);	break;
+		    default:	  ejit_modr_l(state, lreg, lreg, rreg);	break;
 		}
 	    }
 	    break;
 	default:
-	    switch (token) {
-		case tok_and:	ejit_andr_ul(state, lreg, lreg, rreg);	break;
-		case tok_or:	ejit_orr_ul(state, lreg, lreg, rreg);	break;
-		case tok_xor:	ejit_xorr_ul(state, lreg, lreg, rreg);	break;
-		case tok_lsh:	ejit_lshr_ul(state, lreg, lreg, rreg);	break;
-		case tok_rsh:	ejit_rshr_ul(state, lreg, lreg, rreg);	break;
-		default:	ejit_modr_ul(state, lreg, lreg, rreg);	break;
+	    if (value_const_p(rval)) {
+		il = rval->u.lval;
+		switch (token) {
+		    case tok_and: ejit_andi_ul(state, lreg, lreg, il);	break;
+		    case tok_or:  ejit_ori_ul (state, lreg, lreg, il);	break;
+		    case tok_xor: ejit_xori_ul(state, lreg, lreg, il);	break;
+		    case tok_lsh: ejit_lshi_ul(state, lreg, lreg, il);	break;
+		    case tok_rsh: ejit_rshi_ul(state, lreg, lreg, il);	break;
+		    default:	  ejit_modi_ul(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_and: ejit_andr_ul(state, lreg, lreg, rreg); break;
+		    case tok_or:  ejit_orr_ul (state, lreg, lreg, rreg); break;
+		    case tok_xor: ejit_xorr_ul(state, lreg, lreg, rreg); break;
+		    case tok_lsh: ejit_lshr_ul(state, lreg, lreg, rreg); break;
+		    case tok_rsh: ejit_rshr_ul(state, lreg, lreg, rreg); break;
+		    default:	  ejit_modr_ul(state, lreg, lreg, rreg); break;
+		}
 	    }
 	    break;
     }
-    if (dec)
+    if (!value_const_p(rval))
 	dec_value_stack(1);
 
     return (tag);
@@ -975,8 +1075,7 @@ emit_binint(expr_t *expr, token_t token)
 static tag_t *
 emit_binary(expr_t *expr, token_t token)
 {
-    long	 li;
-    int		 dec;
+    long	 il;
     tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
@@ -985,63 +1084,96 @@ emit_binary(expr_t *expr, token_t token)
     int		 lreg;
     int		 rreg;
 
-    dec = 1;
     ltag = emit_expr(expr->data._binary.lvalue);
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
     emit_load(lval);
-    if (rval->type != value_ltype)
-	emit_load(rval);
     tag = emit_binary_setup(expr, token, ltag, rtag, lval, rval);
     lreg = lval->u.ival;
-    rreg = rval->type != value_ltype ? rval->u.ival : -1;
     switch (tag->type) {
 	case type_int:
-	    switch (token) {
-		case tok_add:	ejit_addr_i(state, lreg, lreg, rreg);	break;
-		case tok_sub:	ejit_subr_i(state, lreg, lreg, rreg);	break;
-		case tok_mul:	ejit_mulr_i(state, lreg, lreg, rreg);	break;
-		default:	ejit_divr_i(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_uint:
-	    switch (token) {
-		case tok_add:	ejit_addr_ui(state, lreg, lreg, rreg);	break;
-		case tok_sub:	ejit_subr_ui(state, lreg, lreg, rreg);	break;
-		case tok_mul:	ejit_mulr_ui(state, lreg, lreg, rreg);	break;
-		default:	ejit_divr_ui(state, lreg, lreg, rreg);	break;
-	    }
-	    break;
-	case type_long:
-	    if (rval->type == value_ltype) {
-		dec = 0;
-		li = rval->u.lval;
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
 		switch (token) {
-		    case tok_add:ejit_addi_l(state, lreg, lreg, li);	break;
-		    case tok_sub:ejit_subi_l(state, lreg, lreg, li);	break;
-		    case tok_mul:ejit_muli_l(state, lreg, lreg, li);	break;
-		    default:	 ejit_divi_l(state, lreg, lreg, li);	break;
+		    case tok_add: ejit_addi_i(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_i(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_i(state, lreg, lreg, il);	break;
+		    default:	  ejit_divi_i(state, lreg, lreg, il);	break;
 		}
 	    }
 	    else {
+		rreg = rval->u.ival;
 		switch (token) {
-		    case tok_add:ejit_addr_l(state, lreg, lreg, rreg);	break;
-		    case tok_sub:ejit_subr_l(state, lreg, lreg, rreg);	break;
-		    case tok_mul:ejit_mulr_l(state, lreg, lreg, rreg);	break;
-		    default:	 ejit_divr_l(state, lreg, lreg, rreg);	break;
+		    case tok_add: ejit_addr_i(state, lreg, lreg, rreg);	break;
+		    case tok_sub: ejit_subr_i(state, lreg, lreg, rreg);	break;
+		    case tok_mul: ejit_mulr_i(state, lreg, lreg, rreg);	break;
+		    default:	  ejit_divr_i(state, lreg, lreg, rreg);	break;
+		}
+	    }
+	    break;
+	case type_uint:
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
+		switch (token) {
+		    case tok_add: ejit_addi_ui(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_ui(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_ui(state, lreg, lreg, il);	break;
+		    default:	  ejit_divi_ui(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_add: ejit_addr_ui(state, lreg, lreg, rreg); break;
+		    case tok_sub: ejit_subr_ui(state, lreg, lreg, rreg); break;
+		    case tok_mul: ejit_mulr_ui(state, lreg, lreg, rreg); break;
+		    default:	  ejit_divr_ui(state, lreg, lreg, rreg); break;
+		}
+	    }
+	    break;
+	case type_long:
+	    if (value_const_p(rval)) {
+		il = rval->u.lval;
+		switch (token) {
+		    case tok_add: ejit_addi_l(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_l(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_l(state, lreg, lreg, il);	break;
+		    default:	  ejit_divi_l(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_add: ejit_addr_l(state, lreg, lreg, rreg);	break;
+		    case tok_sub: ejit_subr_l(state, lreg, lreg, rreg);	break;
+		    case tok_mul: ejit_mulr_l(state, lreg, lreg, rreg);	break;
+		    default:	  ejit_divr_l(state, lreg, lreg, rreg);	break;
 		}
 	    }
 	    break;
 	case type_ulong:
-	    switch (token) {
-		case tok_add:	ejit_addr_ul(state, lreg, lreg, rreg);	break;
-		case tok_sub:	ejit_subr_ul(state, lreg, lreg, rreg);	break;
-		case tok_mul:	ejit_mulr_ul(state, lreg, lreg, rreg);	break;
-		default:	ejit_divr_ul(state, lreg, lreg, rreg);	break;
+	    if (value_const_p(rval)) {
+		il = rval->u.ival;
+		switch (token) {
+		    case tok_add: ejit_addr_ul(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subr_ul(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_mulr_ul(state, lreg, lreg, il);	break;
+		    default:	  ejit_divr_ul(state, lreg, lreg, il);	break;
+		}
+	    }
+	    else {
+		rreg = rval->u.ival;
+		switch (token) {
+		    case tok_add: ejit_addr_ul(state, lreg, lreg, rreg); break;
+		    case tok_sub: ejit_subr_ul(state, lreg, lreg, rreg); break;
+		    case tok_mul: ejit_mulr_ul(state, lreg, lreg, rreg); break;
+		    default:	  ejit_divr_ul(state, lreg, lreg, rreg); break;
+		}
 	    }
 	    break;
 	case type_float:
+	    rreg = rval->u.ival;
 	    switch (token) {
 		case tok_add:	ejit_addr_f(state, lreg, lreg, rreg);	break;
 		case tok_sub:	ejit_subr_f(state, lreg, lreg, rreg);	break;
@@ -1050,6 +1182,7 @@ emit_binary(expr_t *expr, token_t token)
 	    }
 	    break;
 	case type_double:
+	    rreg = rval->u.ival;
 	    switch (token) {
 		case tok_add:	ejit_addr_d(state, lreg, lreg, rreg);	break;
 		case tok_sub:	ejit_subr_d(state, lreg, lreg, rreg);	break;
@@ -1061,21 +1194,41 @@ emit_binary(expr_t *expr, token_t token)
 	    /* only add/sub reach here and pointer type check already done */
 	    tag = tag->tag;
 	    if (token == tok_add) {
-		if (tag->size != 1) {
-		    if (ltag->type & type_pointer)
-			/* pointer + int */
-			ejit_muli_l(state, rreg, rreg, tag->size);
-		    else
-			/* int + pointer */
+		if (value_const_p(rval)) {
+		    if (ltag->type & type_pointer) {
+			il = rval->type & value_ltype ?
+			    rval->u.lval : rval->u.ival;
+			il *= tag->size;
+			ejit_addi_p(state, lreg, lreg, (void *)il);
+		    }
+		    else {
+			emit_load(rval);
+			rreg = rval->u.ival;
 			ejit_muli_l(state, lreg, lreg, tag->size);
+		    }
+		    ejit_addr_p(state, lreg, lreg, rreg);
 		}
-		ejit_addr_p(state, lreg, lreg, rreg);
+		else {
+		    rreg = rval->u.ival;
+		    if (tag->size != 1) {
+			if (ltag->type & type_pointer)
+			    /* pointer + int */
+			    ejit_muli_l(state, rreg, rreg, tag->size);
+			else
+			    /* int + pointer */
+			    ejit_muli_l(state, lreg, lreg, tag->size);
+		    }
+		    ejit_addr_p(state, lreg, lreg, rreg);
+		}
 	    }
 	    else {
 		if ((ltag->type & type_pointer) &&
 		    (rtag->type & type_pointer)) {
 		    /* pointer - pointer only allowed in subtraction */
-		    ejit_subr_p(state, lreg, lreg, rreg);
+		    if (value_const_p(rval))
+			ejit_subi_p(state, lreg, lreg, rval->u.pval);
+		    else
+			ejit_subr_p(state, lreg, lreg, rval->u.ival);
 		    if (tag->size != 1)
 			ejit_muli_l(state, lreg, lreg, tag->size);
 		    tag = ulong_tag;
@@ -1083,14 +1236,23 @@ emit_binary(expr_t *expr, token_t token)
 		}
 		else {
 		    /* only "pointer - int" reach here */
-		    if (tag->size != 1)
-			ejit_muli_l(state, rreg, rreg, tag->size);
-		    ejit_subr_p(state, lreg, lreg, rreg);
+		    if (value_const_p(rval)) {
+			il = rval->type & value_ltype ?
+			    rval->u.lval : rval->u.ival;
+			il *= tag->size;
+			ejit_subi_p(state, lreg, lreg, (void *)il);
+		    }
+		    else {
+			rreg = rval->u.ival;
+			if (tag->size != 1)
+			    ejit_muli_l(state, rreg, rreg, tag->size);
+			ejit_subr_p(state, lreg, lreg, rreg);
+		    }
 		}
 	    }
 	    break;
     }
-    if (dec)
+    if (!value_const_p(rval))
 	dec_value_stack(1);
 
     return (tag);
@@ -1106,7 +1268,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
     int		 rreg;
 
     lreg = lval->u.ival;
-    if (rval->type != value_ltype) {
+    if (value_load_p(rval)) {
 	emit_load(rval);
 	rreg = rval->u.ival;
     }
@@ -1137,6 +1299,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			default:
 			    break;
 		    }
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_ftype);
 		    ejit_extr_i_f(state, freg, rreg);
 		    tag = float_tag;
@@ -1151,6 +1317,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			    goto int_error;
 			default:
 			    break;
+		    }
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_dtype);
 		    ejit_extr_i_d(state, freg, rreg);
@@ -1237,7 +1407,8 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			lval->type = 0;
 		    }
 		    else {
-			ejit_extr_i_l(state, rreg, rreg);
+			if (!value_const_p(rval))
+			    ejit_extr_i_l(state, rreg, rreg);
 			tag = long_tag;
 			lval->type = value_ltype;
 		    }
@@ -1256,6 +1427,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			default:
 			    break;
 		    }
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_ftype);
 		    ejit_extr_l_f(state, freg, rreg);
 		    tag = float_tag;
@@ -1270,6 +1445,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			    goto int_error;
 			default:
 			    break;
+		    }
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_dtype);
 		    ejit_extr_l_d(state, freg, rreg);
@@ -1305,7 +1484,8 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			lval->type = value_utype;
 		    }
 		    else {
-			ejit_extr_ui_ul(state, rreg, rreg);
+			if (!value_const_p(rval))
+			    ejit_extr_ui_ul(state, rreg, rreg);
 			tag = ulong_tag;
 			lval->type = value_utype | value_ltype;
 		    }
@@ -1351,6 +1531,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_ftype);
 		    ejit_extr_i_f(state, freg, rreg);
 		    tag = float_tag;
@@ -1358,6 +1542,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 		    rval->type = value_ftype | value_regno;
 		    break;
 		case type_long:		case type_ulong:
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_ftype);
 		    if (rreg == -1) {
 			emit_load(rval);
@@ -1391,6 +1579,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_dtype);
 		    ejit_extr_i_d(state, freg, rreg);
 		    tag = double_tag;
@@ -1398,6 +1590,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 		    rval->type = value_dtype | value_regno;
 		    break;
 		case type_long:		case type_ulong:
+		    if (value_const_p(rval)) {
+			emit_load(rval);
+			rreg = rval->u.ival;
+		    }
 		    freg = get_register(value_ftype);
 		    if (rreg == -1) {
 			emit_load(rval);
@@ -1742,12 +1938,8 @@ emit_load(value_t *value)
 			    break;
 			default:
 			    value->type = value_ptype;
-			    if (symbol->tag->type & type_pointer)
-				ejit_ldxi_p(state, regno, FRAME_POINTER,
-					    symbol->offset);
-			    else
-				ejit_addi_p(state, regno, FRAME_POINTER,
-					    (void *)symbol->offset);
+			    ejit_addi_p(state, regno, FRAME_POINTER,
+					(void *)symbol->offset);
 			    break;
 		    }
 		}
@@ -1801,10 +1993,24 @@ emit_load(value_t *value)
 		    }
 		}
 		break;
+	    case 0:
+		ejit_movi_i(state, regno, value->u.ival);
+		value->u.ival = regno;
+		break;
 	    case value_ltype:
 		ejit_movi_l(state, regno, value->u.lval);
 		value->u.ival = regno;
 		break;
+#if 0		/* no information so far about it */
+	    case value_ptype:
+		ejit_movi_p(state, regno, value->u.pval);
+		value->u.ival = regno;
+		break;
+	    case value_ftype:
+		ejit_movi_f(state, regno, (float)value->u.dval);
+		value->u.ival = regno;
+		break;
+#endif
 	    case value_dtype:
 		ejit_movi_d(state, regno, value->u.dval);
 		value->u.ival = regno;
@@ -1831,6 +2037,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
     int		 regno;
     void	*pointer;
 
+    assert((value->type & (value_regno | value_spill)) == value_regno);
     regno = value->u.ival;
     if (symbol->arg) {
 	switch (symbol->tag->type) {
