@@ -89,6 +89,7 @@
 #define type_ulong		type_unsigned | type_long
 #define pointer_type_p(type)	((type) & (type_vector | type_pointer))
 
+#define value_itype		0x00000000
 #define value_funct		0x00800000
 #define value_symbl		0x01000000
 #define value_ltype		0x02000000
