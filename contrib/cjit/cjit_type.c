@@ -186,9 +186,40 @@ tag_pointer(tag_t *tag)
 }
 
 tag_t *
+tag_vector(tag_t *tag, long length)
+{
+    hash_t	*hash;
+    char	*name;
+    int		 type;
+    tag_t	*entry;
+    char	 stk[32];
+
+    /* use a string just in case the declared length would match
+     * some pointer, otherwise, could cast it to a pointer, because
+     * it is a "hash_pointer" */
+    sprintf(stk, "%ld", length);
+    name = xintern(stk);
+    hash = tag->hash;
+    type = tag->type;
+    if ((entry = (tag_t *)get_hash(hash, name)) == NULL) {
+	entry = (tag_t *)xmalloc(sizeof(tag_t));
+	entry->name = name;
+	put_hash(hash, (entry_t *)entry);
+	entry->hash = new_hash(hash_pointer);
+	entry->type = type_vector | type;
+	/* FIXME correct? */
+	entry->size = length ? tag->size * length : sizeof(void*);
+	entry->tag  = tag;
+    }
+
+    return (entry);
+}
+
+tag_t *
 tag_decl(tag_t *tag, expr_t **decl)
 {
     expr_t	*expr;
+    long	 length;
 
     if ((expr = *decl) == NULL)
 	return (tag);
@@ -197,6 +228,23 @@ tag_decl(tag_t *tag, expr_t **decl)
 	    case tok_pointer:
 		tag = tag_pointer(tag);
 		if ((expr = expr->data._unary.expr) == NULL) {
+		    *decl = expr;
+		    return (tag);
+		}
+		break;
+	    case tok_vector:
+		/* treat symbol[] and symbol[0] identically ... */
+		if (expr->data._binary.rvalue == NULL)
+		    length = 0;
+		else if (expr->data._binary.rvalue->token != tok_int)
+		    error(expr, "not an integer");
+		else {
+		    length = expr->data._binary.rvalue->data._unary.i;
+		    if (length < 0)
+			error(expr, "negative length");
+		}
+		tag = tag_vector(tag, length);
+		if ((expr = expr->data._binary.lvalue) == NULL) {
 		    *decl = expr;
 		    return (tag);
 		}

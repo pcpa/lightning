@@ -65,6 +65,9 @@ static tag_t *
 emit_field(expr_t *expr);
 
 static tag_t *
+emit_vector(expr_t *expr);
+
+static tag_t *
 emit_cmp(expr_t *expr);
 
 static tag_t *
@@ -201,6 +204,8 @@ emit_expr(expr_t *expr)
 	    error(expr, "undefined symbol '%s'", expr->data._unary.cp);
 	case tok_dot:		case tok_arrow:
 	    return (emit_field(expr));
+	case tok_vector:
+	    return (emit_vector(expr));
 	case tok_not:
 	    return (emit_not(expr));
 	case tok_neg:
@@ -383,7 +388,7 @@ emit_incdec(expr_t *expr)
 	    else		ejit_subi_ul(state, lreg, lreg, 1);
 	    break;
 	default:
-	    if ((tag->type & type_pointer) && tag->tag->size) {
+	    if (pointer_type_p(tag->type) && tag->tag->size) {
 		if (post)	ejit_movr_p(state, rreg, lreg);
 		if (inc)	ejit_addi_p(state, lreg, lreg,
 					    (void *)tag->tag->size);
@@ -424,12 +429,12 @@ emit_field(expr_t *expr)
     value = top_value_stack();
     emit_load(value);
     regno = value->u.ival;
-    if (tag->type & type_pointer) {
+    if (pointer_type_p(tag->type)) {
 	if (expr->token != tok_arrow)
 	    error(expr, "value is a pointer");
 	tag = tag->tag;
 	/* FIXME parser may let it? */
-	if (tag->type & type_pointer)
+	if (pointer_type_p(tag->type))
 	    error(expr, "not a record");
 	ejit_ldr_p(state, regno, regno);
     }
@@ -497,6 +502,142 @@ emit_field(expr_t *expr)
     return (tag);
 }
 
+/* FIXME should scale, adjust, bound check, and/or handle 64 bit offsets?! */
+static tag_t *
+emit_vector(expr_t *expr)
+{
+    int		 fr;
+    int		 lr;
+    int		 rr;
+    tag_t	*tag;
+    tag_t	*ltag;
+    tag_t	*rtag;
+    value_t	*lval;
+    value_t	*rval;
+
+    ltag = emit_expr(expr->data._binary.lvalue);
+    if (!pointer_type_p(ltag->type))
+	error(expr->data._binary.lvalue, "not a vector");
+    lval = top_value_stack();
+    rtag = emit_expr(expr->data._binary.rvalue);
+    switch (rtag->type) {
+	case type_char:		case type_short:	case type_int:
+	case type_uchar:	case type_ushort:	case type_uint:
+	case type_long:		case type_ulong:
+	    break;
+	default:
+	    error(expr->data._binary.rvalue, "not an integer");
+    }
+    rval = top_value_stack();
+    emit_load(lval);
+    lr = lval->u.ival;
+    if (value_load_p(rval))
+	emit_load(rval);
+    rr = rval->u.ival;
+    tag = ltag->tag;
+    switch (tag->type) {
+	case type_char:
+	    ltag->type = 0;
+	    if (value_const_p(rval))	ejit_ldxi_c(state, lr, lr, rr);
+	    else			ejit_ldxr_c(state, lr, lr, rr);
+	    break;
+	case type_uchar:
+	    ltag->type = value_utype;
+	    if (value_const_p(rval))	ejit_ldxi_uc(state, lr, lr, rr);
+	    else			ejit_ldxr_uc(state, lr, lr, rr);
+	    break;
+	case type_short:
+	    ltag->type = 0;
+	    if (value_const_p(rval))
+		ejit_ldxi_s(state, lr, lr, rr * sizeof(short));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(short));
+		ejit_ldxr_s(state, lr, lr, rr);
+	    }
+	    break;
+	case type_ushort:
+	    ltag->type = value_utype;
+	    if (value_const_p(rval))
+		ejit_ldxi_us(state, lr, lr, rr * sizeof(short));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(short));
+		ejit_ldxr_us(state, lr, lr, rr);
+	    }
+	    break;
+	case type_int:
+	    ltag->type = 0;
+	    if (value_const_p(rval))
+		ejit_ldxi_i(state, lr, lr, rr * sizeof(int));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(int));
+		ejit_ldxr_i(state, lr, lr, rr);
+	    }
+	    break;
+	case type_uint:
+	    ltag->type = value_utype;
+	    if (value_const_p(rval))
+		ejit_ldxi_ui(state, lr, lr, rr * sizeof(int));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(int));
+		ejit_ldxr_ui(state, lr, lr, rr);
+	    }
+	    break;
+	case type_long:
+	    ltag->type = value_ltype;
+	    if (value_const_p(rval))
+		ejit_ldxi_l(state, lr, lr, rr * sizeof(long));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(long));
+		ejit_ldxr_l(state, lr, lr, rr);
+	    }
+	    break;
+	case type_ulong:
+	    ltag->type = value_ultype;
+	    if (value_const_p(rval))
+		ejit_ldxi_ul(state, lr, lr, rr * sizeof(long));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(long));
+		ejit_ldxr_ul(state, lr, lr, rr);
+	    }
+	    break;
+	case type_float:
+	    fr = get_register(value_ftype);
+	    if (value_const_p(rval))
+		ejit_ldxi_f(state, fr, lr, rr * sizeof(float));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(float));
+		ejit_ldxr_f(state, fr, lr, rr);
+	    }
+	    lval->type = value_ftype;
+	    lval->u.ival = fr;
+	    break;
+	case type_double:
+	    fr = get_register(value_dtype);
+	    if (value_const_p(rval))
+		ejit_ldxi_d(state, fr, lr, rr * sizeof(double));
+	    else {
+		ejit_muli_i(state, rr, rr, sizeof(double));
+		ejit_ldxr_d(state, fr, lr, rr);
+	    }
+	    lval->type = value_dtype;
+	    lval->u.ival = fr;
+	    break;
+	default:
+	    if (value_const_p(rval))
+		ejit_addi_p(state, lr, lr, (void *)(rr * tag->size));
+	    else {
+		ejit_muli_i(state, rr, rr, rr * tag->size);
+		ejit_addr_p(state, lr, lr, rr);
+	    }
+	    break;
+    }
+    lval->type |= value_regno;
+    if (!value_const_p(rval))
+	dec_value_stack(1);
+
+    return (tag);
+}
+
 static tag_t *
 emit_not(expr_t *expr)
 {
@@ -553,7 +694,7 @@ emit_not(expr_t *expr)
 	    value->u.ival = ireg;
 	    break;
 	default:
-	    if (!(tag->type & type_pointer))
+	    if (!pointer_type_p(tag->type))
 		warn(expr, "value is always true");
 	    ejit_nei_p(state, regno, regno, NULL);
 	    break;
@@ -695,7 +836,7 @@ emit_pointer(expr_t *expr)
     value_t	*value;
 
     tag = emit_expr(expr->data._unary.expr);
-    if (!(tag->type & type_pointer))
+    if (!pointer_type_p(tag->type))
 	error(expr, "not a pointer");
     value = top_value_stack();
     emit_load(value);
@@ -1195,7 +1336,7 @@ emit_binary(expr_t *expr, token_t token)
 	    tag = tag->tag;
 	    if (token == tok_add) {
 		if (value_const_p(rval)) {
-		    if (ltag->type & type_pointer) {
+		    if (pointer_type_p(ltag->type)) {
 			il = rval->type & value_ltype ?
 			    rval->u.lval : rval->u.ival;
 			il *= tag->size;
@@ -1211,7 +1352,7 @@ emit_binary(expr_t *expr, token_t token)
 		else {
 		    rreg = rval->u.ival;
 		    if (tag->size != 1) {
-			if (ltag->type & type_pointer)
+			if (pointer_type_p(ltag->type))
 			    /* pointer + int */
 			    ejit_muli_l(state, rreg, rreg, tag->size);
 			else
@@ -1222,8 +1363,7 @@ emit_binary(expr_t *expr, token_t token)
 		}
 	    }
 	    else {
-		if ((ltag->type & type_pointer) &&
-		    (rtag->type & type_pointer)) {
+		if (pointer_type_p(ltag->type) && pointer_type_p(rtag->type)) {
 		    /* pointer - pointer only allowed in subtraction */
 		    if (value_const_p(rval))
 			ejit_subi_p(state, lreg, lreg, rval->u.pval);
@@ -1336,7 +1476,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 				goto type_error;
 			case tok_lt:	case tok_le:		case tok_eq:
 			case tok_ge:	case tok_gt:		case tok_ne:
-			    if (rtag->type & type_pointer) {
+			    if (pointer_type_p(rtag->type)) {
 #if __WORDSIZE == 64
 				ejit_extr_i_l(state, lreg, lreg);
 #endif
@@ -1383,7 +1523,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 				goto type_error;
 			case tok_lt:	case tok_le:		case tok_eq:
 			case tok_ge:	case tok_gt:		case tok_ne:
-			    if (rtag->type & type_pointer) {
+			    if (pointer_type_p(rtag->type)) {
 #if __WORDSIZE == 64
 				ejit_extr_ui_ul(state, lreg, lreg);
 #endif
@@ -1463,7 +1603,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 				goto type_error;
 			case tok_lt:	case tok_le:		case tok_eq:
 			case tok_ge:	case tok_gt:		case tok_ne:
-			    if (rtag->type & type_pointer) {
+			    if (pointer_type_p(rtag->type)) {
 				lval->type = value_ptype;
 				tag = rtag;
 				break;
@@ -1509,7 +1649,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 				goto type_error;
 			case tok_lt:	case tok_le:		case tok_eq:
 			case tok_ge:	case tok_gt:		case tok_ne:
-			    if (rtag->type & type_pointer) {
+			    if (pointer_type_p(rtag->type)) {
 				lval->type = value_ptype;
 				tag = rtag;
 				break;
@@ -1617,7 +1757,7 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 	    }
 	    break;
 	default:
-	    if (!(ltag->type & type_pointer) || ltag->tag->size == 0)
+	    if (!pointer_type_p(ltag->type) || ltag->tag->size == 0)
 		goto type_error;
 	    switch (token) {
 		case tok_lt:		case tok_le:		case tok_eq:
@@ -1723,7 +1863,7 @@ emit_coerce(expr_t *expr, tag_t *tag, value_t *value)
 	    }
 	    break;
 	default:
-	    if (flt || !(tag->type & type_pointer))
+	    if (flt || !pointer_type_p(tag->type))
 		error(expr, "invalid conversion");
 #if __WORDSIZE == 64
 	    if (!(value->type & (value_ptype | value_ltype))) {
@@ -1878,7 +2018,7 @@ emit_load(value_t *value)
 			    break;
 			default:
 			    /* structures by value not supported */
-			    assert(symbol->tag->type & type_pointer);
+			    assert(pointer_type_p(symbol->tag->type));
 			    value->type = value_ptype;
 			    ejit_getarg_p(state, regno, symbol->jit);
 			    break;
@@ -2073,7 +2213,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		break;
 	    default:
 		/* struct argument by value not supported */
-		assert(symbol->tag->type & type_pointer);
+		assert(pointer_type_p(symbol->tag->type));
 		ejit_putarg_p(state, symbol->jit, regno);
 		break;
 	}
@@ -2111,7 +2251,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		ejit_stxi_d(state, symbol->offset, FRAME_POINTER, regno);
 		break;
 	    default:
-		if (symbol->tag->type & type_pointer)
+		if (pointer_type_p(symbol->tag->type))
 		    ejit_stxi_p(state, symbol->offset, FRAME_POINTER, regno);
 		else
 		    warn(expr, "struct copy not handled");
@@ -2152,7 +2292,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		ejit_sti_d(state, pointer, regno);
 		break;
 	    default:
-		if (symbol->tag->type & type_pointer)
+		if (pointer_type_p(symbol->tag->type))
 		    ejit_sti_p(state, pointer, regno);
 		else
 		    warn(expr, "struct copy not handled");

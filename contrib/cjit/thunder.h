@@ -50,6 +50,7 @@
 #define ejit_ir_ir_fr			ejit_i_i_i
 #define ejit_ir_fr_fr			ejit_i_i_i
 #define ejit_fr_ir_l			ejit_i_i_l
+#define ejit_fr_ir_ir			ejit_i_i_i
 #define ejit_fr_fr_fr			ejit_i_i_i
 #define ejit_n_ir_i			ejit_n_i_i
 #define ejit_n_ir_ui			ejit_n_i_i

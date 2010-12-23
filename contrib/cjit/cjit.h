@@ -60,11 +60,12 @@
 #define type_long		0x00000004
 #define type_float		0x00000005
 #define type_double		0x00000006
-#define type_namespace		0x04000000
-#define type_function		0x08000000
-#define type_union		0x10000000
-#define type_struct		0x20000000
-#define type_unsigned		0x40000000
+#define type_namespace		0x02000000
+#define type_function		0x04000000
+#define type_union		0x08000000
+#define type_struct		0x10000000
+#define type_unsigned		0x20000000
+#define type_vector		0x40000000
 #define type_pointer		0x80000000
 #define type_mask(type)		((type) & 		  \
 				 (type_namespace	| \
@@ -72,6 +73,7 @@
 				  type_union		| \
 				  type_struct		| \
 				  type_unsigned		| \
+				  type_vector		| \
 				  type_pointer))
 #define type_base(type)		((type) & 		  \
 				 ~(type_namespace	| \
@@ -79,11 +81,13 @@
 				   type_union		| \
 				   type_struct		| \
 				   type_unsigned	| \
+				   type_vector		| \
 				   type_pointer))
 #define type_uchar		type_unsigned | type_char
 #define type_ushort		type_unsigned | type_short
 #define type_uint		type_unsigned | type_int
 #define type_ulong		type_unsigned | type_long
+#define pointer_type_p(type)	((type) & (type_vector | type_pointer))
 
 #define value_funct		0x00800000
 #define value_symbl		0x01000000
@@ -404,6 +408,9 @@ tag_type(int type);
 
 extern tag_t *
 tag_pointer(tag_t *tag);
+
+extern tag_t *
+tag_vector(tag_t *tag, long length);
 
 extern tag_t *
 tag_decl(tag_t *tag, expr_t **decl);
