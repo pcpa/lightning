@@ -1892,8 +1892,8 @@ emit_binary_next(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			emit_load(expr, rval);
 			rreg = rval->u.ival;
 			ejit_muli_l(state, lreg, lreg, tag->size);
+			ejit_addr_p(state, lreg, lreg, rreg);
 		    }
-		    ejit_addr_p(state, lreg, lreg, rreg);
 		}
 		else {
 		    rreg = rval->u.ival;
