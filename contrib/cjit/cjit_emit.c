@@ -62,13 +62,13 @@ static tag_t *
 emit_pointer(expr_t *expr);
 
 static tag_t *
-emit_field(expr_t *expr, expr_t *vexp);
+emit_field(expr_t *expr, token_t token, expr_t *vexp);
 
 static tag_t *
 emit_symbol(expr_t *expr, token_t token, expr_t *vexp);
 
 static tag_t *
-emit_vector(expr_t *expr, expr_t *vexp);
+emit_vector(expr_t *expr, token_t token, expr_t *vexp);
 
 static tag_t *
 emit_cmp(expr_t *expr);
@@ -210,9 +210,9 @@ emit_expr(expr_t *expr)
 	    }
 	    error(expr, "undefined symbol '%s'", expr->data._unary.cp);
 	case tok_dot:		case tok_arrow:
-	    return (emit_field(expr, NULL));
+	    return (emit_field(expr, tok_none, NULL));
 	case tok_vector:
-	    return (emit_vector(expr, NULL));
+	    return (emit_vector(expr, tok_none, NULL));
 	case tok_not:
 	    return (emit_not(expr));
 	case tok_neg:
@@ -274,10 +274,10 @@ emit_set(expr_t *expr)
 	    tag = emit_symbol(lexp, tok_none, rexp);
 	    break;
 	case tok_dot:		case tok_arrow:
-	    tag = emit_field(lexp, rexp);
+	    tag = emit_field(lexp, tok_none, rexp);
 	    break;
 	case tok_vector:
-	    tag = emit_vector(lexp, rexp);
+	    tag = emit_vector(lexp, tok_none, rexp);
 	    break;
 	default:
 	    warn(expr, "store of aggregate not handled");
@@ -293,12 +293,20 @@ emit_setop(expr_t *expr)
     tag_t	*tag;
     expr_t	*lexp;
     expr_t	*rexp;
+    token_t	 token;
 
     lexp = expr->data._binary.lvalue;
     rexp = expr->data._binary.rvalue;
+    token = (token_t)(expr->token + (tok_and - tok_andset));
     switch (lexp->token) {
 	case tok_symbol:
-	    tag = emit_symbol(lexp, expr->token + (tok_and - tok_andset), rexp);
+	    tag = emit_symbol(lexp, token, rexp);
+	    break;
+	case tok_dot:		case tok_arrow:
+	    tag = emit_field(lexp, token, rexp);
+	    break;
+	case tok_vector:
+	    tag = emit_vector(lexp, token, rexp);
 	    break;
 	default:
 	    warn(expr, "store of aggregate not handled");
@@ -382,7 +390,7 @@ emit_incdec(expr_t *expr)
 }
 
 static tag_t *
-emit_field(expr_t *expr, expr_t *vexp)
+emit_field(expr_t *expr, token_t token, expr_t *vexp)
 {
     int		 lr;
     int		 vr;
@@ -392,6 +400,7 @@ emit_field(expr_t *expr, expr_t *vexp)
     tag_t	*vtag;
     value_t	*lval;
     value_t	*vval;
+    value_t	*xval;
     char	*field;
     record_t	*record;
     symbol_t	*symbol;
@@ -426,7 +435,77 @@ emit_field(expr_t *expr, expr_t *vexp)
     /* expression result tag type */
     tag = symbol->tag;
     if (vexp) {
-	vtag = emit_expr(vexp);
+	if (token) {
+	    vval = get_value_stack();
+	    switch (tag->type) {
+		case type_char:		case type_short:	case type_int:
+		    vval->type = value_itype;
+		    break;
+		case type_uchar:	case type_ushort:	case type_uint:
+		    vval->type = value_utype;
+		    break;
+		case type_long:
+		    vval->type = value_ltype;
+		    break;
+		case type_ulong:
+		    vval->type = value_ultype;
+		    break;
+		case type_float:
+		    vval->type = value_ftype;
+		    break;
+		case type_double:
+		    vval->type = value_dtype;
+		    break;
+		default:
+		    vval->type = value_ptype;
+		    break;
+	    }
+	    vval->type |= value_regno;
+	    vval->u.ival = vr = get_register(value_float_p(vval));
+	    inc_value_stack();
+	    switch (tag->type) {
+		case type_char:
+		    ejit_ldxi_c(state, vr, lr, symbol->offset);
+		    break;
+		case type_uchar:
+		    ejit_ldxi_uc(state, vr, lr, symbol->offset);
+		    break;
+		case type_short:
+		    ejit_ldxi_s(state, vr, lr, symbol->offset);
+		    break;
+		case type_ushort:
+		    ejit_ldxi_us(state, vr, lr, symbol->offset);
+		    break;
+		case type_int:
+		    ejit_ldxi_i(state, vr, lr, symbol->offset);
+		    break;
+		case type_uint:
+		    ejit_ldxi_ui(state, vr, lr, symbol->offset);
+		    break;
+		case type_long:
+		    ejit_ldxi_l(state, vr, lr, symbol->offset);
+		    break;
+		case type_ulong:
+		    ejit_ldxi_ul(state, vr, lr, symbol->offset);
+		    break;
+		case type_float:
+		    ejit_ldxi_f(state, vr, lr, symbol->offset);
+		    break;
+		case type_double:
+		    ejit_ldxi_d(state, vr, lr, symbol->offset);
+		    break;
+		default:
+		    ejit_addi_p(state, vr, lr, (void *)symbol->offset);
+		    break;
+	    }
+	    vtag = emit_expr(vexp);
+	    xval = top_value_stack();
+	    vtag = emit_binary_next(expr, tag, vtag, vval, xval, token);
+	    dec_value_stack(1);
+	}
+	else
+	    vtag = emit_expr(vexp);
+
 	vval = top_value_stack();
 	/* stored value must be in a register even if a literal constant */
 	emit_load(vexp, vval);
@@ -436,6 +515,7 @@ emit_field(expr_t *expr, expr_t *vexp)
 	/* reload if spilled, otherwise a noop */
 	emit_load(expr, lval);
     }
+
     switch (tag->type) {
 	case type_char:
 	    lval->type = value_itype;
@@ -523,7 +603,7 @@ emit_field(expr_t *expr, expr_t *vexp)
 /* FIXME optimization: if going to spill offset or base pointer, better to
  * adjust pointer to release one register... */
 static tag_t *
-emit_vector(expr_t *expr, expr_t *vexp)
+emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 {
     int		 lr;
     int		 rr;
@@ -535,6 +615,7 @@ emit_vector(expr_t *expr, expr_t *vexp)
     value_t	*lval;
     value_t	*rval;
     value_t	*vval;
+    value_t	*xval;
 
     ltag = emit_expr(expr->data._binary.lvalue);
     if (!pointer_type_p(ltag->type))
@@ -561,15 +642,140 @@ emit_vector(expr_t *expr, expr_t *vexp)
     tag = ltag->tag;
 
     if (vexp) {
-	vtag = emit_expr(vexp);
+	if (token) {
+	    vval = get_value_stack();
+	    switch (tag->type) {
+		case type_char:		case type_short:	case type_int:
+		    vval->type = value_itype;
+		    break;
+		case type_uchar:	case type_ushort:	case type_uint:
+		    vval->type = value_utype;
+		    break;
+		case type_long:
+		    vval->type = value_ltype;
+		    break;
+		case type_ulong:
+		    vval->type = value_ultype;
+		    break;
+		case type_float:
+		    vval->type = value_ftype;
+		    break;
+		case type_double:
+		    vval->type = value_dtype;
+		    break;
+		default:
+		    vval->type = value_ptype;
+		    break;
+	    }
+	    vval->type |= value_regno;
+	    vval->u.ival = vr = get_register(value_float_p(vval));
+	    inc_value_stack();
+	    switch (tag->type) {
+		case type_char:
+		    if (value_const_p(rval))
+			ejit_ldxi_c(state, vr, lr, rr);
+		    else
+			ejit_ldxr_c(state, vr, lr, rr);
+		    break;
+		case type_uchar:
+		    if (value_const_p(rval))
+			ejit_ldxi_uc(state, vr, lr, rr);
+		    else
+			ejit_ldxr_uc(state, vr, lr, rr);
+		    break;
+		case type_short:
+		    if (value_const_p(rval))
+			ejit_ldxi_s(state, vr, lr, rr * sizeof(short));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(short));
+			ejit_ldxr_s(state, vr, lr, rr);
+		    }
+		    break;
+		case type_ushort:
+		    if (value_const_p(rval))
+			ejit_ldxi_us(state, vr, lr, rr * sizeof(short));
+		    else {
+			ejit_muli_i(state, vr, rr, sizeof(short));
+			ejit_ldxr_us(state, vr, lr, rr);
+		    }
+		    break;
+		case type_int:
+		    if (value_const_p(rval))
+			ejit_ldxi_i(state, vr, lr, rr * sizeof(int));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(int));
+			ejit_ldxr_i(state, vr, lr, rr);
+		    }
+		    break;
+		case type_uint:
+		    if (value_const_p(rval))
+			ejit_ldxi_ui(state, vr, lr, rr * sizeof(int));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(int));
+			ejit_ldxr_ui(state, vr, lr, rr);
+		    }
+		    break;
+		case type_long:
+		    if (value_const_p(rval))
+			ejit_ldxi_l(state, vr, lr, rr * sizeof(long));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(long));
+			ejit_ldxr_l(state, vr, lr, rr);
+		    }
+		    break;
+		case type_ulong:
+		    if (value_const_p(rval))
+			ejit_ldxi_ul(state, vr, lr, rr * sizeof(long));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(long));
+			ejit_ldxr_ul(state, vr, lr, rr);
+		    }
+		    break;
+		case type_float:
+		    if (value_const_p(rval))
+			ejit_ldxi_f(state, vr, lr, rr * sizeof(float));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(float));
+			ejit_ldxr_f(state, vr, lr, rr);
+		    }
+		    lval->u.ival = vr;
+		    break;
+		case type_double:
+		    if (value_const_p(rval))
+			ejit_ldxi_d(state, vr, lr, rr * sizeof(double));
+		    else {
+			ejit_muli_i(state, rr, rr, sizeof(double));
+			ejit_ldxr_d(state, vr, lr, rr);
+		    }
+		    break;
+		default:
+		    if (value_const_p(rval))
+			ejit_addi_p(state, vr, lr, (void *)(rr * tag->size));
+		    else {
+			ejit_muli_i(state, rr, rr, rr * tag->size);
+			ejit_addr_p(state, vr, lr, rr);
+		    }
+		    break;
+	    }
+	    vtag = emit_expr(vexp);
+	    xval = top_value_stack();
+	    vtag = emit_binary_next(expr, tag, vtag, vval, xval, token);
+	    dec_value_stack(1);
+	}
+	else
+	    vtag = emit_expr(vexp);
+
 	vval = top_value_stack();
 	/* stored value must be in a register even if a literal constant */
-	emit_load(vexp, vval);
+	if (token == tok_none)
+	    emit_load(vexp, vval);
 	if (tag != vtag)
 	    emit_coerce(expr, tag, vval);
 	vr = vval->u.ival;
 	/* reload if spilled, otherwise a noop */
 	emit_load(expr, lval);
+	if (token && !value_const_p(rval))
+	    emit_load(expr, rval);
     }
 
     switch (tag->type) {
@@ -609,7 +815,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_s(state, rr * sizeof(short), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(short));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(short));
 		    ejit_stxr_s(state, rr, lr, vr);
 		}
 	    }
@@ -628,7 +835,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_us(state, rr * sizeof(short), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(short));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(short));
 		    ejit_stxr_us(state, rr, lr, vr);
 		}
 	    }
@@ -647,7 +855,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_i(state, rr * sizeof(int), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(int));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(int));
 		    ejit_stxr_i(state, rr, lr, vr);
 		}
 	    }
@@ -666,7 +875,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_ui(state, rr * sizeof(int), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(int));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(int));
 		    ejit_stxr_ui(state, rr, lr, vr);
 		}
 	    }
@@ -685,7 +895,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_l(state, rr * sizeof(long), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(long));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(long));
 		    ejit_stxr_l(state, rr, lr, vr);
 		}
 	    }
@@ -704,7 +915,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_ul(state, rr * sizeof(long), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(long));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(long));
 		    ejit_stxr_ul(state, rr, lr, vr);
 		}
 	    }
@@ -712,7 +924,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_ldxi_ul(state, lr, lr, rr * sizeof(long));
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(long));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(long));
 		    ejit_ldxr_ul(state, lr, lr, rr);
 		}
 	    }
@@ -732,7 +945,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_ldxi_f(state, vr, lr, rr * sizeof(float));
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(float));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(float));
 		    ejit_ldxr_f(state, vr, lr, rr);
 		}
 		lval->u.ival = vr;
@@ -745,7 +959,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		if (value_const_p(rval))
 		    ejit_stxi_d(state, rr * sizeof(double), lr, vr);
 		else {
-		    ejit_muli_i(state, rr, rr, sizeof(double));
+		    if (token == tok_none)
+			ejit_muli_i(state, rr, rr, sizeof(double));
 		    ejit_stxr_d(state, rr, lr, vr);
 		}
 	    }
@@ -775,7 +990,8 @@ emit_vector(expr_t *expr, expr_t *vexp)
 		    if (!pointer_type_p(tag->type))
 			warn(expr, "aggregate store not handled");
 		    else {
-			ejit_muli_i(state, rr, rr, sizeof(void*));
+			if (token == tok_none)
+			    ejit_muli_i(state, rr, rr, sizeof(void*));
 			ejit_stxr_p(state, rr, lr, vr);
 		    }
 		}
@@ -1870,7 +2086,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			ejit_extr_l_d(state, freg, rreg);
 		    else
 			ejit_extr_i_d(state, freg, rreg);
-		    tag = float_tag;
+		    tag = double_tag;
 		    rval->u.ival = freg;
 		    rval->type = value_dtype | value_regno;
 		    break;

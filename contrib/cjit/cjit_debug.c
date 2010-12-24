@@ -112,13 +112,13 @@ print_fields(record_t *record)
     int		 offset;
     symbol_t	*symbol;
 
-    printf(" {");
+    printf(" { ");
     for (offset = 0; offset < record->count; offset++) {
 	symbol = record->vector[offset];
 	print_tag(symbol->tag);
-	printf(" %s ;", symbol->name);
+	printf(" %s ; ", symbol->name);
     }
-    printf(" }");
+    putchar('}');
 }
 
 static void
