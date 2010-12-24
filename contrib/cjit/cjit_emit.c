@@ -74,9 +74,6 @@ static tag_t *
 emit_cmp(expr_t *expr);
 
 static tag_t *
-emit_binint(expr_t *expr, token_t token);
-
-static tag_t *
 emit_binary(expr_t *expr, token_t token);
 
 static tag_t *
@@ -233,7 +230,6 @@ emit_expr(expr_t *expr)
 	case tok_and:		case tok_or:
 	case tok_xor:		case tok_lsh:
 	case tok_rsh:		case tok_rem:
-	    return (emit_binint(expr, expr->token));
 	case tok_add:		case tok_sub:
 	case tok_mul:		case tok_div:
 	    return (emit_binary(expr, expr->token));
@@ -319,15 +315,7 @@ emit_setop(expr_t *expr)
 	case tok_divset:	token = tok_div;	break;
 	default:		token = tok_rem;	break;
     }
-    switch (token) {
-	case tok_and:		case tok_or:		case tok_xor:
-	case tok_lsh:		case tok_rsh:		case tok_rem:
-	    tag = emit_binint(expr, token);
-	    break;
-	default:
-	    tag = emit_binary(expr, token);
-	    break;
-    }
+    tag = emit_binary(expr, token);
     value = top_value_stack();
     if (symbol->tag != tag)
 	emit_coerce(expr, symbol->tag, value);
@@ -1324,7 +1312,7 @@ emit_cmp(expr_t *expr)
 }
 
 static tag_t *
-emit_binint(expr_t *expr, token_t token)
+emit_binary(expr_t *expr, token_t token)
 {
     long	 il;
     tag_t	*tag;
@@ -1352,6 +1340,10 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xori_i(state, lreg, lreg, il);	break;
 		    case tok_lsh: ejit_lshi_i(state, lreg, lreg, il);	break;
 		    case tok_rsh: ejit_rshi_i(state, lreg, lreg, il);	break;
+		    case tok_add: ejit_addi_i(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_i(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_i(state, lreg, lreg, il);	break;
+		    case tok_div: ejit_divi_i(state, lreg, lreg, il);	break;
 		    default:	  ejit_modi_i(state, lreg, lreg, il);	break;
 		}
 	    }
@@ -1363,6 +1355,10 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xorr_i(state, lreg, lreg, rreg);	break;
 		    case tok_lsh: ejit_lshr_i(state, lreg, lreg, rreg);	break;
 		    case tok_rsh: ejit_rshr_i(state, lreg, lreg, rreg);	break;
+		    case tok_add: ejit_addr_i(state, lreg, lreg, rreg);	break;
+		    case tok_sub: ejit_subr_i(state, lreg, lreg, rreg);	break;
+		    case tok_mul: ejit_mulr_i(state, lreg, lreg, rreg);	break;
+		    case tok_div: ejit_divr_i(state, lreg, lreg, rreg);	break;
 		    default:	  ejit_modr_i(state, lreg, lreg, rreg);	break;
 		}
 	    }
@@ -1376,6 +1372,10 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xori_ui(state, lreg, lreg, il);	break;
 		    case tok_lsh: ejit_lshi_ui(state, lreg, lreg, il);	break;
 		    case tok_rsh: ejit_rshi_ui(state, lreg, lreg, il);	break;
+		    case tok_add: ejit_addi_ui(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_ui(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_ui(state, lreg, lreg, il);	break;
+		    case tok_div: ejit_divi_ui(state, lreg, lreg, il);	break;
 		    default:	  ejit_modi_ui(state, lreg, lreg, il);	break;
 		}
 	    }
@@ -1387,6 +1387,10 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xorr_ui(state, lreg, lreg, rreg); break;
 		    case tok_lsh: ejit_lshr_ui(state, lreg, lreg, rreg); break;
 		    case tok_rsh: ejit_rshr_ui(state, lreg, lreg, rreg); break;
+		    case tok_add: ejit_addr_ui(state, lreg, lreg, rreg); break;
+		    case tok_sub: ejit_subr_ui(state, lreg, lreg, rreg); break;
+		    case tok_mul: ejit_mulr_ui(state, lreg, lreg, rreg); break;
+		    case tok_div: ejit_divr_ui(state, lreg, lreg, rreg); break;
 		    default:	  ejit_modr_ui(state, lreg, lreg, rreg); break;
 		}
 	    }
@@ -1400,6 +1404,10 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xori_l(state, lreg, lreg, il);	break;
 		    case tok_lsh: ejit_lshi_l(state, lreg, lreg, il);	break;
 		    case tok_rsh: ejit_rshi_l(state, lreg, lreg, il);	break;
+		    case tok_add: ejit_addi_l(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subi_l(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_muli_l(state, lreg, lreg, il);	break;
+		    case tok_div: ejit_divi_l(state, lreg, lreg, il);	break;
 		    default:	  ejit_modi_l(state, lreg, lreg, il);	break;
 		}
 	    }
@@ -1411,19 +1419,27 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xorr_l(state, lreg, lreg, rreg);	break;
 		    case tok_lsh: ejit_lshr_l(state, lreg, lreg, rreg);	break;
 		    case tok_rsh: ejit_rshr_l(state, lreg, lreg, rreg);	break;
+		    case tok_add: ejit_addr_l(state, lreg, lreg, rreg);	break;
+		    case tok_sub: ejit_subr_l(state, lreg, lreg, rreg);	break;
+		    case tok_mul: ejit_mulr_l(state, lreg, lreg, rreg);	break;
+		    case tok_div: ejit_divr_l(state, lreg, lreg, rreg);	break;
 		    default:	  ejit_modr_l(state, lreg, lreg, rreg);	break;
 		}
 	    }
 	    break;
-	default:
+	case type_ulong:
 	    if (value_const_p(rval)) {
-		il = rval->u.lval;
+		il = rval->u.ival;
 		switch (token) {
 		    case tok_and: ejit_andi_ul(state, lreg, lreg, il);	break;
 		    case tok_or:  ejit_ori_ul (state, lreg, lreg, il);	break;
 		    case tok_xor: ejit_xori_ul(state, lreg, lreg, il);	break;
 		    case tok_lsh: ejit_lshi_ul(state, lreg, lreg, il);	break;
 		    case tok_rsh: ejit_rshi_ul(state, lreg, lreg, il);	break;
+		    case tok_add: ejit_addr_ul(state, lreg, lreg, il);	break;
+		    case tok_sub: ejit_subr_ul(state, lreg, lreg, il);	break;
+		    case tok_mul: ejit_mulr_ul(state, lreg, lreg, il);	break;
+		    case tok_div: ejit_divr_ul(state, lreg, lreg, il);	break;
 		    default:	  ejit_modi_ul(state, lreg, lreg, il);	break;
 		}
 	    }
@@ -1435,120 +1451,18 @@ emit_binint(expr_t *expr, token_t token)
 		    case tok_xor: ejit_xorr_ul(state, lreg, lreg, rreg); break;
 		    case tok_lsh: ejit_lshr_ul(state, lreg, lreg, rreg); break;
 		    case tok_rsh: ejit_rshr_ul(state, lreg, lreg, rreg); break;
-		    default:	  ejit_modr_ul(state, lreg, lreg, rreg); break;
-		}
-	    }
-	    break;
-    }
-    if (!value_const_p(rval))
-	dec_value_stack(1);
-
-    return (tag);
-}
-
-static tag_t *
-emit_binary(expr_t *expr, token_t token)
-{
-    long	 il;
-    tag_t	*tag;
-    tag_t	*ltag;
-    tag_t	*rtag;
-    value_t	*lval;
-    value_t	*rval;
-    int		 lreg;
-    int		 rreg;
-
-    ltag = emit_expr(expr->data._binary.lvalue);
-    lval = top_value_stack();
-    rtag = emit_expr(expr->data._binary.rvalue);
-    rval = top_value_stack();
-    emit_load(expr, lval);
-    tag = emit_binary_setup(expr, token, ltag, rtag, lval, rval);
-    lreg = lval->u.ival;
-    switch (tag->type) {
-	case type_int:
-	    if (value_const_p(rval)) {
-		il = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addi_i(state, lreg, lreg, il);	break;
-		    case tok_sub: ejit_subi_i(state, lreg, lreg, il);	break;
-		    case tok_mul: ejit_muli_i(state, lreg, lreg, il);	break;
-		    default:	  ejit_divi_i(state, lreg, lreg, il);	break;
-		}
-	    }
-	    else {
-		rreg = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addr_i(state, lreg, lreg, rreg);	break;
-		    case tok_sub: ejit_subr_i(state, lreg, lreg, rreg);	break;
-		    case tok_mul: ejit_mulr_i(state, lreg, lreg, rreg);	break;
-		    default:	  ejit_divr_i(state, lreg, lreg, rreg);	break;
-		}
-	    }
-	    break;
-	case type_uint:
-	    if (value_const_p(rval)) {
-		il = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addi_ui(state, lreg, lreg, il);	break;
-		    case tok_sub: ejit_subi_ui(state, lreg, lreg, il);	break;
-		    case tok_mul: ejit_muli_ui(state, lreg, lreg, il);	break;
-		    default:	  ejit_divi_ui(state, lreg, lreg, il);	break;
-		}
-	    }
-	    else {
-		rreg = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addr_ui(state, lreg, lreg, rreg); break;
-		    case tok_sub: ejit_subr_ui(state, lreg, lreg, rreg); break;
-		    case tok_mul: ejit_mulr_ui(state, lreg, lreg, rreg); break;
-		    default:	  ejit_divr_ui(state, lreg, lreg, rreg); break;
-		}
-	    }
-	    break;
-	case type_long:
-	    if (value_const_p(rval)) {
-		il = rval->u.lval;
-		switch (token) {
-		    case tok_add: ejit_addi_l(state, lreg, lreg, il);	break;
-		    case tok_sub: ejit_subi_l(state, lreg, lreg, il);	break;
-		    case tok_mul: ejit_muli_l(state, lreg, lreg, il);	break;
-		    default:	  ejit_divi_l(state, lreg, lreg, il);	break;
-		}
-	    }
-	    else {
-		rreg = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addr_l(state, lreg, lreg, rreg);	break;
-		    case tok_sub: ejit_subr_l(state, lreg, lreg, rreg);	break;
-		    case tok_mul: ejit_mulr_l(state, lreg, lreg, rreg);	break;
-		    default:	  ejit_divr_l(state, lreg, lreg, rreg);	break;
-		}
-	    }
-	    break;
-	case type_ulong:
-	    if (value_const_p(rval)) {
-		il = rval->u.ival;
-		switch (token) {
-		    case tok_add: ejit_addr_ul(state, lreg, lreg, il);	break;
-		    case tok_sub: ejit_subr_ul(state, lreg, lreg, il);	break;
-		    case tok_mul: ejit_mulr_ul(state, lreg, lreg, il);	break;
-		    default:	  ejit_divr_ul(state, lreg, lreg, il);	break;
-		}
-	    }
-	    else {
-		rreg = rval->u.ival;
-		switch (token) {
 		    case tok_add: ejit_addr_ul(state, lreg, lreg, rreg); break;
 		    case tok_sub: ejit_subr_ul(state, lreg, lreg, rreg); break;
 		    case tok_mul: ejit_mulr_ul(state, lreg, lreg, rreg); break;
-		    default:	  ejit_divr_ul(state, lreg, lreg, rreg); break;
+		    case tok_div: ejit_divr_ul(state, lreg, lreg, rreg); break;
+		    default:	  ejit_modr_ul(state, lreg, lreg, rreg); break;
 		}
 	    }
 	    break;
 	case type_float:
 	    rreg = rval->u.ival;
 	    switch (token) {
+		/* other operations already triggered an error */
 		case tok_add:	ejit_addr_f(state, lreg, lreg, rreg);	break;
 		case tok_sub:	ejit_subr_f(state, lreg, lreg, rreg);	break;
 		case tok_mul:	ejit_mulr_f(state, lreg, lreg, rreg);	break;
@@ -1558,6 +1472,7 @@ emit_binary(expr_t *expr, token_t token)
 	case type_double:
 	    rreg = rval->u.ival;
 	    switch (token) {
+		/* other operations already triggered an error */
 		case tok_add:	ejit_addr_d(state, lreg, lreg, rreg);	break;
 		case tok_sub:	ejit_subr_d(state, lreg, lreg, rreg);	break;
 		case tok_mul:	ejit_mulr_d(state, lreg, lreg, rreg);	break;
@@ -1904,16 +1819,6 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
-		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
-			rreg = rval->u.ival;
-		    }
-		    freg = get_register(value_ftype);
-		    ejit_extr_i_f(state, freg, rreg);
-		    tag = float_tag;
-		    rval->u.ival = freg;
-		    rval->type = value_ftype | value_regno;
-		    break;
 		case type_long:		case type_ulong:
 		    if (value_const_p(rval)) {
 			emit_load(expr, rval);
@@ -1924,7 +1829,10 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			emit_load(expr, rval);
 			rreg = rval->u.ival;
 		    }
-		    ejit_extr_l_f(state, freg, rreg);
+		    if (rtag->type == type_long || rtag->type == type_ulong)
+			ejit_extr_l_f(state, freg, rreg);
+		    else
+			ejit_extr_i_f(state, freg, rreg);
 		    tag = float_tag;
 		    rval->u.ival = freg;
 		    rval->type = value_ftype | value_regno;
@@ -1952,16 +1860,6 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 	    switch (rtag->type) {
 		case type_char:		case type_short:	case type_int:
 		case type_uchar:	case type_ushort:	case type_uint:
-		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
-			rreg = rval->u.ival;
-		    }
-		    freg = get_register(value_dtype);
-		    ejit_extr_i_d(state, freg, rreg);
-		    tag = double_tag;
-		    rval->u.ival = freg;
-		    rval->type = value_dtype | value_regno;
-		    break;
 		case type_long:		case type_ulong:
 		    if (value_const_p(rval)) {
 			emit_load(expr, rval);
@@ -1972,8 +1870,11 @@ emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
 			emit_load(expr, rval);
 			rreg = rval->u.ival;
 		    }
-		    ejit_extr_l_d(state, freg, rreg);
-		    tag = double_tag;
+		    if (rtag->type == type_long || rtag->type == type_ulong)
+			ejit_extr_l_d(state, freg, rreg);
+		    else
+			ejit_extr_i_d(state, freg, rreg);
+		    tag = float_tag;
 		    rval->u.ival = freg;
 		    rval->type = value_dtype | value_regno;
 		    break;

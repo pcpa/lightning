@@ -83,10 +83,10 @@
 				   type_unsigned	| \
 				   type_vector		| \
 				   type_pointer))
-#define type_uchar		type_unsigned | type_char
-#define type_ushort		type_unsigned | type_short
-#define type_uint		type_unsigned | type_int
-#define type_ulong		type_unsigned | type_long
+#define type_uchar		(type_unsigned | type_char)
+#define type_ushort		(type_unsigned | type_short)
+#define type_uint		(type_unsigned | type_int)
+#define type_ulong		(type_unsigned | type_long)
 #define pointer_type_p(type)	((type) & (type_vector | type_pointer))
 
 #define value_itype		0x00000000
@@ -99,7 +99,7 @@
 #define value_dtype		0x20000000
 #define value_regno		0x40000000
 #define value_spill		0x80000000
-#define value_ultype		value_utype | value_ltype
+#define value_ultype		(value_utype | value_ltype)
 #define value_float_p(value)	((value)->type & (value_ftype | value_dtype))
 /* must use immediate opcode ? */
 #define value_const_p(value)	!((value)->type & value_regno)
