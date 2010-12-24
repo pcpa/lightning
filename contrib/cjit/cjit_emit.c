@@ -65,7 +65,7 @@ static tag_t *
 emit_field(expr_t *expr, expr_t *vexp);
 
 static tag_t *
-emit_symbol(expr_t *expr, expr_t *vexp);
+emit_symbol(expr_t *expr, token_t token, expr_t *vexp);
 
 static tag_t *
 emit_vector(expr_t *expr, expr_t *vexp);
@@ -77,8 +77,12 @@ static tag_t *
 emit_binary(expr_t *expr, token_t token);
 
 static tag_t *
-emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
-		  value_t *lval, value_t *rval);
+emit_binary_next(expr_t *expr, tag_t *ltag, tag_t *rtag,
+		 value_t *lval, value_t *rval, token_t token);
+
+static tag_t *
+emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
+		  value_t *lval, value_t *rval, token_t token);
 
 static void
 emit_coerce(expr_t *expr, tag_t *tag, value_t *value);
@@ -267,7 +271,7 @@ emit_set(expr_t *expr)
     rexp = expr->data._binary.rvalue;
     switch (lexp->token) {
 	case tok_symbol:
-	    tag = emit_symbol(lexp, rexp);
+	    tag = emit_symbol(lexp, tok_none, rexp);
 	    break;
 	case tok_dot:		case tok_arrow:
 	    tag = emit_field(lexp, rexp);
@@ -287,41 +291,21 @@ static tag_t *
 emit_setop(expr_t *expr)
 {
     tag_t	*tag;
-    char	*name;
-    value_t	*value;
-    token_t	 token;
-    symbol_t	*symbol;
+    expr_t	*lexp;
+    expr_t	*rexp;
 
-    if (expr->data._binary.lvalue->token != tok_symbol) {
-	warn(expr, "store of aggregate not handled");
-	return (void_tag);
+    lexp = expr->data._binary.lvalue;
+    rexp = expr->data._binary.rvalue;
+    switch (lexp->token) {
+	case tok_symbol:
+	    tag = emit_symbol(lexp, expr->token + (tok_and - tok_andset), rexp);
+	    break;
+	default:
+	    warn(expr, "store of aggregate not handled");
+	    return (void_tag);
     }
-    name = expr->data._binary.lvalue->data._unary.cp;
-    symbol = get_symbol(name);
-    if (symbol == NULL) {
-	if (get_hash(functions, name))
-	    error(expr, "not a lvalue");
-	error(expr, "undefined symbol '%s'", name);
-    }
-    switch (expr->token) {
-	case tok_andset:	token = tok_and;	break;
-	case tok_orset:		token = tok_or;		break;
-	case tok_xorset:	token = tok_xor;	break;
-	case tok_lshset:	token = tok_lsh;	break;
-	case tok_rshset:	token = tok_rsh;	break;
-	case tok_addset:	token = tok_add;	break;
-	case tok_subset:	token = tok_sub;	break;
-	case tok_mulset:	token = tok_mul;	break;
-	case tok_divset:	token = tok_div;	break;
-	default:		token = tok_rem;	break;
-    }
-    tag = emit_binary(expr, token);
-    value = top_value_stack();
-    if (symbol->tag != tag)
-	emit_coerce(expr, symbol->tag, value);
-    emit_store_symbol(expr, symbol, value);
 
-    return (symbol->tag);
+    return (tag);
 }
 
 static tag_t *
@@ -809,34 +793,26 @@ emit_vector(expr_t *expr, expr_t *vexp)
     lval->type |= value_regno;
     if (vexp) {
 	lval->u.ival = vr;
-	dec_value_stack(value_const_p(rval) ? 1 : 2);
+	dec_value_stack(2);
     }
-    else if (!value_const_p(rval))
+    else
 	dec_value_stack(1);
 
     return (tag);
 }
 
 static tag_t *
-emit_symbol(expr_t *expr, expr_t *rexp)
+emit_symbol(expr_t *expr, token_t token, expr_t *rexp)
 {
+    tag_t	*ltag;
     tag_t	*rtag;
     value_t	*lval;
     value_t	*rval;
     symbol_t	*symbol;
 
     /* avoid duplicated code to check symbol and allocate a value_t */
-    emit_expr(expr);
+    ltag = emit_expr(expr);
     lval = top_value_stack();
-    if (rexp) {
-	rtag = emit_expr(rexp);
-	rval = top_value_stack();
-	/* must load in a register even if a constant as there is no
-	 * "store memory immediate" lightning primitive (FIXME even
-	 * when available) */
-	emit_load(rexp, rval);
-    }
-
     if (lval->type == value_symbl)
 	symbol = lval->u.pval;
     else {
@@ -846,17 +822,30 @@ emit_symbol(expr_t *expr, expr_t *rexp)
 	return (void_tag);
     }
     if (rexp) {
-	if (symbol->tag != rtag)
-	    emit_coerce(rexp, symbol->tag, rval);
-	emit_store_symbol(expr, symbol, rval);
-	lval->type = rval->type;
-	lval->u.ival = rval->u.ival;
+	if (token)
+	    emit_load_symbol(expr, symbol, lval);
+	rtag = emit_expr(rexp);
+	rval = top_value_stack();
+	if (token) {
+	    rtag = emit_binary_next(expr, ltag, rtag, lval, rval, token);
+	    if (ltag != rtag)
+		emit_coerce(rexp, symbol->tag, lval);
+	    emit_store_symbol(expr, symbol, lval);
+	}
+	else {
+	    emit_load(rexp, rval);
+	    if (ltag != rtag)
+		emit_coerce(rexp, symbol->tag, rval);
+	    emit_store_symbol(expr, symbol, rval);
+	    lval->type = rval->type;
+	    lval->u.ival = rval->u.ival;
+	}
 	dec_value_stack(1);
     }
     else
 	emit_load_symbol(expr, symbol, lval);
 
-    return (symbol->tag);
+    return (ltag);
 }
 
 static tag_t *
@@ -1138,7 +1127,7 @@ emit_cmp(expr_t *expr)
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
     emit_load(expr, lval);
-    tag = emit_binary_setup(expr, expr->token, ltag, rtag, lval, rval);
+    tag = emit_binary_setup(expr, ltag, rtag, lval, rval, expr->token);
     lreg = lval->u.ival;
     switch (tag->type) {
 	case type_int:
@@ -1304,8 +1293,7 @@ emit_cmp(expr_t *expr)
 	    }
 	    break;
     }
-    if (!value_const_p(rval))
-	dec_value_stack(1);
+    dec_value_stack(1);
     lval->type = value_regno;
 
     return (int_tag);
@@ -1314,21 +1302,30 @@ emit_cmp(expr_t *expr)
 static tag_t *
 emit_binary(expr_t *expr, token_t token)
 {
-    long	 il;
-    tag_t	*tag;
     tag_t	*ltag;
     tag_t	*rtag;
     value_t	*lval;
     value_t	*rval;
-    int		 lreg;
-    int		 rreg;
 
     ltag = emit_expr(expr->data._binary.lvalue);
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
     emit_load(expr, lval);
-    tag = emit_binary_setup(expr, token, ltag, rtag, lval, rval);
+
+    return (emit_binary_next(expr, ltag, rtag, lval, rval, token));    
+}
+
+static tag_t *
+emit_binary_next(expr_t *expr, tag_t *ltag, tag_t *rtag,
+		 value_t *lval, value_t *rval, token_t token)
+{
+    long	 il;
+    tag_t	*tag;
+    int		 lreg;
+    int		 rreg;
+
+    tag = emit_binary_setup(expr, ltag, rtag, lval, rval, token);
     lreg = lval->u.ival;
     switch (tag->type) {
 	case type_int:
@@ -1540,15 +1537,14 @@ emit_binary(expr_t *expr, token_t token)
 	    }
 	    break;
     }
-    if (!value_const_p(rval))
-	dec_value_stack(1);
+    dec_value_stack(1);
 
     return (tag);
 }
 
 static tag_t *
-emit_binary_setup(expr_t *expr, token_t token, tag_t *ltag, tag_t *rtag,
-		  value_t *lval, value_t *rval)
+emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
+		  value_t *lval, value_t *rval, token_t token)
 {
     tag_t	*tag;
     int		 freg;
