@@ -38,6 +38,9 @@ static tag_t *
 emit_expr(expr_t *expr);
 
 static tag_t *
+emit_decl(expr_t *expr);
+
+static tag_t *
 emit_set(expr_t *expr);
 
 static tag_t *
@@ -248,6 +251,8 @@ emit_expr(expr_t *expr)
 	case tok_inc:		case tok_dec:
 	case tok_postinc:	case tok_postdec:
 	    return (emit_incdec(expr));
+	case tok_decl:
+	    return (emit_decl(expr));
 	case tok_code:		case tok_stat:
 	    return (emit_stat(expr->data._unary.expr));
 	    break;
@@ -258,6 +263,21 @@ emit_expr(expr_t *expr)
 	    warn(expr, "not yet handled");
 	    return (void_tag);
     }
+}
+
+static tag_t *
+emit_decl(expr_t *expr)
+{
+    int		 offset = vstack.offset;
+
+    for (expr = expr->data._binary.rvalue; expr; expr = expr->next) {
+	if (expr->token == tok_set) {
+	    emit_set(expr);
+	    if (vstack.offset > offset)
+		dec_value_stack(vstack.offset - offset);
+	}
+    }
+    return (void_tag);
 }
 
 static tag_t *
@@ -285,6 +305,8 @@ emit_set(expr_t *expr)
 	default:
 	    error(lexp, "not a lvalue");
     }
+    if (type_mask(tag->type) == type_vector)
+	error(expr, "not a lvalue");
 
     return (tag);
 }
@@ -316,6 +338,8 @@ emit_setop(expr_t *expr)
 	default:
 	    error(lexp, "not a lvalue");
     }
+    if (type_mask(tag->type) == type_vector)
+	error(expr, "not a lvalue");
 
     return (tag);
 }
@@ -2525,12 +2549,12 @@ emit_function(expr_t *expr)
 #endif
 	symbol->jit = alloca_node;
 	for (++offset; offset < current->count; offset++) {
-#if STACK_DIRECTION < 0
-	symbol->offset = (symbol->offset + ALLOCA_OFFSET) - current->length;
-#elif ALLOCA_OFFSET
-	symbol->offset += ALLOCA_OFFSET;
-#endif
 	    symbol = current->vector[offset];
+#if STACK_DIRECTION < 0
+	    symbol->offset = (symbol->offset + ALLOCA_OFFSET) - current->length;
+#elif ALLOCA_OFFSET
+	    symbol->offset += ALLOCA_OFFSET;
+#endif
 	    symbol->jit = alloca_node;
 	}
     }
