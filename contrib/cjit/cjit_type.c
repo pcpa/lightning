@@ -303,7 +303,7 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 	    record->offset = type->length;
     }
     else {
-	switch (type->length) {
+	switch (tag->size) {
 	    case 1:
 		symbol->offset = record->offset;
 		break;
@@ -322,7 +322,7 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 				      -DEFAULT_ALIGN;
 		break;
 	}
-	record->offset = symbol->offset + type->length;
+	record->offset = symbol->offset + tag->size;
     }
     if (record->vector == NULL)
 	record->vector = (symbol_t **)xmalloc(sizeof(symbol_t *));

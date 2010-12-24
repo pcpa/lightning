@@ -29,6 +29,7 @@ cjit_LDADD = $(CJIT_LIBS)
 cjit_SOURCES =		\
 	cjit.c		\
 	cjit_alloc.c	\
+	cjit_data.c	\
 	cjit_debug.c	\
 	cjit_emit.c	\
 	cjit_error.c	\

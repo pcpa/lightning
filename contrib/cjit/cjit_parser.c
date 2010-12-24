@@ -45,7 +45,7 @@ static void
 function(void);
 
 static token_t
-group(void);
+group(int data);
 
 static token_t
 precedence_noeof(void);
@@ -207,6 +207,10 @@ statement(void)
     switch (token) {
 	case tok_eof:
 	    return (token);
+	case tok_obrace:
+	    /* brace is code, not data */
+	    primary();
+	    break;
 	default:
 	    token = expression();
 	    break;
@@ -227,7 +231,7 @@ statement(void)
 	    switch (lookahead()) {
 		case tok_comma:
 		    consume();
-		    if (group() != tok_semicollon)
+		    if (group(0) != tok_semicollon)
 			error(expr, "syntax error");
 		    expr->next = pop_expr();
 		case tok_semicollon:
@@ -286,15 +290,15 @@ statement(void)
 	    if (primary() != tok_oparen)
 		error(top_expr(), "syntax error");
 	    discard();
-	    if (group() != tok_semicollon)
+	    if (group(0) != tok_semicollon)
 		error(ahead, "syntax error");
 	    consume();
 	    expr->data._for.init = pop_expr();
-	    if (group() != tok_semicollon)
+	    if (group(0) != tok_semicollon)
 		error(ahead, "syntax error");
 	    consume();
 	    expr->data._for.test = pop_expr();
-	    if (group() != tok_cparen)
+	    if (group(0) != tok_cparen)
 		error(ahead, "syntax error");
 	    consume();
 	    expr->data._for.incr = pop_expr();
@@ -408,7 +412,7 @@ statement_paren_comma_list(void)
     if (primary() != tok_oparen)
 	error(top_expr(), "syntax error");
     discard();
-    if (group() != tok_cparen)
+    if (group(0) != tok_cparen)
 	error(ahead, "syntax error");
     consume();
     if (top_expr() == NULL)
@@ -498,7 +502,7 @@ declaration(void)
     switch (lookahead()) {
 	case tok_comma:
 	    consume();
-	    if (group() != tok_semicollon)
+	    if (group(0) != tok_semicollon)
 		error(ahead, "syntax error");
 	    decl->next = pop_expr();
 	case tok_semicollon:
@@ -590,7 +594,7 @@ function(void)
 }
 
 static token_t
-group(void)
+group(int data)
 {
     expr_t	*expr;
     token_t	 token;
@@ -612,8 +616,14 @@ group(void)
 	    expr->next = pop_expr();
 	    expr = expr->next;
 	}
-	if ((token = lookahead()) == tok_comma)
+	if ((token = lookahead()) == tok_comma) {
 	    consume();
+	    if (data && lookahead() == tok_cbrace) {
+		if (expr == NULL)
+		    push_expr(NULL);
+		return (tok_cbrace);
+	    }
+	}
 	else {
 	    if (expr == NULL)
 		push_expr(NULL);
@@ -641,6 +651,14 @@ precedence(void)
 
     for (token = unary();;) {
 	switch (token) {
+	    case tok_obrace:
+		expr = top_expr();
+		if (group(1) != tok_cbrace)
+		    error(expr, "syntax error");
+		consume();
+		expr->token = tok_data;
+		expr->data._unary.expr = pop_expr();
+		return (tok_expr);
 	    case tok_int:
 	    case tok_float:
 	    case tok_symbol:
@@ -882,7 +900,7 @@ unary_loop(token_t token)
 		token = tok_expr;
 		(void)primary();
 		discard();
-		if (group() != tok_cparen)
+		if (group(0) != tok_cparen)
 		    error(ahead, "expecting )");
 		expr = ahead;
 		ahead = NULL;
@@ -1091,7 +1109,7 @@ unary_list(void)
 {
     expr_t	*expr, *list;
 
-    if (group() != tok_cparen)
+    if (group(0) != tok_cparen)
 	error(ahead, "expecting )");
     consume();
     list = pop_expr();

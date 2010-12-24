@@ -73,10 +73,10 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_cjit_OBJECTS = cjit.$(OBJEXT) cjit_alloc.$(OBJEXT) \
-	cjit_debug.$(OBJEXT) cjit_emit.$(OBJEXT) cjit_error.$(OBJEXT) \
-	cjit_eval.$(OBJEXT) cjit_expr.$(OBJEXT) cjit_hash.$(OBJEXT) \
-	cjit_parser.$(OBJEXT) cjit_read.$(OBJEXT) cjit_stack.$(OBJEXT) \
-	cjit_type.$(OBJEXT) thunder.$(OBJEXT)
+	cjit_data.$(OBJEXT) cjit_debug.$(OBJEXT) cjit_emit.$(OBJEXT) \
+	cjit_error.$(OBJEXT) cjit_eval.$(OBJEXT) cjit_expr.$(OBJEXT) \
+	cjit_hash.$(OBJEXT) cjit_parser.$(OBJEXT) cjit_read.$(OBJEXT) \
+	cjit_stack.$(OBJEXT) cjit_type.$(OBJEXT) thunder.$(OBJEXT)
 cjit_OBJECTS = $(am_cjit_OBJECTS)
 am__DEPENDENCIES_1 =
 cjit_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -241,6 +241,7 @@ cjit_LDADD = $(CJIT_LIBS)
 cjit_SOURCES = \
 	cjit.c		\
 	cjit_alloc.c	\
+	cjit_data.c	\
 	cjit_debug.c	\
 	cjit_emit.c	\
 	cjit_error.c	\
@@ -350,6 +351,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_alloc.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_data.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_debug.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_emit.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_error.Po@am__quote@

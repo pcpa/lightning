@@ -45,6 +45,7 @@ del_expr(expr_t *expr)
 	case tok_pointer:		case tok_address:
 	case tok_sizeof:		case tok_list:
 	case tok_goto:			case tok_return:
+	case tok_code:			case tok_data:
 	    del_stat(expr->data._unary.expr);
 	    break;
 	case tok_set ... tok_andand:

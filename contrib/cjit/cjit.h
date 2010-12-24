@@ -149,9 +149,24 @@ typedef enum {
     tok_for,		tok_do,		tok_while,	tok_continue,
     tok_signed,		tok_unsigned,	tok_struct,	tok_union,
     tok_typedef,	tok_list,	tok_expr,	tok_stat,
-    tok_call,		tok_code,	tok_label,	tok_vector,
-    tok_declexpr,	tok_decl,	tok_function,
+    tok_call,		tok_code,	tok_data,	tok_label,
+    tok_vector,		tok_declexpr,	tok_decl,	tok_function,
 } token_t;
+
+typedef union {
+    void		 *v;
+    signed char		 *c;
+    unsigned char	 *uc;
+    signed short	 *s;
+    unsigned short	 *us;
+    signed int		 *i;
+    unsigned int	 *ui;
+    signed long		 *l;
+    unsigned long	 *ul;
+    float		 *f;
+    double		 *d;
+    void		**p;
+} union_t;
 
 struct hash {
     entry_t		**entries;
@@ -439,6 +454,9 @@ dump(void);
 
 extern void
 init_emit(void);
+
+extern expr_t *
+data(expr_t *expr);
 
 extern void
 emit(expr_t *expr);

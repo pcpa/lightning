@@ -141,6 +141,7 @@ void
 emit(expr_t *expr)
 {
     (void)emit_stat(expr);
+    printf("\njit:");
     ejit_print(state);
 }
 

@@ -17,8 +17,6 @@
 
 #include "cjit.h"
 
-#include <string.h>
-
 /*
  * Initialization
  */

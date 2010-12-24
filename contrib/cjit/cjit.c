@@ -38,8 +38,13 @@ main(int argc, char *argv[])
     init_emit();
 
     expr = parse();
+    printf("\ncode:\n");
     print(expr);
+    globals->length = globals->offset;
     the_data = xmalloc(globals->length);
+    expr = data(expr);
+    printf("\ndata:\n");
+    dump();
     emit(expr);
 
     return (0);
