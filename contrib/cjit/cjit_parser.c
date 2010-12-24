@@ -920,6 +920,8 @@ unary_value(token_t token)
 	    break;
 	case tok_and:
 	    /* do not fail on "&*expr" */
+	case tok_inc:			case tok_dec:
+	    /* neither on "*++expr" */
 	    if (token == tok_mul)
 		break;
 	default:

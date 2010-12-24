@@ -283,8 +283,7 @@ emit_set(expr_t *expr)
 	    tag = emit_pointer(lexp, tok_none, rexp);
 	    break;
 	default:
-	    warn(expr, "store of aggregate not handled");
-	    return (void_tag);
+	    error(lexp, "not a lvalue");
     }
 
     return (tag);
@@ -315,8 +314,7 @@ emit_setop(expr_t *expr)
 	    tag = emit_pointer(lexp, token, rexp);
 	    break;
 	default:
-	    warn(expr, "store of aggregate not handled");
-	    return (void_tag);
+	    error(lexp, "not a lvalue");
     }
 
     return (tag);
@@ -330,27 +328,67 @@ emit_incdec(expr_t *expr)
     int		 post;
     int		 lreg;
     int		 rreg;
-    value_t	*value;
+    int		 vreg;
+    expr_t	*lexp;
+    value_t	*lval;
+    value_t	*rval;
     symbol_t	*symbol;
 
-    tag = emit_expr(expr->data._unary.expr);
-    value = top_value_stack();
-    if (value->type != value_symbl) {
-	warn(expr, "store of aggregate not handled");
-	return (void_tag);
+    switch (expr->token) {
+	case tok_inc:		inc = 1; post = 0;	break;
+	case tok_dec:		inc = 0; post = 0;	break;
+	case tok_postinc:	inc = 1; post = 1;	break;
+	default:		inc = 0; post = 1;	break;
     }
-    symbol = value->u.pval;
-    emit_load(expr, value);
-    lreg = value->u.ival;
-    inc = expr->token == tok_inc || expr->token == tok_postinc;
-    if (expr->token == tok_postinc || expr->token == tok_postdec) {
-	post = 1;
-	rreg = get_register(0);
+    lexp = expr->data._unary.expr;
+    switch (lexp->token) {
+	case tok_symbol:
+	    tag = emit_expr(lexp);
+	    break;
+	case tok_dot:		case tok_arrow:
+	    tag = emit_field(lexp, tok_address, NULL)->tag;
+	    break;
+	case tok_vector:
+	    tag = emit_vector(lexp, tok_address, NULL)->tag;
+	    break;
+	case tok_pointer:
+	    tag = emit_pointer(lexp, tok_address, NULL)->tag;
+	    break;
+	default:
+	    error(lexp, "not a lvalue");
+    }
+    lval = top_value_stack();
+    if (lexp->token == tok_symbol) {
+	symbol = lval->u.pval;
+	emit_load(lexp, lval);
+	lreg = lval->u.ival;
     }
     else {
-	post = 0;
-	rreg = lreg;
+	lreg = lval->u.ival;
+	/* save pointer in top of value stack */
+	rval = get_value_stack();
+	rval->type = lval->type;
+	rval->u.ival = vreg = get_register(0);
+	inc_value_stack();
+	switch (tag->type) {
+	    case type_char:	ejit_ldr_c (state, vreg, lreg);	break;
+	    case type_uchar:	ejit_ldr_uc(state, vreg, lreg);	break;
+	    case type_short:	ejit_ldr_s (state, vreg, lreg);	break;
+	    case type_ushort:	ejit_ldr_us(state, vreg, lreg);	break;
+	    case type_int:	ejit_ldr_i (state, vreg, lreg);	break;
+	    case type_uint:	ejit_ldr_ui(state, vreg, lreg);	break;
+	    case type_long:	ejit_ldr_l (state, vreg, lreg);	break;
+	    case type_ulong:	ejit_ldr_ul(state, vreg, lreg);	break;
+		/* only check error below... */
+	    default:		ejit_ldr_p (state, vreg, lreg);	break;
+	}
+	/* swap register values */
+	rval->u.ival = lreg;
+	lreg = vreg;
     }
+    if (post)
+	rreg = get_register(0);
+
     switch (tag->type) {
 	case type_char:		case type_short:	case type_int:
 	    if (post)		ejit_movr_i(state, rreg, lreg);
@@ -384,13 +422,25 @@ emit_incdec(expr_t *expr)
 	case type_float:	case type_double:
 	    error(expr, "not an integer or pointer");
     }
-    emit_store_symbol(expr, symbol, value);
-    /* if post, change result to saved one */
-    /* note that usage of get_register() without an associated
-     * value_t on stack relies on having at least 3 register
-     * of the given class, and not allocating any other while
-     * it is "unbound" */
-    value->u.ival = rreg;
+    if (lexp->token == tok_symbol)
+	emit_store_symbol(expr, symbol, lval);
+    else {
+	vreg = rval->u.ival;
+	switch (tag->type) {
+	    case type_char:	ejit_str_c (state, vreg, lreg);	break;
+	    case type_uchar:	ejit_str_uc(state, vreg, lreg);	break;
+	    case type_short:	ejit_str_s (state, vreg, lreg);	break;
+	    case type_ushort:	ejit_str_us(state, vreg, lreg);	break;
+	    case type_int:	ejit_str_i (state, vreg, lreg);	break;
+	    case type_uint:	ejit_str_ui(state, vreg, lreg);	break;
+	    case type_long:	ejit_str_l (state, vreg, lreg);	break;
+	    case type_ulong:	ejit_str_ul(state, vreg, lreg);	break;
+	    default:		ejit_str_p (state, vreg, lreg);	break;
+	}
+	dec_value_stack(1);
+    }
+    if (post)
+	lval->u.ival = rreg;
 
     return (tag);
 }
