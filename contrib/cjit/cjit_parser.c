@@ -918,6 +918,10 @@ unary_value(token_t token)
 	case tok_symbol:		case tok_string:
 	case tok_expr:			case tok_mul:
 	    break;
+	case tok_and:
+	    /* do not fail on "&*expr" */
+	    if (token == tok_mul)
+		break;
 	default:
 	    error(top_expr(), "syntax error");
     }

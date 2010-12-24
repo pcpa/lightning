@@ -59,13 +59,13 @@ static tag_t *
 emit_address(expr_t *expr);
 
 static tag_t *
-emit_pointer(expr_t *expr);
+emit_pointer(expr_t *expr, token_t token, expr_t *rexp);
 
 static tag_t *
 emit_field(expr_t *expr, token_t token, expr_t *vexp);
 
 static tag_t *
-emit_symbol(expr_t *expr, token_t token, expr_t *vexp);
+emit_symbol(expr_t *expr, token_t token, expr_t *rexp);
 
 static tag_t *
 emit_vector(expr_t *expr, token_t token, expr_t *vexp);
@@ -222,7 +222,7 @@ emit_expr(expr_t *expr)
 	case tok_address:
 	    return (emit_address(expr));
 	case tok_pointer:
-	    return (emit_pointer(expr));
+	    return (emit_pointer(expr, tok_none, NULL));
 #if 0
 	    /* FIXME (may) need branch */
 	case tok_andand:	case tok_oror:
@@ -279,6 +279,9 @@ emit_set(expr_t *expr)
 	case tok_vector:
 	    tag = emit_vector(lexp, tok_none, rexp);
 	    break;
+	case tok_pointer:
+	    tag = emit_pointer(lexp, tok_none, rexp);
+	    break;
 	default:
 	    warn(expr, "store of aggregate not handled");
 	    return (void_tag);
@@ -307,6 +310,9 @@ emit_setop(expr_t *expr)
 	    break;
 	case tok_vector:
 	    tag = emit_vector(lexp, token, rexp);
+	    break;
+	case tok_pointer:
+	    tag = emit_pointer(lexp, token, rexp);
 	    break;
 	default:
 	    warn(expr, "store of aggregate not handled");
@@ -514,6 +520,13 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 	vr = vval->u.ival;
 	/* reload if spilled, otherwise a noop */
 	emit_load(expr, lval);
+    }
+
+    else if (token) {
+	if (symbol->offset)
+	    ejit_addi_p(state, lr, lr, (void *)symbol->offset);
+	lval->type = value_ptype | value_regno;
+	return (tag_pointer(tag));
     }
 
     switch (tag->type) {
@@ -776,6 +789,70 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 	emit_load(expr, lval);
 	if (token && !value_const_p(rval))
 	    emit_load(expr, rval);
+    }
+
+    else if (token) {
+	switch (tag->type) {
+	    case type_char:	case type_uchar:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)rr);
+		else
+		    ejit_addr_p(state, lr, lr, rr);
+		break;
+	    case type_short:	case type_ushort:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(short)));
+		else {
+		    ejit_muli_i(state, rr, rr, sizeof(short));
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	    case type_int:	case type_uint:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(int)));
+		else {
+		    ejit_muli_i(state, rr, rr, sizeof(int));
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	    case type_long:	case type_ulong:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(long)));
+		else {
+		    ejit_muli_i(state, rr, rr, sizeof(long));
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	    case type_float:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(float)));
+		else {
+		    ejit_muli_i(state, rr, rr, sizeof(float));
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	    case type_double:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(double)));
+		else {
+		    ejit_muli_i(state, rr, rr, sizeof(double));
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	    default:
+		if (value_const_p(rval))
+		    ejit_addi_p(state, lr, lr, (void *)(rr * tag->size));
+		else {
+		    ejit_muli_i(state, rr, rr, tag->size);
+		    ejit_addr_p(state, lr, lr, rr);
+		}
+		break;
+	}
+
+	lval->type = value_ptype | value_regno;
+	dec_value_stack(1);
+
+	return (tag_pointer(tag));
     }
 
     switch (tag->type) {
@@ -1203,124 +1280,232 @@ static tag_t *
 emit_address(expr_t *expr)
 {
     tag_t	*tag;
-    expr_t	*addr;
-    value_t	*value;
+    expr_t	*lexp;
+    value_t	*lval;
     symbol_t	*symbol;
-    function_t	*function;
 
-    if ((addr = expr->data._unary.expr) == NULL)
-	error(expr, "not an lvalue");
-    value = get_value_stack();
-    value->type = value_ptype | value_regno;
-    value->disp = 0;
-    value->u.ival = get_register(0);
-    inc_value_stack();
-    switch (addr->token) {
+    lexp = expr->data._unary.expr;
+    switch (lexp->token) {
 	case tok_symbol:
-	    symbol = get_symbol(expr->data._unary.cp);
-	    if (symbol) {
-		if (symbol->arg)
-		    /* FIXME because can be in a register... */
-		    error(expr, "address of argument not supported");
-		else if (symbol->loc)
-		    ejit_addi_p(state, value->u.ival, FRAME_POINTER,
-				(void *)symbol->offset);
-		else
-		    ejit_movi_p(state, value->u.ival,
-				(char *)the_data + symbol->offset);
-		tag = symbol->tag;
+	    tag = emit_expr(lexp);
+	    lval = top_value_stack();
+	    if (lval->type == value_funct) {
+		warn(expr, "address of function not handed");
+		return (void_tag);
 	    }
-	    else {
-		function = (function_t *)
-		    get_hash(functions, expr->data._unary.cp);
-		if (function) {
-		    warn(expr, "function address not handled");
-		    tag = function->tag;
-		}
-		else
-		    error(expr, "undefined symbol '%s'", expr->data._unary.cp);
-	    }
+	    symbol = lval->u.pval;
+	    lval->u.ival = get_register(0);
+	    lval->type = value_ptype | value_regno;
+	    if (symbol->arg)
+		/* FIXME because it can be in a register... */
+		error(expr, "address of argument not supported");
+	    else if (symbol->loc)
+		ejit_addi_p(state, lval->u.ival, FRAME_POINTER,
+			    (void *)symbol->offset);
+	    else
+		ejit_movi_p(state, lval->u.ival,
+			    (char *)the_data + symbol->offset);
+	    tag = tag_pointer(tag);
 	    break;
 	case tok_dot:		case tok_arrow:
+	    tag = emit_field(lexp, tok_address, NULL);
+	    break;
 	case tok_vector:
-	    warn(expr, "aggregate address not handled");
-	    tag = void_tag;
+	    tag = emit_vector(lexp, tok_address, NULL);
+	    break;
+	case tok_pointer:
+	    tag = emit_pointer(lexp, tok_address, NULL);
 	    break;
 	default:
-	    error(expr, "not an lvalue");
-    }
-
-    return (tag_pointer(tag));
-}
-
-static tag_t *
-emit_pointer(expr_t *expr)
-{
-    tag_t	*tag;
-    int		 freg;
-    int		 regno;
-    value_t	*value;
-
-    tag = emit_expr(expr->data._unary.expr);
-    if (!pointer_type_p(tag->type))
-	error(expr, "not a pointer");
-    value = top_value_stack();
-    emit_load(expr, value);
-    regno = value->u.ival;
-    tag = tag->tag;
-
-    switch (tag->type) {
-	case type_char:
-	    value->type = value_regno;
-	    ejit_ldr_c(state, regno, regno);
-	    break;
-	case type_uchar:
-	    value->type = value_utype | value_regno;
-	    ejit_ldr_c(state, regno, regno);
-	    break;
-	case type_short:
-	    value->type = value_regno;
-	    ejit_ldr_s(state, regno, regno);
-	    break;
-	case type_ushort:
-	    value->type = value_utype | value_regno;
-	    ejit_ldr_us(state, regno, regno);
-	    break;
-	case type_int:
-	    value->type = value_regno;
-	    ejit_ldr_i(state, regno, regno);
-	    break;
-	case type_uint:
-	    value->type = value_utype | value_regno;
-	    ejit_ldr_ui(state, regno, regno);
-	    break;
-	case type_long:
-	    value->type = value_ltype | value_regno;
-	    ejit_ldr_l(state, regno, regno);
-	    break;
-	case type_ulong:
-	    value->type = value_utype | value_ltype | value_regno;
-	    ejit_ldr_ul(state, regno, regno);
-	    break;
-	case type_float:
-	    freg = get_register(value_ftype);
-	    value->type = value_ftype | value_regno;
-	    ejit_ldr_f(state, freg, regno);
-	    value->u.ival = freg;
-	    break;
-	case type_double:
-	    freg = get_register(value_dtype);
-	    value->type = value_dtype | value_regno;
-	    ejit_ldr_d(state, freg, regno);
-	    value->u.ival = freg;
-	    break;
-	default:
-	    value->type = value_ptype | value_regno;
-	    ejit_ldr_p(state, regno, regno);
-	    break;
+	    error(lexp, "not a lvalue");
     }
 
     return (tag);
+}
+
+static tag_t *
+emit_pointer(expr_t *expr, token_t token, expr_t *rexp)
+{
+    tag_t	*ltag;
+    tag_t	*rtag;
+    value_t	*lval;
+    value_t	*rval;
+    value_t	*xval;
+    int		 lreg;
+    int		 rreg;
+
+    ltag = emit_expr(expr->data._unary.expr);
+    if (!pointer_type_p(ltag->type))
+	error(expr, "not a pointer");
+    lval = top_value_stack();
+    emit_load(expr, lval);
+    lreg = lval->u.ival;
+    ltag = ltag->tag;
+
+    if (rexp) {
+	if (token) {
+	    rval = get_value_stack();
+	    switch (ltag->type) {
+		case type_char:		case type_short:	case type_int:
+		    rval->type = value_itype;
+		    break;
+		case type_uchar:	case type_ushort:	case type_uint:
+		    rval->type = value_utype;
+		    break;
+		case type_long:
+		    rval->type = value_ltype;
+		    break;
+		case type_ulong:
+		    rval->type = value_ultype;
+		    break;
+		case type_float:
+		    rval->type = value_ftype;
+		    break;
+		case type_double:
+		    rval->type = value_dtype;
+		    break;
+		default:
+		    rval->type = value_ptype;
+		    break;
+	    }
+	    rval->type |= value_regno;
+	    rval->u.ival = rreg = get_register(value_float_p(rval));
+	    inc_value_stack();
+	    switch (ltag->type) {
+		case type_char:
+		    ejit_ldr_c(state, rreg, lreg);
+		    break;
+		case type_uchar:
+		    ejit_ldr_c(state, rreg, lreg);
+		    break;
+		case type_short:
+		    ejit_ldr_s(state, rreg, lreg);
+		    break;
+		case type_ushort:
+		    ejit_ldr_us(state, rreg, lreg);
+		    break;
+		case type_int:
+		    ejit_ldr_i(state, rreg, lreg);
+		    break;
+		case type_uint:
+		    ejit_ldr_ui(state, rreg, lreg);
+		    break;
+		case type_long:
+		    ejit_ldr_l(state, rreg, lreg);
+		    break;
+		case type_ulong:
+		    ejit_ldr_ul(state, rreg, lreg);
+		    break;
+		case type_float:
+		    ejit_ldr_f(state, rreg, lreg);
+		    break;
+		case type_double:
+		    ejit_ldr_d(state, rreg, lreg);
+		    break;
+		default:
+		    ejit_ldr_p(state, rreg, lreg);
+		    break;
+	    }
+	    rtag = emit_expr(rexp);
+	    xval = top_value_stack();
+	    rtag = emit_binary_next(expr, ltag, rtag, rval, xval, token);
+	    dec_value_stack(1);
+	}
+	else
+	    rtag = emit_expr(rexp);
+
+	rval = top_value_stack();
+	if (token == tok_none)
+	    emit_load(expr, rval);
+	if (ltag != rtag)
+	    emit_coerce(expr, ltag, rval);
+	rreg = rval->u.ival;
+	/* reload if spilled, otherwise a noop */
+	emit_load(expr, lval);
+    }
+
+    else if (token)
+	/* duh */
+	return (tag_pointer(ltag));
+
+    switch (ltag->type) {
+	case type_char:
+	    lval->type = value_itype;
+	    if (rexp)	ejit_str_c(state, lreg, rreg);
+	    else	ejit_ldr_c(state, lreg, lreg);
+	    break;
+	case type_uchar:
+	    lval->type = value_utype;
+	    if (rexp)	ejit_str_uc(state, lreg, rreg);
+	    else	ejit_ldr_uc(state, lreg, lreg);
+	    break;
+	case type_short:
+	    lval->type = value_itype;
+	    if (rexp)	ejit_str_s(state, lreg, rreg);
+	    else	ejit_ldr_s(state, lreg, lreg);
+	    break;
+	case type_ushort:
+	    lval->type = value_utype;
+	    if (rexp)	ejit_str_us(state, lreg, rreg);
+	    else	ejit_ldr_us(state, lreg, lreg);
+	    break;
+	case type_int:
+	    lval->type = value_itype;
+	    if (rexp)	ejit_str_i(state, lreg, rreg);
+	    else	ejit_ldr_i(state, lreg, lreg);
+	    break;
+	case type_uint:
+	    lval->type = value_utype;
+	    if (rexp)	ejit_str_ui(state, lreg, rreg);
+	    else	ejit_ldr_ui(state, lreg, lreg);
+	    break;
+	case type_long:
+	    lval->type = value_ltype;
+	    if (rexp)	ejit_str_l(state, lreg, rreg);
+	    else	ejit_ldr_l(state, lreg, lreg);
+	    break;
+	case type_ulong:
+	    lval->type = value_utype;
+	    if (rexp)	ejit_str_ul(state, lreg, rreg);
+	    else	ejit_ldr_ul(state, lreg, lreg);
+	    break;
+	case type_float:
+	    if (rexp)
+		ejit_str_f(state, lreg, rreg);
+	    else {
+		rreg = get_register(value_ftype);
+		ejit_ldr_f(state, rreg, lreg);
+	    }
+	    lval->type = value_ftype;
+	    lval->u.ival = rreg;
+	    break;
+	case type_double:
+	    if (rexp)
+		ejit_str_d(state, lreg, rreg);
+	    else {
+		rreg = get_register(value_dtype);
+		ejit_ldr_d(state, rreg, lreg);
+	    }
+	    lval->type = value_dtype;
+	    lval->u.ival = rreg;
+	    break;
+	default:
+	    lval->type = value_ptype;
+	    if (rexp) {
+		if (!pointer_type_p(ltag->type))
+		    warn(expr, "aggregate store not handled");
+		else
+		    ejit_str_p(state, lreg, rreg);
+	    }
+	    else
+		ejit_ldr_p(state, lreg, lreg);
+	    break;
+    }
+    lval->type |= value_regno;
+    if (rexp)
+	dec_value_stack(1);
+
+    return (ltag);
 }
 
 static tag_t *
@@ -1642,7 +1827,7 @@ emit_binary_next(expr_t *expr, tag_t *ltag, tag_t *rtag,
 	    break;
 	case type_ulong:
 	    if (value_const_p(rval)) {
-		il = rval->u.ival;
+		il = rval->u.lval;
 		switch (token) {
 		    case tok_and: ejit_andi_ul(state, lreg, lreg, il);	break;
 		    case tok_or:  ejit_ori_ul (state, lreg, lreg, il);	break;
@@ -2512,7 +2697,7 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		break;
 	    default:
 		value->type = value_ptype;
-		ejit_ldi_p(state, regno, pointer);
+		ejit_movi_p(state, regno, pointer);
 		break;
 	}
     }
