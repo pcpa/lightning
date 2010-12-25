@@ -133,98 +133,65 @@ static void
 dump_vector(void *pointer, tag_t *tag)
 {
     union_t	u;
-    int		space;
     long	length;
 
-    space = 0;
     u.v = pointer;
     length = tag->size;
     tag = tag->tag;
+    length /= tag->size;
     printf("{ ");
-    switch (tag->type) {
-	case type_char:
-	    if (--length >= 0) {
-		space = 1;
+    if (--length >= 0) {
+	switch (tag->type) {
+	    case type_char:
 		printf("%d", *u.c);
 		for (u.c++; length; length--, u.c++)	printf(", %d", *u.c);
-	    }
-	    break;
-	case type_uchar:
-	    if (--length >= 0) {
-		space = 1;
+		break;
+	    case type_uchar:
 		printf("%x", *u.uc);
 		for (u.uc++; length; length--, u.uc++)	printf(", %x", *u.uc);
-	    }
-	    break;
-	case type_short:
-	    if ((length -= sizeof(short)) >= 0) {
-		space = 1;
+		break;
+	    case type_short:
 		printf("%d", *u.s);
 		for (u.s++; length; length--, u.s++)	printf(", %d", *u.s);
-	    }
-	    break;
-	case type_ushort:
-	    if ((length -=  sizeof(short)) >= 0) {
-		space = 1;
+		break;
+	    case type_ushort:
 		printf("%x", *u.us);
 		for (u.s++; length; length--, u.us++)	printf(", %x", *u.us);
-	    }
-	    break;
-	case type_int:
-	    if ((length -= sizeof(int)) >= 0) {
-		space = 1;
+		break;
+	    case type_int:
 		printf("%d", *u.i);
 		for (u.i++; length; length--, u.i++)	printf(", %d", *u.i);
-	    }
-	    break;
-	case type_uint:
-	    if ((length -= sizeof(int)) >= 0) {
-		space = 1;
+		break;
+	    case type_uint:
 		printf("%x", *u.ui);
 		for (u.ui++; length; length--, u.ui++)	printf(", %x", *u.ui);
-	    }
-	    break;
-	case type_long:
-	    if ((length -= sizeof(long)) >= 0) {
-		space = 1;
+		break;
+	    case type_long:
 		printf("%ld", *u.l);
 		for (u.l++; length; length--, u.l++)	printf(", %ld", *u.l);
-	    }
-	    break;
-	case type_ulong:
-	    if ((length -= sizeof(long)) >= 0) {
-		space = 1;
+		break;
+	    case type_ulong:
 		printf("%lx", *u.ul);
 		for (u.ul++; length; length--, u.ul++)	printf(", %lx", *u.ul);
-	    }
-	    break;
-	case type_float:
-	    if ((length -= sizeof(float)) >= 0) {
-		space = 1;
+		break;
+	    case type_float:
 		printf("%f", *u.f);
 		for (u.f++; length; length--, u.f++)	printf(", %f", *u.f);
-	    }
-	    break;
-	case type_double:
-	    if ((length -= sizeof(double)) >= 0) {
-		space = 1;
+		break;
+	    case type_double:
 		printf("%f", *u.d);
 		for (u.d++; length; length--, u.d++)	printf(", %f", *u.d);
-	    }
-	    break;
-	default:
-	    if ((length -= tag->size) >= 0) {
-		space = 1;
+		break;
+	    default:
 		dump_data(pointer, tag);
 		for (u.c += tag->size; length; u.c += tag->size) {
 		    printf(", ");
 		    dump_data(u.v, tag);
 		}
-	    }
-	    break;
-    }
-    if (space)
+		break;
+	}
 	printf(" }");
+    }
     else
 	putchar('}');
 }

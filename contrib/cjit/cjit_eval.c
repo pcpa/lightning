@@ -404,7 +404,7 @@ eval_type(expr_t *expr)
 		error(expr, "not a pointer");
 	    return (tag->tag);
 	case tok_vector:
-	    tag = eval_type(expr->data._binary.lvalue)->tag;
+	    tag = eval_type(expr->data._binary.lvalue);
 	    if (!pointer_type_p(tag->type))
 		error(expr, "not a vector");
 	    return (tag->tag);
