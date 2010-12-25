@@ -61,9 +61,10 @@ void
 ejit_patch(ejit_state_t *s, ejit_node_t *label, ejit_node_t *instr)
 {
     assert(label->code == code_label);
-#if !defined(NDEBUG)
     switch (instr->code) {
 	case code_movi_p:
+	    instr->v.n = label;
+	    break;
 	case code_bltr_i:	case code_bltr_ui:
 	case code_bltr_l:	case code_bltr_ul:
 	case code_bltr_p:
@@ -121,12 +122,14 @@ ejit_patch(ejit_state_t *s, ejit_node_t *label, ejit_node_t *instr)
 	case code_finish:
 	case code_calli:
 	case code_jmpi:
+	    instr->u.n = label;
 	    break;
 	default:
 	    fprintf(stderr, "unsupported patch\n");
 	    abort();
     }
-#endif
+    /* link field is used as list of nodes to be patched
+     * at actual jit generation */
     instr->link = label->link;
     label->link = instr;
 }

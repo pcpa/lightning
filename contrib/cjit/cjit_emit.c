@@ -22,7 +22,7 @@
 #define STACK_DIRECTION		-1
 #define ALLOCA_OFFSET		 0
 
-/* FIXME this should be JIT_FP() and may need to be a variable if the
+/* FIXME this should be JIT_FP and may need to be a variable if the
  * the frame pointer register may change based on runtime constraints */
 #define FRAME_POINTER		 6
 
@@ -72,6 +72,9 @@ emit_symbol(expr_t *expr, token_t token, expr_t *rexp);
 
 static tag_t *
 emit_vector(expr_t *expr, token_t token, expr_t *vexp);
+
+static tag_t *
+emit_cond(expr_t *expr);
 
 static tag_t *
 emit_cmp(expr_t *expr);
@@ -230,10 +233,8 @@ emit_expr(expr_t *expr)
 	    return (emit_address(expr));
 	case tok_pointer:
 	    return (emit_pointer(expr, tok_none, NULL));
-#if 0
-	    /* FIXME (may) need branch */
 	case tok_andand:	case tok_oror:
-#endif
+	    return (emit_cond(expr));
 	case tok_lt:		case tok_le:
 	case tok_eq:		case tok_ge:
 	case tok_gt:		case tok_ne:
@@ -1592,6 +1593,96 @@ emit_pointer(expr_t *expr, token_t token, expr_t *rexp)
 	dec_value_stack(1);
 
     return (ltag);
+}
+
+static tag_t *
+emit_cond(expr_t *expr)
+{
+    tag_t	*tag;
+    expr_t	*cond;
+    ejit_node_t	*node;
+    int		 lreg;
+    int		 rreg;
+    value_t	*lval;
+    value_t	*rval;
+    int		 flreg;
+    int		 frreg;
+    ejit_node_t	*label;
+
+    cond = expr->data._binary.lvalue;
+    tag = emit_expr(cond);
+    lval = top_value_stack();
+    emit_load(cond, lval);
+    lreg = lval->u.ival;
+    switch (tag->type) {
+	case type_char:		case type_short:	case type_int:
+	case type_uchar:	case type_ushort:	case type_uint:
+	    ejit_nei_i(state, lreg, lreg, 0);
+	    break;
+	case type_long:		case type_ulong:
+	    ejit_nei_l(state, lreg, lreg, 0);
+	    break;
+	case type_float:
+	    flreg = lreg;
+	    lreg = get_register(0);
+	    frreg = get_register(value_ftype);
+	    ejit_movi_f(state, frreg, 0.0);
+	    ejit_ner_f(state, lreg, flreg, frreg);
+	    lval->u.ival = lreg;
+	    break;
+	case type_double:
+	    flreg = lreg;
+	    lreg = get_register(0);
+	    frreg = get_register(value_dtype);
+	    ejit_movi_d(state, frreg, 0.0);
+	    ejit_ner_d(state, lreg, flreg, frreg);
+	    lval->u.ival = lreg;
+	    break;
+	default:
+	    ejit_nei_p(state, lreg, lreg, NULL);
+	    break;
+    }
+    lval->type = value_itype | value_regno;
+    if (expr->token == tok_andand)
+	node = ejit_beqi_i(state, NULL, lreg, 0);
+    else
+	node = ejit_bnei_i(state, NULL, lreg, 0);
+
+    cond = expr->data._binary.rvalue;
+    tag = emit_expr(cond);
+    rval = top_value_stack();
+    emit_load(cond, rval);
+    rreg = rval->u.ival;
+    switch (tag->type) {
+	case type_char:		case type_short:	case type_int:
+	case type_uchar:	case type_ushort:	case type_uint:
+	    ejit_nei_i(state, lreg, rreg, 0);
+	    break;
+	case type_long:		case type_ulong:
+	    ejit_nei_l(state, lreg, rreg, 0);
+	    break;
+	case type_float:
+	    flreg = rreg;
+	    frreg = get_register(value_ftype);
+	    ejit_movi_f(state, frreg, 0.0);
+	    ejit_ner_f(state, lreg, flreg, frreg);
+	    break;
+	case type_double:
+	    flreg = rreg;
+	    frreg = get_register(value_dtype);
+	    ejit_movi_d(state, frreg, 0.0);
+	    ejit_ner_d(state, lreg, flreg, frreg);
+	    break;
+	default:
+	    ejit_nei_p(state, lreg, rreg, NULL);
+	    break;
+    }
+    label = ejit_label(state);
+    ejit_patch(state, label, node);
+
+    dec_value_stack(1);
+
+    return (int_tag);
 }
 
 static tag_t *
