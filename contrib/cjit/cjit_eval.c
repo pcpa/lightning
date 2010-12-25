@@ -58,10 +58,15 @@ eval(expr_t *expr)
 	case tok_lshset:	case tok_rshset:
 	case tok_addset:	case tok_subset:
 	case tok_mulset:	case tok_divset:
-	case tok_remset:	case tok_vector:
-	case tok_dot:		case tok_arrow:
+	case tok_remset:	case tok_dot:
+	case tok_arrow:
 	    eval(expr->data._binary.lvalue);
 	    eval(expr->data._binary.rvalue);
+	    break;
+	case tok_vector:
+	    eval(expr->data._binary.lvalue);
+	    if (expr->data._binary.rvalue)
+		eval(expr->data._binary.rvalue);
 	    break;
 	case tok_andand:	case tok_oror:
 	case tok_lt:		case tok_le:

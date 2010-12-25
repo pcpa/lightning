@@ -463,12 +463,16 @@ static symbol_t *
 declare(expr_t *type, expr_t *decl)
 {
     tag_t	*tag;
+    expr_t	*vexp;
     symbol_t	*symbol;
 
     if (decl == NULL)
 	error(NULL, "syntax error");
-    while (decl->token == tok_set)
+    vexp = NULL;
+    while (decl->token == tok_set) {
+	vexp = decl->data._binary.rvalue;
 	decl = decl->data._binary.lvalue;
+    }
     tag = tag_decl(type->data._unary.vp, &decl);
     if (decl->token == tok_call) {
 	(void)prototype(tag, decl);
@@ -476,6 +480,13 @@ declare(expr_t *type, expr_t *decl)
     }
     if (decl->token != tok_symbol)
 	error(decl, "internal error");
+    if (tag->size == 0) {
+	if (type_mask(tag->type) != type_vector)
+	    error(decl, "syntax error");
+	/* patch tag size information of unspecified, but initialized vector */
+	if (vexp)
+	    tag = data_tag(tag, vexp);
+    }
     if ((symbol = new_symbol(current, tag, decl->data._unary.cp)) == NULL)
 	error(decl, "syntax error");
 

@@ -20,20 +20,38 @@
 /*
  * Prototypes
  */
-static void
-init_decl(expr_t *expr);
+static tag_t *
+data_vector_tag(tag_t *tag, expr_t *expr);
 
 static void
-init_set(expr_t *expr);
+data_decl(expr_t *expr);
 
 static void
-init_data(void *pointer, tag_t *tag, expr_t *expr);
+data_set(expr_t *expr);
 
 static void
-init_record(void *pointer, tag_t *tag, expr_t *expr);
+data_init(void *pointer, tag_t *tag, expr_t *expr);
 
 static void
-init_vector(void *pointer, tag_t *tag, expr_t *expr);
+data_record(void *pointer, tag_t *tag, expr_t *expr);
+
+static void
+data_vector(void *pointer, tag_t *tag, expr_t *expr);
+
+static void
+init_rodata(void);
+
+static char *
+rodata_string(expr_t *expr, char *string);
+
+/*
+ * Initialization
+ */
+void		*the_data;
+/* as the name implies, should be read-only memory at jit execution time */
+void		*the_rodata;
+long		 rodata_length;
+static hash_t	*data_hash;
 
 /*
  * Implementation
@@ -45,11 +63,12 @@ data(expr_t *expr)
     expr_t	*prev;
     expr_t	*next;
 
+    init_rodata();
     for (base = prev = expr; expr;) {
 	next = expr->next;
 	switch (expr->token) {
 	    case tok_decl:
-		init_decl(expr->data._binary.rvalue);
+		data_decl(expr->data._binary.rvalue);
 		if (prev == expr)
 		    base = prev = next;
 		else
@@ -67,13 +86,43 @@ data(expr_t *expr)
     return (base);
 }
 
+tag_t *
+data_tag(tag_t *tag, expr_t *expr)
+{
+    if (expr->token == tok_data)
+	return (data_vector_tag(tag, expr->data._unary.expr));
+    else if (expr->token == tok_string)
+	/* if the base type is not char error will be triggered later */
+	return (tag_vector(tag->tag, strlen(expr->data._unary.cp) + 1));
+    return (tag);
+}
+
+static tag_t *
+data_vector_tag(tag_t *tag, expr_t *expr)
+{
+    tag_t	*btag;
+    tag_t	*rtag;
+    long	 length;
+
+    /* FIXME check for offset initializers */
+    btag = tag->tag;
+    for (length = 0; expr; expr = expr->next, length++) {
+	rtag = data_tag(btag, expr);
+	if (rtag->size > btag->size)
+	    btag = rtag;
+    }
+    if (length * btag->size > tag->size)
+	return (tag_vector(btag, length));
+    return (tag);
+}
+
 static void
-init_decl(expr_t *expr)
+data_decl(expr_t *expr)
 {
     for (; expr; expr = expr->next) {
 	switch (expr->token) {
 	    case tok_set:
-		init_set(expr);
+		data_set(expr);
 		break;
 	    case tok_symbol:		case tok_vector:
 	    case tok_pointer:
@@ -85,7 +134,7 @@ init_decl(expr_t *expr)
 }
 
 static void
-init_set(expr_t *expr)
+data_set(expr_t *expr)
 {
     expr_t	*lexp;
     expr_t	*rexp;
@@ -107,7 +156,7 @@ init_set(expr_t *expr)
 		if (!symbol->glb)
 		    error(lexp, "internal error");
 		pointer = (char *)the_data + symbol->offset;
-		init_data(pointer, symbol->tag, rexp);
+		data_init(pointer, symbol->tag, rexp);
 		return;
 	    case tok_vector:
 		lexp = lexp->data._binary.lvalue;
@@ -122,7 +171,7 @@ init_set(expr_t *expr)
 }
 
 static void
-init_data(void *pointer, tag_t *tag, expr_t *expr)
+data_init(void *pointer, tag_t *tag, expr_t *expr)
 {
     union_t	u;
 
@@ -170,32 +219,39 @@ init_data(void *pointer, tag_t *tag, expr_t *expr)
 		default:	error(expr, "syntax error");
 	    }
 	    break;
+	case type_pointer|type_char:	case type_pointer|type_uchar:
+	    break;
 	default:
 	    if (tag->type & type_pointer) {
 		switch (expr->token) {
 		    case tok_int:
 			if (expr->data._unary.i != 0)
-			    goto init_error;
+			    goto data_error;
 			break;
-			/* FIXME handle address and aggregate initializers */
+		    case tok_string:
+			if (tag->tag->type != type_char &&
+			    tag->tag->type != type_uchar)
+			    goto data_error;
+			*u.p = rodata_string(expr, expr->data._unary.cp);
+			break;
 		    default:
-			goto init_error;
+			goto data_error;
 		}
 	    }
 	    else if (tag->type & type_vector)
-		init_vector(pointer, tag, expr);
+		data_vector(pointer, tag, expr);
 	    else if (tag->type & (type_struct | type_union))
-		init_record(pointer, tag, expr);
+		data_record(pointer, tag, expr);
 	    else {
-	    init_error:
-		error(expr, "initializer not handled");
+	    data_error:
+		error(expr, "invalid initializer");
 	    }
 	    break;
     }
 }
 
 static void
-init_record(void *pointer, tag_t *tag, expr_t *expr)
+data_record(void *pointer, tag_t *tag, expr_t *expr)
 {
     union_t	 u;
     expr_t	*prev;
@@ -216,14 +272,14 @@ init_record(void *pointer, tag_t *tag, expr_t *expr)
 	 expr && offset < record->count;
 	 offset++, prev = expr, expr = expr->next) {
 	symbol = record->vector[offset];
-	init_data(u.c + symbol->offset, symbol->tag, expr);
+	data_init(u.c + symbol->offset, symbol->tag, expr);
     }
     if (expr)
 	error(prev, "too many initializers");
 }
 
 static void
-init_vector(void *pointer, tag_t *tag, expr_t *expr)
+data_vector(void *pointer, tag_t *tag, expr_t *expr)
 {
     union_t	 u;
     expr_t	*base;
@@ -231,15 +287,23 @@ init_vector(void *pointer, tag_t *tag, expr_t *expr)
     int		 offset;
     long	 length;
 
-    if (expr->token != tok_data)
-	/* FIXME strings */
-	error(expr, "syntax error");
-    expr = expr->data._unary.expr;
-
     u.v = pointer;
     length = tag->size;
     tag = tag->tag;
     length /= tag->size;
+
+    if (expr->token != tok_data) {
+	if (expr->token == tok_string &&
+	    (tag->type == type_char || tag->type == type_uchar)) {
+	    if (length > strlen(expr->data._unary.cp) + 1)
+		error(expr, "too many initializers");
+	    strcpy(pointer, expr->data._unary.cp);
+	    return;
+	}
+	error(expr, "syntax error");
+    }
+
+    expr = expr->data._unary.expr;
     /* use prev only to better locate error */
     for (base = prev = expr, offset = 0;
 	 expr && offset < length;
@@ -304,7 +368,48 @@ init_vector(void *pointer, tag_t *tag, expr_t *expr)
 	    }
 	default:
 	    for (; expr; expr = expr->next, u.c += tag->size)
-		init_data(u.p, tag, expr);
+		data_init(u.p, tag, expr);
 	    break;
     }
+}
+
+static void
+init_rodata(void)
+{
+    entry_t	*entry;
+    entry_t	*rodata;
+    int		 offset;
+    long	 length;
+    char	*pointer;
+
+    data_hash = new_hash(hash_pointer);
+    for (offset = 0, length = 0; offset < strings->size; offset++) {
+	for (entry = strings->entries[offset]; entry; entry = entry->next) {
+	    rodata = xcalloc(1, sizeof(entry_t));
+	    rodata->name.string = entry->name.string;
+	    rodata->value = (void *)length;
+	    length += strlen(entry->name.string) + 1;
+	    put_hash(data_hash, rodata);
+	}
+    }
+
+    the_rodata = xmalloc(rodata_length = length);
+    pointer = the_rodata;
+    for (offset = 0; offset < strings->size; offset++) {
+	for (entry = data_hash->entries[offset]; entry; entry = entry->next) {
+	    entry->value = pointer + (long)entry->value;
+	    strcpy(entry->value, entry->name.string);
+	}
+    }
+}
+
+static char *
+rodata_string(expr_t *expr, char *string)
+{
+    entry_t	*entry;
+
+    if ((entry = get_hash(data_hash, string)) == NULL)
+	error(expr, "internal error");
+
+    return (entry->value);
 }

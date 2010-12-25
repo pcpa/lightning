@@ -74,6 +74,11 @@ dump(void)
 	printf("%s%s: ", offset ? ", " : "", symbol->name);
 	dump_data((char *)the_data + symbol->offset, symbol->tag);
     }
+    if (rodata_length) {
+	/* FIXME writing nuls to stdout... also, only const strings currently */
+	printf("\nrodata: ");
+	fwrite(the_rodata, rodata_length, 1, stdout);
+    }
 }
 
 static void
@@ -184,7 +189,7 @@ dump_vector(void *pointer, tag_t *tag)
 		break;
 	    default:
 		dump_data(pointer, tag);
-		for (u.c += tag->size; length; u.c += tag->size) {
+		for (u.c += tag->size; length; length--, u.c += tag->size) {
 		    printf(", ");
 		    dump_data(u.v, tag);
 		}

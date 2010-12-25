@@ -207,8 +207,7 @@ tag_vector(tag_t *tag, long length)
 	put_hash(hash, (entry_t *)entry);
 	entry->hash = new_hash(hash_pointer);
 	entry->type = type_vector | type;
-	/* FIXME correct? */
-	entry->size = length ? tag->size * length : sizeof(void*);
+	entry->size = tag->size * length;
 	entry->tag  = tag;
     }
 
@@ -233,7 +232,7 @@ tag_decl(tag_t *tag, expr_t **decl)
 		}
 		break;
 	    case tok_vector:
-		/* treat symbol[] and symbol[0] identically ... */
+		/* handle specially unspecified length */
 		if (expr->data._binary.rvalue == NULL)
 		    length = 0;
 		else if (expr->data._binary.rvalue->token != tok_int)

@@ -21,7 +21,6 @@
  * Initialization
  */
 hash_t		*strings;
-void		*the_data;
 
 /*
  * Implementation

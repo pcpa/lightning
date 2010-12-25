@@ -456,11 +456,14 @@ print(expr_t *expr);
 extern void
 dump(void);
 
-extern void
-init_emit(void);
-
 extern expr_t *
 data(expr_t *expr);
+
+extern tag_t *
+data_tag(tag_t *tag, expr_t *expr);
+
+extern void
+init_emit(void);
 
 extern void
 emit(expr_t *expr);
@@ -485,5 +488,7 @@ extern tag_t		*ulong_tag;
 extern tag_t		*float_tag;
 extern tag_t		*double_tag;
 extern void		*the_data;
+extern void		*the_rodata;
+extern long		 rodata_length;
 
 #endif /* _cjit_h */
