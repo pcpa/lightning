@@ -250,7 +250,7 @@ primary(void)
 	expr->data._unary.cp = entry->value;
     }
     else
-	expr->data._unary.cp = parser.value.cp;
+	expr->data._unary = parser.value;
     push_expr(expr);
 
     return (token);

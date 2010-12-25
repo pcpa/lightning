@@ -150,7 +150,8 @@ typedef enum {
     tok_signed,		tok_unsigned,	tok_struct,	tok_union,
     tok_typedef,	tok_list,	tok_expr,	tok_stat,
     tok_call,		tok_code,	tok_data,	tok_label,
-    tok_vector,		tok_declexpr,	tok_decl,	tok_function,
+    tok_vector,		tok_declexpr,	tok_decl,	tok_defn,
+    tok_function,
 } token_t;
 
 typedef union {
@@ -443,8 +444,11 @@ init_parser(void);
 extern expr_t *
 parse(void);
 
-extern void
+extern int
 eval(expr_t *expr);
+
+extern int
+eval_stat(expr_t *expr);
 
 extern void
 print(expr_t *expr);

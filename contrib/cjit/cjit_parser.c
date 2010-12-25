@@ -138,6 +138,7 @@ init_parser(void)
 	{ "unsigned",	tok_unsigned	},
 	{ "struct",	tok_struct	},
 	{ "union",	tok_union	},
+	{ "sizeof",	tok_sizeof	},
 	{ "typedef",	tok_typedef	},
     };
 
@@ -224,6 +225,7 @@ statement(void)
 	    break;
 	case tok_int:		case tok_float:
 	case tok_symbol: 	case tok_expr:
+	case tok_defn:
 	    token = tok_stat;
 	    expr = new_expr(tok_stat, top_expr()->lineno, top_expr()->column);
 	    expr->data._unary.expr = top_expr();
@@ -339,7 +341,7 @@ statement(void)
 	    break;
 	case tok_case:
 	    if (primary() != tok_int) {
-		eval(top_expr());
+		(void)eval(top_expr());
 		if (top_expr()->token != tok_int)
 		    error(top_expr(), "case value not an integer");
 	    }
@@ -863,6 +865,7 @@ unary_noeof(void)
 static token_t
 unary(void)
 {
+    expr_t	*expr;
     token_t	 token;
 
     switch (token = primary()) {
@@ -879,6 +882,18 @@ unary(void)
 	case tok_mul:		case tok_and:
 	case tok_not:		case tok_com:
 	    return (unary_value(token));
+	case tok_sizeof:
+	    expr = top_expr();
+	    if ((token = lookahead()) == tok_oparen)
+		consume();
+	    expression_noeof();
+	    expr->data._unary.expr = pop_expr();
+	    if (token == tok_oparen) {
+		if (primary_noeof() != tok_cparen)
+		    error(expr, "expecting ')'");
+		discard();
+	    }
+	    return (tok_expr);
 	default:
 	    return (token);
     }
@@ -1081,6 +1096,7 @@ unary_record(token_t token)
 static token_t
 unary_decl(void)
 {
+    tag_t	*tag;
     expr_t	*expr;
     token_t	 token;
 
@@ -1089,6 +1105,13 @@ unary_decl(void)
     token = lookahead();
     if (token == tok_comma || token == tok_cparen)
 	return (tok_type);
+    if (token == tok_semicollon) {
+	tag = top_expr()->data._unary.vp;
+	if (type_mask(tag->type) == type_struct ||
+	    type_mask(tag->type) == type_union)
+	    return (tok_defn);
+	error(top_expr(), "syntax error");
+    }
 
     expr = new_expr(tok_declexpr, top_expr()->lineno, top_expr()->column);
     expr->data._binary.lvalue = top_expr();

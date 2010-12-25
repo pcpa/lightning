@@ -17,8 +17,6 @@
 
 #include "cjit.h"
 
-#include <string.h>
-
 /*
  * Prototypes
  */
@@ -132,8 +130,9 @@ rehash(hash_t *hash)
     int		 i, size, key;
     entry_t	*entry, *next, **entries;
 
-    entries = (entry_t **)xcalloc(size = hash->size * 2, sizeof(void *));
-    for (i = 0; i < hash->size; i++) {
+    size = hash->size;
+    entries = (entry_t **)xcalloc(hash->size <<= 1, sizeof(void *));
+    for (i = 0; i < size; i++) {
 	for (entry = hash->entries[i]; entry; entry = next) {
 	    next = entry->next;
 	    key = hash_key(hash, entry->name.pointer);
@@ -143,5 +142,4 @@ rehash(hash_t *hash)
     }
     free(hash->entries);
     hash->entries = entries;
-    hash->size = size;
 }

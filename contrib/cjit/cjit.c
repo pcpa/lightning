@@ -40,6 +40,11 @@ main(int argc, char *argv[])
     expr = parse();
     printf("\ncode:\n");
     print(expr);
+    /* eval after printing because certain changes may "look" wrong,
+     * like removal of tok_list for single expression inside parenthesis
+     * FIXME this should be dropped at some point either way, but
+     * print code should be used for preprocessor stringify #expr */
+    eval_stat(expr);
     globals->length = globals->offset;
     the_data = xmalloc(globals->length);
     expr = data(expr);

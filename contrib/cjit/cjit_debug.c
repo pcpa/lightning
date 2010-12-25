@@ -419,7 +419,11 @@ print_expr(expr_t *expr)
 	case tok_com:		print_unary("~", expr);		break;
 	case tok_pointer:	print_unary("*", expr);		break;
 	case tok_address:	print_unary("&", expr);		break;
-	case tok_sizeof:	print_unary("sizeof", expr);	break;
+	case tok_sizeof:
+	    printf("sizeof ( ");
+	    print(expr->data._unary.expr);
+	    printf(" )");
+	    break;
 	case tok_goto:
 	    print_unary("goto", expr);
 	    printf(" ;");

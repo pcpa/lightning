@@ -127,10 +127,6 @@ init_data(void *pointer, tag_t *tag, expr_t *expr)
     union_t	u;
 
     u.v = pointer;
-    /* FIXME should have already propagated constants, but may need
-     * to "force" eval of "unsafe" float operations, that may have
-     * different runtime results */
-    eval(expr);
     switch (tag->type) {
 	case type_char:			case type_uchar:
 	    switch (expr->token) {
@@ -219,8 +215,6 @@ init_record(void *pointer, tag_t *tag, expr_t *expr)
     for (prev = expr, offset = 0;
 	 expr && offset < record->count;
 	 offset++, prev = expr, expr = expr->next) {
-	/* FIXME should have been already done... */
-	eval(expr);
 	symbol = record->vector[offset];
 	init_data(u.c + symbol->offset, symbol->tag, expr);
     }
@@ -250,8 +244,7 @@ init_vector(void *pointer, tag_t *tag, expr_t *expr)
     for (base = prev = expr, offset = 0;
 	 expr && offset < length;
 	 offset++, prev = expr, expr = expr->next)
-	/* FIXME should have been already done... */
-	eval(expr);
+	;
     if (expr)
 	error(prev, "too many initializers");
     expr = base;
