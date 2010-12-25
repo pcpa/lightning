@@ -88,6 +88,9 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 		  value_t *lval, value_t *rval, token_t token);
 
 static void
+emit_coerce_const(expr_t *expr, tag_t *tag, value_t *value);
+
+static void
 emit_coerce(expr_t *expr, tag_t *tag, value_t *value);
 
 static tag_t *
@@ -589,6 +592,8 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 
 	vval = top_value_stack();
 	/* stored value must be in a register even if a literal constant */
+	if (tag != vtag)
+	    emit_coerce_const(expr, tag, vval);
 	emit_load(vexp, vval);
 	if (tag != vtag)
 	    emit_coerce(expr, tag, vval);
@@ -855,6 +860,8 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 
 	vval = top_value_stack();
 	/* stored value must be in a register even if a literal constant */
+	if (tag != vtag)
+	    emit_coerce_const(expr, tag, vval);
 	if (token == tok_none)
 	    emit_load(vexp, vval);
 	if (tag != vtag)
@@ -1197,10 +1204,14 @@ emit_symbol(expr_t *expr, token_t token, expr_t *rexp)
 	if (token) {
 	    rtag = emit_binary_next(expr, ltag, rtag, lval, rval, token);
 	    if (ltag != rtag)
+		emit_coerce_const(expr, symbol->tag, lval);
+	    if (ltag != rtag)
 		emit_coerce(rexp, symbol->tag, lval);
 	    emit_store_symbol(expr, symbol, lval);
 	}
 	else {
+	    if (ltag != rtag)
+		emit_coerce_const(expr, symbol->tag, rval);
 	    emit_load(rexp, rval);
 	    if (ltag != rtag)
 		emit_coerce(rexp, symbol->tag, rval);
@@ -2410,6 +2421,77 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
     return (tag);
 }
 
+static void
+emit_coerce_const(expr_t *expr, tag_t *tag, value_t *value)
+{
+    switch (value->type) {
+	case value_itype:		case value_utype:
+	    switch (tag->type) {
+		case type_long:		case type_ulong:
+		    value->u.lval = value->u.ival;
+		    value->type = value_ltype;
+		    break;
+		case type_float:
+		    value->u.fval = value->u.ival;
+		    value->type = value_ftype;
+		    break;
+		case type_double:
+		    value->u.dval = value->u.ival;
+		    value->type = value_dtype;
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case value_ltype:		case value_ultype:
+	    switch (tag->type) {
+		case type_float:
+		    value->u.fval = value->u.lval;
+		    value->type = value_ftype;
+		    break;
+		case type_double:
+		    value->u.dval = value->u.lval;
+		    value->type = value_dtype;
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case value_ftype:
+	    switch (tag->type) {
+		case type_char:		case type_short:	case type_int:
+		case type_uchar:	case type_ushort:	case type_uint:
+		    value->u.ival = value->u.fval;
+		    value->type = value_itype;
+		    break;
+		case type_long:		case type_ulong:
+		    value->u.lval = value->u.fval;
+		    value->type = value_ltype;
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	case value_dtype:
+	    switch (tag->type) {
+		case type_char:		case type_short:	case type_int:
+		case type_uchar:	case type_ushort:	case type_uint:
+		    value->u.ival = value->u.dval;
+		    value->type = value_itype;
+		    break;
+		case type_long:		case type_ulong:
+		    value->u.lval = value->u.dval;
+		    value->type = value_ltype;
+		    break;
+		default:
+		    break;
+	    }
+	    break;
+	default:
+	    break;
+    }
+}
+
 /* value must be a live register */
 static void
 emit_coerce(expr_t *expr, tag_t *tag, value_t *value)
@@ -2595,13 +2677,11 @@ emit_load(expr_t *expr, value_t *value)
 		ejit_movi_p(state, regno, value->u.pval);
 		value->u.ival = regno;
 		break;
-#if 0		/* no information so far about it */
 	    case value_ftype:
 		regno = get_register(value_ftype);
 		ejit_movi_f(state, regno, (float)value->u.dval);
 		value->u.ival = regno;
 		break;
-#endif
 	    case value_dtype:
 		regno = get_register(value_dtype);
 		ejit_movi_d(state, regno, value->u.dval);
