@@ -300,10 +300,13 @@ getch_noeof(void)
 static int
 ungetch(int ch)
 {
+    /* column will be out of sync if ungetch() more characters */
     if ((parser.newline = ch == '\n'))
 	--parser.lineno;
     else if (ch == EOF)
 	error(NULL, "internal error");
+    else
+	--parser.column;
 
     if (parser.data.offset)
 	parser.data.buffer[--parser.data.offset] = ch;

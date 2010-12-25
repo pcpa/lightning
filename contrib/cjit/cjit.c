@@ -45,7 +45,7 @@ main(int argc, char *argv[])
      * print code should be used for preprocessor stringify #expr */
     eval_stat(expr);
     globals->length = globals->offset;
-    the_data = xmalloc(globals->length);
+    the_data = xcalloc(1, globals->length);
     expr = data(expr);
     printf("\ndata:\n");
     dump();

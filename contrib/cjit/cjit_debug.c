@@ -124,7 +124,7 @@ dump_record(void *pointer, tag_t *tag)
 	symbol = record->vector[0];
 	dump_data(pointer, symbol->tag);
 	for (offset = 1; offset < record->count; offset++) {
-	    symbol = record->vector[0];
+	    symbol = record->vector[offset];
 	    printf(", ");
 	    dump_data(u.c + symbol->offset, symbol->tag);
 	}
@@ -422,8 +422,12 @@ print_expr(expr_t *expr)
 	case tok_vector:
 	    print_expr(expr->data._binary.lvalue);
 	    printf(" [ ");
-	    print_expr(expr->data._binary.rvalue);
-	    printf(" ]");
+	    if (expr->data._binary.rvalue) {
+		print_expr(expr->data._binary.rvalue);
+		printf(" ]");
+	    }
+	    else
+		putchar(']');
 	    break;
 	case tok_stat:
 	    print_comma_list(expr->data._unary.expr);
@@ -502,6 +506,15 @@ print_expr(expr_t *expr)
 	    break;
 	case tok_default:
 	    printf("default :");
+	    break;
+	case tok_elemref:
+	    printf("[ ");
+	    print(expr->data._unary.expr);
+	    printf(" ]");
+	    break;
+	case tok_fieldref:
+	    printf(". ");
+	    print(expr->data._unary.expr);
 	    break;
 	case tok_function:
 	    print_expr(expr->data._function.type);

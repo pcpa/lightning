@@ -888,6 +888,22 @@ unary(void)
 	    return (unary_loop(token));
 	case tok_oparen:
 	    return (unary_list());
+	case tok_obrack:
+	    expr = top_expr();
+	    expr->token = tok_elemref;
+	    expression_noeof();
+	    expr->data._unary.expr = pop_expr();
+	    if (primary_noeof() != tok_cbrack)
+		error(expr, "syntax error");
+	    discard();
+	    return (tok_expr);
+	case tok_dot:
+	    expr = top_expr();
+	    expr->token = tok_fieldref;
+	    if (primary_noeof() != tok_symbol)
+		error(expr, "syntax error");
+	    expr->data._unary.expr = pop_expr();
+	    return (tok_expr);
 	case tok_inc:		case tok_dec:
 	case tok_add:		case tok_sub:
 	case tok_mul:		case tok_and:

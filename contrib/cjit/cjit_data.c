@@ -100,14 +100,27 @@ data_tag(tag_t *tag, expr_t *expr)
 static tag_t *
 data_vector_tag(tag_t *tag, expr_t *expr)
 {
+    expr_t	*rexp;
     tag_t	*btag;
     tag_t	*rtag;
     long	 length;
 
-    /* FIXME check for offset initializers */
+    /* FIXME for now no support for the syntax "[offset].field ="  */
     btag = tag->tag;
     for (length = 0; expr; expr = expr->next, length++) {
-	rtag = data_tag(btag, expr);
+	if (expr->token == tok_set) {
+	    rexp = expr->data._binary.lvalue;
+	    if (rexp->token != tok_elemref)
+		error(rexp, "syntax error");
+	    rexp = rexp->data._unary.expr;
+	    if (rexp->token != tok_int || rexp->data._unary.i < 0)
+		error(rexp, "syntax error");
+	    if (length < rexp->data._unary.i)
+		length = rexp->data._unary.i;
+	    rtag = data_tag(btag, expr->data._binary.rvalue);
+	}
+	else
+	    rtag = data_tag(btag, expr);
 	if (rtag->size > btag->size)
 	    btag = rtag;
     }
@@ -255,6 +268,8 @@ data_record(void *pointer, tag_t *tag, expr_t *expr)
 {
     union_t	 u;
     expr_t	*prev;
+    expr_t	*rexp;
+    expr_t	*decl;
     int		 offset;
     record_t	*record;
     symbol_t	*symbol;
@@ -268,11 +283,31 @@ data_record(void *pointer, tag_t *tag, expr_t *expr)
     u.v = pointer;
     tag = tag->tag;
     /* use prev only to better locate error */
-    for (prev = expr, offset = 0;
-	 expr && offset < record->count;
+    for (prev = expr, offset = 0; expr;
 	 offset++, prev = expr, expr = expr->next) {
-	symbol = record->vector[offset];
-	data_init(u.c + symbol->offset, symbol->tag, expr);
+	if (expr->token == tok_set) {
+	    rexp = expr->data._binary.lvalue;
+	    if (rexp->token != tok_fieldref)
+		error(rexp, "syntax error");
+	    rexp = rexp->data._unary.expr;
+	    if (rexp->token != tok_symbol)
+		error(rexp, "syntax error");
+	    symbol = (symbol_t *)get_hash((hash_t *)record,
+					  rexp->data._unary.cp);
+	    if (symbol == NULL)
+		error(expr, "no '%s' field in '%s'", rexp->data._unary.cp,
+		      record->name ? record->name->name.string : "<anonymous>");
+	    decl = expr->data._binary.rvalue;
+	    for (offset = 0; record->vector[offset] != symbol; offset++)
+		assert(offset < record->count);
+	}
+	else {
+	    if (offset >= record->count)
+		break;
+	    symbol = record->vector[offset];
+	    decl = expr;
+	}
+	data_init(u.c + symbol->offset, symbol->tag, decl);
     }
     if (expr)
 	error(prev, "too many initializers");
@@ -282,8 +317,8 @@ static void
 data_vector(void *pointer, tag_t *tag, expr_t *expr)
 {
     union_t	 u;
-    expr_t	*base;
-    expr_t	*prev;
+    expr_t	*rexp;
+    expr_t	*decl;
     int		 offset;
     long	 length;
 
@@ -304,72 +339,98 @@ data_vector(void *pointer, tag_t *tag, expr_t *expr)
     }
 
     expr = expr->data._unary.expr;
-    /* use prev only to better locate error */
-    for (base = prev = expr, offset = 0;
-	 expr && offset < length;
-	 offset++, prev = expr, expr = expr->next)
-	;
-    if (expr)
-	error(prev, "too many initializers");
-    expr = base;
-    switch (tag->type) {
-	case type_char:			case type_uchar:
-	    for (; expr; expr = expr->next, ++u.c) {
-		switch (expr->token) {
-		    case tok_int:	*u.c = expr->data._unary.i;	break;
-		    case tok_float:	*u.c = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+    for (; expr; expr = expr->next, offset++) {
+	if (expr->token == tok_set) {
+	    rexp = expr->data._binary.lvalue;
+	    decl = expr->data._binary.rvalue;
+	    if (rexp->token != tok_elemref)
+		error(rexp, "syntax error");
+	    rexp = rexp->data._unary.expr;
+	    if (rexp->token != tok_int)
+		error(rexp, "syntax error");
+	    if ((offset = rexp->data._unary.i) < 0)
+		error(rexp, "syntax error");
+	}
+	else
+	    decl = expr;
+	if (offset >= length)
+	    error(expr, "too many initializers");
+	switch (tag->type) {
+	    case type_char:		case type_uchar:
+		switch (decl->token) {
+		    case tok_int:
+			u.c[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.c[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	    break;
-	case type_short:		case type_ushort:
-	    for (; expr; expr = expr->next, ++u.s) {
-		switch (expr->token) {
-		    case tok_int:	*u.s = expr->data._unary.i;	break;
-		    case tok_float:	*u.s = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+	    case type_short:		case type_ushort:
+		switch (decl->token) {
+		    case tok_int:
+			u.s[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.s[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	    break;
-	case type_int:			case type_uint:
-	    for (; expr; expr = expr->next, ++u.i) {
-		switch (expr->token) {
-		    case tok_int:	*u.i = expr->data._unary.i;	break;
-		    case tok_float:	*u.i = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+		break;
+	    case type_int:		case type_uint:
+		switch (decl->token) {
+		    case tok_int:
+			u.i[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.i[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	    break;
-	case type_long:			case type_ulong:
-	    for (; expr; expr = expr->next, ++u.l) {
-		switch (expr->token) {
-		    case tok_int:	*u.l = expr->data._unary.i;	break;
-		    case tok_float:	*u.l = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+		break;
+	    case type_long:		case type_ulong:
+		switch (decl->token) {
+		    case tok_int:
+			u.l[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.l[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	    break;
-	case type_float:
-	    for (; expr; expr = expr->next, ++u.f) {
-		switch (expr->token) {
-		    case tok_int:	*u.f = expr->data._unary.i;	break;
-		    case tok_float:	*u.f = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+		break;
+	    case type_float:
+		switch (decl->token) {
+		    case tok_int:
+			u.f[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.f[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	    break;
-	case type_double:
-	    for (; expr; expr = expr->next, ++u.d) {
-		switch (expr->token) {
-		    case tok_int:	*u.d = expr->data._unary.i;	break;
-		    case tok_float:	*u.d = expr->data._unary.d;	break;
-		    default:		error(expr, "invalid initializer");
+		break;
+	    case type_double:
+		switch (decl->token) {
+		    case tok_int:
+			u.d[offset] = decl->data._unary.i;
+			break;
+		    case tok_float:
+			u.d[offset] = decl->data._unary.d;
+			break;
+		    default:
+			error(decl, "invalid initializer");
 		}
-	    }
-	default:
-	    for (; expr; expr = expr->next, u.c += tag->size)
-		data_init(u.p, tag, expr);
-	    break;
+		break;
+	    default:
+		data_init(u.c + offset * tag->size, tag, decl);
+		break;
+	}
     }
 }
 

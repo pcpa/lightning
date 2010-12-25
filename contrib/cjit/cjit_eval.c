@@ -82,6 +82,7 @@ eval(expr_t *expr)
 	case tok_inc:		case tok_dec:
 	case tok_postinc:	case tok_postdec:
 	case tok_pointer:	case tok_address:
+	case tok_elemref:	case tok_fieldref:
 	    eval(expr->data._unary.expr);
 	    break;
 	case tok_plus:		case tok_neg:

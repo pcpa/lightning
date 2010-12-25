@@ -151,7 +151,7 @@ typedef enum {
     tok_typedef,	tok_list,	tok_expr,	tok_stat,
     tok_call,		tok_code,	tok_data,	tok_label,
     tok_vector,		tok_declexpr,	tok_decl,	tok_defn,
-    tok_function,
+    tok_fieldref,	tok_elemref,	tok_function,
 } token_t;
 
 typedef union {
