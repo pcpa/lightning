@@ -44,6 +44,9 @@ init_rodata(void);
 static char *
 rodata_string(expr_t *expr, char *string);
 
+static void *
+data_address(void *base, tag_t *tag, expr_t *expr);
+
 /*
  * Initialization
  */
@@ -151,7 +154,6 @@ data_set(expr_t *expr)
 {
     expr_t	*lexp;
     expr_t	*rexp;
-    char	*name;
     symbol_t	*symbol;
     void	*pointer;
 
@@ -160,12 +162,7 @@ data_set(expr_t *expr)
     for (;;) {
 	switch (lexp->token) {
 	    case tok_symbol:
-		name = lexp->data._unary.cp;
-		if ((symbol = get_symbol(name)) == NULL) {
-		    if (get_hash(functions, name))
-			error(lexp, "not a lvalue");
-		    error(lexp, "undefined symbol '%s'", name);
-		}
+		symbol = get_symbol_lvalue(lexp);
 		if (!symbol->glb)
 		    error(lexp, "internal error");
 		pointer = (char *)the_data + symbol->offset;
@@ -246,6 +243,10 @@ data_init(void *pointer, tag_t *tag, expr_t *expr)
 			    tag->tag->type != type_uchar)
 			    goto data_error;
 			*u.p = rodata_string(expr, expr->data._unary.cp);
+			break;
+		    case tok_address:
+			*u.p = data_address(the_data, tag->tag,
+					    expr->data._unary.expr);
 			break;
 		    default:
 			goto data_error;
@@ -473,4 +474,22 @@ rodata_string(expr_t *expr, char *string)
 	error(expr, "internal error");
 
     return (entry->value);
+}
+
+static void *
+data_address(void *base, tag_t *tag, expr_t *expr)
+{
+    symbol_t	*symbol;
+
+    if (expr->token == tok_symbol) {
+	symbol = get_symbol_lvalue(expr);
+	if (!symbol->glb)
+	    error(expr, "internal error");
+	if ((tag->type & ~type_unsigned) != (tag->type & ~type_unsigned)) {
+	    if (tag->type || symbol->tag->type)
+		error(expr, "invalid initializer");
+	}
+	return ((char *)base + symbol->offset);
+    }
+    error(expr, "invalid initializer");
 }

@@ -273,6 +273,20 @@ get_symbol(char *name)
 }
 
 symbol_t *
+get_symbol_lvalue(expr_t *expr)
+{
+    symbol_t	*symbol = get_symbol(expr->data._unary.cp);
+
+    if (symbol == NULL) {
+	if (get_hash(functions, expr->data._unary.cp))
+	    error(expr, "not a lvalue");
+	error(expr, "undefined symbol '%s'", expr->data._unary.cp);
+    }
+
+    return (symbol);
+}
+
+symbol_t *
 new_symbol(record_t *record, tag_t *tag, char *name)
 {
     record_t	*type;

@@ -436,6 +436,9 @@ extern symbol_t *
 get_symbol(char *name);
 
 extern symbol_t *
+get_symbol_lvalue(expr_t *expr);
+
+extern symbol_t *
 new_symbol(record_t *record, tag_t *tag, char *name);
 
 extern void

@@ -272,14 +272,14 @@ print_tag(tag_t *tag)
 	;
     record = base->name;
     if (record->name) {
-	if (type_mask(tag->type))
+	if (tag->type & (type_unsigned | type_struct | type_union))
 	    putchar(' ');
 	printf("%s", record->name->name.string);
     }
     if ((tag->type & type_struct) || (tag->type & type_union))
 	print_fields(record);
     if (base != tag) {
-	for (; tag->tag != base; tag = tag->tag)
+	for (; tag != base; tag = tag->tag)
 	    printf(" %s", (char *)tag->name);
     }
 }
