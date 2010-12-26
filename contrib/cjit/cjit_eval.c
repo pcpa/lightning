@@ -50,6 +50,8 @@ eval_type(expr_t *expr);
 int
 eval(expr_t *expr)
 {
+    int		 test;
+    expr_t	*prev;
     expr_t	*temp;
 
     switch (expr->token) {
@@ -101,6 +103,36 @@ eval(expr_t *expr)
 	    eval_stat(expr->data._if.test);
 	    eval_stat(expr->data._if.tcode);
 	    eval_stat(expr->data._if.fcode);
+	    temp = prev = expr->data._if.test;
+	    for (; temp->next; prev = temp, temp = temp->next)
+		;
+	    switch (temp->token) {
+		case tok_int:
+		    test = temp->data._unary.i != 0;
+		    break;
+		case tok_float:
+		    test = temp->data._unary.d != 0.0;
+		    break;
+		default:
+		    return (0);
+	    }
+	    if (test) {
+		del_expr(expr->data._if.fcode);
+		expr->data._if.fcode = NULL;
+	    }
+	    else {
+		del_expr(expr->data._if.tcode);
+		expr->data._if.tcode = expr->data._if.fcode;
+		expr->data._if.fcode = NULL;
+	    }
+	    if (prev != temp) {
+		prev->next = expr->data._if.tcode;
+		expr->data._unary.expr = expr->data._if.test;
+	    }
+	    else
+		expr->data._unary.expr = expr->data._if.tcode;
+	    del_expr(temp);
+	    expr->token = tok_stat;
 	    break;
 	case tok_return:
 	    if (expr->data._unary.expr)

@@ -26,7 +26,25 @@
  * the frame pointer register may change based on runtime constraints */
 #define FRAME_POINTER		 6
 
+#define add_tjump(node)		add_jump(bstack.tjump + bstack.offset - 1, node)
+#define add_fjump(node)		add_jump(bstack.fjump + bstack.offset - 1, node)
 #define top_value_stack()	(vstack.values + vstack.offset - 1)
+
+/*
+ * Types
+ */
+typedef struct jump {
+    ejit_node_t	**table;
+    int		  offset;
+    int		  length;
+} jump_t;
+
+typedef struct branch {
+    jump_t	*tjump;
+    jump_t	*fjump;
+    int		 offset;
+    int		 length;
+} branch_t;
 
 /*
  * Prototypes
@@ -96,6 +114,12 @@ emit_coerce_const(expr_t *expr, tag_t *tag, value_t *value);
 static void
 emit_coerce(expr_t *expr, tag_t *tag, value_t *value);
 
+static void
+emit_test_branch(expr_t *expr, int jmpif, int level);
+
+static tag_t *
+emit_if(expr_t *expr);
+
 static tag_t *
 emit_function(expr_t *expr);
 
@@ -120,6 +144,15 @@ dec_value_stack(int count);
 static int
 get_register(int freg);
 
+static void
+inc_branch_stack(void);
+
+static void
+dec_branch_stack(int count);
+
+static void
+add_jump(jump_t *list, ejit_node_t *node);
+
 /*
  * Initialization
  */
@@ -130,6 +163,7 @@ static int		 icount;
 static int		 alloca_offset;
 static int		 alloca_length;
 static ejit_node_t	*alloca_node;
+static branch_t		 bstack;
 
 /*
  * Implementation
@@ -141,6 +175,10 @@ init_emit(void)
     vstack.length = 16;
     vstack.values = (value_t *)xmalloc(vstack.length * sizeof(value_t));
     fcount = icount = 6;
+
+    /* cause brach stack information to be initialized */
+    inc_branch_stack();
+    dec_branch_stack(1);
 }
 
 void
@@ -157,11 +195,14 @@ emit_stat(expr_t *expr)
     tag_t	*tag = void_tag;
     int		 offset = vstack.offset;
 
-    for (; expr; expr = expr->next)
+    for (; expr; expr = expr->next) {
 	tag = emit_expr(expr);
-    /* FIXME should only happen if non side effect expressions reach here */
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+	/* at least one stack slot should reach here, and some non
+	 *side effect expressions automatically deleted due to not
+	 * generating code */
+	if (vstack.offset > offset)
+	    dec_value_stack(vstack.offset - offset);
+    }
 
     return (tag);
 }
@@ -261,6 +302,8 @@ emit_expr(expr_t *expr)
 	case tok_code:		case tok_stat:
 	    return (emit_stat(expr->data._unary.expr));
 	    break;
+	case tok_if:
+	    return (emit_if(expr));
 	case tok_function:
 	    return (emit_function(expr));
 	    break;
@@ -1625,6 +1668,9 @@ emit_cond(expr_t *expr)
 	case type_float:
 	    flreg = lreg;
 	    lreg = get_register(0);
+	    /* need to allocate a value_t on stack if integer and float
+	     * register classes may overlap
+	     * (comment apply to other switch cases in this function) */
 	    frreg = get_register(value_ftype);
 	    ejit_movi_f(state, frreg, 0.0);
 	    ejit_ner_f(state, lreg, flreg, frreg);
@@ -1680,6 +1726,10 @@ emit_cond(expr_t *expr)
     label = ejit_label(state);
     ejit_patch(state, label, node);
 
+    /* in case it was spilled, remember it is not required to reload
+     * and possibly, could remove a spill that can be generated
+     * when parsing the right side operation */
+    lval->type = value_itype | value_regno;
     dec_value_stack(1);
 
     return (int_tag);
@@ -2661,6 +2711,705 @@ emit_coerce(expr_t *expr, tag_t *tag, value_t *value)
     }
 }
 
+static void
+emit_test_branch(expr_t *expr, int jmpif, int level)
+{
+    long	 il;
+    void	*ip;
+    int		 freg;
+    int		 uoff;
+    int		 loff;
+    ejit_node_t	*node;
+    int		 lreg;
+    int		 rreg;
+    tag_t	*ltag;
+    tag_t	*rtag;
+    value_t	*lval;
+    value_t	*rval;
+    jump_t	*ajump;
+    jump_t	*bjump;
+    ejit_node_t	*label;
+
+    switch (expr->token) {
+	case tok_andand:	case tok_oror:
+	    uoff = bstack.offset - 1;
+	    loff = bstack.offset;
+	    inc_branch_stack();
+	    /* evaluate left operand */
+	    emit_test_branch(expr->data._binary.lvalue,
+			     expr->token == tok_oror, level + 1);
+	    ajump = bstack.tjump + loff;
+	    if (ajump->offset) {
+		if (expr->token == tok_oror) {
+		    /* lift true test jumps down for oror */
+		    bjump = bstack.tjump + uoff;
+		    do
+			add_jump(bjump, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+		else /* must check next test for andand */ {
+		    label = ejit_label(state);
+		    do
+			ejit_patch(state, label, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+	    }
+	    ajump = bstack.fjump + loff;
+	    if (ajump->offset) {
+		if (expr->token == tok_andand) {
+		    /* lift false test jumps down for andand */
+		    bjump = bstack.fjump + uoff;
+		    do
+			add_jump(bjump, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+		else /* must check next test for oror */ {
+		    label = ejit_label(state);
+		    do
+			ejit_patch(state, label, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+	    }
+	    /* evaluate right operand */
+	    emit_test_branch(expr->data._binary.rvalue, 0, level + 1);
+	    dec_branch_stack(1);
+	    ajump = bstack.tjump + loff;
+	    if (ajump->offset) {
+		if (level > 0) {
+		    /* lift true test jumps down if nested */
+		    bjump = bstack.tjump + uoff;
+		    do
+			add_jump(bjump, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+		else {
+		    /* add label before true code if at toplevel */
+		    label = ejit_label(state);
+		    do
+			ejit_patch(state, label, ajump->table[--ajump->offset]);
+		    while (ajump->offset);
+		}
+	    }
+	    ajump = bstack.fjump + loff;
+	    if (ajump->offset) {
+		/* always lift down rigt operand evaluating to false */
+		bjump = bstack.fjump + uoff;
+		do
+		    add_jump(bjump, ajump->table[--ajump->offset]);
+		while (ajump->offset);
+	    }
+	    break;
+	case tok_lt:		case tok_le:		case tok_eq:
+	case tok_ge:		case tok_gt:		case tok_ne:
+	    ltag = emit_expr(expr->data._binary.lvalue);
+	    lval = top_value_stack();
+	    rtag = emit_expr(expr->data._binary.rvalue);
+	    rval = top_value_stack();
+	    emit_load(expr, lval);
+	    ltag = emit_binary_setup(expr, ltag, rtag, lval, rval, expr->token);
+	    lreg = lval->u.ival;
+	    switch (ltag->type) {
+		case type_int:
+		    if (value_const_p(rval)) {
+			il = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_blti_i(state, NULL, lreg, il);
+				else
+				    node = ejit_bgei_i(state, NULL, lreg, il);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_blei_i(state, NULL, lreg, il);
+				else
+				    node = ejit_bgti_i(state, NULL, lreg, il);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqi_i(state, NULL, lreg, il);
+				else
+				    node = ejit_bnei_i(state, NULL, lreg, il);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bgei_i(state, NULL, lreg, il);
+				else
+				    node = ejit_blti_i(state, NULL, lreg, il);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgti_i(state, NULL, lreg, il);
+				else
+				    node = ejit_blei_i(state, NULL, lreg, il);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bnei_i(state, NULL, lreg, il);
+				else
+				    node = ejit_beqi_i(state, NULL, lreg, il);
+				break;
+			}
+		    }
+		    else {
+			rreg = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_bltr_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bger_i(state, NULL, lreg, rreg);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_bler_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bgtr_i(state, NULL, lreg, rreg);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqr_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bner_i(state, NULL, lreg, rreg);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bger_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bltr_i(state, NULL, lreg, rreg);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgtr_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bler_i(state, NULL, lreg, rreg);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bner_i(state, NULL, lreg, rreg);
+				else
+				    node = ejit_beqr_i(state, NULL, lreg, rreg);
+				break;
+			}
+		    }
+		    break;
+		case type_uint:
+		    if (value_const_p(rval)) {
+			il = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_blti_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_bgei_ui(state, NULL, lreg, il);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_blei_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_bgti_ui(state, NULL, lreg, il);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqi_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_bnei_ui(state, NULL, lreg, il);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bgei_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_blti_ui(state, NULL, lreg, il);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgti_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_blei_ui(state, NULL, lreg, il);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bnei_ui(state, NULL, lreg, il);
+				else
+				    node = ejit_beqi_ui(state, NULL, lreg, il);
+				break;
+			}
+		    }
+		    else {
+			rreg = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_bltr_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bger_ui(state, NULL, lreg, rreg);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_bler_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bgtr_ui(state, NULL, lreg, rreg);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqr_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bner_ui(state, NULL, lreg, rreg);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bger_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bltr_ui(state, NULL, lreg, rreg);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgtr_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bler_ui(state, NULL, lreg, rreg);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bner_ui(state, NULL, lreg, rreg);
+				else
+				    node = ejit_beqr_ui(state, NULL, lreg, rreg);
+				break;
+			}
+		    }
+		    break;
+		case type_long:
+		    if (value_const_p(rval)) {
+			il = rval->u.lval;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_blti_l(state, NULL, lreg, il);
+				else
+				    node = ejit_bgei_l(state, NULL, lreg, il);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_blei_l(state, NULL, lreg, il);
+				else
+				    node = ejit_bgti_l(state, NULL, lreg, il);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqi_l(state, NULL, lreg, il);
+				else
+				    node = ejit_bnei_l(state, NULL, lreg, il);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bgei_l(state, NULL, lreg, il);
+				else
+				    node = ejit_blti_l(state, NULL, lreg, il);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgti_l(state, NULL, lreg, il);
+				else
+				    node = ejit_blei_l(state, NULL, lreg, il);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bnei_l(state, NULL, lreg, il);
+				else
+				    node = ejit_beqi_l(state, NULL, lreg, il);
+				break;
+			}
+		    }
+		    else {
+			rreg = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_bltr_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bger_l(state, NULL, lreg, rreg);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_bler_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bgtr_l(state, NULL, lreg, rreg);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqr_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bner_l(state, NULL, lreg, rreg);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bger_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bltr_l(state, NULL, lreg, rreg);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgtr_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bler_l(state, NULL, lreg, rreg);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bner_l(state, NULL, lreg, rreg);
+				else
+				    node = ejit_beqr_l(state, NULL, lreg, rreg);
+				break;
+			}
+		    }
+		    break;
+		case type_ulong:
+		    if (value_const_p(rval)) {
+			il = rval->u.lval;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_blti_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_bgei_ul(state, NULL, lreg, il);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_blei_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_bgti_ul(state, NULL, lreg, il);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqi_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_bnei_ul(state, NULL, lreg, il);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bgei_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_blti_ul(state, NULL, lreg, il);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgti_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_blei_ul(state, NULL, lreg, il);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bnei_ul(state, NULL, lreg, il);
+				else
+				    node = ejit_beqi_ul(state, NULL, lreg, il);
+				break;
+			}
+		    }
+		    else {
+			rreg = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_bltr_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bger_ul(state, NULL, lreg, rreg);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_bler_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bgtr_ul(state, NULL, lreg, rreg);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqr_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bner_ul(state, NULL, lreg, rreg);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bger_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bltr_ul(state, NULL, lreg, rreg);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgtr_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bler_ul(state, NULL, lreg, rreg);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bner_ul(state, NULL, lreg, rreg);
+				else
+				    node = ejit_beqr_ul(state, NULL, lreg, rreg);
+				break;
+			}
+		    }
+		    break;
+		case type_float:
+		    if (value_const_p(rval))
+			emit_load(expr, rval);
+		    rreg = rval->u.ival;
+		    switch (expr->token) {
+			case tok_lt:
+			    if (jmpif)
+				node = ejit_bltr_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunger_f(state, NULL, lreg, rreg);
+			    break;
+			case tok_le:
+			    if (jmpif)
+				node = ejit_bler_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bungtr_f(state, NULL, lreg, rreg);
+			    break;
+			case tok_eq:
+			    if (jmpif)
+				node = ejit_beqr_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bltgtr_f(state, NULL, lreg, rreg);
+			    break;
+			case tok_ge:
+			    if (jmpif)
+				node = ejit_bger_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunltr_f(state, NULL, lreg, rreg);
+			    break;
+			case tok_gt:
+			    if (jmpif)
+				node = ejit_bgtr_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunler_f(state, NULL, lreg, rreg);
+			    break;
+			default:
+			    if (jmpif)
+				node = ejit_bner_f(state, NULL, lreg, rreg);
+			    else
+				node = ejit_buneqr_f(state, NULL, lreg, rreg);
+			    break;
+		    }
+		    break;
+		case type_double:
+		    if (value_const_p(rval))
+			emit_load(expr, rval);
+		    rreg = rval->u.ival;
+		    switch (expr->token) {
+			case tok_lt:
+			    if (jmpif)
+				node = ejit_bltr_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunger_d(state, NULL, lreg, rreg);
+			    break;
+			case tok_le:
+			    if (jmpif)
+				node = ejit_bler_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bungtr_d(state, NULL, lreg, rreg);
+			    break;
+			case tok_eq:
+			    if (jmpif)
+				node = ejit_beqr_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bltgtr_d(state, NULL, lreg, rreg);
+			    break;
+			case tok_ge:
+			    if (jmpif)
+				node = ejit_bger_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunltr_d(state, NULL, lreg, rreg);
+			    break;
+			case tok_gt:
+			    if (jmpif)
+				node = ejit_bgtr_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_bunler_d(state, NULL, lreg, rreg);
+			    break;
+			default:
+			    if (jmpif)
+				node = ejit_bner_d(state, NULL, lreg, rreg);
+			    else
+				node = ejit_buneqr_d(state, NULL, lreg, rreg);
+			    break;
+		    }
+		    break;
+		default:
+		    if (value_const_p(rval)) {
+			ip = rval->u.pval;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_blti_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_bgei_p(state, NULL, lreg, ip);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_blei_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_bgti_p(state, NULL, lreg, ip);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqi_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_bnei_p(state, NULL, lreg, ip);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bgei_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_blti_p(state, NULL, lreg, ip);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgti_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_blei_p(state, NULL, lreg, ip);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bnei_p(state, NULL, lreg, ip);
+				else
+				    node = ejit_beqi_p(state, NULL, lreg, ip);
+				break;
+			}
+		    }
+		    else {
+			rreg = rval->u.ival;
+			switch (expr->token) {
+			    case tok_lt:
+				if (jmpif)
+				    node = ejit_bltr_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bger_p(state, NULL, lreg, rreg);
+				break;
+			    case tok_le:
+				if (jmpif)
+				    node = ejit_bler_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bgtr_p(state, NULL, lreg, rreg);
+				break;
+			    case tok_eq:
+				if (jmpif)
+				    node = ejit_beqr_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bner_p(state, NULL, lreg, rreg);
+				break;
+			    case tok_ge:
+				if (jmpif)
+				    node = ejit_bger_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bltr_p(state, NULL, lreg, rreg);
+				break;
+			    case tok_gt:
+				if (jmpif)
+				    node = ejit_bgtr_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_bler_p(state, NULL, lreg, rreg);
+				break;
+			    default:
+				if (jmpif)
+				    node = ejit_bner_p(state, NULL, lreg, rreg);
+				else
+				    node = ejit_beqr_p(state, NULL, lreg, rreg);
+				break;
+			}
+		    }
+		    break;
+	    }
+	    if (jmpif)		add_tjump(node);
+	    else		add_fjump(node);
+	    dec_value_stack(2);
+	    break;
+	default:
+	    ltag = emit_expr(expr);
+	    lval = top_value_stack();
+	    emit_load(expr, lval);
+	    lreg = lval->u.ival;
+	    switch (lval->type & ~value_regno) {
+		case value_itype:
+		    if (jmpif)	node = ejit_bnei_i(state, NULL, lreg, 0);
+		    else	node = ejit_beqi_i(state, NULL, lreg, 0);
+		    break;
+		case value_utype:
+		    if (jmpif)	node = ejit_bnei_ui(state, NULL, lreg, 0);
+		    else	node = ejit_beqi_ui(state, NULL, lreg, 0);
+		    break;
+		case value_ltype:
+		    if (jmpif)	node = ejit_bnei_l(state, NULL, lreg, 0);
+		    else	node = ejit_beqi_l(state, NULL, lreg, 0);
+		    break;
+		case value_ultype:
+		    if (jmpif)	node = ejit_bnei_ul(state, NULL, lreg, 0);
+		    else	node = ejit_beqi_ul(state, NULL, lreg, 0);
+		    break;
+		case value_ftype:
+		    freg = get_register(value_ftype);
+		    ejit_movi_f(state, freg, 0.0);
+		    if (jmpif)	node = ejit_bner_f(state, NULL, lreg, freg);
+		    else	node = ejit_beqr_f(state, NULL, lreg, freg);
+		    break;
+		case value_dtype:
+		    freg = get_register(value_dtype);
+		    ejit_movi_d(state, freg, 0.0);
+		    if (jmpif)	node = ejit_bner_d(state, NULL, lreg, freg);
+		    else	node = ejit_beqr_d(state, NULL, lreg, freg);
+		    break;
+		default:
+		    if (jmpif)	node = ejit_bnei_p(state, NULL, lreg, NULL);
+		    else	node = ejit_beqi_p(state, NULL, lreg, NULL);
+		    break;
+	    }
+	    if (jmpif)		add_tjump(node);
+	    else		add_fjump(node);
+	    dec_value_stack(1);
+	    break;
+    }
+}
+
+static tag_t *
+emit_if(expr_t *expr)
+{
+    jump_t	*jump;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = vstack.offset;
+    expr_t	*test = expr->data._if.test;
+
+    for (; test->next; test = test->next) {
+	(void)emit_expr(test);
+	if (vstack.offset > offset)
+	    dec_value_stack(vstack.offset - offset);
+    }
+
+    inc_branch_stack();
+    emit_test_branch(test, 0, 0);
+    jump = bstack.tjump + bstack.offset - 1;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    emit_stat(expr->data._if.tcode);
+    if (expr->data._if.fcode)
+	node = ejit_jmpi(state, NULL);
+    dec_branch_stack(1);
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    if (expr->data._if.fcode) {
+	emit_stat(expr->data._if.fcode);
+	label = ejit_label(state);
+	ejit_patch(state, label, node);
+    }
+
+    return (void_tag);
+}
+
 static tag_t *
 emit_function(expr_t *expr)
 {
@@ -3146,4 +3895,42 @@ get_register(int freg)
 	ejit_stxi_l(state, entry->disp, FRAME_POINTER, regno);
 
     return (regno);
+}
+
+static void
+inc_branch_stack(void)
+{
+    int		offset;
+    ++bstack.offset;
+    if (bstack.offset >= bstack.length) {
+	offset = bstack.length;
+	bstack.length += 16;
+	bstack.tjump = xrealloc(bstack.tjump, bstack.length * sizeof(jump_t));
+	bstack.fjump = xrealloc(bstack.fjump, bstack.length * sizeof(jump_t));
+	for (; offset < bstack.length; offset++) {
+	    bstack.tjump[offset].offset = 0;
+	    bstack.tjump[offset].length = 16;
+	    bstack.tjump[offset].table = xmalloc(16 * sizeof(ejit_node_t *));
+	    bstack.fjump[offset].offset = 0;
+	    bstack.fjump[offset].length = 16;
+	    bstack.fjump[offset].table = xmalloc(16 * sizeof(ejit_node_t *));
+	}
+    }
+}
+
+static void
+dec_branch_stack(int count)
+{
+    bstack.offset -= count;
+    assert(count > 0 && bstack.offset >= 0);
+}
+
+static void
+add_jump(jump_t *list, ejit_node_t *node)
+{
+    if (list->offset >= list->length) {
+	list->length += 16;
+	list->table = xmalloc(list->length * sizeof(ejit_node_t *));
+    }
+    list->table[list->offset++] = node;
 }
