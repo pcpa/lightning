@@ -37,6 +37,7 @@ typedef struct jump {
     ejit_node_t	**table;
     int		  offset;
     int		  length;
+    token_t	  token;
 } jump_t;
 
 typedef struct branch {
@@ -121,6 +122,21 @@ static tag_t *
 emit_if(expr_t *expr);
 
 static tag_t *
+emit_while(expr_t *expr);
+
+static tag_t *
+emit_do(expr_t *expr);
+
+static tag_t *
+emit_for(expr_t *expr);
+
+static tag_t *
+emit_break(expr_t *expr);
+
+static tag_t *
+emit_continue(expr_t *expr);
+
+static tag_t *
 emit_function(expr_t *expr);
 
 static void
@@ -145,7 +161,7 @@ static int
 get_register(int freg);
 
 static void
-inc_branch_stack(void);
+inc_branch_stack(token_t token);
 
 static void
 dec_branch_stack(int count);
@@ -177,7 +193,7 @@ init_emit(void)
     fcount = icount = 6;
 
     /* cause brach stack information to be initialized */
-    inc_branch_stack();
+    inc_branch_stack(tok_none);
     dec_branch_stack(1);
 }
 
@@ -304,6 +320,16 @@ emit_expr(expr_t *expr)
 	    break;
 	case tok_if:
 	    return (emit_if(expr));
+	case tok_while:
+	    return (emit_while(expr));
+	case tok_do:
+	    return (emit_do(expr));
+	case tok_for:
+	    return (emit_for(expr));
+	case tok_break:
+	    return (emit_break(expr));
+	case tok_continue:
+	    return (emit_continue(expr));
 	case tok_function:
 	    return (emit_function(expr));
 	    break;
@@ -2734,7 +2760,7 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 	case tok_andand:	case tok_oror:
 	    uoff = bstack.offset - 1;
 	    loff = bstack.offset;
-	    inc_branch_stack();
+	    inc_branch_stack(expr->token);
 	    /* evaluate left operand */
 	    emit_test_branch(expr->data._binary.lvalue,
 			     expr->token == tok_oror, level + 1);
@@ -3381,7 +3407,7 @@ emit_if(expr_t *expr)
 	    dec_value_stack(vstack.offset - offset);
     }
 
-    inc_branch_stack();
+    inc_branch_stack(tok_if);
     emit_test_branch(test, 0, 0);
     jump = bstack.tjump + bstack.offset - 1;
     if (jump->offset) {
@@ -3408,6 +3434,211 @@ emit_if(expr_t *expr)
     }
 
     return (void_tag);
+}
+
+static tag_t *
+emit_while(expr_t *expr)
+{
+    jump_t	*jump;
+    expr_t	*test;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = vstack.offset;
+
+    /* start of loop */
+    label = ejit_label(state);
+    for (test = expr->data._while.test; expr->next; expr = expr->next) {
+	(void)emit_expr(test);
+	if (vstack.offset > offset)
+	    dec_value_stack(vstack.offset - offset);
+    }
+    inc_branch_stack(tok_while);
+    emit_test_branch(test, 0, 0);
+    jump = bstack.tjump + bstack.offset - 1;
+    if (jump->offset) {
+	node = ejit_label(state);
+	do
+	    ejit_patch(state, node, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    emit_stat(expr->data._while.code);
+    dec_branch_stack(1);
+
+    /* true condition jump (also continue target) is now to start of loop */
+    node = ejit_jmpi(state, label);
+    /* FIXME this may look wrong and easy to get confused
+     * but the requirement to patch a backward jump is to
+     * tell it the target is a node, what makes few sense
+     * here, but possible to have jumps to known addresses...
+     * it is more a point for functions, so that, when calling
+     * ejit_patch, it should add it to the proper linked list
+     * of patches to be done at actual jit generation */
+    ejit_patch(state, label, node);
+
+    jump = bstack.tjump + bstack.offset;
+    if (jump->offset) {
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    /* exit of loop */
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+
+    return (void_tag);
+}
+
+static tag_t *
+emit_do(expr_t *expr)
+{
+    jump_t	*jump;
+    expr_t	*test;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = vstack.offset;
+
+    /* start of loop */
+    label = ejit_label(state);
+    inc_branch_stack(tok_do);
+    emit_stat(expr->data._do.code);
+    for (test = expr->data._do.test; expr->next; expr = expr->next) {
+	(void)emit_expr(test);
+	if (vstack.offset > offset)
+	    dec_value_stack(vstack.offset - offset);
+    }
+    emit_test_branch(test, 0, 0);
+    dec_branch_stack(1);
+    jump = bstack.tjump + bstack.offset;
+    if (jump->offset) {
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    node = ejit_jmpi(state, label);
+    ejit_patch(state, label, node);
+    /* exit of loop */
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+
+    return (void_tag);
+}
+
+static tag_t *
+emit_for(expr_t *expr)
+{
+    jump_t	*jump;
+    expr_t	*test;
+    ejit_node_t	*init;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = vstack.offset;
+
+    if (expr->data._for.init)
+	(void)emit_expr(expr->data._for.init);
+    if (expr->data._for.incr)
+	node = ejit_jmpi(state, NULL);
+
+    /* start of loop */
+    label = ejit_label(state);
+
+    if (expr->data._for.incr) {
+	/* jump over single time expanded increment */
+	emit_expr(expr->data._for.incr);
+	init = ejit_label(state);
+	ejit_patch(state, init, node);
+    }
+
+    for (test = expr->data._for.test; expr->next; expr = expr->next) {
+	(void)emit_expr(test);
+	if (vstack.offset > offset)
+	    dec_value_stack(vstack.offset - offset);
+    }
+    inc_branch_stack(tok_for);
+    if (test) {
+	emit_test_branch(test, 0, 0);
+	jump = bstack.tjump + bstack.offset - 1;
+	if (jump->offset) {
+	    node = ejit_label(state);
+	    do
+		ejit_patch(state, node, jump->table[--jump->offset]);
+	    while (jump->offset);
+	}
+    }
+    emit_stat(expr->data._for.code);
+    dec_branch_stack(1);
+    /* loop */
+    node = ejit_jmpi(state, label);
+    ejit_patch(state, label, node);
+
+    jump = bstack.tjump + bstack.offset;
+    if (jump->offset) {
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    /* exit of loop */
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+
+    return (void_tag);
+}
+
+static tag_t *
+emit_break(expr_t *expr)
+{
+    ejit_node_t	*node;
+    jump_t	*jump;
+    int		 offset = bstack.offset;
+
+    while (offset > 0) {
+	jump = bstack.fjump + --offset;
+	switch (jump->token) {
+	    case tok_do:	case tok_for:		case tok_while:
+	    case tok_switch:
+		node = ejit_jmpi(state, NULL);
+		add_jump(jump, node);
+		return (void_tag);
+	    default:
+		break;
+	}
+    }
+    error(expr, "break not in switch or loop");
+}
+
+static tag_t *
+emit_continue(expr_t *expr)
+{
+    ejit_node_t	*node;
+    jump_t	*jump;
+    int		 offset = bstack.offset;
+
+    while (offset > 0) {
+	jump = bstack.tjump + --offset;
+	switch (jump->token) {
+	    case tok_do:	case tok_for:		case tok_while:
+		node = ejit_jmpi(state, NULL);
+		add_jump(jump, node);
+		return (void_tag);
+	    default:
+		break;
+	}
+    }
+    error(expr, "continue not in loop");
 }
 
 static tag_t *
@@ -3898,9 +4129,10 @@ get_register(int freg)
 }
 
 static void
-inc_branch_stack(void)
+inc_branch_stack(token_t token)
 {
     int		offset;
+
     ++bstack.offset;
     if (bstack.offset >= bstack.length) {
 	offset = bstack.length;
@@ -3916,6 +4148,8 @@ inc_branch_stack(void)
 	    bstack.fjump[offset].table = xmalloc(16 * sizeof(ejit_node_t *));
 	}
     }
+    bstack.tjump[bstack.offset - 1].token = token;
+    bstack.fjump[bstack.offset - 1].token = token;
 }
 
 static void

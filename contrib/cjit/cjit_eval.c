@@ -44,6 +44,10 @@ unary_sizeof(expr_t *expr);
 static tag_t *
 eval_type(expr_t *expr);
 
+/* FIXME functions eval and eval_stat were changed to return an int to
+ * tell if the expression has side effects, but currently not used, and
+ * not removing non side effect expressions */
+
 /*
  * Implementation
  */
@@ -147,14 +151,78 @@ eval(expr_t *expr)
 	    eval_stat(expr->data._for.test);
 	    eval_stat(expr->data._for.incr);
 	    eval_stat(expr->data._for.code);
+	    temp = prev = expr->data._do.test;
+	    for (; temp->next; prev = temp, temp = temp->next)
+		;
+	    switch (temp->token) {
+		case tok_int:
+		    test = temp->data._unary.i != 0;
+		    break;
+		case tok_float:
+		    test = temp->data._unary.d != 0.0;
+		    break;
+		default:
+		    return (0);
+	    }
+	    if (test == 0) {
+		del_expr(expr->data._for.incr);
+		del_expr(expr->data._for.code);
+		if ((temp = expr->data._for.init)) {
+		    for (; temp->next; temp = temp->next)
+			;
+		    temp->next = expr->data._for.test;
+		    expr->data._unary.expr = expr->data._for.init;
+		}
+		else
+		    expr->data._unary.expr = expr->data._for.test;
+		expr->token = tok_stat;
+	    }
 	    break;
 	case tok_do:
 	    eval_stat(expr->data._do.code);
 	    eval_stat(expr->data._do.test);
+	    temp = prev = expr->data._do.test;
+	    for (; temp->next; prev = temp, temp = temp->next)
+		;
+	    switch (temp->token) {
+		case tok_int:
+		    test = temp->data._unary.i != 0;
+		    break;
+		case tok_float:
+		    test = temp->data._unary.d != 0.0;
+		    break;
+		default:
+		    return (0);
+	    }
+	    if (test == 0) {
+		for (temp = expr->data._do.code; temp->next; temp = temp->next)
+		    ;
+		temp->next = expr->data._do.test;
+		expr->data._unary.expr = expr->data._do.code;
+		expr->token = tok_stat;
+	    }
 	    break;
 	case tok_while:
 	    eval_stat(expr->data._while.test);
 	    eval_stat(expr->data._while.code);
+	    temp = prev = expr->data._while.test;
+	    for (; temp->next; prev = temp, temp = temp->next)
+		;
+	    switch (temp->token) {
+		case tok_int:
+		    test = temp->data._unary.i != 0;
+		    break;
+		case tok_float:
+		    test = temp->data._unary.d != 0.0;
+		    break;
+		default:
+		    return (0);
+	    }
+	    if (test == 0) {
+		del_expr(expr->data._while.code);
+		expr->data._unary.expr = expr->data._while.test;
+		expr->token = tok_stat;
+	    }
 	    break;
 	case tok_list:
 	    temp = expr->data._unary.expr;
