@@ -324,15 +324,15 @@ OP##T##N##ic_##R0##R1##R2:
 #define ERRORF(R0, OP, F0, F1, F2, F3)	\
 	prepare 2			\
 	prepare_d 4			\
-		extr_d_f %F2 %F2	\
+		extr_f_d %F2 %F2	\
 		pusharg_d %F2		\
-		extr_d_f %F1 %F1	\
+		extr_f_d %F1 %F1	\
 		pusharg_d %F1		\
 		movi_p %R0 str##OP	\
 		pusharg_p %R0		\
-		extr_d_f %F0 %F0	\
+		extr_f_d %F0 %F0	\
 		pusharg_d %F0		\
-		extr_d_f %F3 %F3	\
+		extr_f_d %F3 %F3	\
 		pusharg_d %F3		\
 		movi_p %R0 fmtf		\
 		pusharg_p %R0		\
@@ -594,7 +594,7 @@ OP##T##N##c##R0##R1:
 #define ERRORUF(R0, OP, F0, F1, F2)	\
 	prepare 2			\
 	prepare_d 3			\
-		extr_d_f %F0 %F0	\
+		extr_f_d %F0 %F0	\
 		pusharg_d %F0		\
 		extr_f_d %F1 %F1	\
 		pusharg_d %F1		\
