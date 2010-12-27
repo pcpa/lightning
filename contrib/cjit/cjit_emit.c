@@ -119,6 +119,9 @@ static void
 emit_test_branch(expr_t *expr, int jmpif, int level);
 
 static tag_t *
+emit_question(expr_t *expr);
+
+static tag_t *
 emit_if(expr_t *expr);
 
 static tag_t *
@@ -318,6 +321,8 @@ emit_expr(expr_t *expr)
 	case tok_code:		case tok_stat:
 	    return (emit_stat(expr->data._unary.expr));
 	    break;
+	case tok_question:
+	    return (emit_question(expr));
 	case tok_if:
 	    return (emit_if(expr));
 	case tok_while:
@@ -1300,14 +1305,12 @@ emit_symbol(expr_t *expr, token_t token, expr_t *rexp)
 static tag_t *
 emit_not(expr_t *expr)
 {
-    int		 dec;
     tag_t	*tag;
     int		 ireg;
     value_t	*fval;
     value_t	*value;
     int		 regno;
 
-    dec = 1;
     tag = emit_expr(expr->data._unary.expr);
     value = top_value_stack();
     emit_load(expr, value);
@@ -1335,9 +1338,8 @@ emit_not(expr_t *expr)
 	    emit_load(expr, fval);
 	    ireg = get_register(0);
 	    ejit_ltgtr_f(state, ireg, regno, fval->u.ival);
-	    dec = 2;
-	    value->type = value_regno;
 	    value->u.ival = ireg;
+	    dec_value_stack(1);
 	    break;
 	case type_double:
 	    fval = get_value_stack();
@@ -1348,9 +1350,8 @@ emit_not(expr_t *expr)
 	    emit_load(expr, fval);
 	    ireg = get_register(0);
 	    ejit_ltgtr_d(state, ireg, regno, fval->u.ival);
-	    dec = 2;
-	    value->type = value_regno;
 	    value->u.ival = ireg;
+	    dec_value_stack(1);
 	    break;
 	default:
 	    if (!pointer_type_p(tag->type))
@@ -1358,7 +1359,7 @@ emit_not(expr_t *expr)
 	    ejit_nei_p(state, regno, regno, NULL);
 	    break;
     }
-    dec_value_stack(dec);
+    value->type = value_regno;
 
     return (int_tag);
 }
@@ -1397,7 +1398,6 @@ emit_neg(expr_t *expr)
 	default:
 	    error(expr, "value is a pointer");
     }
-    dec_value_stack(1);
 
     return (tag);
 }
@@ -1427,7 +1427,6 @@ emit_com(expr_t *expr)
 	default:
 	    error(expr, "not an integer");
     }
-    dec_value_stack(1);
 
     return (tag);
 }
@@ -3393,6 +3392,89 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 }
 
 static tag_t *
+emit_question(expr_t *expr)
+{
+    int		 lreg;
+    int		 rreg;
+    value_t	*lval;
+    value_t	*rval;
+    tag_t	*ltag;
+    tag_t	*rtag;
+    jump_t	*jump;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = vstack.offset;
+
+    inc_branch_stack(tok_question);
+    emit_test_branch(expr->data._if.test, 0, 0);
+    if (vstack.offset > offset)
+	dec_value_stack(vstack.offset - offset);
+    jump = bstack.tjump + bstack.offset - 1;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    ltag = emit_expr(expr->data._if.tcode);
+    lval = top_value_stack();
+    if (value_const_p(lval))
+	emit_load(expr->data._if.fcode, lval);
+    lreg = lval->u.ival;
+    node = ejit_jmpi(state, NULL);
+    /* release register so that result of false condition may
+     * leave result in the same register */
+    dec_value_stack(1);
+    dec_branch_stack(1);
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    rtag = emit_expr(expr->data._if.fcode);
+    /* actually, rval == lval */
+    rval = top_value_stack();
+    if (value_const_p(rval))
+	emit_load(expr->data._if.fcode, rval);
+    rreg = rval->u.ival;
+    if (lreg != rreg) {
+	switch (ltag->type) {
+	    case type_char:	case type_short:	case type_int:
+		ejit_movr_i(state, lreg, rreg);
+		break;
+	    case type_uchar:	case type_ushort:	case type_uint:
+		ejit_movr_ui(state, lreg, rreg);
+		break;
+	    case type_long:
+		ejit_movr_l(state, lreg, rreg);
+		break;
+	    case type_ulong:
+		ejit_movr_ul(state, lreg, rreg);
+		break;
+	    case type_float:
+		ejit_movr_f(state, lreg, rreg);
+		break;
+	    case type_double:
+		ejit_movr_d(state, lreg, rreg);
+		break;
+	    default:
+		ejit_movr_p(state, lreg, rreg);
+		break;
+	}
+	/* both paths leave expression in same register */
+	rval->u.ival = lreg;
+    }
+    label = ejit_label(state);
+    ejit_patch(state, label, node);
+    if ((ltag->type & ~type_unsigned) != (rtag->type & ~type_unsigned))
+	error(expr, "different type results");
+
+    return (ltag);
+}
+
+static tag_t *
 emit_if(expr_t *expr)
 {
     jump_t	*jump;
@@ -3432,6 +3514,9 @@ emit_if(expr_t *expr)
 	label = ejit_label(state);
 	ejit_patch(state, label, node);
     }
+
+    if (vstack.offset > offset)
+	dec_value_stack(vstack.offset - offset);
 
     return (void_tag);
 }
@@ -3490,6 +3575,9 @@ emit_while(expr_t *expr)
 	while (jump->offset);
     }
 
+    if (vstack.offset > offset)
+	dec_value_stack(vstack.offset - offset);
+
     return (void_tag);
 }
 
@@ -3529,6 +3617,9 @@ emit_do(expr_t *expr)
 	    ejit_patch(state, label, jump->table[--jump->offset]);
 	while (jump->offset);
     }
+
+    if (vstack.offset > offset)
+	dec_value_stack(vstack.offset - offset);
 
     return (void_tag);
 }
@@ -3594,6 +3685,9 @@ emit_for(expr_t *expr)
 	    ejit_patch(state, label, jump->table[--jump->offset]);
 	while (jump->offset);
     }
+
+    if (vstack.offset > offset)
+	dec_value_stack(vstack.offset - offset);
 
     return (void_tag);
 }

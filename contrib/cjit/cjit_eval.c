@@ -98,12 +98,7 @@ eval(expr_t *expr)
 	case tok_sizeof:
 	    unary_sizeof(expr);
 	    break;
-	case tok_question:
-	    eval(expr->data._if.test);
-	    eval(expr->data._if.tcode);
-	    eval(expr->data._if.fcode);
-	    break;
-	case tok_if:
+	case tok_question:	case tok_if:
 	    eval_stat(expr->data._if.test);
 	    eval_stat(expr->data._if.tcode);
 	    eval_stat(expr->data._if.fcode);
