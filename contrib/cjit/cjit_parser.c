@@ -541,7 +541,9 @@ prototype(tag_t *tag, expr_t *decl)
     char	*name;
     function_t	*function;
 
-    expr = decl->data._binary.lvalue;
+    expr = decl;
+    tag = tag_decl(tag, &expr);
+    expr = expr->data._binary.lvalue;
     assert(expr->token == tok_symbol);
     name = expr->data._unary.cp;
     if ((function = (function_t *)get_hash(functions, name))) {
@@ -580,6 +582,7 @@ function(void)
     expr->data._function.function = function;
     function->table = new_record(type_namespace);
     current = function->table;
+    current->name = (entry_t *)function;
     if ((list = call->data._binary.rvalue)) {
 	if (list->data._unary.vp == void_tag) {
 	    if (list->next)

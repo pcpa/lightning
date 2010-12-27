@@ -142,6 +142,9 @@ emit_continue(expr_t *expr);
 static tag_t *
 emit_function(expr_t *expr);
 
+static tag_t *
+emit_return(expr_t *expr);
+
 static void
 emit_load(expr_t *expr, value_t *value);
 
@@ -337,7 +340,8 @@ emit_expr(expr_t *expr)
 	    return (emit_continue(expr));
 	case tok_function:
 	    return (emit_function(expr));
-	    break;
+	case tok_return:
+	    return (emit_return(expr));
 	default:
 	    warn(expr, "not yet handled");
 	    return (void_tag);
@@ -517,9 +521,9 @@ emit_incdec(expr_t *expr)
 	    if (pointer_type_p(tag->type) && tag->tag->size) {
 		if (post)	ejit_movr_p(state, rreg, lreg);
 		if (inc)	ejit_addi_p(state, lreg, lreg,
-					    (void *)tag->tag->size);
+					    (void *)(long)tag->tag->size);
 		else		ejit_subi_p(state, lreg, lreg,
-					    (void *)tag->tag->size);
+					    (void *)(long)tag->tag->size);
 		break;
 	    }
 	case type_float:	case type_double:
@@ -654,7 +658,7 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 		    ejit_ldxi_d(state, vr, lr, symbol->offset);
 		    break;
 		default:
-		    ejit_addi_p(state, vr, lr, (void *)symbol->offset);
+		    ejit_addi_p(state, vr, lr, (void *)(long)symbol->offset);
 		    break;
 	    }
 	    vtag = emit_expr(vexp);
@@ -679,7 +683,7 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 
     else if (token) {
 	if (symbol->offset)
-	    ejit_addi_p(state, lr, lr, (void *)symbol->offset);
+	    ejit_addi_p(state, lr, lr, (void *)(long)symbol->offset);
 	lval->type = value_ptype | value_regno;
 	return (tag_pointer(tag));
     }
@@ -755,7 +759,7 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 		ejit_stxi_p(state, symbol->offset, lr, vr);
 	    }
 	    else
-		ejit_addi_p(state, lr, lr, (void *)symbol->offset);
+		ejit_addi_p(state, lr, lr, (void *)(long)symbol->offset);
 	    break;
     }
     lval->type |= value_regno;
@@ -918,7 +922,8 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 		    break;
 		default:
 		    if (value_const_p(rval))
-			ejit_addi_p(state, vr, lr, (void *)(rr * tag->size));
+			ejit_addi_p(state, vr, lr,
+				    (void *)(long)(rr * tag->size));
 		    else {
 			ejit_muli_i(state, rr, rr, rr * tag->size);
 			ejit_addr_p(state, vr, lr, rr);
@@ -952,13 +957,14 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 	switch (tag->type) {
 	    case type_char:	case type_uchar:
 		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)rr);
+		    ejit_addi_p(state, lr, lr, (void *)(long)rr);
 		else
 		    ejit_addr_p(state, lr, lr, rr);
 		break;
 	    case type_short:	case type_ushort:
 		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(short)));
+		    ejit_addi_p(state, lr, lr,
+				(void *)(long)(rr * sizeof(short)));
 		else {
 		    ejit_muli_i(state, rr, rr, sizeof(short));
 		    ejit_addr_p(state, lr, lr, rr);
@@ -990,7 +996,8 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 		break;
 	    case type_double:
 		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(double)));
+		    ejit_addi_p(state, lr, lr,
+				(void *)(long)(rr * sizeof(double)));
 		else {
 		    ejit_muli_i(state, rr, rr, sizeof(double));
 		    ejit_addr_p(state, lr, lr, rr);
@@ -998,7 +1005,7 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 		break;
 	    default:
 		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * tag->size));
+		    ejit_addi_p(state, lr, lr, (void *)(long)(rr * tag->size));
 		else {
 		    ejit_muli_i(state, rr, rr, tag->size);
 		    ejit_addr_p(state, lr, lr, rr);
@@ -1232,7 +1239,7 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 	    }
 	    else {
 		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * tag->size));
+		    ejit_addi_p(state, lr, lr, (void *)(long)(rr * tag->size));
 		else {
 		    ejit_muli_i(state, rr, rr, rr * tag->size);
 		    ejit_addr_p(state, lr, lr, rr);
@@ -1456,7 +1463,7 @@ emit_address(expr_t *expr)
 		error(expr, "address of argument not supported");
 	    else if (symbol->loc)
 		ejit_addi_p(state, lval->u.ival, FRAME_POINTER,
-			    (void *)symbol->offset);
+			    (void *)(long)symbol->offset);
 	    else
 		ejit_movi_p(state, lval->u.ival,
 			    (char *)the_data + symbol->offset);
@@ -3711,6 +3718,7 @@ emit_break(expr_t *expr)
 		break;
 	}
     }
+    /* should not happen because already checked in parser */
     error(expr, "break not in switch or loop");
 }
 
@@ -3732,6 +3740,7 @@ emit_continue(expr_t *expr)
 		break;
 	}
     }
+    /* should not happen because already checked in parser */
     error(expr, "continue not in loop");
 }
 
@@ -3739,10 +3748,13 @@ static tag_t *
 emit_function(expr_t *expr)
 {
     expr_t	*list;
+    jump_t	*jump;
+    ejit_node_t	*label;
     int		 offset;
     symbol_t	*symbol;
     int		 num_int, num_float, num_double;
 
+    inc_branch_stack(tok_function);
     current = expr->data._function.function->table;
     alloca_offset = alloca_length = current->length;
     offset = num_int = num_float = num_double = 0;
@@ -3807,10 +3819,82 @@ emit_function(expr_t *expr)
 	}
     }
     emit_stat(expr->data._function.body);
+    dec_branch_stack(1);
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    /* else need to know if flow reaches here when the function must
+     * return a value, and trigger an error in that case if there is
+     * no return statement */
     ejit_ret(state);
     current = globals;
 
     return (void_tag);
+}
+
+static tag_t *
+emit_return(expr_t *expr)
+{
+    ejit_node_t	*node;
+    jump_t	*jump;
+    tag_t	*ltag;
+    tag_t	*rtag;
+    value_t	*value;
+    int		 regno;
+    function_t	*function;
+    int		 boffset = bstack.offset;
+    int		 voffset = vstack.offset;
+
+    function = (function_t *)current->name;
+    ltag = function->tag->tag;
+    if (expr->data._unary.expr) {
+	rtag = emit_expr(expr->data._unary.expr);
+	value = top_value_stack();
+	emit_load(expr, value);
+	emit_coerce(expr, ltag, value);
+	regno = value->u.ival;
+	switch (ltag->type) {
+	    case type_char:	ejit_retval_c(state, regno);	break;
+	    case type_uchar:	ejit_retval_uc(state, regno);	break;
+	    case type_short:	ejit_retval_s(state, regno);	break;
+	    case type_ushort:	ejit_retval_us(state, regno);	break;
+	    case type_int:	ejit_retval_i(state, regno);	break;
+	    case type_uint:	ejit_retval_ui(state, regno);	break;
+	    case type_long:	ejit_retval_l(state, regno);	break;
+	    case type_ulong:	ejit_retval_ul(state, regno);	break;
+	    case type_float:	ejit_retval_f(state, regno);	break;
+	    case type_double:	ejit_retval_d(state, regno);	break;
+	    default:
+		if (!pointer_type_p(ltag->type))
+		    error(expr, "aggregate by value return not supported");
+		ejit_retval_p(state, regno);			break;
+	}
+    }
+    else {
+	rtag = void_tag;
+	if (ltag->type != rtag->type)
+	    error(expr, "void return on non void function");
+    }
+
+    if (vstack.offset > voffset)
+	dec_value_stack(vstack.offset - voffset);
+    /* FIXME if the return statement is the last one, should just
+     * not need to add a jump, but rely on later code removing
+     * zero distance jumps */
+    while (boffset > 0) {
+	jump = bstack.fjump + --boffset;
+	if (jump->token == tok_function) {
+	    node = ejit_jmpi(state, NULL);
+	    add_jump(jump, node);
+	    return (void_tag);
+	}
+    }
+    /* could not find jump to exit point */
+    error(expr, "internal error");
 }
 
 static void
