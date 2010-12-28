@@ -68,6 +68,7 @@ dump(void)
 {
     int			 offset;
     symbol_t		*symbol;
+    unsigned char	*rodata;
 
     for (offset = 0; offset < globals->count; offset++) {
 	symbol = globals->vector[offset];
@@ -75,9 +76,10 @@ dump(void)
 	dump_data((char *)the_data + symbol->offset, symbol->tag);
     }
     if (rodata_length) {
-	/* FIXME writing nuls to stdout... also, only const strings currently */
-	printf("\nrodata: ");
-	fwrite(the_rodata, rodata_length, 1, stdout);
+	rodata = (unsigned char *)the_rodata;
+	printf("\nrodata:");
+	for (offset = 0; offset < rodata_length; offset++, rodata++)
+	    printf(" %02u", *rodata);
     }
 }
 
@@ -500,9 +502,7 @@ print_expr(expr_t *expr)
 	    print_expr(expr->data._switch.code);
 	    break;
 	case tok_case:
-	    printf("case ");
-	    print_expr(expr->data._unary.expr);
-	    printf(" :");
+	    printf("case %ld :", expr->data._unary.i);
 	    break;
 	case tok_default:
 	    printf("default :");

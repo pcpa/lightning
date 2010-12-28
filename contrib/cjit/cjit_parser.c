@@ -344,18 +344,23 @@ statement(void)
 		(void)eval(top_expr());
 		if (top_expr()->token != tok_int)
 		    error(top_expr(), "case value not an integer");
+		if (top_expr()->data._unary.i < -2147483648 ||
+		    top_expr()->data._unary.i >  2147483647)
+		    error(top_expr(), "case value too large");
 	    }
 	    expr->data._binary.lvalue = top_expr()->data._binary.lvalue;
 	    discard();
 	    if (primary() != tok_collon)
 		error(top_expr(), "syntax error");
 	    discard();
-	    block = get_block(tok_switch);
+	    block = get_block(tok_case);
 	    if (get_hash(block->data._switch.hash, (void *)expr->data._unary.i))
 		error(NULL, "duplicated case %ld", expr->data._unary.i);
 	    entry = xcalloc(1, sizeof(entry_t));
 	    entry->name.integer = expr->data._unary.i;
 	    put_hash(block->data._switch.hash, entry);
+	    /* make expr a placeholder for extra information during emit */
+	    entry->value = expr;
 	    expr->block = block;
 	    break;
 	case tok_default:

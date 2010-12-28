@@ -140,6 +140,15 @@ static tag_t *
 emit_continue(expr_t *expr);
 
 static tag_t *
+emit_switch(expr_t *expr);
+
+static tag_t *
+emit_case(expr_t *expr);
+
+static tag_t *
+emit_default(expr_t *expr);
+
+static tag_t *
 emit_function(expr_t *expr);
 
 static tag_t *
@@ -338,6 +347,12 @@ emit_expr(expr_t *expr)
 	    return (emit_break(expr));
 	case tok_continue:
 	    return (emit_continue(expr));
+	case tok_switch:
+	    return (emit_switch(expr));
+	case tok_case:
+	    return (emit_case(expr));
+	case tok_default:
+	    return (emit_default(expr));
 	case tok_function:
 	    return (emit_function(expr));
 	case tok_return:
@@ -3718,8 +3733,7 @@ emit_break(expr_t *expr)
 		break;
 	}
     }
-    /* should not happen because already checked in parser */
-    error(expr, "break not in switch or loop");
+    error(expr, "internal error");
 }
 
 static tag_t *
@@ -3740,8 +3754,126 @@ emit_continue(expr_t *expr)
 		break;
 	}
     }
-    /* should not happen because already checked in parser */
-    error(expr, "continue not in loop");
+    error(expr, "internal error");
+}
+
+/* very simple implementation */
+/* FIXME this should be good enough for a first implementation, but some
+ * support for jump tables is desirable; in this case, it should be stored
+ * in "the_rodata", and possible implementation could be to allocate a
+ * vector with a power of two size where jump targets are stored, and
+ * unused entries filled with the default target if any or exit of block,
+ * and, the test value would be "and'ed" with jump_table_size-1, and
+ * there it would implement basically the logic here comparing every
+ * entry that did match
+ * FIXME it could also have different strategies, simplest one would be
+ * if the min-max range is small enough, and then, test/adjust once and
+ * jump to target/default/out of block */
+static tag_t *
+emit_switch(expr_t *expr)
+{
+    jump_t	*jump;
+    ejit_node_t	*node;
+    expr_t	*test;
+    entry_t	*entry;
+    ejit_node_t	*label;
+    int		 regno;
+    value_t	*value;
+    int		 offset;
+    int		 voffset = vstack.offset;
+
+    for (test = expr->data._switch.test; test->next; test = test->next) {
+	(void)emit_expr(test);
+	if (vstack.offset > voffset)
+	    dec_value_stack(vstack.offset - voffset);
+    }
+    if (emit_expr(test) != int_tag)
+	error(test, "switch test is not an integer");
+    value = top_value_stack();
+    emit_load(test, value);
+    regno = value->u.ival;
+
+    /* order of comparisons is not order of definition, but sorted
+     * order of "case->value & hash->size-1" */
+    for (offset = 0; offset < expr->data._switch.hash->size; offset++) {
+	for (entry = expr->data._switch.hash->entries[offset];
+	     entry; entry = entry->next) {
+	    test = entry->value;
+	    test->data._binary.rvalue = (expr_t *)
+		ejit_beqi_i(state, NULL, regno, (int)entry->name.integer);
+	}
+    }
+    node = ejit_jmpi(state, NULL);
+    if (expr->data._switch._default)
+	expr->data._switch._default->data._unary.vp = node;
+
+    dec_value_stack(vstack.offset - voffset);
+    inc_branch_stack(tok_switch);
+    emit_expr(expr->data._switch.code);
+    dec_branch_stack(1);
+
+    /* there is no use for true condition jump */
+    assert(bstack.tjump[bstack.offset].offset == 0);
+
+    /* break targets */
+    jump = bstack.fjump + bstack.offset;
+    if (jump->offset) {
+	label = ejit_label(state);
+	if (expr->data._switch._default == NULL)
+	    ejit_patch(state, label, node);
+	do
+	    ejit_patch(state, label, jump->table[--jump->offset]);
+	while (jump->offset);
+    }
+    else if (expr->data._switch._default == NULL) {
+	label = ejit_label(state);
+	ejit_patch(state, label, node);
+    }
+
+    if (vstack.offset > voffset)
+	dec_value_stack(vstack.offset - voffset);
+
+    return (void_tag);
+}
+
+static tag_t *
+emit_case(expr_t *expr)
+{
+    jump_t	*jump;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = bstack.offset;
+
+    while (offset > 0) {
+	jump = bstack.tjump + --offset;
+	if (jump->token == tok_switch) {
+	    label = ejit_label(state);
+	    node = (ejit_node_t *)expr->data._binary.rvalue;
+	    ejit_patch(state, label, node);
+	    return (void_tag);
+	}
+    }
+    error(expr, "internal error");
+}
+
+static tag_t *
+emit_default(expr_t *expr)
+{
+    jump_t	*jump;
+    ejit_node_t	*node;
+    ejit_node_t	*label;
+    int		 offset = bstack.offset;
+
+    while (offset > 0) {
+	jump = bstack.tjump + --offset;
+	if (jump->token == tok_switch) {
+	    label = ejit_label(state);
+	    node = expr->data._unary.vp;
+	    ejit_patch(state, label, node);
+	    return (void_tag);
+	}
+    }
+    error(expr, "internal error");
 }
 
 static tag_t *
