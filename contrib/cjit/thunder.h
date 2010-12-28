@@ -1773,9 +1773,13 @@ union ejit_data {
     ejit_node_t		*n;
 };
 
+/* jump target is an ejit_node_t */
+#define cjit_node_jump		1
+
 struct ejit_node {
     ejit_node_t		*next;
     ejit_code_t		 code;
+    int			 hint;
     ejit_data_t		 u;
     ejit_data_t		 v;
     ejit_data_t		 w;
@@ -1843,6 +1847,9 @@ ejit_n_i_l(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, long w);
 
 extern ejit_node_t *
 ejit_n_i_p(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, void *w);
+
+extern int
+ejit_optimize(ejit_state_t *s);
 
 extern void
 ejit_print(ejit_state_t *s);

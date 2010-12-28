@@ -27,8 +27,17 @@
 static inline ejit_node_t *
 node_new(ejit_code_t c);
 
+static inline void
+node_del(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n);
+
 static inline ejit_node_t *
 node_link(ejit_state_t *s, ejit_node_t *n);
+
+static int
+redundant_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n);
+
+static int
+reverse_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n);
 
 /*
  * Implementation
@@ -41,6 +50,18 @@ node_new(ejit_code_t c)
     return (n);
 }
 
+static inline void
+node_del(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
+{
+    if (p == n) {
+	assert(p == s->head);
+	s->head = n->next;
+    }
+    else
+	p->next = n->next;
+    free(n);
+}
+
 static inline ejit_node_t *
 node_link(ejit_state_t *s, ejit_node_t *n)
 {
@@ -49,6 +70,192 @@ node_link(ejit_state_t *s, ejit_node_t *n)
     else
 	s->head = n;
     return (s->tail = n);
+}
+
+static int
+redundant_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
+{
+    ejit_node_t	*lp, *ln;
+
+    if (!(n->hint & cjit_node_jump))
+	return (0);
+    for (lp = n, ln = n->next; ln; lp = ln, ln = ln->next) {
+	if (ln->code == code_label) {
+	    if (n->u.n == ln) {
+		if (ln->link == n) {
+		    if ((ln->link = n->link) == NULL)
+			node_del(s, lp, ln);
+		}
+		else {
+		    for (lp = ln->link; lp->link != n; lp = lp->link)
+			assert(lp != NULL);
+		    lp->link = n->link;
+		}
+		node_del(s, p, n);
+		return (1);
+	    }
+	}
+	else if (ln->code != code_note)
+	    break;
+    }
+    return (0);
+}
+
+static int
+reverse_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
+{
+    ejit_node_t	*lp, *ln, *lc;
+
+    if (!(n->hint & cjit_node_jump))
+	return (0);
+    /* =><cond_jump L0> <jump L1> <label L0> */
+
+    ln = n->next;
+    if (ln->code != code_jmpi)
+	return (0);
+    /* <cond_jump L0> =><jump L1> <label L0> */
+
+    lc = ln->u.n;
+    for (lp = ln, ln = ln->next; ln; lp = ln, ln = ln->next) {
+	if (ln->code == code_label) {
+	    if (n->u.n == ln) {
+		/* <cond_jump L0> <jump L1> =><label L0> */
+		if (ln->link == n) {
+
+		    /* unlink the jump */
+		    if ((ln->link = n->link) == NULL) {
+			if (n->next->u.n != ln)
+			    /* if L0 and L1 are not the same */
+			    node_del(s, lp, ln);
+		    }
+		}
+		else {
+		    for (lp = ln->link; lp->link != n; lp = lp->link)
+			assert(lp != NULL);
+		    lp->link = n->link;
+		}
+		node_del(s, n, n->next);
+
+		switch (n->code) {
+		    case code_bltr_i:	n->code = code_bger_i;		break;
+		    case code_bltr_ui:	n->code = code_bger_ui;		break;
+		    case code_bltr_l:	n->code = code_bger_l;		break;
+		    case code_bltr_ul:	n->code = code_bger_ul;		break;
+		    case code_bltr_p:	n->code = code_bger_p;		break;
+		    case code_bltr_f:	n->code = code_bunger_f;	break;
+		    case code_bltr_d:	n->code = code_bunger_d;	break;
+		    case code_blti_i:	n->code = code_bgei_i;		break;
+		    case code_blti_ui:	n->code = code_bgei_ui;		break;
+		    case code_blti_l:	n->code = code_bgei_l;		break;
+		    case code_blti_ul:	n->code = code_bgei_ul;		break;
+		    case code_blti_p:	n->code = code_bgei_p;		break;
+		    case code_bler_i:	n->code = code_bgtr_i;		break;
+		    case code_bler_ui:	n->code = code_bgtr_ui;		break;
+		    case code_bler_l:	n->code = code_bgtr_l;		break;
+		    case code_bler_ul:	n->code = code_bgtr_ul;		break;
+		    case code_bler_p:	n->code = code_bgtr_p;		break;
+		    case code_bler_f:	n->code = code_bungtr_f;	break;
+		    case code_bler_d:	n->code = code_bungtr_d;	break;
+		    case code_blei_i:	n->code = code_bgti_i;		break;
+		    case code_blei_ui:	n->code = code_bgti_ui;		break;
+		    case code_blei_l:	n->code = code_bgti_l;		break;
+		    case code_blei_ul:	n->code = code_bgti_ul;		break;
+		    case code_blei_p:	n->code = code_bgti_p;		break;
+		    case code_beqr_i:	n->code = code_bner_i;		break;
+		    case code_beqr_ui:	n->code = code_bner_ui;		break;
+		    case code_beqr_l:	n->code = code_bner_l;		break;
+		    case code_beqr_ul:	n->code = code_bner_ul;		break;
+		    case code_beqr_p:	n->code = code_bner_p;		break;
+		    case code_beqr_f:	n->code = code_bltgtr_f;	break;
+		    case code_beqr_d:	n->code = code_bltgtr_d;	break;
+		    case code_beqi_i:	n->code = code_bnei_i;		break;
+		    case code_beqi_ui:	n->code = code_bnei_ui;		break;
+		    case code_beqi_l:	n->code = code_bnei_l;		break;
+		    case code_beqi_ul:	n->code = code_bnei_ul;		break;
+		    case code_beqi_p:	n->code = code_bnei_p;		break;
+		    case code_bger_i:	n->code = code_bltr_i;		break;
+		    case code_bger_ui:	n->code = code_bltr_ui;		break;
+		    case code_bger_l:	n->code = code_bltr_l;		break;
+		    case code_bger_ul:	n->code = code_bltr_ul;		break;
+		    case code_bger_p:	n->code = code_bltr_p;		break;
+		    case code_bger_f:	n->code = code_bunltr_f;	break;
+		    case code_bger_d:	n->code = code_bunltr_d;	break;
+		    case code_bgei_i:	n->code = code_blti_i;		break;
+		    case code_bgei_ui:	n->code = code_blti_ui;		break;
+		    case code_bgei_l:	n->code = code_blti_l;		break;
+		    case code_bgei_ul:	n->code = code_blti_ul;		break;
+		    case code_bgei_p:	n->code = code_blti_p;		break;
+		    case code_bgtr_i:	n->code = code_bler_i;		break;
+		    case code_bgtr_ui:	n->code = code_bler_ui;		break;
+		    case code_bgtr_l:	n->code = code_bler_l;		break;
+		    case code_bgtr_ul:	n->code = code_bler_ul;		break;
+		    case code_bgtr_p:	n->code = code_bler_p;		break;
+		    case code_bgtr_f:	n->code = code_bunler_f;	break;
+		    case code_bgtr_d:	n->code = code_bunler_d;	break;
+		    case code_bgti_i:	n->code = code_blei_i;		break;
+		    case code_bgti_ui:	n->code = code_blei_ui;		break;
+		    case code_bgti_l:	n->code = code_blei_l;		break;
+		    case code_bgti_ul:	n->code = code_blei_ul;		break;
+		    case code_bgti_p:	n->code = code_blei_p;		break;
+		    case code_bner_i:	n->code = code_beqr_i;		break;
+		    case code_bner_ui:	n->code = code_beqr_ui;		break;
+		    case code_bner_l:	n->code = code_beqr_l;		break;
+		    case code_bner_ul:	n->code = code_beqr_ul;		break;
+		    case code_bner_p:	n->code = code_beqr_p;		break;
+		    case code_bner_f:	n->code = code_buneqr_f;	break;
+		    case code_bner_d:	n->code = code_buneqr_d;	break;
+		    case code_bnei_i:	n->code = code_beqi_i;		break;
+		    case code_bnei_ui:	n->code = code_beqi_ui;		break;
+		    case code_bnei_l:	n->code = code_beqi_l;		break;
+		    case code_bnei_ul:	n->code = code_beqi_ul;		break;
+		    case code_bnei_p:	n->code = code_beqi_p;		break;
+		    case code_bunltr_f:	n->code = code_bger_f;		break;
+		    case code_bunltr_d:	n->code = code_bger_d;		break;
+		    case code_bunler_f:	n->code = code_bgtr_f;		break;
+		    case code_bunler_d:	n->code = code_bgtr_d;		break;
+		    case code_buneqr_f:	n->code = code_bltgtr_f;	break;
+		    case code_buneqr_d:	n->code = code_bltgtr_d;	break;
+		    case code_bunger_f:	n->code = code_bltr_f;		break;
+		    case code_bunger_d:	n->code = code_bltr_d;		break;
+		    case code_bungtr_f:	n->code = code_bler_f;		break;
+		    case code_bungtr_d:	n->code = code_bler_d;		break;
+		    case code_bltgtr_f:	n->code = code_beqr_f;		break;
+		    case code_bltgtr_d:	n->code = code_beqr_d;		break;
+		    case code_bordr_f:	n->code = code_bunordr_f;	break;
+		    case code_bordr_d:	n->code = code_bunordr_d;	break;
+		    case code_bunordr_f:n->code = code_bordr_f;		break;
+		    case code_bunordr_d:n->code = code_bordr_d;		break;
+		    case code_bmsr_i:	n->code = code_bmcr_i;		break;
+		    case code_bmsr_ui:	n->code = code_bmcr_ui;		break;
+		    case code_bmsr_l:	n->code = code_bmcr_l;		break;
+		    case code_bmsr_ul:	n->code = code_bmcr_ul;		break;
+		    case code_bmsi_i:	n->code = code_bmci_i;		break;
+		    case code_bmsi_ui:	n->code = code_bmci_ui;		break;
+		    case code_bmsi_l:	n->code = code_bmci_l;		break;
+		    case code_bmsi_ul:	n->code = code_bmci_ul;		break;
+		    case code_bmcr_i:	n->code = code_bmsr_i;		break;
+		    case code_bmcr_ui:	n->code = code_bmsr_ui;		break;
+		    case code_bmcr_l:	n->code = code_bmsr_l;		break;
+		    case code_bmcr_ul:	n->code = code_bmsr_ul;		break;
+		    case code_bmci_i:	n->code = code_bmsi_i;		break;
+		    case code_bmci_ui:	n->code = code_bmsi_ui;		break;
+		    case code_bmci_l:	n->code = code_bmsi_l;		break;
+		    case code_bmci_ul:	n->code = code_bmsi_ul;		break;
+		    default:		abort();
+		}
+
+		/* link the jump */
+		n->u.n = lc;
+		n->link = lc->link;
+		lc->link = n;
+
+		return (1);
+	    }
+	}
+	else if (ln->code != code_note)
+	    break;
+    }
+    return (0);
 }
 
 ejit_state_t *
@@ -60,6 +267,7 @@ ejit_create_state(void)
 void
 ejit_patch(ejit_state_t *s, ejit_node_t *label, ejit_node_t *instr)
 {
+    instr->hint |= cjit_node_jump;
     assert(label->code == code_label);
     switch (instr->code) {
 	case code_movi_p:
@@ -279,6 +487,350 @@ ejit_n_i_p(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, void *w)
     n->v.i = v;
     n->w.p = w;
     return (node_link(s, n));
+}
+
+int
+ejit_optimize(ejit_state_t *s)
+{
+    int		 change;
+    ejit_node_t	*p, *c, *n;
+
+    change = 0;
+    for (p = c = s->head; c;) {
+	n = c->next;
+	switch (c->code) {
+	    case code_note:		case code_label:
+	    case code_addr_i:		case code_addr_ui:
+	    case code_addr_l:		case code_addr_ul:
+	    case code_addr_p:		case code_addr_f:
+	    case code_addr_d:		case code_addi_i:
+	    case code_addi_ui:		case code_addi_l:
+	    case code_addi_ul:		case code_addi_p:
+	    case code_addxr_ui:		case code_addxr_ul:
+	    case code_addxi_ui:		case code_addxi_ul:
+	    case code_addcr_ui:		case code_addcr_ul:
+	    case code_addci_ui:		case code_addci_ul:
+	    case code_subr_i:		case code_subr_ui:
+	    case code_subr_l:		case code_subr_ul:
+	    case code_subr_p:		case code_subr_f:
+	    case code_subr_d:		case code_subi_i:
+	    case code_subi_ui:		case code_subi_l:
+	    case code_subi_ul:		case code_subi_p:
+	    case code_subxr_ui:		case code_subxr_ul:
+	    case code_subxi_ui:		case code_subxi_ul:
+	    case code_subcr_ui:		case code_subcr_ul:
+	    case code_subci_ui:		case code_subci_ul:
+	    case code_rsbr_i:		case code_rsbr_ui:
+	    case code_rsbr_l:		case code_rsbr_ul:
+	    case code_rsbr_p:		case code_rsbr_f:
+	    case code_rsbr_d:		case code_rsbi_i:
+	    case code_rsbi_ui:		case code_rsbi_l:
+	    case code_rsbi_ul:		case code_rsbi_p:
+	    case code_mulr_i:		case code_mulr_ui:
+	    case code_mulr_l:		case code_mulr_ul:
+	    case code_mulr_f:		case code_mulr_d:
+	    case code_muli_i:		case code_muli_ui:
+	    case code_muli_l:		case code_muli_ul:
+	    case code_hmulr_i:		case code_hmulr_ui:
+	    case code_hmulr_l:		case code_hmulr_ul:
+	    case code_hmuli_i:		case code_hmuli_ui:
+	    case code_hmuli_l:		case code_hmuli_ul:
+	    case code_divr_i:		case code_divr_ui:
+	    case code_divr_l:		case code_divr_ul:
+	    case code_divr_f:		case code_divr_d:
+	    case code_divi_i:		case code_divi_ui:
+	    case code_divi_l:		case code_divi_ul:
+	    case code_modr_i:		case code_modr_ui:
+	    case code_modr_l:		case code_modr_ul:
+	    case code_modi_i:		case code_modi_ui:
+	    case code_modi_l:		case code_modi_ul:
+	    case code_andr_i:		case code_andr_ui:
+	    case code_andr_l:		case code_andr_ul:
+	    case code_andi_i:		case code_andi_ui:
+	    case code_andi_l:		case code_andi_ul:
+	    case code_orr_i:		case code_orr_ui:
+	    case code_orr_l:		case code_orr_ul:
+	    case code_ori_i:		case code_ori_ui:
+	    case code_ori_l:		case code_ori_ul:
+	    case code_xorr_i:		case code_xorr_ui:
+	    case code_xorr_l:		case code_xorr_ul:
+	    case code_xori_i:		case code_xori_ui:
+	    case code_xori_l:		case code_xori_ul:
+	    case code_lshr_i:		case code_lshr_ui:
+	    case code_lshr_l:		case code_lshr_ul:
+	    case code_lshi_i:		case code_lshi_ui:
+	    case code_lshi_l:		case code_lshi_ul:
+	    case code_rshr_i:		case code_rshr_ui:
+	    case code_rshr_l:		case code_rshr_ul:
+	    case code_rshi_i:		case code_rshi_ui:
+	    case code_rshi_l:		case code_rshi_ul:
+	    case code_absr_f:		case code_absr_d:
+	    case code_negr_i:		case code_negr_l:
+	    case code_negr_f:		case code_negr_d:
+	    case code_notr_i:		case code_notr_l:
+	    case code_ltr_i:		case code_ltr_ui:
+	    case code_ltr_l:		case code_ltr_ul:
+	    case code_ltr_p:		case code_ltr_f:
+	    case code_ltr_d:		case code_lti_i:
+	    case code_lti_ui:		case code_lti_l:
+	    case code_lti_ul:		case code_lti_p:
+	    case code_ler_i:		case code_ler_ui:
+	    case code_ler_l:		case code_ler_ul:
+	    case code_ler_p:		case code_ler_f:
+	    case code_ler_d:		case code_lei_i:
+	    case code_lei_ui:		case code_lei_l:
+	    case code_lei_ul:		case code_lei_p:
+	    case code_eqr_i:		case code_eqr_ui:
+	    case code_eqr_l:		case code_eqr_ul:
+	    case code_eqr_p:		case code_eqr_f:
+	    case code_eqr_d:		case code_eqi_i:
+	    case code_eqi_ui:		case code_eqi_l:
+	    case code_eqi_ul:		case code_eqi_p:
+	    case code_ger_i:		case code_ger_ui:
+	    case code_ger_l:		case code_ger_ul:
+	    case code_ger_p:		case code_ger_f:
+	    case code_ger_d:		case code_gei_i:
+	    case code_gei_ui:		case code_gei_l:
+	    case code_gei_ul:		case code_gei_p:
+	    case code_gtr_i:		case code_gtr_ui:
+	    case code_gtr_l:		case code_gtr_ul:
+	    case code_gtr_p:		case code_gtr_f:
+	    case code_gtr_d:		case code_gti_i:
+	    case code_gti_ui:		case code_gti_l:
+	    case code_gti_ul:		case code_gti_p:
+	    case code_ner_i:		case code_ner_ui:
+	    case code_ner_l:		case code_ner_ul:
+	    case code_ner_p:		case code_ner_f:
+	    case code_ner_d:		case code_nei_i:
+	    case code_nei_ui:		case code_nei_l:
+	    case code_nei_ul:		case code_nei_p:
+	    case code_unltr_f:		case code_unltr_d:
+	    case code_unler_f:		case code_unler_d:
+	    case code_uneqr_f:		case code_uneqr_d:
+	    case code_unger_f:		case code_unger_d:
+	    case code_ungtr_f:		case code_ungtr_d:
+	    case code_ltgtr_f:		case code_ltgtr_d:
+	    case code_ordr_f:		case code_ordr_d:
+	    case code_unordr_f:		case code_unordr_d:
+	    case code_movr_i:		case code_movr_ui:
+	    case code_movr_l:		case code_movr_ul:
+	    case code_movr_p:		case code_movr_f:
+	    case code_movr_d:		case code_movi_i:
+	    case code_movi_ui:		case code_movi_l:
+	    case code_movi_ul:		case code_movi_p:
+	    case code_movi_f:		case code_movi_d:
+	    case code_extr_c_i:		case code_extr_uc_ui:
+	    case code_extr_s_i:		case code_extr_us_ui:
+	    case code_extr_c_l:		case code_extr_uc_ul:
+	    case code_extr_s_l:		case code_extr_us_ul:
+	    case code_extr_i_l:		case code_extr_ui_ul:
+	    case code_extr_i_f:		case code_extr_i_d:
+	    case code_extr_l_f:		case code_extr_l_d:
+	    case code_extr_f_d:		case code_extr_d_f:
+	    case code_roundr_f_i:	case code_roundr_f_l:
+	    case code_roundr_d_i:	case code_roundr_d_l:
+	    case code_truncr_f_i:	case code_truncr_f_l:
+	    case code_truncr_d_i:	case code_truncr_d_l:
+	    case code_floorr_f_i:	case code_floorr_f_l:
+	    case code_floorr_d_i:	case code_floorr_d_l:
+	    case code_ceilr_f_i:	case code_ceilr_f_l:
+	    case code_ceilr_d_i:	case code_ceilr_d_l:
+	    case code_hton_us_ui:	case code_ntoh_us_ui:
+	    case code_ldr_c:		case code_ldr_uc:
+	    case code_ldr_s:		case code_ldr_us:
+	    case code_ldr_i:		case code_ldr_ui:
+	    case code_ldr_l:		case code_ldr_ul:
+	    case code_ldr_p:		case code_ldr_f:
+	    case code_ldr_d:		case code_ldi_c:
+	    case code_ldi_uc:		case code_ldi_s:
+	    case code_ldi_us:		case code_ldi_i:
+	    case code_ldi_ui:		case code_ldi_l:
+	    case code_ldi_ul:		case code_ldi_p:
+	    case code_ldi_f:		case code_ldi_d:
+	    case code_ldxr_c:		case code_ldxr_uc:
+	    case code_ldxr_s:		case code_ldxr_us:
+	    case code_ldxr_i:		case code_ldxr_ui:
+	    case code_ldxr_l:		case code_ldxr_ul:
+	    case code_ldxr_p:		case code_ldxr_f:
+	    case code_ldxr_d:		case code_ldxi_c:
+	    case code_ldxi_uc:		case code_ldxi_s:
+	    case code_ldxi_us:		case code_ldxi_i:
+	    case code_ldxi_ui:		case code_ldxi_l:
+	    case code_ldxi_ul:		case code_ldxi_p:
+	    case code_ldxi_f:		case code_ldxi_d:
+	    case code_str_c:		case code_str_uc:
+	    case code_str_s:		case code_str_us:
+	    case code_str_i:		case code_str_ui:
+	    case code_str_l:		case code_str_ul:
+	    case code_str_p:		case code_str_f:
+	    case code_str_d:		case code_sti_c:
+	    case code_sti_uc:		case code_sti_s:
+	    case code_sti_us:		case code_sti_i:
+	    case code_sti_ui:		case code_sti_l:
+	    case code_sti_ul:		case code_sti_p:
+	    case code_sti_f:		case code_sti_d:
+	    case code_stxr_c:		case code_stxr_uc:
+	    case code_stxr_s:		case code_stxr_us:
+	    case code_stxr_i:		case code_stxr_ui:
+	    case code_stxr_l:		case code_stxr_ul:
+	    case code_stxr_p:		case code_stxr_f:
+	    case code_stxr_d:		case code_stxi_c:
+	    case code_stxi_uc:		case code_stxi_s:
+	    case code_stxi_us:		case code_stxi_i:
+	    case code_stxi_ui:		case code_stxi_l:
+	    case code_stxi_ul:		case code_stxi_p:
+	    case code_stxi_f:		case code_stxi_d:
+	    case code_prepare_i:	case code_prepare_f:
+	    case code_prepare_d:	case code_pusharg_c:
+	    case code_pusharg_uc:	case code_pusharg_s:
+	    case code_pusharg_us:	case code_pusharg_i:
+	    case code_pusharg_ui:	case code_pusharg_l:
+	    case code_pusharg_ul:	case code_pusharg_p:
+	    case code_pusharg_f:	case code_pusharg_d:
+	    case code_getarg_c:		case code_getarg_uc:
+	    case code_getarg_s:		case code_getarg_us:
+	    case code_getarg_i:		case code_getarg_ui:
+	    case code_getarg_l:		case code_getarg_ul:
+	    case code_getarg_p:		case code_getarg_f:
+	    case code_getarg_d:
+
+	    case code_putarg_c:		case code_putarg_uc:
+	    case code_putarg_s:		case code_putarg_us:
+	    case code_putarg_i:		case code_putarg_ui:
+	    case code_putarg_l:		case code_putarg_ul:
+	    case code_putarg_p:		case code_putarg_f:
+	    case code_putarg_d:
+
+	    case code_arg_c:		case code_arg_uc:
+	    case code_arg_s:		case code_arg_us:
+	    case code_arg_i:		case code_arg_ui:
+	    case code_arg_l:		case code_arg_ul:
+	    case code_arg_p:		case code_arg_f:
+	    case code_arg_d:		case code_retval_c:
+	    case code_retval_uc:	case code_retval_s:
+	    case code_retval_us:	case code_retval_i:
+	    case code_retval_ui:	case code_retval_l:
+	    case code_retval_ul:	case code_retval_p:
+	    case code_retval_f:		case code_retval_d:
+		p = c;
+		c = n;
+		break;
+
+	    case code_bltr_i:		case code_bltr_ui:
+	    case code_bltr_l:		case code_bltr_ul:
+	    case code_bltr_p:		case code_bltr_f:
+	    case code_bltr_d:		case code_blti_i:
+	    case code_blti_ui:		case code_blti_l:
+	    case code_blti_ul:		case code_blti_p:
+	    case code_bler_i:		case code_bler_ui:
+	    case code_bler_l:		case code_bler_ul:
+	    case code_bler_p:		case code_bler_f:
+	    case code_bler_d:		case code_blei_i:
+	    case code_blei_ui:		case code_blei_l:
+	    case code_blei_ul:		case code_blei_p:
+	    case code_beqr_i:		case code_beqr_ui:
+	    case code_beqr_l:		case code_beqr_ul:
+	    case code_beqr_p:		case code_beqr_f:
+	    case code_beqr_d:		case code_beqi_i:
+	    case code_beqi_ui:		case code_beqi_l:
+	    case code_beqi_ul:		case code_beqi_p:
+	    case code_bger_i:		case code_bger_ui:
+	    case code_bger_l:		case code_bger_ul:
+	    case code_bger_p:		case code_bger_f:
+	    case code_bger_d:		case code_bgei_i:
+	    case code_bgei_ui:		case code_bgei_l:
+	    case code_bgei_ul:		case code_bgei_p:
+	    case code_bgtr_i:		case code_bgtr_ui:
+	    case code_bgtr_l:		case code_bgtr_ul:
+	    case code_bgtr_p:		case code_bgtr_f:
+	    case code_bgtr_d:		case code_bgti_i:
+	    case code_bgti_ui:		case code_bgti_l:
+	    case code_bgti_ul:		case code_bgti_p:
+	    case code_bner_i:		case code_bner_ui:
+	    case code_bner_l:		case code_bner_ul:
+	    case code_bner_p:		case code_bner_f:
+	    case code_bner_d:		case code_bnei_i:
+	    case code_bnei_ui:		case code_bnei_l:
+	    case code_bnei_ul:		case code_bnei_p:
+	    case code_bunltr_f:		case code_bunltr_d:
+	    case code_bunler_f:		case code_bunler_d:
+	    case code_buneqr_f:		case code_buneqr_d:
+	    case code_bunger_f:		case code_bunger_d:
+	    case code_bungtr_f:		case code_bungtr_d:
+	    case code_bltgtr_f:		case code_bltgtr_d:
+	    case code_bordr_f:		case code_bordr_d:
+	    case code_bunordr_f:	case code_bunordr_d:
+	    case code_bmsr_i:		case code_bmsr_ui:
+	    case code_bmsr_l:		case code_bmsr_ul:
+	    case code_bmsi_i:		case code_bmsi_ui:
+	    case code_bmsi_l:		case code_bmsi_ul:
+	    case code_bmcr_i:		case code_bmcr_ui:
+	    case code_bmcr_l:		case code_bmcr_ul:
+	    case code_bmci_i:		case code_bmci_ui:
+	    case code_bmci_l:		case code_bmci_ul:
+		if (redundant_jump(s, p, c)) {
+		    /* remove c */
+		    change = 1;
+		    p = c;
+		    c = n;
+		}
+		else if (reverse_jump(s, p, c))
+		    /* remove n */
+		    change = 1;
+		else {
+		    p = c;
+		    c = n;
+		}
+		break;
+
+	    case code_boaddr_i:
+	    case code_boaddr_ui:
+	    case code_boaddr_l:
+	    case code_boaddr_ul:
+	    case code_boaddi_i:
+	    case code_boaddi_ui:
+	    case code_boaddi_l:
+	    case code_boaddi_ul:
+	    case code_bosubr_i:
+	    case code_bosubr_ui:
+	    case code_bosubr_l:
+	    case code_bosubr_ul:
+	    case code_bosubi_i:
+	    case code_bosubi_ui:
+	    case code_bosubi_l:
+	    case code_bosubi_ul:
+
+	    case code_finish:
+	    case code_finishr:
+	    case code_calli:
+	    case code_callr:
+		p = c;
+		c = n;
+		break;
+
+	    case code_jmpi:
+		if (redundant_jump(s, p, c))
+		    /* remove c */
+		    change = 1;
+		else
+		    p = c;
+		c = n;
+		break;
+
+	    case code_jmpr:
+	    case code_ret:
+	    case code_prolog:
+	    case code_prolog_f:
+	    case code_prolog_d:
+	    case code_leaf:
+	    case code_allocai:
+		p = c;
+		c = n;
+		break;
+	}
+    }
+
+    return (change);
 }
 
 void

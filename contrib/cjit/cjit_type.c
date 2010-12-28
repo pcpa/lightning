@@ -306,6 +306,7 @@ new_symbol(record_t *record, tag_t *tag, char *name)
     symbol->tag = tag;
     symbol->type = tag->type;
     symbol->table = record;
+    symbol->arg = symbol->loc = symbol->glb = symbol->fld = 0;
 
     if (type->length == 0 && tag->type != (type_pointer | type_void))
 	/* open type declaration */

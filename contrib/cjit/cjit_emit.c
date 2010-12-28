@@ -216,6 +216,7 @@ void
 emit(expr_t *expr)
 {
     (void)emit_stat(expr);
+    ejit_optimize(state);
     printf("\njit:");
     ejit_print(state);
 }
