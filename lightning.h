@@ -184,6 +184,9 @@ struct {
     /* mips32 r2 instructions available? */
     _ui		mips2		: 1;
 
+    /* assume memory doubles are 8 bytes aligned? */
+    _ui		algndbl		: 1;
+
     _ui		movf		: 1;
     _ui		mul		: 1;
     _ui		mips64		: 1;

@@ -93,6 +93,10 @@ jit_get_cpu(void)
     }
     fclose(fp);
 #endif
+
+#if __WORDSIZE == 64
+    jit_cpu.algndbl = 1;
+#endif
 }
 
 #endif /* __lightning_funcs_h */

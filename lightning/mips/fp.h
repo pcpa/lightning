@@ -33,6 +33,9 @@
 #define __lightning_fp_mips_h
 
 #define jit_movf_p()			jit_cpu.movf
+#define jit_aligned_double_p()		jit_cpu.algndbl
+#define next_fpr(fn)			((jit_fpr_t)((fn) + 1))
+
 
 #define JIT_FPR_NUM			6
 static const jit_fpr_t
@@ -107,7 +110,12 @@ mips_ldr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 __jit_inline void
 mips_ldr_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0)
 {
-    _LDC1(f0, 0, r0);
+    if (jit_aligned_double_p())
+	_LDC1(f0, 0, r0);
+    else {
+	_LWC1(f0, 0, r0);
+	_LWC1(next_fpr(f0), 4, r0);
+    }
 }
 
 #define jit_ldi_f(f0, i0)	mips_ldi_f(_jit, f0, i0)
@@ -130,11 +138,24 @@ mips_ldi_d(jit_state_t _jit, jit_fpr_t f0, void *i0)
 {
     long	ds = (long)i0;
 
-    if (_s16P(ds))
-	_LDC1(f0, _jit_US(ds), JIT_RZERO);
+    if (jit_aligned_double_p()) {
+	if (_s16P(ds))
+	    _LDC1(f0, _jit_US(ds), JIT_RZERO);
+	else {
+	    jit_movi_i(JIT_RTEMP, ds);
+	    _LDC1(f0, 0, JIT_RTEMP);
+	}
+    }
     else {
-	jit_movi_i(JIT_RTEMP, ds);
-	_LDC1(f0, 0, JIT_RTEMP);
+	if (_s16P(ds) && _s16P(ds + 4)) {
+	    _LWC1(f0, _jit_US(ds), JIT_RZERO);
+	    _LWC1(next_fpr(f0), _jit_US(ds + 4), JIT_RZERO);
+	}
+	else {
+	    jit_movi_i(JIT_RTEMP, ds);
+	    _LWC1(f0, 0, JIT_RTEMP);
+	    _LWC1(next_fpr(f0), 4, JIT_RTEMP);
+	}
     }
 }
 
@@ -154,11 +175,18 @@ mips_ldxr_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 mips_ldxr_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, jit_gpr_t r1)
 {
-    if (jit_mips2_p())
-	_LDXC1(f0, r1, r0);
+    if (jit_aligned_double_p()) {
+	if (jit_mips2_p())
+	    _LDXC1(f0, r1, r0);
+	else {
+	    jit_addr_i(JIT_RTEMP, r0, r1);
+	    _LDC1(f0, 0, JIT_RTEMP);
+	}
+    }
     else {
 	jit_addr_i(JIT_RTEMP, r0, r1);
-	_LDC1(f0, 0, JIT_RTEMP);
+	_LWC1(f0, 0, JIT_RTEMP);
+	_LWC1(next_fpr(f0), 4, JIT_RTEMP);
     }
 }
 
@@ -182,16 +210,30 @@ mips_ldxi_f(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 __jit_inline void
 mips_ldxi_d(jit_state_t _jit, jit_fpr_t f0, jit_gpr_t r0, long i0)
 {
-    if (_s16P(i0))
-	_LDC1(f0, _jit_US(i0), r0);
-    else if (jit_mips2_p()) {
-	jit_movi_i(JIT_RTEMP, i0);
-	_LDXC1(f0, JIT_RTEMP, r0);
+    if (jit_aligned_double_p()) {
+	if (_s16P(i0))
+	    _LDC1(f0, _jit_US(i0), r0);
+	else if (jit_mips2_p()) {
+	    jit_movi_i(JIT_RTEMP, i0);
+	    _LDXC1(f0, JIT_RTEMP, r0);
+	}
+	else {
+	    jit_addi_i(JIT_RTEMP, r0, i0);
+	    _LDC1(f0, 0, JIT_RTEMP);
+	}
     }
     else {
-	jit_addi_i(JIT_RTEMP, r0, i0);
-	_LDC1(f0, 0, JIT_RTEMP);
+	if (_s16P(i0) && _s16P(i0 + 4)) {
+	    _LWC1(f0, _jit_US(i0), r0);
+	    _LWC1(next_fpr(f0), _jit_US(i0 + 4), r0);
+	}
+	else {
+	    jit_addi_i(JIT_RTEMP, r0, i0);
+	    _LWC1(f0, 0, JIT_RTEMP);
+	    _LWC1(next_fpr(f0), 4, JIT_RTEMP);
+	}
     }
+
 }
 
 #define jit_str_f(r0, f0)		mips_str_f(_jit, r0, f0)
@@ -205,7 +247,12 @@ mips_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 mips_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t f0)
 {
-    _SDC1(f0, 0, r0);
+    if (jit_aligned_double_p())
+	_SDC1(f0, 0, r0);
+    else {
+	_SWC1(f0, 0, r0);
+	_SWC1(next_fpr(f0), 4, r0);
+    }
 }
 
 #define jit_sti_f(i0, f0)		mips_sti_f(_jit, i0, f0)
@@ -228,11 +275,24 @@ mips_sti_d(jit_state_t _jit, void *i0, jit_fpr_t f0)
 {
     long	ds = (long)i0;
 
-    if (_s16P(ds))
-	_SDC1(f0, _jit_US(ds), JIT_RZERO);
+    if (jit_aligned_double_p()) {
+	if (_s16P(ds))
+	    _SDC1(f0, _jit_US(ds), JIT_RZERO);
+	else {
+	    jit_movi_i(JIT_RTEMP, ds);
+	    _SDC1(f0, 0, JIT_RTEMP);
+	}
+    }
     else {
-	jit_movi_i(JIT_RTEMP, ds);
-	_SDC1(f0, 0, JIT_RTEMP);
+	if (_s16P(ds) && _s16P(ds + 4)) {
+	    _SWC1(f0, _jit_US(ds), JIT_RZERO);
+	    _SWC1(next_fpr(f0), _jit_US(ds + 4), JIT_RZERO);
+	}
+	else {
+	    jit_movi_i(JIT_RTEMP, ds);
+	    _SWC1(f0, 0, JIT_RTEMP);
+	    _SWC1(next_fpr(f0), 4, JIT_RTEMP);
+	}
     }
 }
 
@@ -252,11 +312,18 @@ mips_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 __jit_inline void
 mips_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t f0)
 {
-    if (jit_mips2_p())
-	_SDXC1(f0, r1, r0);
+    if (jit_aligned_double_p()) {
+	if (jit_mips2_p())
+	    _SDXC1(f0, r1, r0);
+	else {
+	    jit_addr_i(JIT_RTEMP, r0, r1);
+	    _SDC1(f0, 0, JIT_RTEMP);
+	}
+    }
     else {
 	jit_addr_i(JIT_RTEMP, r0, r1);
-	_SDC1(f0, 0, JIT_RTEMP);
+	_SWC1(f0, 0, JIT_RTEMP);
+	_SWC1(next_fpr(f0), 4, JIT_RTEMP);
     }
 }
 
@@ -280,15 +347,29 @@ mips_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 __jit_inline void
 mips_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t f0)
 {
-    if (_s16P(i0))
-	_SDC1(f0, _jit_US(i0), r0);
-    else if (jit_mips2_p()) {
-	jit_movi_i(JIT_RTEMP, i0);
-	_SDXC1(f0, JIT_RTEMP, r0);
+    if (jit_aligned_double_p()) {
+	if (_s16P(i0))
+	    _SDC1(f0, _jit_US(i0), r0);
+	else if (jit_mips2_p()) {
+	    jit_movi_i(JIT_RTEMP, i0);
+	    _SDXC1(f0, JIT_RTEMP, r0);
+	}
+	else {
+	    jit_addi_i(JIT_RTEMP, r0, i0);
+	    _SDC1(f0, 0, JIT_RTEMP);
+	}
     }
     else {
-	jit_addi_i(JIT_RTEMP, r0, i0);
-	_SDC1(f0, 0, JIT_RTEMP);
+	if (_s16P(i0) && _s16P(i0 + 4)) {
+	    _SWC1(f0, _jit_US(i0), r0);
+	    _SWC1(next_fpr(f0), _jit_US(i0 + 4), r0);
+	}
+	else {
+	    jit_addi_i(JIT_RTEMP, r0, i0);
+	    _SWC1(f0, 0, JIT_RTEMP);
+	    _SWC1(next_fpr(f0), 4, JIT_RTEMP);
+	}
+
     }
 }
 
