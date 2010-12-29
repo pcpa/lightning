@@ -45,7 +45,7 @@ static void
 print_fields(record_t *record);
 
 static void
-print_tag(tag_t *tag);
+print_tag(tag_t *tag, char *name);
 
 static void
 print_expr(expr_t *expr);
@@ -252,16 +252,17 @@ print_fields(record_t *record)
     printf(" { ");
     for (offset = 0; offset < record->count; offset++) {
 	symbol = record->vector[offset];
-	print_tag(symbol->tag);
-	printf(" %s ; ", symbol->name);
+	print_tag(symbol->tag, symbol->name);
+	printf(" ; ");
     }
     putchar('}');
 }
 
 static void
-print_tag(tag_t *tag)
+print_tag(tag_t *tag, char *name)
 {
     tag_t	*base;
+    tag_t	*temp;
     record_t	*record;
 
     if (tag->type & type_unsigned)
@@ -280,10 +281,14 @@ print_tag(tag_t *tag)
     }
     if ((tag->type & type_struct) || (tag->type & type_union))
 	print_fields(record);
-    if (base != tag) {
-	for (; tag != base; tag = tag->tag)
-	    printf(" %s", (char *)tag->name);
-    }
+    for (temp = tag; temp != base; temp = temp->tag)
+	if (type_mask(temp->type) != type_vector)
+	    printf(" %s", (char *)temp->name);
+    if (name)
+	printf(" %s", name);
+    for (temp = tag; temp != base; temp = temp->tag)
+	if (type_mask(temp->type) == type_vector)
+	    printf(" [ %s ]", (char *)temp->name);
 }
 
 static void
@@ -305,7 +310,7 @@ print_expr(expr_t *expr)
 	    printf("%s", expr->data._unary.cp);
 	    break;
 	case tok_type:
-	    print_tag(expr->data._unary.vp);
+	    print_tag(expr->data._unary.vp, NULL);
 	    break;
 	case tok_declexpr:
 	    print_expr(expr->data._binary.lvalue);
