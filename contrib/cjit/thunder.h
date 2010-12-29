@@ -1773,8 +1773,8 @@ union ejit_data {
     ejit_node_t		*n;
 };
 
-/* jump target is an ejit_node_t */
-#define cjit_node_jump		1
+/* argument is an ejit_node_t and not a fixed address pointer */
+#define EJIT_NODE_ARG	1
 
 struct ejit_node {
     ejit_node_t		*next;

@@ -77,7 +77,7 @@ redundant_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
 {
     ejit_node_t	*lp, *ln;
 
-    if (!(n->hint & cjit_node_jump))
+    if (!(n->hint & EJIT_NODE_ARG))
 	return (0);
     for (lp = n, ln = n->next; ln; lp = ln, ln = ln->next) {
 	if (ln->code == code_label) {
@@ -106,7 +106,7 @@ reverse_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
 {
     ejit_node_t	*lp, *ln, *lc;
 
-    if (!(n->hint & cjit_node_jump))
+    if (!(n->hint & EJIT_NODE_ARG))
 	return (0);
     /* =><cond_jump L0> <jump L1> <label L0> */
 
@@ -124,9 +124,10 @@ reverse_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
 
 		    /* unlink the jump */
 		    if ((ln->link = n->link) == NULL) {
-			if (n->next->u.n != ln)
-			    /* if L0 and L1 are not the same */
-			    node_del(s, lp, ln);
+			/* if next of first entry is NULL L0 cannot be L1,
+			 * unless there is a dangling jump somewhere */
+			assert(n->next->u.n != ln);
+			node_del(s, lp, ln);
 		    }
 		}
 		else {
@@ -267,7 +268,7 @@ ejit_create_state(void)
 void
 ejit_patch(ejit_state_t *s, ejit_node_t *label, ejit_node_t *instr)
 {
-    instr->hint |= cjit_node_jump;
+    instr->hint |= EJIT_NODE_ARG;
     assert(label->code == code_label);
     switch (instr->code) {
 	case code_movi_p:
@@ -799,6 +800,8 @@ ejit_optimize(ejit_state_t *s)
 	    case code_bosubi_ui:
 	    case code_bosubi_l:
 	    case code_bosubi_ul:
+		/* if jump is redundant, must convert to {add,sub}x_y
+		 * because of side effects */
 
 	    case code_finish:
 	    case code_finishr:

@@ -29,6 +29,12 @@
 #define add_tjump(node)		add_jump(bstack.tjump + bstack.offset - 1, node)
 #define add_fjump(node)		add_jump(bstack.fjump + bstack.offset - 1, node)
 #define top_value_stack()	(vstack.values + vstack.offset - 1)
+#define vstack_reset(ofs)						\
+    do {								\
+	assert(vstack.offset >= (ofs));					\
+	if (vstack.offset > (ofs))					\
+	    dec_value_stack(vstack.offset - (ofs));			\
+    } while (0)
 
 /*
  * Types
@@ -229,11 +235,7 @@ emit_stat(expr_t *expr)
 
     for (; expr; expr = expr->next) {
 	tag = emit_expr(expr);
-	/* at least one stack slot should reach here, and some non
-	 *side effect expressions automatically deleted due to not
-	 * generating code */
-	if (vstack.offset > offset)
-	    dec_value_stack(vstack.offset - offset);
+	vstack_reset(offset);
     }
 
     return (tag);
@@ -372,8 +374,7 @@ emit_decl(expr_t *expr)
     for (expr = expr->data._binary.rvalue; expr; expr = expr->next) {
 	if (expr->token == tok_set) {
 	    emit_set(expr);
-	    if (vstack.offset > offset)
-		dec_value_stack(vstack.offset - offset);
+	    vstack_reset(offset);
 	}
     }
     return (void_tag);
@@ -970,65 +971,12 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
     }
 
     else if (token) {
-	switch (tag->type) {
-	    case type_char:	case type_uchar:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(long)rr);
-		else
-		    ejit_addr_p(state, lr, lr, rr);
-		break;
-	    case type_short:	case type_ushort:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr,
-				(void *)(long)(rr * sizeof(short)));
-		else {
-		    ejit_muli_i(state, rr, rr, sizeof(short));
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
-	    case type_int:	case type_uint:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(int)));
-		else {
-		    ejit_muli_i(state, rr, rr, sizeof(int));
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
-	    case type_long:	case type_ulong:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(long)));
-		else {
-		    ejit_muli_i(state, rr, rr, sizeof(long));
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
-	    case type_float:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(rr * sizeof(float)));
-		else {
-		    ejit_muli_i(state, rr, rr, sizeof(float));
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
-	    case type_double:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr,
-				(void *)(long)(rr * sizeof(double)));
-		else {
-		    ejit_muli_i(state, rr, rr, sizeof(double));
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
-	    default:
-		if (value_const_p(rval))
-		    ejit_addi_p(state, lr, lr, (void *)(long)(rr * tag->size));
-		else {
-		    ejit_muli_i(state, rr, rr, tag->size);
-		    ejit_addr_p(state, lr, lr, rr);
-		}
-		break;
+	if (value_const_p(rval))
+	    ejit_addi_p(state, lr, lr, (void *)(long)(rr * tag->size));
+	else {
+	    ejit_muli_i(state, rr, rr, tag->size);
+	    ejit_addr_p(state, lr, lr, rr);
 	}
-
 	lval->type = value_ptype | value_regno;
 	dec_value_stack(1);
 
@@ -3430,8 +3378,7 @@ emit_question(expr_t *expr)
 
     inc_branch_stack(tok_question);
     emit_test_branch(expr->data._if.test, 0, 0);
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+    vstack_reset(offset);
     jump = bstack.tjump + bstack.offset - 1;
     if (jump->offset) {
 	label = ejit_label(state);
@@ -3508,8 +3455,7 @@ emit_if(expr_t *expr)
 
     for (; test->next; test = test->next) {
 	(void)emit_expr(test);
-	if (vstack.offset > offset)
-	    dec_value_stack(vstack.offset - offset);
+	vstack_reset(offset);
     }
 
     inc_branch_stack(tok_if);
@@ -3538,8 +3484,7 @@ emit_if(expr_t *expr)
 	ejit_patch(state, label, node);
     }
 
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+    vstack_reset(offset);
 
     return (void_tag);
 }
@@ -3557,8 +3502,7 @@ emit_while(expr_t *expr)
     label = ejit_label(state);
     for (test = expr->data._while.test; expr->next; expr = expr->next) {
 	(void)emit_expr(test);
-	if (vstack.offset > offset)
-	    dec_value_stack(vstack.offset - offset);
+	vstack_reset(offset);
     }
     inc_branch_stack(tok_while);
     emit_test_branch(test, 0, 0);
@@ -3598,8 +3542,7 @@ emit_while(expr_t *expr)
 	while (jump->offset);
     }
 
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+    vstack_reset(offset);
 
     return (void_tag);
 }
@@ -3619,8 +3562,7 @@ emit_do(expr_t *expr)
     emit_stat(expr->data._do.code);
     for (test = expr->data._do.test; expr->next; expr = expr->next) {
 	(void)emit_expr(test);
-	if (vstack.offset > offset)
-	    dec_value_stack(vstack.offset - offset);
+	vstack_reset(offset);
     }
     emit_test_branch(test, 0, 0);
     dec_branch_stack(1);
@@ -3641,8 +3583,7 @@ emit_do(expr_t *expr)
 	while (jump->offset);
     }
 
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+    vstack_reset(offset);
 
     return (void_tag);
 }
@@ -3674,8 +3615,7 @@ emit_for(expr_t *expr)
 
     for (test = expr->data._for.test; expr->next; expr = expr->next) {
 	(void)emit_expr(test);
-	if (vstack.offset > offset)
-	    dec_value_stack(vstack.offset - offset);
+	vstack_reset(offset);
     }
     inc_branch_stack(tok_for);
     if (test) {
@@ -3709,8 +3649,7 @@ emit_for(expr_t *expr)
 	while (jump->offset);
     }
 
-    if (vstack.offset > offset)
-	dec_value_stack(vstack.offset - offset);
+    vstack_reset(offset);
 
     return (void_tag);
 }
@@ -3785,8 +3724,7 @@ emit_switch(expr_t *expr)
 
     for (test = expr->data._switch.test; test->next; test = test->next) {
 	(void)emit_expr(test);
-	if (vstack.offset > voffset)
-	    dec_value_stack(vstack.offset - voffset);
+	vstack_reset(voffset);
     }
     if (emit_expr(test) != int_tag)
 	error(test, "switch test is not an integer");
@@ -3831,8 +3769,7 @@ emit_switch(expr_t *expr)
 	ejit_patch(state, label, node);
     }
 
-    if (vstack.offset > voffset)
-	dec_value_stack(vstack.offset - voffset);
+    vstack_reset(voffset);
 
     return (void_tag);
 }
@@ -4013,8 +3950,7 @@ emit_return(expr_t *expr)
 	    error(expr, "void return on non void function");
     }
 
-    if (vstack.offset > voffset)
-	dec_value_stack(vstack.offset - voffset);
+    vstack_reset(voffset);
     /* FIXME if the return statement is the last one, should just
      * not need to add a jump, but rely on later code removing
      * zero distance jumps */
