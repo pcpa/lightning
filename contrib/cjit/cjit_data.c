@@ -229,8 +229,6 @@ data_init(void *pointer, tag_t *tag, expr_t *expr)
 		default:	error(expr, "syntax error");
 	    }
 	    break;
-	case type_pointer|type_char:	case type_pointer|type_uchar:
-	    break;
 	default:
 	    if (tag->type & type_pointer) {
 		switch (expr->token) {

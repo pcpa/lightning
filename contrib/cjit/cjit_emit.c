@@ -3316,6 +3316,20 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 	    else		add_fjump(node);
 	    dec_value_stack(2);
 	    break;
+	case tok_int:
+	    node = ejit_jmpi(state, NULL);
+	    if (!!expr->data._unary.i ^ !jmpif)
+		add_fjump(node);
+	    else
+		add_tjump(node);
+	    break;
+	case tok_float:
+	    node = ejit_jmpi(state, NULL);
+	    if (!!expr->data._unary.d ^ !jmpif)
+		add_fjump(node);
+	    else
+		add_tjump(node);
+	    break;
 	default:
 	    ltag = emit_expr(expr);
 	    lval = top_value_stack();
@@ -3944,16 +3958,10 @@ emit_return(expr_t *expr)
 		ejit_retval_p(state, regno);			break;
 	}
     }
-    else {
-	rtag = void_tag;
-	if (ltag->type != rtag->type)
-	    error(expr, "void return on non void function");
-    }
+    else if (ltag->type != type_void)
+	error(expr, "void return on non void function");
 
     vstack_reset(voffset);
-    /* FIXME if the return statement is the last one, should just
-     * not need to add a jump, but rely on later code removing
-     * zero distance jumps */
     while (boffset > 0) {
 	jump = bstack.fjump + --boffset;
 	if (jump->token == tok_function) {

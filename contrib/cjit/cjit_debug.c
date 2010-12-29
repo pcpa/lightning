@@ -79,7 +79,7 @@ dump(void)
 	rodata = (unsigned char *)the_rodata;
 	printf("\nrodata:");
 	for (offset = 0; offset < rodata_length; offset++, rodata++)
-	    printf(" %02u", *rodata);
+	    printf(" %02x", *rodata);
     }
 }
 
