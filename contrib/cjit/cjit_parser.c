@@ -102,13 +102,13 @@ unary_field(void);
  * Initialization
  */
 parser_t	 parser;
-expr_t		*ablock;
 hash_t		*keywords;
 record_t	*current;
 record_t	*globals;
 hash_t		*functions;
 static expr_t	*aexpr;
 static expr_t	*atail;
+static expr_t	*ablock;
 
 /*
  * Implementation

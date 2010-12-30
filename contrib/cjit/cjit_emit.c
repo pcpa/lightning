@@ -19,25 +19,6 @@
 
 #include "lightning.h"
 
-#if defined(__i386__)
-#  define FIRST_INT_REG		0
-#  define FIRST_FLOAT_REG	0
-#elif defined(__x86_64__)
-#  define FIRST_INT_REG		6
-#  define FIRST_FLOAT_REG	8
-#elif defined(__mips__)
-#  define FIRST_INT_REG		4
-#  define FIRST_FLOAT_REG	4
-#else
-#  define FIRST_INT_REG		6
-#  define FIRST_FLOAT_REG	6
-#endif
-
-/* FIXME this should be JIT_FP and may need to be a variable if the
- * the frame pointer register may change based on runtime constraints */
-#define FRAME_POINTER		(FIRST_INT_REG + 6)
-#define STACK_POINTER		(FIRST_INT_REG + 7)
-
 #define add_tjump(node)		add_jump(bstack.tjump + bstack.offset - 1, node)
 #define add_fjump(node)		add_jump(bstack.fjump + bstack.offset - 1, node)
 #define top_value_stack()	(vstack.values + vstack.offset - 1)
@@ -207,13 +188,13 @@ add_jump(jump_t *list, ejit_node_t *node);
  */
 static ejit_state_t	*state;
 static vstack_t		 vstack;
-static int		 fcount;
-static int		 icount;
 static int		 alloca_offset;
 static int		 alloca_length;
 static ejit_node_t	*alloca_node;
 static ejit_node_t	*prolog_node;
 static branch_t		 bstack;
+static int		 gpr_map[32];
+static int		 fpr_map[32];
 
 /*
  * Implementation
@@ -224,7 +205,118 @@ init_emit(void)
     state = ejit_create_state();
     vstack.length = 16;
     vstack.values = (value_t *)xmalloc(vstack.length * sizeof(value_t));
-    fcount = icount = 6;
+
+#if defined(__i386__)
+#  define FIRST_GPR_REG		0
+    gpr_map[0] = JIT_R(0);
+    gpr_map[1] = JIT_R(1);
+    gpr_map[2] = JIT_R(2);
+#  define FIRST_GPR_SAVE	3
+    gpr_map[3] = JIT_V(0);
+    gpr_map[4] = JIT_V(1);
+    gpr_map[5] = JIT_V(2);
+#  define NUM_GPR_REG		6
+
+#  define FIRST_FPR_REG		0
+    fpr_map[0] = JIT_FPR(0);
+    fpr_map[1] = JIT_FPR(1);
+    fpr_map[2] = JIT_FPR(2);
+    fpr_map[3] = JIT_FPR(3);
+    fpr_map[4] = JIT_FPR(4);
+    fpr_map[5] = JIT_FPR(5);
+#  define NUM_FPR_REG		6
+
+#elif defined(__x86_64__)
+    gpr_map[ 0] = _RDI;
+    gpr_map[ 1] = _RSI;
+    gpr_map[ 2] = _RDX;
+    gpr_map[ 3] = _RCX;
+    gpr_map[ 4] = _R8;
+    gpr_map[ 5] = _R9;
+#  define FIRST_GPR_REG		6
+    gpr_map[ 6] = _RAX;
+    gpr_map[ 7] = _R10;
+    gpr_map[ 8] = _R11;
+#  define FIRST_GPR_SAVE	9
+    gpr_map[ 9] = _RBX;
+    /* _R12 used by lightning as temporary */
+    gpr_map[10] = _R13;
+    gpr_map[11] = _R14;
+    /* _R15 not used by lightning, another callee save */
+    gpr_map[12] = _R15;
+#  define NUM_GPR_REG		13
+
+    /* first fpr arg */
+    gpr_map[ 0] = _XMM0;
+    gpr_map[ 1] = _XMM1;
+    gpr_map[ 2] = _XMM2;
+    gpr_map[ 3] = _XMM3;
+    gpr_map[ 4] = _XMM4;
+    gpr_map[ 5] = _XMM5;
+    gpr_map[ 6] = _XMM6;
+    gpr_map[ 7] = _XMM7;
+#  define FIRST_FPR_REG		8
+    gpr_map[ 8] = _XMM8;
+    gpr_map[ 9] = _XMM9;
+    gpr_map[10] = _XMM10;
+    gpr_map[11] = _XMM11;
+    gpr_map[12] = _XMM12;
+    gpr_map[13] = _XMM13;
+#  define NUM_FPR_REG		6
+    /* _XMM14 and _XMM15 used by lightning as temporaries */    
+
+#elif defined(__mips__)
+#  define FIRST_FPR_REG	4
+#  define NUM_FPR_REG		8
+    /* first gpr arg */
+    gpr_map[ 0] = _A0;
+    gpr_map[ 1] = _A1;
+    gpr_map[ 2] = _A2;
+    gpr_map[ 3] = _A3;
+#  define FIRST_GPR_REG		4
+    gpr_map[ 4] = _V0;
+    gpr_map[ 5] = _V1;
+    gpr_map[ 6] = _T0;
+    gpr_map[ 7] = _T1;
+    gpr_map[ 8] = _T2;
+    gpr_map[ 9] = _T3;
+    gpr_map[10] = _T4;
+    gpr_map[11] = _T5;
+    gpr_map[12] = _T6;
+#  define FIRST_GPR_SAVE	13
+    gpr_map[13] = _S0;
+    gpr_map[14] = _S1;
+    gpr_map[15] = _S2;
+    gpr_map[16] = _S3;
+    gpr_map[17] = _S4;
+    gpr_map[18] = _S5;
+    gpr_map[19] = _S6;
+    gpr_map[20] = _S7;
+#  define NUM_GPR_REG		21
+
+    /* first fpr arg */
+    fpr_map[ 0] = _F12;
+    fpr_map[ 1] = _F14;
+#  define FIRST_FPR_REG		2
+    fpr_map[ 2] = _F0;
+    fpr_map[ 3] = _F2;
+    fpr_map[ 4] = _F4;
+    fpr_map[ 5] = _F6;
+    fpr_map[ 6] = _F8;
+    fpr_map[ 7] = _F10;
+    fpr_map[ 8] = _F12;
+    fpr_map[ 9] = _F14;
+#  define FIRST_FPR_SAVE	10
+    fpr_map[10] = _F16;
+    fpr_map[11] = _F18;
+    fpr_map[12] = _F20;
+    fpr_map[13] = _F22;
+    fpr_map[14] = _F24;
+    fpr_map[15] = _F26;
+    /* _F28-_F31 reserved for temporaries (FIXME and callee save, so,
+     * need to save them if generating code that uses them) */
+#  define NUM_FPR_REG		16
+#endif
 
     /* cause brach stack information to be initialized */
     inc_branch_stack(tok_none);
@@ -1432,7 +1524,7 @@ emit_address(expr_t *expr)
 		/* FIXME because it can be in a register... */
 		error(expr, "address of argument not supported");
 	    else if (symbol->loc)
-		ejit_addi_p(state, lval->u.ival, FRAME_POINTER,
+		ejit_addi_p(state, lval->u.ival, JIT_FP,
 			    (void *)(long)symbol->offset);
 	    else
 		ejit_movi_p(state, lval->u.ival,
@@ -3840,29 +3932,47 @@ emit_function(expr_t *expr)
     jump_t	*jump;
     ejit_node_t	*label;
     int		 offset;
+    symbol_t	*symbol;
     function_t	*function;
 
     /* prologue */
     /* FIXME need interface to insert instructions to save callee save
      * registers here */
     prolog_node =
-	ejit_subi_p(state, STACK_POINTER, STACK_POINTER, (void *)FRAMESIZE);
-    ejit_movr_p(state, FRAME_POINTER, STACK_POINTER);
+	ejit_subi_p(state, JIT_SP, JIT_SP, (void *)FRAMESIZE);
+    ejit_movr_p(state, JIT_FP, JIT_SP);
 
     inc_branch_stack(tok_function);
     function = expr->data._function.function;
     current = function->table;
     function->framesize = FRAMESIZE;
     current->offset = current->length = 0;
-    for (offset = 0; offset < current->count; offset++)
+    for (offset = 0; offset < current->count; offset++) {
 	/* FIXME need extra logic for local variables
 	 * declared in block scope */
-	variable(function, current->vector[offset]);
+	symbol = current->vector[offset];
+	variable(function, symbol);
+	if (symbol->reg) {
+	    switch (symbol->tag->type) {
+		case type_float:	case type_double:
+#if defined(__mips__)
+		    if (symbol->ireg)
+			symbol->offset = gpr_map[symbol->offset];
+		    else
+#endif
+		    symbol->offset = fpr_map[symbol->offset];
+		    break;
+		default:
+		    symbol->offset = gpr_map[symbol->offset];
+		    break;
+	    }
+	}
+    }
     current->length = current->offset & -DEFAULT_ALIGN;
     alloca_offset = alloca_length = -current->length;
 
     alloca_node =
-	ejit_subi_p(state, STACK_POINTER, STACK_POINTER, (void *)alloca_length);
+	ejit_subi_p(state, JIT_SP, JIT_SP, (void *)alloca_length);
 
     emit_stat(expr->data._function.body);
     dec_branch_stack(1);
@@ -3878,9 +3988,9 @@ emit_function(expr_t *expr)
      * no return statement */
 
     /* epilogue */
-    ejit_movr_i(state, STACK_POINTER, FRAME_POINTER);
+    ejit_movr_i(state, JIT_SP, JIT_FP);
     /* FIXME reload callee save registers */
-    ejit_addi_p(state, STACK_POINTER, STACK_POINTER, (void *)FRAMESIZE);
+    ejit_addi_p(state, JIT_SP, JIT_SP, (void *)FRAMESIZE);
     /* FIXME need only to emit the related ret instruction */
     ejit_leave(state);
     current = globals;
@@ -3990,9 +4100,9 @@ emit_load(expr_t *expr, value_t *value)
     else if (value->type & value_spill) {
 	regno = value->u.ival;
 	if (value_float_p(value))
-	    ejit_ldxi_d(state, value->disp, FRAME_POINTER, regno);
+	    ejit_ldxi_d(state, value->disp, JIT_FP, regno);
 	else
-	    ejit_ldxi_l(state, value->disp, FRAME_POINTER, regno);
+	    ejit_ldxi_l(state, value->disp, JIT_FP, regno);
 	value->type &= ~value_spill;
     }
 }
@@ -4100,47 +4210,47 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 	switch (symbol->tag->type) {
 	    case type_char:
 		value->type = value_itype;
-		ejit_ldxi_c(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_c(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_uchar:
 		value->type = value_utype;
-		ejit_ldxi_uc(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_uc(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_short:
 		value->type = value_itype;
-		ejit_ldxi_s(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_s(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_ushort:
 		value->type = value_utype;
-		ejit_ldxi_us(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_us(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_int:
 		value->type = value_itype;
-		ejit_ldxi_i(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_i(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_uint:
 		value->type = value_utype;
-		ejit_ldxi_ui(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_ui(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_long:
 		value->type = value_ltype;
-		ejit_ldxi_l(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_l(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_ulong:
 		value->type = value_ultype;
-		ejit_ldxi_ul(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_ul(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_float:
 		value->type = value_ftype;
-		ejit_ldxi_f(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_f(state, regno, JIT_FP, symbol->offset);
 		break;
 	    case type_double:
 		value->type = value_dtype;
-		ejit_ldxi_d(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_d(state, regno, JIT_FP, symbol->offset);
 		break;
 	    default:
 		value->type = value_ptype;
-		ejit_ldxi_p(state, regno, FRAME_POINTER, symbol->offset);
+		ejit_ldxi_p(state, regno, JIT_FP, symbol->offset);
 		break;
 	}
     }
@@ -4225,38 +4335,38 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
     else {
 	switch (symbol->tag->type) {
 	    case type_char:
-		ejit_stxi_c(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_c(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_uchar:
-		ejit_stxi_uc(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_uc(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_short:
-		ejit_stxi_s(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_s(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_ushort:
-		ejit_stxi_us(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_us(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_int:
-		ejit_stxi_i(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_i(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_uint:
-		ejit_stxi_ui(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_ui(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_long:
-		ejit_stxi_l(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_l(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_ulong:
-		ejit_stxi_ul(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_ul(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_float:
-		ejit_stxi_f(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_f(state, symbol->offset, JIT_FP, regno);
 		break;
 	    case type_double:
-		ejit_stxi_d(state, symbol->offset, FRAME_POINTER, regno);
+		ejit_stxi_d(state, symbol->offset, JIT_FP, regno);
 		break;
 	    default:
 		if (pointer_type_p(symbol->tag->type))
-		    ejit_stxi_p(state, symbol->offset, FRAME_POINTER, regno);
+		    ejit_stxi_p(state, symbol->offset, JIT_FP, regno);
 		else
 		    warn(expr, "struct copy not handled");
 		break;
@@ -4298,12 +4408,15 @@ static int
 get_register(int freg)
 {
     value_t	*entry;
-    int		 ient, fent, count, regno, size, offset;
+    int		 ient, fent, index, count, regno, size, offset;
 
     fent = freg ? 1 : 0;
-    count = fent ? fcount : icount;
-    for (regno = 0; regno < count; regno++) {
+    count = fent ? NUM_FPR_REG - FIRST_FPR_REG : NUM_GPR_REG - FIRST_GPR_REG;
+    for (index = 0; index < count; index++) {
 	offset = 0;
+	regno = fent ?
+	    fpr_map[FIRST_FPR_REG + index] :
+	    gpr_map[FIRST_GPR_REG + index];
 	entry = vstack.values;
 	for (; offset < vstack.offset; offset++, entry++) {
 	    if ((entry->type & value_regno) && entry->u.ival == regno) {
@@ -4315,7 +4428,7 @@ get_register(int freg)
 	}
 	/* register is free */
 	if (offset == vstack.offset)
-	    return (fent ? FIRST_FLOAT_REG + regno : FIRST_INT_REG + regno);
+	    return (regno);
     }
 
     /* no register found; spill first match */
@@ -4328,7 +4441,9 @@ get_register(int freg)
 		break;
 	}
     }
-    regno = offset;
+    regno = fent ?
+	fpr_map[FIRST_FPR_REG + offset] :
+	gpr_map[FIRST_GPR_REG + offset];
 
     size = fent ? sizeof(double) : sizeof(long);
     alloca_offset = (alloca_offset + size - 1) & -size;
@@ -4337,17 +4452,14 @@ get_register(int freg)
 	alloca_length = alloca_offset;
 	alloca_node->u.i = alloca_length;
     }
-    entry->disp = alloca_offset + FRAMESIZE;
-#if STACK_DIRECTION < 0
-    entry->disp -= alloca_length;
-#endif
+    entry->disp = -(alloca_offset + FRAMESIZE);
     entry->type |= value_spill;
     if (fent)
-	ejit_stxi_d(state, entry->disp, FRAME_POINTER, regno);
+	ejit_stxi_d(state, entry->disp, JIT_FP, regno);
     else
-	ejit_stxi_l(state, entry->disp, FRAME_POINTER, regno);
+	ejit_stxi_l(state, entry->disp, JIT_FP, regno);
 
-    return (fent ? FIRST_FLOAT_REG + regno : FIRST_INT_REG + regno);
+    return (regno);
 }
 
 static void

@@ -374,11 +374,12 @@ variable(function_t *function, symbol_t *symbol)
 		if (reg < 4) {
 		    if (!function->nextarg_i) {
 			if (reg != 0) {
-			    reg = 2;
+			    reg = 1;
 			    function->nextarg_i = 1;
-			    symbol->ireg = 1;
 			}
 		    }
+		    else
+			symbol->ireg = 1;
 		    symbol->reg = 1;
 		    symbol->offset = reg;
 		    function->framesize += sizeof(float);
@@ -405,6 +406,8 @@ variable(function_t *function, symbol_t *symbol)
 		    symbol->reg = 1;
 		    if (function->nextarg_i)
 			symbol->ireg = 1;
+		    else
+			reg >>= 1;
 		    symbol->offset = reg;
 		    function->framesize += sizeof(double);
 		    return;

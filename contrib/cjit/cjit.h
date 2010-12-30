@@ -495,7 +495,6 @@ emit(expr_t *expr);
  */
 extern parser_t		 parser;
 extern estack_t	 	 estack;
-extern expr_t		*ablock;
 extern expr_t		*ahead;
 extern hash_t		*strings;
 extern hash_t		*keywords;
