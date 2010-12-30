@@ -17,6 +17,12 @@
 
 #include "cjit.h"
 
+/*FIXME only the file actually calling lightning macros/functions should
+ * include lightning.h, and an interface exported to generate the intermediate
+ * representation. Something like an alternate prolog and new epilogue
+ * interface, as well as some abstraction to provide access to all registers
+ * as well as more information about them.
+ */
 #include "lightning.h"
 
 #define add_tjump(node)		add_jump(bstack.tjump + bstack.offset - 1, node)
@@ -247,21 +253,21 @@ init_emit(void)
 #  define NUM_GPR_REG		13
 
     /* first fpr arg */
-    gpr_map[ 0] = _XMM0;
-    gpr_map[ 1] = _XMM1;
-    gpr_map[ 2] = _XMM2;
-    gpr_map[ 3] = _XMM3;
-    gpr_map[ 4] = _XMM4;
-    gpr_map[ 5] = _XMM5;
-    gpr_map[ 6] = _XMM6;
-    gpr_map[ 7] = _XMM7;
+    fpr_map[ 0] = _XMM0;
+    fpr_map[ 1] = _XMM1;
+    fpr_map[ 2] = _XMM2;
+    fpr_map[ 3] = _XMM3;
+    fpr_map[ 4] = _XMM4;
+    fpr_map[ 5] = _XMM5;
+    fpr_map[ 6] = _XMM6;
+    fpr_map[ 7] = _XMM7;
 #  define FIRST_FPR_REG		8
-    gpr_map[ 8] = _XMM8;
-    gpr_map[ 9] = _XMM9;
-    gpr_map[10] = _XMM10;
-    gpr_map[11] = _XMM11;
-    gpr_map[12] = _XMM12;
-    gpr_map[13] = _XMM13;
+    fpr_map[ 8] = _XMM8;
+    fpr_map[ 9] = _XMM9;
+    fpr_map[10] = _XMM10;
+    fpr_map[11] = _XMM11;
+    fpr_map[12] = _XMM12;
+    fpr_map[13] = _XMM13;
 #  define NUM_FPR_REG		6
     /* _XMM14 and _XMM15 used by lightning as temporaries */    
 
@@ -304,18 +310,16 @@ init_emit(void)
     fpr_map[ 5] = _F6;
     fpr_map[ 6] = _F8;
     fpr_map[ 7] = _F10;
-    fpr_map[ 8] = _F12;
-    fpr_map[ 9] = _F14;
-#  define FIRST_FPR_SAVE	10
-    fpr_map[10] = _F16;
-    fpr_map[11] = _F18;
-    fpr_map[12] = _F20;
-    fpr_map[13] = _F22;
-    fpr_map[14] = _F24;
-    fpr_map[15] = _F26;
+#  define FIRST_FPR_SAVE	8
+    fpr_map[ 8] = _F16;
+    fpr_map[ 9] = _F18;
+    fpr_map[10] = _F20;
+    fpr_map[11] = _F22;
+    fpr_map[12] = _F24;
+    fpr_map[13] = _F26;
     /* _F28-_F31 reserved for temporaries (FIXME and callee save, so,
      * need to save them if generating code that uses them) */
-#  define NUM_FPR_REG		16
+#  define NUM_FPR_REG		14
 #endif
 
     /* cause brach stack information to be initialized */
@@ -3931,6 +3935,7 @@ emit_function(expr_t *expr)
 {
     jump_t	*jump;
     ejit_node_t	*label;
+    value_t	*value;
     int		 offset;
     symbol_t	*symbol;
     function_t	*function;
@@ -3953,29 +3958,70 @@ emit_function(expr_t *expr)
 	symbol = current->vector[offset];
 	variable(function, symbol);
 	if (symbol->reg) {
+	    value = get_value_stack();
 	    switch (symbol->tag->type) {
-		case type_float:	case type_double:
+		case type_float:
 #if defined(__mips__)
-		    if (symbol->ireg)
+		    if (symbol->ireg) {
+			value->type = value_itype;
 			symbol->offset = gpr_map[symbol->offset];
+		    }
 		    else
 #endif
-		    symbol->offset = fpr_map[symbol->offset];
+		    {
+			value->type = value_ftype;
+			symbol->offset = fpr_map[symbol->offset];
+		    }
+		    break;
+		case type_double:
+#if defined(__mips__)
+		    if (symbol->ireg) {
+			value->type = value_ltype;
+			symbol->offset = gpr_map[symbol->offset];
+		    }
+		    else
+#endif
+		    {
+			value->type = value_dtype;
+			symbol->offset = fpr_map[symbol->offset];
+		    }
+		    break;
+		case type_char:		case type_short:	case type_int:
+		    value->type = value_itype;
+		    symbol->offset = gpr_map[symbol->offset];
+		    break;
+		case type_uchar:	case type_ushort:	case type_uint:
+		    value->type = value_utype;
+		    symbol->offset = gpr_map[symbol->offset];
+		    break;
+		case type_long:
+		    value->type = value_ltype;
+		    symbol->offset = gpr_map[symbol->offset];
+		    break;
+		case type_ulong:
+		    value->type = value_ultype;
+		    symbol->offset = gpr_map[symbol->offset];
 		    break;
 		default:
+		    value->type = value_ptype;
 		    symbol->offset = gpr_map[symbol->offset];
 		    break;
 	    }
+	    value->u.ival = symbol->offset;
+	    value->type |= value_regno;
+	    inc_value_stack();
 	}
     }
     current->length = current->offset & -DEFAULT_ALIGN;
     alloca_offset = alloca_length = -current->length;
 
     alloca_node =
-	ejit_subi_p(state, JIT_SP, JIT_SP, (void *)alloca_length);
+	ejit_subi_p(state, JIT_SP, JIT_SP, (void *)(long)alloca_length);
 
     emit_stat(expr->data._function.body);
     dec_branch_stack(1);
+    vstack_reset(0);
+
     jump = bstack.fjump + bstack.offset;
     if (jump->offset) {
 	label = ejit_label(state);
