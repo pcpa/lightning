@@ -607,6 +607,16 @@
     ejit_fr_fr(st, code_extr_f_d, u, v)
 #define ejit_extr_d_f(st, u, v)						\
     ejit_fr_fr(st, code_extr_d_f, u, v)
+
+#define ejit_movr_i_f(st, u, v)						\
+    ejit_fr_ir(st, code_movr_i_f, u, v)
+#define ejit_movr_l_d(st, u, v)						\
+    ejit_fr_ir(st, code_movr_l_d, u, v)
+#define ejit_movr_f_i(st, u, v)						\
+    ejit_ir_fr(st, code_movr_f_i, u, v)
+#define ejit_movr_d_l(st, u, v)						\
+    ejit_ir_fr(st, code_movr_d_l, u, v)
+
 #define ejit_roundr_f_i(st, u, v)					\
     ejit_ir_fr(st, code_roundr_f_i, u, v)
 #define ejit_roundr_f_l(st, u, v)					\
@@ -869,28 +879,6 @@
     ejit_fr_n(st, code_getarg_f, u, v)
 #define ejit_getarg_d(st, u, v)						\
     ejit_fr_n(st, code_getarg_d, u, v)
-#define ejit_putarg_c(st, u, v)						\
-    ejit_n_ir(st, code_putarg_c, u, v)
-#define ejit_putarg_uc(st, u, v)					\
-    ejit_n_ir(st, code_putarg_uc, u, v)
-#define ejit_putarg_s(st, u, v)						\
-    ejit_n_ir(st, code_putarg_s, u, v)
-#define ejit_putarg_us(st, u, v)					\
-    ejit_n_ir(st, code_putarg_us, u, v)
-#define ejit_putarg_i(st, u, v)						\
-    ejit_n_ir(st, code_putarg_i, u, v)
-#define ejit_putarg_ui(st, u, v)					\
-    ejit_n_ir(st, code_putarg_ui, u, v)
-#define ejit_putarg_l(st, u, v)						\
-    ejit_n_ir(st, code_putarg_l, u, v)
-#define ejit_putarg_ul(st, u, v)					\
-    ejit_n_ir(st, code_putarg_ul, u, v)
-#define ejit_putarg_p(st, u, v)						\
-    ejit_n_ir(st, code_putarg_p, u, v)
-#define ejit_putarg_f(st, u, v)						\
-    ejit_n_ir(st, code_putarg_f, u, v)
-#define ejit_putarg_d(st, u, v)						\
-    ejit_n_ir(st, code_putarg_d, u, v)
 #define ejit_arg_c(st)							\
     ejit(st, code_arg_c)
 #define ejit_arg_uc(st)							\
@@ -1189,6 +1177,8 @@
     ejit_ir(st, code_jmpr, u)
 #define ejit_ret(st)							\
     ejit(st, code_ret)
+#define ejit_leave(st)							\
+    ejit(st, code_leave)
 #define ejit_prolog(st, u)						\
     ejit_i(st, code_prolog, u)
 #define ejit_prolog_f(st, u)						\
@@ -1464,6 +1454,12 @@ typedef enum {
     code_extr_l_d,
     code_extr_f_d,
     code_extr_d_f,
+
+    code_movr_i_f,
+    code_movr_l_d,
+    code_movr_f_i,
+    code_movr_d_l,
+
     code_roundr_f_i,
     code_roundr_f_l,
     code_roundr_d_i,
@@ -1595,17 +1591,6 @@ typedef enum {
     code_getarg_p,
     code_getarg_f,
     code_getarg_d,
-    code_putarg_c,		/* no mapping to lightning */
-    code_putarg_uc,		/* but intended to map use of arguments */
-    code_putarg_s,		/* as local variables */
-    code_putarg_us,
-    code_putarg_i,
-    code_putarg_ui,
-    code_putarg_l,
-    code_putarg_ul,
-    code_putarg_p,
-    code_putarg_f,
-    code_putarg_d,
     code_arg_c,
     code_arg_uc,
     code_arg_s,
@@ -1755,6 +1740,7 @@ typedef enum {
     code_jmpi,
     code_jmpr,
     code_ret,
+    code_leave,
     code_prolog,
     code_prolog_f,
     code_prolog_d,

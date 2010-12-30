@@ -628,6 +628,8 @@ ejit_optimize(ejit_state_t *s)
 	    case code_extr_i_f:		case code_extr_i_d:
 	    case code_extr_l_f:		case code_extr_l_d:
 	    case code_extr_f_d:		case code_extr_d_f:
+	    case code_movr_i_f:		case code_movr_l_d:
+	    case code_movr_f_i:		case code_movr_d_l:
 	    case code_roundr_f_i:	case code_roundr_f_l:
 	    case code_roundr_d_i:	case code_roundr_d_l:
 	    case code_truncr_f_i:	case code_truncr_f_l:
@@ -693,26 +695,18 @@ ejit_optimize(ejit_state_t *s)
 	    case code_getarg_i:		case code_getarg_ui:
 	    case code_getarg_l:		case code_getarg_ul:
 	    case code_getarg_p:		case code_getarg_f:
-	    case code_getarg_d:
-
-	    case code_putarg_c:		case code_putarg_uc:
-	    case code_putarg_s:		case code_putarg_us:
-	    case code_putarg_i:		case code_putarg_ui:
-	    case code_putarg_l:		case code_putarg_ul:
-	    case code_putarg_p:		case code_putarg_f:
-	    case code_putarg_d:
-
-	    case code_arg_c:		case code_arg_uc:
-	    case code_arg_s:		case code_arg_us:
-	    case code_arg_i:		case code_arg_ui:
-	    case code_arg_l:		case code_arg_ul:
-	    case code_arg_p:		case code_arg_f:
-	    case code_arg_d:		case code_retval_c:
-	    case code_retval_uc:	case code_retval_s:
-	    case code_retval_us:	case code_retval_i:
-	    case code_retval_ui:	case code_retval_l:
-	    case code_retval_ul:	case code_retval_p:
-	    case code_retval_f:		case code_retval_d:
+	    case code_getarg_d:		case code_arg_c:
+	    case code_arg_uc:		case code_arg_s:
+	    case code_arg_us:		case code_arg_i:
+	    case code_arg_ui:		case code_arg_l:
+	    case code_arg_ul:		case code_arg_p:
+	    case code_arg_f:		case code_arg_d:
+	    case code_retval_c:		case code_retval_uc:
+	    case code_retval_s:		case code_retval_us:
+	    case code_retval_i:		case code_retval_ui:
+	    case code_retval_l:		case code_retval_ul:
+	    case code_retval_p:		case code_retval_f:
+	    case code_retval_d:
 		p = c;
 		c = n;
 		break;
@@ -822,6 +816,7 @@ ejit_optimize(ejit_state_t *s)
 
 	    case code_jmpr:
 	    case code_ret:
+	    case code_leave:
 	    case code_prolog:
 	    case code_prolog_f:
 	    case code_prolog_d:
@@ -830,6 +825,8 @@ ejit_optimize(ejit_state_t *s)
 		p = c;
 		c = n;
 		break;
+	    default:
+		abort();
 	}
     }
 
@@ -1143,6 +1140,10 @@ ejit_print(ejit_state_t *s)
 	    case code_extr_l_d:		printf("extr_l_d");	goto i_i;
 	    case code_extr_f_d:		printf("extr_f_d");	goto i_i;
 	    case code_extr_d_f:		printf("extr_d_f");	goto i_i;
+	    case code_movr_i_f:		printf("movr_i_f");	goto i_i;
+	    case code_movr_l_d:		printf("movr_l_d");	goto i_i;
+	    case code_movr_f_i:		printf("movr_f_i");	goto i_i;
+	    case code_movr_d_l:		printf("movr_d_l");	goto i_i;
 	    case code_roundr_f_i:	printf("roundr_f_i");	goto i_i;
 	    case code_roundr_f_l:	printf("roundr_f_l");	goto i_i;
 	    case code_roundr_d_i:	printf("roundr_d_i");	goto i_i;
@@ -1274,17 +1275,6 @@ ejit_print(ejit_state_t *s)
 	    case code_getarg_p:		printf("getarg_p");	goto i_p;
 	    case code_getarg_f:		printf("getarg_f");	goto i_p;
 	    case code_getarg_d:		printf("getarg_d");	goto i_p;
-	    case code_putarg_c:		printf("putarg_c");	goto p_i;
-	    case code_putarg_uc:	printf("putarg_uc");	goto p_i;
-	    case code_putarg_s:		printf("putarg_s");	goto p_i;
-	    case code_putarg_us:	printf("putarg_us");	goto p_i;
-	    case code_putarg_i:		printf("putarg_i");	goto p_i;
-	    case code_putarg_ui:	printf("putarg_ui");	goto p_i;
-	    case code_putarg_l:		printf("putarg_l");	goto p_i;
-	    case code_putarg_ul:	printf("putarg_ul");	goto p_i;
-	    case code_putarg_p:		printf("putarg_p");	goto p_i;
-	    case code_putarg_f:		printf("putarg_f");	goto p_i;
-	    case code_putarg_d:		printf("putarg_d");	goto p_i;
 	    case code_arg_c:		printf("arg_c");	goto n;
 	    case code_arg_uc:		printf("arg_uc");	goto n;
 	    case code_arg_s:		printf("arg_s");	goto n;
@@ -1434,6 +1424,7 @@ ejit_print(ejit_state_t *s)
 	    case code_jmpi:		printf("jmpi");		goto p;
 	    case code_jmpr:		printf("jmpr");		goto i;
 	    case code_ret:		printf("ret");		break;;
+	    case code_leave:		printf("leave");	break;;
 	    case code_prolog:		printf("prolog");	goto i;
 	    case code_prolog_f:		printf("prolog_f");	goto i;
 	    case code_prolog_d:		printf("prolog_d");	goto i;

@@ -17,14 +17,26 @@
 
 #include "cjit.h"
 
-/* avoid complication of needing to patch nodes based on stack direction
- * and padding of frame pointer */
-#define STACK_DIRECTION		-1
-#define ALLOCA_OFFSET		 0
+#include "lightning.h"
+
+#if defined(__i386__)
+#  define FIRST_INT_REG		0
+#  define FIRST_FLOAT_REG	0
+#elif defined(__x86_64__)
+#  define FIRST_INT_REG		6
+#  define FIRST_FLOAT_REG	8
+#elif defined(__mips__)
+#  define FIRST_INT_REG		4
+#  define FIRST_FLOAT_REG	4
+#else
+#  define FIRST_INT_REG		6
+#  define FIRST_FLOAT_REG	6
+#endif
 
 /* FIXME this should be JIT_FP and may need to be a variable if the
  * the frame pointer register may change based on runtime constraints */
-#define FRAME_POINTER		 6
+#define FRAME_POINTER		(FIRST_INT_REG + 6)
+#define STACK_POINTER		(FIRST_INT_REG + 7)
 
 #define add_tjump(node)		add_jump(bstack.tjump + bstack.offset - 1, node)
 #define add_fjump(node)		add_jump(bstack.fjump + bstack.offset - 1, node)
@@ -200,6 +212,7 @@ static int		 icount;
 static int		 alloca_offset;
 static int		 alloca_length;
 static ejit_node_t	*alloca_node;
+static ejit_node_t	*prolog_node;
 static branch_t		 bstack;
 
 /*
@@ -248,12 +261,9 @@ emit_expr(expr_t *expr)
     symbol_t	*symbol;
     function_t	*function;
 
-    /* FIXME assume branch instructions will check arguments, to generate
-     * proper conditional branches, but should work either way */
     switch (expr->token) {
 	case tok_int:
 	    value = get_value_stack();
-	    value->disp = 0;
 #if __WORDSIZE == 32
 	    value->type = value_itype;
 	    value->u.ival = expr->data._unary.i;
@@ -273,13 +283,11 @@ emit_expr(expr_t *expr)
 	case tok_float:
 	    value = get_value_stack();
 	    value->type = value_dtype;
-	    value->disp = 0;
 	    value->u.dval = expr->data._unary.d;
 	    inc_value_stack();
 	    return (double_tag);
 	case tok_symbol:
 	    value = get_value_stack();
-	    value->disp = 0;
 	    inc_value_stack();
 	    symbol = get_symbol(expr->data._unary.cp);
 	    if (symbol) {
@@ -1303,7 +1311,6 @@ emit_not(expr_t *expr)
 	case type_float:
 	    fval = get_value_stack();
 	    fval->type = value_ftype;
-	    fval->disp = 0;
 	    fval->u.fval = 0.0;
 	    inc_value_stack();
 	    emit_load(expr, fval);
@@ -1315,7 +1322,6 @@ emit_not(expr_t *expr)
 	case type_double:
 	    fval = get_value_stack();
 	    fval->type = value_dtype;
-	    fval->disp = 0;
 	    fval->u.dval = 0.0;
 	    inc_value_stack();
 	    emit_load(expr, fval);
@@ -3831,77 +3837,33 @@ emit_default(expr_t *expr)
 static tag_t *
 emit_function(expr_t *expr)
 {
-    expr_t	*list;
     jump_t	*jump;
     ejit_node_t	*label;
     int		 offset;
-    symbol_t	*symbol;
-    int		 num_int, num_float, num_double;
+    function_t	*function;
+
+    /* prologue */
+    /* FIXME need interface to insert instructions to save callee save
+     * registers here */
+    prolog_node =
+	ejit_subi_p(state, STACK_POINTER, STACK_POINTER, (void *)FRAMESIZE);
+    ejit_movr_p(state, FRAME_POINTER, STACK_POINTER);
 
     inc_branch_stack(tok_function);
-    current = expr->data._function.function->table;
-    alloca_offset = alloca_length = current->length;
-    offset = num_int = num_float = num_double = 0;
-    for (; offset < current->count; offset++) {
-	symbol = current->vector[offset];
-	if (!symbol->arg)
-	    break;
-	switch (symbol->tag->type) {
-	    case type_float:
-		++num_float;
-		break;
-	    case type_double:
-		++num_double;
-		break;
-	    default:
-		++num_int;
-		break;
-	}
-    }
-    ejit_prolog(state, num_int);
-    if (num_float)
-	ejit_prolog_f(state, num_float);
-    if (num_double)
-	ejit_prolog_d(state, num_double);
+    function = expr->data._function.function;
+    current = function->table;
+    function->framesize = FRAMESIZE;
+    current->offset = current->length = 0;
+    for (offset = 0; offset < current->count; offset++)
+	/* FIXME need extra logic for local variables
+	 * declared in block scope */
+	variable(function, current->vector[offset]);
+    current->length = current->offset & -DEFAULT_ALIGN;
+    alloca_offset = alloca_length = -current->length;
 
-    list = expr->data._function.call->data._binary.rvalue;
-    for (offset = 0; offset < current->count; offset++) {
-	symbol = current->vector[offset];
-	if (!symbol->arg)
-	    break;
-	switch (symbol->tag->type) {
-	    case type_char:	symbol->jit = ejit_arg_c(state);	break;
-	    case type_uchar:	symbol->jit = ejit_arg_uc(state);	break;
-	    case type_short:	symbol->jit = ejit_arg_s(state);	break;
-	    case type_ushort:	symbol->jit = ejit_arg_us(state);	break;
-	    case type_int:	symbol->jit = ejit_arg_i(state);	break;
-	    case type_uint:	symbol->jit = ejit_arg_ui(state);	break;
-	    case type_long:	symbol->jit = ejit_arg_l(state);	break;
-	    case type_ulong:	symbol->jit = ejit_arg_ul(state);	break;
-	    case type_float:	symbol->jit = ejit_arg_f(state);	break;
-	    case type_double:	symbol->jit = ejit_arg_d(state);	break;
-	    default:		symbol->jit = ejit_arg_p(state);	break;
-	}
-	list = list->next;
-    }
-    alloca_node = ejit_allocai(state, current->length);
-    if (offset < current->count) {
-#if STACK_DIRECTION < 0
-	symbol->offset = (symbol->offset + ALLOCA_OFFSET) - current->length;
-#elif ALLOCA_OFFSET
-	symbol->offset += ALLOCA_OFFSET;
-#endif
-	symbol->jit = alloca_node;
-	for (++offset; offset < current->count; offset++) {
-	    symbol = current->vector[offset];
-#if STACK_DIRECTION < 0
-	    symbol->offset = (symbol->offset + ALLOCA_OFFSET) - current->length;
-#elif ALLOCA_OFFSET
-	    symbol->offset += ALLOCA_OFFSET;
-#endif
-	    symbol->jit = alloca_node;
-	}
-    }
+    alloca_node =
+	ejit_subi_p(state, STACK_POINTER, STACK_POINTER, (void *)alloca_length);
+
     emit_stat(expr->data._function.body);
     dec_branch_stack(1);
     jump = bstack.fjump + bstack.offset;
@@ -3914,7 +3876,13 @@ emit_function(expr_t *expr)
     /* else need to know if flow reaches here when the function must
      * return a value, and trigger an error in that case if there is
      * no return statement */
-    ejit_ret(state);
+
+    /* epilogue */
+    ejit_movr_i(state, STACK_POINTER, FRAME_POINTER);
+    /* FIXME reload callee save registers */
+    ejit_addi_p(state, STACK_POINTER, STACK_POINTER, (void *)FRAMESIZE);
+    /* FIXME need only to emit the related ret instruction */
+    ejit_leave(state);
     current = globals;
 
     return (void_tag);
@@ -4037,103 +4005,49 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 
     regno = get_register(symbol->tag->type == type_float ||
 			 symbol->tag->type == type_double);
-    if (symbol->arg) {
+    if (symbol->reg) {
 	switch (symbol->tag->type) {
-	    case type_char:
+	    case type_char:	case type_short:	case type_int:
 		value->type = value_itype;
-		ejit_getarg_c(state, regno, symbol->jit);
+		ejit_movr_i(state, regno, symbol->offset);
 		break;
-	    case type_uchar:
+	    case type_uchar:	case type_ushort:	case type_uint:
 		value->type = value_utype;
-		ejit_getarg_uc(state, regno, symbol->jit);
-		break;
-	    case type_short:
-		value->type = value_itype;
-		ejit_getarg_s(state, regno, symbol->jit);
-		break;
-	    case type_ushort:
-		value->type = value_utype;
-		ejit_getarg_us(state, regno, symbol->jit);
-		break;
-	    case type_int:
-		value->type = value_itype;
-		ejit_getarg_i(state, regno, symbol->jit);
-		break;
-	    case type_uint:
-		value->type = value_utype;
-		ejit_getarg_ui(state, regno, symbol->jit);
+		ejit_movr_ui(state, regno, symbol->offset);
 		break;
 	    case type_long:
 		value->type = value_ltype;
-		ejit_getarg_l(state, regno, symbol->jit);
+		ejit_movr_l(state, regno, symbol->offset);
 		break;
 	    case type_ulong:
 		value->type = value_ultype;
-		ejit_getarg_ul(state, regno, symbol->jit);
+		ejit_movr_ul(state, regno, symbol->offset);
 		break;
 	    case type_float:
 		value->type = value_ftype;
-		ejit_getarg_f(state, regno, symbol->jit);
+#if defined(__mips__)
+		if (symbol->ireg)
+		    ejit_movr_i_f(state, regno, symbol->offset);
+		else
+#endif
+		    ejit_movr_f(state, regno, symbol->offset);
 		break;
 	    case type_double:
 		value->type = value_dtype;
-		ejit_getarg_d(state, regno, symbol->jit);
+#if defined(__mips__)
+		if (symbol->ireg)
+		    ejit_movr_l_d(state, regno, symbol->offset);
+		else
+#endif
+		    ejit_movr_d(state, regno, symbol->offset);
 		break;
 	    default:
 		value->type = value_ptype;
-		ejit_getarg_p(state, regno, symbol->jit);
+		ejit_movr_p(state, regno, symbol->offset);
 		break;
 	}
     }
-    else if (symbol->loc) {
-	switch (symbol->tag->type) {
-	    case type_char:
-		value->type = value_itype;
-		ejit_ldxi_c(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_uchar:
-		value->type = value_utype;
-		ejit_ldxi_uc(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_short:
-		value->type = value_itype;
-		ejit_ldxi_s(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_ushort:
-		value->type = value_utype;
-		ejit_ldxi_us(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_int:
-		value->type = value_itype;
-		ejit_ldxi_i(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_uint:
-		value->type = value_utype;
-		ejit_ldxi_ui(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_long:
-		value->type = value_ltype;
-		ejit_ldxi_l(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_ulong:
-		value->type = value_ultype;
-		ejit_ldxi_ul(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_float:
-		value->type = value_ftype;
-		ejit_ldxi_f(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    case type_double:
-		value->type = value_dtype;
-		ejit_ldxi_d(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	    default:
-		value->type = value_ptype;
-		ejit_ldxi_p(state, regno, FRAME_POINTER, symbol->offset);
-		break;
-	}
-    }
-    else {
+    else if (symbol->glb) {
 	pointer = (char *)the_data + symbol->offset;
 	switch (symbol->tag->type) {
 	    case type_char:
@@ -4182,6 +4096,54 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		break;
 	}
     }
+    else {
+	switch (symbol->tag->type) {
+	    case type_char:
+		value->type = value_itype;
+		ejit_ldxi_c(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_uchar:
+		value->type = value_utype;
+		ejit_ldxi_uc(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_short:
+		value->type = value_itype;
+		ejit_ldxi_s(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_ushort:
+		value->type = value_utype;
+		ejit_ldxi_us(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_int:
+		value->type = value_itype;
+		ejit_ldxi_i(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_uint:
+		value->type = value_utype;
+		ejit_ldxi_ui(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_long:
+		value->type = value_ltype;
+		ejit_ldxi_l(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_ulong:
+		value->type = value_ultype;
+		ejit_ldxi_ul(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_float:
+		value->type = value_ftype;
+		ejit_ldxi_f(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    case type_double:
+		value->type = value_dtype;
+		ejit_ldxi_d(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	    default:
+		value->type = value_ptype;
+		ejit_ldxi_p(state, regno, FRAME_POINTER, symbol->offset);
+		break;
+	}
+    }
     value->type |= value_regno;
     value->u.ival = regno;
 }
@@ -4194,36 +4156,73 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 
     assert((value->type & (value_regno | value_spill)) == value_regno);
     regno = value->u.ival;
-    if (symbol->arg) {
+    if (symbol->reg) {
 	switch (symbol->tag->type) {
-	    case type_char:	ejit_putarg_c(state, symbol->jit, regno);
+	    case type_char:	case type_short:	case type_int:
+		ejit_movr_i(state, symbol->offset, regno);
 		break;
-	    case type_uchar:	ejit_putarg_uc(state, symbol->jit, regno);
+	    case type_uchar:	case type_ushort:	case type_uint:
+		ejit_movr_ui(state, symbol->offset, regno);
 		break;
-	    case type_short:	ejit_putarg_s(state, symbol->jit, regno);
+	    case type_long:
+		ejit_movr_l(state, symbol->offset, regno);
 		break;
-	    case type_ushort:	ejit_putarg_us(state, symbol->jit, regno);
+	    case type_ulong:
+		ejit_movr_ul(state, symbol->offset, regno);
 		break;
-	    case type_int:	ejit_putarg_i(state, symbol->jit, regno);
+	    case type_float:
+#if defined(__mips__)
+		if (symbol->ireg)
+		    ejit_movr_f_i(state, symbol->offset, regno);
+		else
+#endif
+		    ejit_movr_f(state, symbol->offset, regno);
 		break;
-	    case type_uint:	ejit_putarg_ui(state, symbol->jit, regno);
-		break;
-	    case type_long:	ejit_putarg_l(state, symbol->jit, regno);
-		break;
-	    case type_ulong:	ejit_putarg_ul(state, symbol->jit, regno);
-		break;
-	    case type_float:	ejit_putarg_f(state, symbol->jit, regno);
-		break;
-	    case type_double:	ejit_putarg_d(state, symbol->jit, regno);
+	    case type_double:
+#if defined(__mips__)
+		if (symbol->ireg)
+		    ejit_movr_d_l(state, symbol->offset, regno);
+		else
+#endif
+		    ejit_movr_d(state, symbol->offset, regno);
 		break;
 	    default:
-		/* struct argument by value not supported */
-		assert(pointer_type_p(symbol->tag->type));
-		ejit_putarg_p(state, symbol->jit, regno);
+		ejit_movr_p(state, symbol->offset, regno);
 		break;
 	}
     }
-    else if (symbol->loc) {
+    else if (symbol->glb) {
+	pointer = (char *)the_data + symbol->offset;
+	switch (symbol->tag->type) {
+	    case type_char:	ejit_sti_c(state, pointer, regno);
+		break;
+	    case type_uchar:	ejit_sti_uc(state, pointer, regno);
+		break;
+	    case type_short:	ejit_sti_s(state, pointer, regno);
+		break;
+	    case type_ushort:	ejit_sti_us(state, pointer, regno);
+		break;
+	    case type_int:	ejit_sti_i(state, pointer, regno);
+		break;
+	    case type_uint:	ejit_sti_ui(state, pointer, regno);
+		break;
+	    case type_long:	ejit_sti_l(state, pointer, regno);
+		break;
+	    case type_ulong:	ejit_sti_ul(state, pointer, regno);
+		break;
+	    case type_float:	ejit_sti_f(state, pointer, regno);
+		break;
+	    case type_double:	ejit_sti_d(state, pointer, regno);
+		break;
+	    default:
+		if (pointer_type_p(symbol->tag->type))
+		    ejit_sti_p(state, pointer, regno);
+		else
+		    warn(expr, "struct copy not handled");
+		break;
+	}
+    }
+    else {
 	switch (symbol->tag->type) {
 	    case type_char:
 		ejit_stxi_c(state, symbol->offset, FRAME_POINTER, regno);
@@ -4258,37 +4257,6 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 	    default:
 		if (pointer_type_p(symbol->tag->type))
 		    ejit_stxi_p(state, symbol->offset, FRAME_POINTER, regno);
-		else
-		    warn(expr, "struct copy not handled");
-		break;
-	}
-    }
-    else {
-	pointer = (char *)the_data + symbol->offset;
-	switch (symbol->tag->type) {
-	    case type_char:	ejit_sti_c(state, pointer, regno);
-		break;
-	    case type_uchar:	ejit_sti_uc(state, pointer, regno);
-		break;
-	    case type_short:	ejit_sti_s(state, pointer, regno);
-		break;
-	    case type_ushort:	ejit_sti_us(state, pointer, regno);
-		break;
-	    case type_int:	ejit_sti_i(state, pointer, regno);
-		break;
-	    case type_uint:	ejit_sti_ui(state, pointer, regno);
-		break;
-	    case type_long:	ejit_sti_l(state, pointer, regno);
-		break;
-	    case type_ulong:	ejit_sti_ul(state, pointer, regno);
-		break;
-	    case type_float:	ejit_sti_f(state, pointer, regno);
-		break;
-	    case type_double:	ejit_sti_d(state, pointer, regno);
-		break;
-	    default:
-		if (pointer_type_p(symbol->tag->type))
-		    ejit_sti_p(state, pointer, regno);
 		else
 		    warn(expr, "struct copy not handled");
 		break;
@@ -4347,7 +4315,7 @@ get_register(int freg)
 	}
 	/* register is free */
 	if (offset == vstack.offset)
-	    return (regno);
+	    return (fent ? FIRST_FLOAT_REG + regno : FIRST_INT_REG + regno);
     }
 
     /* no register found; spill first match */
@@ -4369,10 +4337,9 @@ get_register(int freg)
 	alloca_length = alloca_offset;
 	alloca_node->u.i = alloca_length;
     }
+    entry->disp = alloca_offset + FRAMESIZE;
 #if STACK_DIRECTION < 0
-    entry->disp = (alloca_offset + ALLOCA_OFFSET) - alloca_length;
-#elif ALLOCA_OFFSET
-    entry->disp += ALLOCA_OFFSET;
+    entry->disp -= alloca_length;
 #endif
     entry->type |= value_spill;
     if (fent)
@@ -4380,7 +4347,7 @@ get_register(int freg)
     else
 	ejit_stxi_l(state, entry->disp, FRAME_POINTER, regno);
 
-    return (regno);
+    return (fent ? FIRST_FLOAT_REG + regno : FIRST_INT_REG + regno);
 }
 
 static void

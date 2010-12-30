@@ -306,7 +306,11 @@ new_symbol(record_t *record, tag_t *tag, char *name)
     symbol->tag = tag;
     symbol->type = tag->type;
     symbol->table = record;
-    symbol->arg = symbol->loc = symbol->glb = symbol->fld = 0;
+    symbol->arg = symbol->loc = symbol->glb = symbol->fld =
+	symbol->reg = symbol->mem = 0;
+#if defined(__mips__)
+    symbol->ireg = 0;
+#endif
 
     if (type->length == 0 && tag->type != (type_pointer | type_void))
 	/* open type declaration */
@@ -346,6 +350,113 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 				      sizeof(symbol_t *) * record->count);
 
     return (record->vector[record->count - 1] = symbol);
+}
+
+void
+variable(function_t *function, symbol_t *symbol)
+{
+#if defined(__mips__)
+    int		 reg;
+#endif
+    record_t	*record;
+
+    if (symbol->arg && !symbol->mem) {
+	switch (symbol->tag->type) {
+	    case type_float:
+#if defined(__x86_64__)
+		if (function->nextarg_f < 8) {
+		    symbol->reg = 1;
+		    symbol->offset = function->nextarg_f++;
+		    return;
+		}
+#elif defined(__mips__)
+		reg = (function.framesize - FRAMESIZE) >> 2;
+		if (reg < 4) {
+		    if (!function->nextarg_i) {
+			if (reg != 0) {
+			    reg = 2;
+			    function->nextarg_i = 1;
+			    symbol->ireg = 1;
+			}
+		    }
+		    symbol->reg = 1;
+		    symbol->offset = reg;
+		    function->framesize += sizeof(float);
+		    return;
+		}
+#endif
+		symbol->offset = function->framesize;
+		function->framesize += sizeof(long);
+		return;
+	    case type_double:
+#if defined(__x86_64__)
+		if (function->nextarg_f < 8) {
+		    symbol->reg = 1;
+		    symbol->offset = function->nextarg_f++;
+		    return;
+		}
+#elif defined(__mips__)
+		if (function->framesize & 7) {
+		    function.framesize += 4;
+		    function->nextarg_i = 1;
+		}
+		reg = (function.framesize - FRAMESIZE) >> 2;
+		if (reg < 4) {
+		    symbol->reg = 1;
+		    if (function->nextarg_i)
+			symbol->ireg = 1;
+		    symbol->offset = reg;
+		    function->framesize += sizeof(double);
+		    return;
+		}
+#endif
+		symbol->offset = function->framesize;
+		function->framesize += sizeof(double);
+		return;
+	    default:
+#if defined(__x86_64__)
+		if (function->nextarg_i < 6) {
+		    symbol->reg = 1;
+		    symbol->offset = function->nextarg_i++;
+		    return;
+		}
+#elif defined(__mips__)
+		reg = (function.framesize - FRAMESIZE) >> 2;
+		if (reg < 4) {
+		    symbol->reg = symbol->ireg = 1;
+		    function->nextarg_i = 1;
+		    symbol->offset = reg;
+		    function->framesize += sizeof(long);
+		    return;
+		}
+#endif
+		symbol->offset = function->framesize;
+		function->framesize += sizeof(long);
+		return;
+	}
+    }
+
+    record = function->table;
+    switch (symbol->tag->size) {
+	case 1:
+	    symbol->offset = record->offset - 1;
+	    break;
+	case 2:
+	    symbol->offset = (record->offset - 2) & -2;
+	    break;
+	case 4:
+	    symbol->offset = (record->offset - 4) & -4;
+	    break;
+	default:
+	    if (record->type == type_double)
+		symbol->offset = (record->offset - DOUBLE_ALIGN) &
+				  -DOUBLE_ALIGN;
+	    else
+		symbol->offset = (record->offset + DEFAULT_ALIGN) &
+				  -DEFAULT_ALIGN;
+	    break;
+    }
+    record->offset = symbol->offset - symbol->tag->size;
 }
 
 static tag_t *

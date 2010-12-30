@@ -57,6 +57,7 @@ eval(expr_t *expr)
     int		 test;
     expr_t	*prev;
     expr_t	*temp;
+    symbol_t	*symbol;
 
     switch (expr->token) {
 	case tok_set:		case tok_andset:
@@ -87,9 +88,22 @@ eval(expr_t *expr)
 	    break;
 	case tok_inc:		case tok_dec:
 	case tok_postinc:	case tok_postdec:
-	case tok_pointer:	case tok_address:
-	case tok_elemref:	case tok_fieldref:
+	case tok_pointer:	case tok_elemref:
+	case tok_fieldref:
 	    eval(expr->data._unary.expr);
+	    break;
+	case tok_address:
+	    eval(expr->data._unary.expr);
+	    /* Remember address was taken, and only useful if argument
+	     * is a register, otherwise, unused information */
+	    /* FIXME if a symbol is declared as register, this should
+	     * be an error, but register keyword not yet implemented */
+	    temp = expr->data._unary.expr;
+	    if (temp->token == tok_symbol) {
+		symbol = get_symbol(temp->data._unary.cp);
+		if (symbol && symbol->arg)
+		    symbol->mem = 1;
+	    }
 	    break;
 	case tok_plus:		case tok_neg:
 	case tok_not:		case tok_com:

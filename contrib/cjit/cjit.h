@@ -26,6 +26,18 @@
 
 #include "thunder.h"
 
+#if defined(__i386__)
+#  define FRAMESIZE		 20
+#elif defined(__x86_64__)
+#  define FRAMESIZE		 48
+#elif defined(__mips__)
+#  define FRAMESIZE		 56
+#else
+/* For the current code, and here should be where a bytecode interpreter
+ * fallback would be useful. Also, mips64 is untested. */
+#  error "unsupported architecture"
+#endif
+
 #if defined(__GNUC__)
 #  define noreturn		__attribute__ ((noreturn))
 #  define printf_format(f, v)	__attribute__ ((format (printf, f, v)))
@@ -43,13 +55,6 @@
 #define hash_pointer		1
 #define hash_integer		2
 
-/* FIXME may need to align at 8 bytes on mips; actually, known issue
- * on the current mips ligthning port, but need it as an option as
- * gcc, and probably the 32 bit mips abi, require load/store of
- * double aligned at 4 bytes, what requires 2 opcodes and possible
- * displacement adjust, like is done for argument passing, that,
- * besides not requiring 2 opcodes, may need to generate it if
- * passing a double argument in a pair of integer registers */
 #define DOUBLE_ALIGN		(__WORDSIZE >> 3)
 #define DEFAULT_ALIGN		(__WORDSIZE >> 3)
 
@@ -221,11 +226,15 @@ struct symbol {
     int			 type;
     int			 offset;
     record_t		*table;
-    void		*jit;
-    unsigned int	 arg	: 1;
-    unsigned int	 loc	: 1;
-    unsigned int	 glb	: 1;
-    unsigned int	 fld	: 1;
+    unsigned int	 arg	: 1;	/* argument variable */
+    unsigned int	 loc	: 1;	/* local variable */
+    unsigned int	 glb	: 1;	/* global variable */
+    unsigned int	 fld	: 1;	/* struct/union field */
+    unsigned int	 reg	: 1;	/* register variable */
+    unsigned int	 mem	: 1;	/* force memory if would use register */
+#if defined(__mips__)
+    unsigned int	 ireg	: 1;
+#endif
 };
 
 struct function {
@@ -234,6 +243,13 @@ struct function {
     tag_t		*tag;
     expr_t		*expr;
     record_t		*table;
+#if defined(__x86_64__)
+    int			 nextarg_i;
+    int			 nextarg_f;
+#elif defined(__mips__)
+    int			 nextarg_i;
+#endif
+    int			 framesize;
 };
 
 union data {
@@ -440,6 +456,9 @@ get_symbol_lvalue(expr_t *expr);
 
 extern symbol_t *
 new_symbol(record_t *record, tag_t *tag, char *name);
+
+extern void
+variable(function_t *function, symbol_t *symbol);
 
 extern void
 init_parser(void);
