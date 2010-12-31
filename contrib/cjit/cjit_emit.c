@@ -189,7 +189,6 @@ static vstack_t		 vstack;
 static int		 alloca_offset;
 static int		 alloca_length;
 static ejit_node_t	*alloca_node;
-static ejit_node_t	*prolog_node;
 static branch_t		 bstack;
 
 /*
@@ -3820,23 +3819,17 @@ emit_function(expr_t *expr)
     symbol_t	*symbol;
     function_t	*function;
 
-    /* prologue */
-    /* FIXME need interface to insert instructions to save callee save
-     * registers here */
-    prolog_node =
-	ejit_subi_p(state, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
-    ejit_movr_p(state, EJIT_FP, EJIT_SP);
+    ejit_prolog(state);
 
     inc_branch_stack(tok_function);
     function = expr->data._function.function;
     current = function->table;
-    function->framesize = EJIT_FRAMESIZE;
     current->offset = current->length = 0;
     for (offset = 0; offset < current->count; offset++) {
 	/* FIXME need extra logic for local variables
 	 * declared in block scope */
 	symbol = current->vector[offset];
-	variable(function, symbol);
+	variable(state, symbol);
 	if (symbol->reg) {
 	    value = get_value_stack();
 	    switch (symbol->tag->type) {
@@ -3898,12 +3891,7 @@ emit_function(expr_t *expr)
      * return a value, and trigger an error in that case if there is
      * no return statement */
 
-    /* epilogue */
-    ejit_movr_i(state, EJIT_SP, EJIT_FP);
-    /* FIXME reload callee save registers */
-    ejit_addi_p(state, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
-    /* FIXME need only to emit the related ret instruction */
-    ejit_leave(state);
+    ejit_epilog(state);
     current = globals;
 
     return (void_tag);
@@ -4046,20 +4034,16 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		break;
 	    case type_float:
 		value->type = value_ftype;
-#if defined(__mips__)
-		if (symbol->ireg)
+		if (!symbol->regptr->isflt)
 		    ejit_movr_i_f(state, regno, symbol->offset);
 		else
-#endif
 		    ejit_movr_f(state, regno, symbol->offset);
 		break;
 	    case type_double:
 		value->type = value_dtype;
-#if defined(__mips__)
-		if (symbol->ireg)
+		if (!symbol->regptr->isflt)
 		    ejit_movr_l_d(state, regno, symbol->offset);
 		else
-#endif
 		    ejit_movr_d(state, regno, symbol->offset);
 		break;
 	    default:
@@ -4192,19 +4176,15 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		ejit_movr_ul(state, symbol->offset, regno);
 		break;
 	    case type_float:
-#if defined(__mips__)
-		if (symbol->ireg)
+		if (!symbol->regptr->isflt)
 		    ejit_movr_f_i(state, symbol->offset, regno);
 		else
-#endif
 		    ejit_movr_f(state, symbol->offset, regno);
 		break;
 	    case type_double:
-#if defined(__mips__)
-		if (symbol->ireg)
+		if (!symbol->regptr->isflt)
 		    ejit_movr_d_l(state, symbol->offset, regno);
 		else
-#endif
 		    ejit_movr_d(state, symbol->offset, regno);
 		break;
 	    default:
@@ -4306,11 +4286,6 @@ inc_value_stack(void)
 static void
 dec_value_stack(int count)
 {
-    value_t	*value;
-
-    /* FIXME if releasing registers, may need to update alloca_offset */
-
-    value = vstack.values + vstack.offset;
     vstack.offset -= count;
     assert(count > 0 && vstack.offset >= 0);
 }

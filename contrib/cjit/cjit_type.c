@@ -353,119 +353,43 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 }
 
 void
-variable(function_t *function, symbol_t *symbol)
+variable(ejit_state_t *state, symbol_t *symbol)
 {
-#if defined(__mips__)
-    int		 reg;
-#endif
-    record_t	*record;
-
-    if (symbol->arg && !symbol->mem) {
+    if (symbol->arg) {
 	switch (symbol->tag->type) {
 	    case type_float:
-#if defined(__x86_64__)
-		if (function->nextarg_f < 8) {
-		    symbol->reg = 1;
-		    symbol->offset = EJIT_OFS_FPR_ARGS + function->nextarg_f++;
-		    return;
-		}
-#elif defined(__mips__)
-		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
-		if (reg < 4) {
-		    if (!function->nextarg_i) {
-			if (reg != 0) {
-			    reg = 1;
-			    function->nextarg_i = 1;
-			}
-		    }
-		    else
-			symbol->ireg = 1;
-		    symbol->reg = 1;
-		    if (symbol->ireg)
-			symbol->offset = EJIT_OFS_GPR_ARGS + reg;
-		    else
-			symbol->offset = EJIT_OFS_FPR_ARGS + reg;
-		    function->framesize += sizeof(float);
-		    return;
-		}
-#endif
-		symbol->offset = function->framesize;
-		function->framesize += sizeof(long);
-		return;
+		symbol->offset = ejit_arg_f(state, &symbol->regptr);
+		break;
 	    case type_double:
-#if defined(__x86_64__)
-		if (function->nextarg_f < 8) {
-		    symbol->reg = 1;
-		    symbol->offset = EJIT_OFS_FPR_ARGS + function->nextarg_f++;
-		    return;
-		}
-#elif defined(__mips__)
-		if (function->framesize & 7) {
-		    function.framesize += 4;
-		    function->nextarg_i = 1;
-		}
-		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
-		if (reg < 4) {
-		    symbol->reg = 1;
-		    if (function->nextarg_i)
-			symbol->ireg = 1;
-		    else
-			reg >>= 1;
-		    if (symbol->ireg)
-			symbol->offset = EJIT_OFS_GPR_ARGS + reg;
-		    else
-			symbol->offset = EJIT_OFS_FPR_ARGS + reg;
-		    function->framesize += sizeof(double);
-		    return;
-		}
-#endif
-		symbol->offset = function->framesize;
-		function->framesize += sizeof(double);
-		return;
+		symbol->offset = ejit_arg_d(state, &symbol->regptr);
+		break;
 	    default:
-#if defined(__x86_64__)
-		if (function->nextarg_i < 6) {
-		    symbol->reg = 1;
-		    symbol->offset = EJIT_OFS_GPR_ARGS + function->nextarg_i++;
-		    return;
-		}
-#elif defined(__mips__)
-		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
-		if (reg < 4) {
-		    symbol->reg = symbol->ireg = 1;
-		    function->nextarg_i = 1;
-		    symbol->offset = EJIT_OFS_GPR_ARGS + reg;
-		    function->framesize += sizeof(long);
-		    return;
-		}
-#endif
-		symbol->offset = function->framesize;
-		function->framesize += sizeof(long);
-		return;
+		symbol->offset = ejit_arg_i(state, &symbol->regptr);
+		break;
 	}
+	if (!symbol->mem)
+	    return;
     }
-
-    record = function->table;
     switch (symbol->tag->size) {
 	case 1:
-	    symbol->offset = record->offset - 1;
+	    symbol->offset = current->offset - 1;
 	    break;
 	case 2:
-	    symbol->offset = (record->offset - 2) & -2;
+	    symbol->offset = (current->offset - 2) & -2;
 	    break;
 	case 4:
-	    symbol->offset = (record->offset - 4) & -4;
+	    symbol->offset = (current->offset - 4) & -4;
 	    break;
 	default:
-	    if (record->type == type_double)
-		symbol->offset = (record->offset - DOUBLE_ALIGN) &
+	    if (symbol->type == type_double)
+		symbol->offset = (current->offset - DOUBLE_ALIGN) &
 				  -DOUBLE_ALIGN;
 	    else
-		symbol->offset = (record->offset + DEFAULT_ALIGN) &
+		symbol->offset = (current->offset + DEFAULT_ALIGN) &
 				  -DEFAULT_ALIGN;
 	    break;
     }
-    record->offset = symbol->offset - symbol->tag->size;
+    current->offset = symbol->offset - symbol->tag->size;
 }
 
 static tag_t *

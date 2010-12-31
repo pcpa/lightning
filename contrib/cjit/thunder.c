@@ -638,6 +638,167 @@ ejit_n_i_p(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, void *w)
     return (node_link(s, n));
 }
 
+ejit_node_t *
+ejit_prolog(ejit_state_t *s)
+{
+    ejit_node_t	*n = node_new(code_prolog);
+
+    s->framesize = EJIT_FRAMESIZE;
+    n = node_link(s, n);
+
+    /* placeholder to insert appropriate nodes to callee saved registers
+     * and alloca */
+    s->prolog = n;
+    ejit_subi_p(s, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
+    ejit_movr_p(s, EJIT_FP, EJIT_SP);
+
+    return (n);
+}
+
+int
+ejit_arg_i(ejit_state_t *s, ejit_register_t **r)
+{
+    int		ofs;
+
+#if defined(__x86_64__)
+    ofs = s->nextarg_i;
+    if (s->nextarg_i < EJIT_NUM_GPR_ARGS) {
+	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
+	++s->nextarg_i;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+	s->framesize += sizeof(long);
+    }
+#elif defined(__mips__)
+    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
+    if (ofs < 4) {
+	s->nextarg_i = 1;
+	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+    }
+    s->framesize += sizeof(long);
+#else
+    *r = NULL;
+    ofs = s->framesize;
+    s->framesize += sizeof(long);
+#endif
+
+    return (ofs);
+}
+
+int
+ejit_arg_f(ejit_state_t *s, ejit_register_t **r)
+{
+    int		ofs;
+
+#if defined(__x86_64__)
+    ofs = s->nextarg_f;
+    if (s->nextarg_f < EJIT_NUM_FPR_ARGS) {
+	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + ofs;
+	++s->nextarg_i;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+	s->framesize += sizeof(double);
+    }
+#elif defined(__mips__)
+    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
+    if (ofs < EJIT_NUM_GPR_ARGS) {
+	if (!s->nextarg_i) {
+	    if (ofs) {
+		ofs = 1;
+		s->nextarg_i = 1;
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
+	    }
+	    else
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
+	}
+	else
+	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+    }
+    s->framesize += sizeof(float);
+#else
+    *r = NULL;
+    ofs = s->framesize;
+    s->framesize += sizeof(float);
+#endif
+
+    return (ofs);
+}
+
+int
+ejit_arg_d(ejit_state_t *s, ejit_register_t **r)
+{
+    int		ofs;
+
+#if defined(__x86_64__)
+    ofs = s->nextarg_f;
+    if (s->nextarg_f < EJIT_NUM_FPR_ARGS) {
+	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + ofs;
+	++s->nextarg_i;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+	s->framesize += sizeof(double);
+    }
+#elif defined(__mips__)
+    if (s->framesize & 7) {
+	s->framesize += 4;
+	s->nextarg_i = 1;
+    }
+    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
+    if (ofs < EJIT_NUM_GPR_ARGS) {
+	if (!s->nextarg_i) {
+	    if (ofs) {
+		ofs = 1;
+		s->nextarg_i = 1;
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
+	    }
+	    else
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
+	}
+	else
+	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
+    }
+    else {
+	*r = NULL;
+	ofs = s->framesize;
+    }
+    s->framesize += sizeof(double);
+#else
+    *r = NULL;
+    ofs = s->framesize;
+    s->framesize += sizeof(double);
+#endif
+
+    return (ofs);
+}
+
+ejit_node_t *
+ejit_epilog(ejit_state_t *s)
+{
+    ejit_node_t	*n = node_new(code_epilog);
+
+    n = node_link(s, n);
+    ejit_movr_p(s, EJIT_SP, EJIT_FP);
+    /* FIXME reload callee save registers */
+    ejit_addi_p(s, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
+    /* FIXME add architecture specific ret instruction when emiting code */
+
+    return (n);
+}
+
 int
 ejit_optimize(ejit_state_t *s)
 {
@@ -843,18 +1004,12 @@ ejit_optimize(ejit_state_t *s)
 	    case code_getarg_i:		case code_getarg_ui:
 	    case code_getarg_l:		case code_getarg_ul:
 	    case code_getarg_p:		case code_getarg_f:
-	    case code_getarg_d:		case code_arg_c:
-	    case code_arg_uc:		case code_arg_s:
-	    case code_arg_us:		case code_arg_i:
-	    case code_arg_ui:		case code_arg_l:
-	    case code_arg_ul:		case code_arg_p:
-	    case code_arg_f:		case code_arg_d:
-	    case code_retval_c:		case code_retval_uc:
-	    case code_retval_s:		case code_retval_us:
-	    case code_retval_i:		case code_retval_ui:
-	    case code_retval_l:		case code_retval_ul:
-	    case code_retval_p:		case code_retval_f:
-	    case code_retval_d:
+	    case code_getarg_d:		case code_retval_c:
+	    case code_retval_uc:	case code_retval_s:
+	    case code_retval_us:	case code_retval_i:
+	    case code_retval_ui:	case code_retval_l:
+	    case code_retval_ul:	case code_retval_p:
+	    case code_retval_f:		case code_retval_d:
 		p = c;
 		c = n;
 		break;
@@ -963,13 +1118,9 @@ ejit_optimize(ejit_state_t *s)
 		break;
 
 	    case code_jmpr:
-	    case code_ret:
-	    case code_leave:
 	    case code_prolog:
-	    case code_prolog_f:
-	    case code_prolog_d:
-	    case code_leaf:
 	    case code_allocai:
+	    case code_epilog:
 		p = c;
 		c = n;
 		break;
@@ -1485,17 +1636,6 @@ ejit_print(ejit_state_t *s)
 	    case code_getarg_p:		printf("getarg_p");	goto ir_p;
 	    case code_getarg_f:		printf("getarg_f");	goto ir_p;
 	    case code_getarg_d:		printf("getarg_d");	goto ir_p;
-	    case code_arg_c:		printf("arg_c");	goto n;
-	    case code_arg_uc:		printf("arg_uc");	goto n;
-	    case code_arg_s:		printf("arg_s");	goto n;
-	    case code_arg_us:		printf("arg_us");	goto n;
-	    case code_arg_i:		printf("arg_i");	goto n;
-	    case code_arg_ui:		printf("arg_ui");	goto n;
-	    case code_arg_l:		printf("arg_l");	goto n;
-	    case code_arg_ul:		printf("arg_ul");	goto n;
-	    case code_arg_p:		printf("arg_p");	goto n;
-	    case code_arg_f:		printf("arg_f");	goto n;
-	    case code_arg_d:		printf("arg_d");	goto n;
 	    case code_retval_c:		printf("retval_c");	goto ir;
 	    case code_retval_uc:	printf("retval_uc");	goto ir;
 	    case code_retval_s:		printf("retval_s");	goto ir;
@@ -1633,13 +1773,9 @@ ejit_print(ejit_state_t *s)
 	    case code_callr:		printf("callr");	goto ir;
 	    case code_jmpi:		printf("jmpi");		goto p;
 	    case code_jmpr:		printf("jmpr");		goto ir;
-	    case code_ret:		printf("ret");		break;;
-	    case code_leave:		printf("leave");	break;;
-	    case code_prolog:		printf("prolog");	goto i;
-	    case code_prolog_f:		printf("prolog_f");	goto i;
-	    case code_prolog_d:		printf("prolog_d");	goto i;
-	    case code_leaf:		printf("leaf");		goto i;
+	    case code_prolog:		printf("prolog");	break;
 	    case code_allocai:		printf("allocai");	goto i;
+	    case code_epilog:		printf("epilog");	break;
 	    default:						abort();
 	}
     }

@@ -214,15 +214,13 @@ struct symbol {
     int			 type;
     int			 offset;
     record_t		*table;
+    ejit_register_t	*regptr;
     unsigned int	 arg	: 1;	/* argument variable */
     unsigned int	 loc	: 1;	/* local variable */
     unsigned int	 glb	: 1;	/* global variable */
     unsigned int	 fld	: 1;	/* struct/union field */
     unsigned int	 reg	: 1;	/* register variable */
     unsigned int	 mem	: 1;	/* force memory if would use register */
-#if defined(__mips__)
-    unsigned int	 ireg	: 1;
-#endif
 };
 
 struct function {
@@ -231,13 +229,6 @@ struct function {
     tag_t		*tag;
     expr_t		*expr;
     record_t		*table;
-#if defined(__x86_64__)
-    int			 nextarg_i;
-    int			 nextarg_f;
-#elif defined(__mips__)
-    int			 nextarg_i;
-#endif
-    int			 framesize;
 };
 
 union data {
@@ -446,7 +437,7 @@ extern symbol_t *
 new_symbol(record_t *record, tag_t *tag, char *name);
 
 extern void
-variable(function_t *function, symbol_t *symbol);
+variable(ejit_state_t *state, symbol_t *symbol);
 
 extern void
 init_parser(void);

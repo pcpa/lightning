@@ -936,28 +936,6 @@
     ejit_fr_n(st, code_getarg_f, u, v)
 #define ejit_getarg_d(st, u, v)						\
     ejit_fr_n(st, code_getarg_d, u, v)
-#define ejit_arg_c(st)							\
-    ejit(st, code_arg_c)
-#define ejit_arg_uc(st)							\
-    ejit(st, code_arg_uc)
-#define ejit_arg_s(st)							\
-    ejit(st, code_arg_s)
-#define ejit_arg_us(st)							\
-    ejit(st, code_arg_us)
-#define ejit_arg_i(st)							\
-    ejit(st, code_arg_i)
-#define ejit_arg_ui(st)							\
-    ejit(st, code_arg_ui)
-#define ejit_arg_l(st)							\
-    ejit(st, code_arg_l)
-#define ejit_arg_ul(st)							\
-    ejit(st, code_arg_ul)
-#define ejit_arg_p(st)							\
-    ejit(st, code_arg_p)
-#define ejit_arg_f(st)							\
-    ejit(st, code_arg_f)
-#define ejit_arg_d(st)							\
-    ejit(st, code_arg_d)
 #define ejit_retval_c(st, u)						\
     ejit_ir(st, code_retval_c, u)
 #define ejit_retval_uc(st, u)						\
@@ -1232,18 +1210,6 @@
     ejit_p(st, code_jmpi, u)
 #define ejit_jmpr(st, u)						\
     ejit_ir(st, code_jmpr, u)
-#define ejit_ret(st)							\
-    ejit(st, code_ret)
-#define ejit_leave(st)							\
-    ejit(st, code_leave)
-#define ejit_prolog(st, u)						\
-    ejit_i(st, code_prolog, u)
-#define ejit_prolog_f(st, u)						\
-    ejit_i(st, code_prolog_f, u)
-#define ejit_prolog_d(st, u)						\
-    ejit_i(st, code_prolog_d, u)
-#define ejit_leaf(st, u)						\
-    ejit_i(st, code_leaf, u)
 #define ejit_allocai(st, u)						\
     ejit_i(st, code_allocai, u)
 
@@ -1649,17 +1615,6 @@ typedef enum {
     code_getarg_p,
     code_getarg_f,
     code_getarg_d,
-    code_arg_c,
-    code_arg_uc,
-    code_arg_s,
-    code_arg_us,
-    code_arg_i,
-    code_arg_ui,
-    code_arg_l,
-    code_arg_ul,
-    code_arg_p,
-    code_arg_f,
-    code_arg_d,
     code_retval_c,
     code_retval_uc,
     code_retval_s,
@@ -1797,13 +1752,9 @@ typedef enum {
     code_callr,
     code_jmpi,
     code_jmpr,
-    code_ret,
-    code_leave,
     code_prolog,
-    code_prolog_f,
-    code_prolog_d,
-    code_leaf,
     code_allocai,
+    code_epilog,
 } ejit_code_t;
 
 union ejit_data {
@@ -1833,6 +1784,14 @@ struct ejit_node {
 struct ejit_state {
     ejit_node_t		*head;
     ejit_node_t		*tail;
+    ejit_node_t		*prolog;
+#if defined(__x86_64__)
+    int			 nextarg_i;
+    int			 nextarg_f;
+#elif defined(__mips__)
+    int			 nextarg_i;
+#endif
+    int			 framesize;
 };
 
 struct ejit_register {
@@ -1899,6 +1858,29 @@ ejit_n_i_l(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, long w);
 
 extern ejit_node_t *
 ejit_n_i_p(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, void *w);
+
+extern ejit_node_t *
+ejit_prolog(ejit_state_t *s);
+
+extern ejit_node_t *
+ejit_epilog(ejit_state_t *s);
+
+#define ejit_arg_c(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_uc(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_s(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_us(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_i(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_ui(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_ul(s, r)		ejit_arg_i(s, r)
+#define ejit_arg_p(s, r)		ejit_arg_i(s, r)
+extern int
+ejit_arg_i(ejit_state_t *s, ejit_register_t **r);
+
+extern int
+ejit_arg_f(ejit_state_t *s, ejit_register_t **r);
+
+extern int
+ejit_arg_d(ejit_state_t *s, ejit_register_t **r);
 
 extern int
 ejit_optimize(ejit_state_t *s);
