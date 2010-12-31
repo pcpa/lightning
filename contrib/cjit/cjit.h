@@ -26,18 +26,6 @@
 
 #include "thunder.h"
 
-#if defined(__i386__)
-#  define FRAMESIZE		 20
-#elif defined(__x86_64__)
-#  define FRAMESIZE		 48
-#elif defined(__mips__)
-#  define FRAMESIZE		 56
-#else
-/* For the current code, and here should be where a bytecode interpreter
- * fallback would be useful. Also, mips64 is untested. */
-#  error "unsupported architecture"
-#endif
-
 #if defined(__GNUC__)
 #  define noreturn		__attribute__ ((noreturn))
 #  define printf_format(f, v)	__attribute__ ((format (printf, f, v)))

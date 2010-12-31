@@ -47,6 +47,12 @@ static char *
 fs(int reg);
 
 /*
+ * Initialization
+ */
+ejit_register_t	ejit_gpr_regs[EJIT_NUM_HARD_GPR_REGS];
+ejit_register_t	ejit_fpr_regs[EJIT_NUM_HARD_FPR_REGS];
+
+/*
  * Implementation
  */
 static inline ejit_node_t *
@@ -269,6 +275,141 @@ reverse_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
 ejit_state_t *
 ejit_create_state(void)
 {
+    int		offset;
+    static int	initialized;
+
+    if (!initialized) {
+#if defined(jit_get_cpu)
+	jit_get_cpu();
+#endif
+	initialized = 1;
+
+#if defined(__i386__)
+	ejit_gpr_regs[0].regno = _RAX;		ejit_gpr_regs[0].name = "%eax";
+	ejit_gpr_regs[1].regno = _RCX;		ejit_gpr_regs[1].name = "%ecx";
+	ejit_gpr_regs[2].regno = _RDX;		ejit_gpr_regs[2].name = "%edx";
+	ejit_gpr_regs[3].regno = _RBX;		ejit_gpr_regs[3].name = "%ebx";
+	ejit_gpr_regs[4].regno = _RSI;		ejit_gpr_regs[4].name = "%esi";
+	ejit_gpr_regs[5].regno = _RDI;		ejit_gpr_regs[5].name = "%edi";
+	ejit_gpr_regs[6].regno = _RSP;		ejit_gpr_regs[6].name = "%esp";
+	ejit_gpr_regs[7].regno = _RBP;		ejit_gpr_regs[7].name = "%ebp";
+	if (jit_sse2_p()) {
+	    ejit_fpr_regs[0].regno = _XMM0;	ejit_fpr_regs[0].name = "%xmm0";
+	    ejit_fpr_regs[1].regno = _XMM1;	ejit_fpr_regs[1].name = "%xmm1";
+	    ejit_fpr_regs[2].regno = _XMM2;	ejit_fpr_regs[2].name = "%xmm2";
+	    ejit_fpr_regs[3].regno = _XMM3;	ejit_fpr_regs[3].name = "%xmm3";
+	    ejit_fpr_regs[4].regno = _XMM4;	ejit_fpr_regs[4].name = "%xmm4";
+	    ejit_fpr_regs[5].regno = _XMM5;	ejit_fpr_regs[5].name = "%xmm5";
+	    ejit_fpr_regs[5].regno = _XMM6;	ejit_fpr_regs[6].name = "%xmm6";
+	    ejit_fpr_regs[6].regno = _XMM7;	ejit_fpr_regs[7].name = "%xmm7";
+	}
+	else {
+	    ejit_fpr_regs[0].regno = _ST0;	ejit_fpr_regs[0].name = "%st0";
+	    ejit_fpr_regs[1].regno = _ST1;	ejit_fpr_regs[1].name = "%st1";
+	    ejit_fpr_regs[2].regno = _ST2;	ejit_fpr_regs[2].name = "%st2";
+	    ejit_fpr_regs[3].regno = _ST3;	ejit_fpr_regs[3].name = "%st3";
+	    ejit_fpr_regs[4].regno = _ST4;	ejit_fpr_regs[4].name = "%st4";
+	    ejit_fpr_regs[5].regno = _ST5;	ejit_fpr_regs[5].name = "%st5";
+	    ejit_fpr_regs[5].regno = _ST6;	ejit_fpr_regs[6].name = "%st6";
+	    ejit_fpr_regs[6].regno = _ST7;	ejit_fpr_regs[7].name = "%st7";
+	}
+#elif defined(__x86_64__)
+	ejit_gpr_regs[ 0].regno = _RAX;		ejit_gpr_regs[ 0].name = "%rax";
+	ejit_gpr_regs[ 1].regno = _R10;		ejit_gpr_regs[ 1].name = "%r10";
+	ejit_gpr_regs[ 2].regno = _R11;		ejit_gpr_regs[ 2].name = "%r11";
+	ejit_gpr_regs[ 3].regno = _RBX;		ejit_gpr_regs[ 3].name = "%rbx";
+	ejit_gpr_regs[ 4].regno = _R13;		ejit_gpr_regs[ 4].name = "%r13";
+	ejit_gpr_regs[ 5].regno = _R14;		ejit_gpr_regs[ 5].name = "%r14";
+	ejit_gpr_regs[ 6].regno = _R15;		ejit_gpr_regs[ 6].name = "%r15";
+	ejit_gpr_regs[ 7].regno = _RDI;		ejit_gpr_regs[ 7].name = "%rdi";
+	ejit_gpr_regs[ 8].regno = _RSI;		ejit_gpr_regs[ 8].name = "%rsi";
+	ejit_gpr_regs[ 9].regno = _RDX;		ejit_gpr_regs[ 9].name = "%rdx";
+	ejit_gpr_regs[10].regno = _RCX;		ejit_gpr_regs[10].name = "%rcx";
+	ejit_gpr_regs[11].regno = _R8;		ejit_gpr_regs[11].name = "%r8";
+	ejit_gpr_regs[12].regno = _R9;		ejit_gpr_regs[12].name = "%r9";
+	ejit_gpr_regs[13].regno = _RSP;		ejit_gpr_regs[13].name = "%rsp";
+	ejit_gpr_regs[14].regno = _RBP;		ejit_gpr_regs[14].name = "%rbp";
+	ejit_gpr_regs[15].regno = _R12;		ejit_gpr_regs[15].name = "%r12";
+	ejit_fpr_regs[ 0].regno = _XMM8;	ejit_fpr_regs[ 0].name = "%xmm0";
+	ejit_fpr_regs[ 1].regno = _XMM9;	ejit_fpr_regs[ 1].name = "%xmm1";
+	ejit_fpr_regs[ 2].regno = _XMM10;	ejit_fpr_regs[ 2].name = "%xmm2";
+	ejit_fpr_regs[ 3].regno = _XMM11;	ejit_fpr_regs[ 3].name = "%xmm3";
+	ejit_fpr_regs[ 4].regno = _XMM12;	ejit_fpr_regs[ 4].name = "%xmm4";
+	ejit_fpr_regs[ 5].regno = _XMM13;	ejit_fpr_regs[ 5].name = "%xmm5";
+	ejit_fpr_regs[ 6].regno = _XMM0;	ejit_fpr_regs[ 6].name = "%xmm6";
+	ejit_fpr_regs[ 7].regno = _XMM1;	ejit_fpr_regs[ 7].name = "%xmm7";
+	ejit_fpr_regs[ 8].regno = _XMM2;	ejit_fpr_regs[ 8].name = "%xmm8";
+	ejit_fpr_regs[ 9].regno = _XMM3;	ejit_fpr_regs[ 9].name = "%xmm9";
+	ejit_fpr_regs[10].regno = _XMM4;	ejit_fpr_regs[10].name = "%xmm10";
+	ejit_fpr_regs[11].regno = _XMM5;	ejit_fpr_regs[11].name = "%xmm11";
+	ejit_fpr_regs[12].regno = _XMM6;	ejit_fpr_regs[12].name = "%xmm12";
+	ejit_fpr_regs[13].regno = _XMM7;	ejit_fpr_regs[13].name = "%xmm13";
+	ejit_fpr_regs[14].regno = _XMM14;	ejit_fpr_regs[14].name = "%xmm14";
+	ejit_fpr_regs[15].regno = _XMM15;	ejit_fpr_regs[15].name = "%xmm15";
+#elif defined(__mips__)
+	ejit_gpr_regs[ 0].regno = _V0;		ejit_gpr_regs[ 0].name = "v0";
+	ejit_gpr_regs[ 1].regno = _V1;		ejit_gpr_regs[ 1].name = "v1";
+	ejit_gpr_regs[ 2].regno = _T0;		ejit_gpr_regs[ 2].name = "t0";
+	ejit_gpr_regs[ 3].regno = _T1;		ejit_gpr_regs[ 3].name = "t1";
+	ejit_gpr_regs[ 4].regno = _T2;		ejit_gpr_regs[ 4].name = "t2";
+	ejit_gpr_regs[ 5].regno = _T3;		ejit_gpr_regs[ 5].name = "t3";
+	ejit_gpr_regs[ 6].regno = _T4;		ejit_gpr_regs[ 6].name = "t4";
+	ejit_gpr_regs[ 7].regno = _T5;		ejit_gpr_regs[ 7].name = "t5";
+	ejit_gpr_regs[ 8].regno = _T6;		ejit_gpr_regs[ 8].name = "t6";
+	ejit_gpr_regs[ 9].regno = _S0;		ejit_gpr_regs[ 9].name = "s0";
+	ejit_gpr_regs[10].regno = _S1;		ejit_gpr_regs[10].name = "s1";
+	ejit_gpr_regs[11].regno = _S2;		ejit_gpr_regs[11].name = "s2";
+	ejit_gpr_regs[12].regno = _S3;		ejit_gpr_regs[12].name = "s3";
+	ejit_gpr_regs[13].regno = _S4;		ejit_gpr_regs[13].name = "s4";
+	ejit_gpr_regs[14].regno = _S5;		ejit_gpr_regs[14].name = "s5";
+	ejit_gpr_regs[15].regno = _S6;		ejit_gpr_regs[15].name = "s6";
+	ejit_gpr_regs[16].regno = _S7;		ejit_gpr_regs[16].name = "s7";
+	ejit_gpr_regs[17].regno = _A0;		ejit_gpr_regs[17].name = "a0";
+	ejit_gpr_regs[18].regno = _A1;		ejit_gpr_regs[18].name = "a1";
+	ejit_gpr_regs[19].regno = _A2;		ejit_gpr_regs[19].name = "a2";
+	ejit_gpr_regs[20].regno = _A3;		ejit_gpr_regs[20].name = "a3";
+	ejit_gpr_regs[21].regno = _SP;		ejit_gpr_regs[21].name = "sp";
+	ejit_gpr_regs[22].regno = _FP;		ejit_gpr_regs[22].name = "fp";
+	ejit_gpr_regs[23].regno = _ZERO;	ejit_gpr_regs[23].name = "zero";
+	ejit_gpr_regs[24].regno = _AT;		ejit_gpr_regs[24].name = "at";
+	ejit_gpr_regs[25].regno = _T7;		ejit_gpr_regs[25].name = "t7";
+	ejit_gpr_regs[26].regno = _T8;		ejit_gpr_regs[26].name = "t8";
+	ejit_gpr_regs[27].regno = _T9;		ejit_gpr_regs[27].name = "t9";
+	ejit_gpr_regs[28].regno = _K0;		ejit_gpr_regs[28].name = "k0";
+	ejit_gpr_regs[29].regno = _K1;		ejit_gpr_regs[29].name = "k1";
+	ejit_gpr_regs[30].regno = _GP;		ejit_gpr_regs[30].name = "gp";
+	ejit_gpr_regs[31].regno = _RA;		ejit_gpr_regs[31].name = "ra";
+	ejit_fpr_regs[ 0].regno = _F0;		ejit_fpr_regs[ 0].name = "$f0";
+	ejit_fpr_regs[ 1].regno = _F2;		ejit_fpr_regs[ 1].name = "$f2";
+	ejit_fpr_regs[ 2].regno = _F4;		ejit_fpr_regs[ 2].name = "$f4";
+	ejit_fpr_regs[ 3].regno = _F6;		ejit_fpr_regs[ 3].name = "$f6";
+	ejit_fpr_regs[ 4].regno = _F8;		ejit_fpr_regs[ 4].name = "$f8";
+	ejit_fpr_regs[ 5].regno = _F10;		ejit_fpr_regs[ 5].name = "$f10";
+	ejit_fpr_regs[ 6].regno = _F16;		ejit_fpr_regs[ 6].name = "$f16";
+	ejit_fpr_regs[ 7].regno = _F18;		ejit_fpr_regs[ 7].name = "$f18";
+	ejit_fpr_regs[ 8].regno = _F20;		ejit_fpr_regs[ 8].name = "$f20";
+	ejit_fpr_regs[ 9].regno = _F22;		ejit_fpr_regs[ 9].name = "$f22";
+	ejit_fpr_regs[10].regno = _F24;		ejit_fpr_regs[10].name = "$f24";
+	ejit_fpr_regs[11].regno = _F26;		ejit_fpr_regs[11].name = "$f26";
+	ejit_fpr_regs[12].regno = _F12;		ejit_fpr_regs[12].name = "$f12";
+	ejit_fpr_regs[13].regno = _F14;		ejit_fpr_regs[13].name = "$f14";
+	ejit_fpr_regs[14].regno = _F28;		ejit_fpr_regs[14].name = "$f28";
+	ejit_fpr_regs[15].regno = _F30;		ejit_fpr_regs[15].name = "$f30";
+#endif
+
+	for (offset = 0; offset < EJIT_NUM_GPR_SAVE; offset++)
+	    ejit_gpr_regs[offset + EJIT_OFS_GPR_SAVE].issav = 1;
+	for (offset = 0; offset < EJIT_NUM_GPR_ARGS; offset++)
+	    ejit_gpr_regs[offset + EJIT_OFS_GPR_ARGS].isarg = 1;
+
+	for (offset = 0; offset < EJIT_NUM_HARD_FPR_REGS; offset++)
+	    ejit_fpr_regs[offset].isflt = 1;
+	for (offset = 0; offset < EJIT_NUM_FPR_SAVE; offset++)
+	    ejit_fpr_regs[offset + EJIT_OFS_FPR_SAVE].issav = 1;
+	for (offset = 0; offset < EJIT_NUM_FPR_ARGS; offset++)
+	    ejit_fpr_regs[offset + EJIT_OFS_FPR_ARGS].isarg = 1;
+    }
+
     return (calloc(1, sizeof(ejit_state_t)));
 }
 
@@ -843,131 +984,17 @@ ejit_optimize(ejit_state_t *s)
 static char *
 is(int reg)
 {
-    switch (reg) {
-#if defined(__i386__) || defined(__x86_64__)
-	case _RAX:		return ("%rax");
-	case _RCX:		return ("%rcx");
-	case _RDX:		return ("%rdx");
-	case _RBX:		return ("%rbx");
-	case _RSP:		return ("%rsp");
-	case _RBP:		return ("%rbp");
-	case _RSI:		return ("%rsi");
-	case _RDI:		return ("%rdi");
-#endif
-#if defined(__x86_64__)
-	case _R8:		return ("%r8");
-	case _R9:		return ("%r9");
-	case _R10:		return ("%r10");
-	case _R11:		return ("%r11");
-	case _R12:		return ("%r12");
-	case _R13:		return ("%r13");
-	case _R14:		return ("%r14");
-	case _R15:		return ("%r15");
-#elif defined(__mips__)
-	case _ZERO:		return ("zero");
-	case _AT:		return ("at");
-	case _V0:		return ("v0");
-	case _V1:		return ("v1");
-	case _A0:		return ("a0");
-	case _A1:		return ("a1");
-	case _A2:		return ("a2");
-	case _A3:		return ("a3");
-	case _T0:		return ("t0");
-	case _T1:		return ("t1");
-	case _T2:		return ("t2");
-	case _T3:		return ("t3");
-	case _T4:		return ("t4");
-	case _T5:		return ("t5");
-	case _T6:		return ("t6");
-	case _T7:		return ("t7");
-	case _S0:		return ("s0");
-	case _S1:		return ("s1");
-	case _S2:		return ("s2");
-	case _S3:		return ("s3");
-	case _S4:		return ("s4");
-	case _S5:		return ("s5");
-	case _S6:		return ("s6");
-	case _S7:		return ("s7");
-	case _T8:		return ("t8");
-	case _T9:		return ("t9");
-	case _K0:		return ("k0");
-	case _K1:		return ("k1");
-	case _GP:		return ("gp");
-	case _SP:		return ("sp");
-	case _FP:		return ("fp");
-	case _RA:		return ("ra");
-#endif
-	default:		return ("<NOREG>");
-    }
+    if (reg >= 0 && reg < EJIT_NUM_HARD_GPR_REGS)
+	return (ejit_gpr_regs[reg].name);
+    return ("<NOREG>");
 }
 
 static char *
 fs(int reg)
 {
-    switch (reg) {
-#if defined(__i386__) || defined(__x86_64__)
-	case _ST0:		return ("%st0");
-	case _ST1:		return ("%st1");
-	case _ST2:		return ("%st2");
-	case _ST3:		return ("%st3");
-	case _ST4:		return ("%st4");
-	case _ST5:		return ("%st5");
-	case _ST6:		return ("%st6");
-	case _ST7:		return ("%st7");
-	case _XMM0:		return ("%xmm0");
-	case _XMM1:		return ("%xmm1");
-	case _XMM2:		return ("%xmm2");
-	case _XMM3:		return ("%xmm3");
-	case _XMM4:		return ("%xmm4");
-	case _XMM5:		return ("%xmm5");
-	case _XMM6:		return ("%xmm6");
-	case _XMM7:		return ("%xmm7");
-#endif
-#if defined(__x86_64__)
-	case _XMM8:		return ("%xmm8");
-	case _XMM9:		return ("%xmm9");
-	case _XMM10:		return ("%xmm10");
-	case _XMM11:		return ("%xmm11");
-	case _XMM12:		return ("%xmm12");
-	case _XMM13:		return ("%xmm13");
-	case _XMM14:		return ("%xmm14");
-	case _XMM15:		return ("%xmm15");
-#elif defined(__mips__)
-	case _F0:		return ("$f0");
-	case _F1:		return ("$f1");
-	case _F2:		return ("$f2");
-	case _F3:		return ("$f3");
-	case _F4:		return ("$f4");
-	case _F5:		return ("$f5");
-	case _F6:		return ("$f6");
-	case _F7:		return ("$f7");
-	case _F8:		return ("$f8");
-	case _F9:		return ("$f9");
-	case _F10:		return ("$f10");
-	case _F11:		return ("$f11");
-	case _F12:		return ("$f12");
-	case _F13:		return ("$f13");
-	case _F14:		return ("$f14");
-	case _F15:		return ("$f15");
-	case _F16:		return ("$f16");
-	case _F17:		return ("$f17");
-	case _F18:		return ("$f18");
-	case _F19:		return ("$f19");
-	case _F20:		return ("$f20");
-	case _F21:		return ("$f21");
-	case _F22:		return ("$f22");
-	case _F23:		return ("$f23");
-	case _F24:		return ("$f24");
-	case _F25:		return ("$f25");
-	case _F26:		return ("$f26");
-	case _F27:		return ("$f27");
-	case _F28:		return ("$f28");
-	case _F29:		return ("$f29");
-	case _F30:		return ("$f30");
-	case _F31:		return ("$f31");
-#endif
-	default:		return ("<NOREG>");
-    }
+    if (reg >= 0 && reg < EJIT_NUM_HARD_FPR_REGS)
+	return (ejit_fpr_regs[reg].name);
+    return ("<NOREG>");
 }
 
 void

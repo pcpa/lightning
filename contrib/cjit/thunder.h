@@ -18,6 +18,66 @@
 #ifndef _thunder_h
 #define _thunder_h
 
+#if defined(__i386__)
+#  define EJIT_FRAMESIZE		20
+#  define EJIT_NUM_HARD_GPR_REGS	8
+#  define EJIT_NUM_GPR_REGS		6
+#  define EJIT_NUM_GPR_TMPS		6
+#  define EJIT_NUM_GPR_SAVE		0
+#  define EJIT_OFS_GPR_SAVE		3
+#  define EJIT_NUM_GPR_ARGS		0
+#  define EJIT_OFS_GPR_ARGS		6
+#  define EJIT_SP			6
+#  define EJIT_FP			7
+#  define EJIT_NUM_HARD_FPR_REGS	8
+#  define EJIT_NUM_FPR_REGS		6
+#  define EJIT_NUM_FPR_TMPS		6
+#  define EJIT_NUM_FPR_SAVE		0
+#  define EJIT_OFS_FPR_SAVE		6
+#  define EJIT_NUM_FPR_ARGS		0
+#  define EJIT_OFS_FPR_ARGS		6
+#elif defined(__x86_64__)
+#  define EJIT_FRAMESIZE		48
+#  define EJIT_NUM_HARD_GPR_REGS	16
+#  define EJIT_NUM_GPR_REGS		13
+#  define EJIT_NUM_GPR_TMPS		7
+#  define EJIT_NUM_GPR_SAVE		4
+#  define EJIT_OFS_GPR_SAVE		3
+#  define EJIT_NUM_GPR_ARGS		6
+#  define EJIT_OFS_GPR_ARGS		7
+#  define EJIT_SP			13
+#  define EJIT_FP			14
+#  define EJIT_NUM_HARD_FPR_REGS	16
+#  define EJIT_NUM_FPR_REGS		14
+#  define EJIT_NUM_FPR_TMPS		6
+#  define EJIT_NUM_FPR_SAVE		0
+#  define EJIT_OFS_FPR_SAVE		6
+#  define EJIT_NUM_FPR_ARGS		8
+#  define EJIT_OFS_FPR_ARGS		6
+#elif defined(__mips__)
+#  define EJIT_FRAMESIZE		56
+#  define EJIT_NUM_GPR_HARD_REGS	32
+#  define EJIT_NUM_GPR_REGS		21
+#  define EJIT_NUM_GPR_TMPS		17
+#  define EJIT_NUM_GPR_SAVE		8
+#  define EJIT_OFS_GPR_SAVE		9
+#  define EJIT_NUM_GPR_ARGS		4
+#  define EJIT_OFS_GPR_ARGS		17
+#  define EJIT_SP			21
+#  define EJIT_FP			22
+#  define EJIT_NUM_HARD_FPR_REGS	16
+#  define EJIT_NUM_FPR_REGS		14
+#  define EJIT_NUM_FPR_TMPS		12
+#  define EJIT_NUM_FPR_SAVE		6
+#  define EJIT_OFS_FPR_SAVE		6
+#  define EJIT_NUM_FPR_ARGS		2
+#  define EJIT_OFS_FPR_ARGS		12
+#else
+/* For the current code, and here should be where a bytecode interpreter
+ * fallback would be useful. Also, mips64 is untested. */
+#  error "unsupported architecture"
+#endif
+
 #define ejit_i				ejit_i
 #define ejit_ir				ejit_i
 #define ejit_fr				ejit_i
@@ -59,9 +119,6 @@
 #define ejit_n_ir_p			ejit_n_i_p
 #define ejit_n_ir_ir			ejit_n_i_i
 #define ejit_n_fr_fr			ejit_n_i_i
-
-#define ejit_gpr(value)			(value)
-#define ejit_fpr(value)			(value)
 
 #define ejit_note(st)							\
     ejit(st, code_note)
@@ -1196,6 +1253,7 @@
 typedef struct ejit_node	ejit_node_t;
 typedef union ejit_data		ejit_data_t;
 typedef struct ejit_state	ejit_state_t;
+typedef struct ejit_register	ejit_register_t;
 
 typedef enum {
     code_note,
@@ -1777,6 +1835,14 @@ struct ejit_state {
     ejit_node_t		*tail;
 };
 
+struct ejit_register {
+    int			 regno;
+    unsigned int	 isflt	: 1;
+    unsigned int	 issav	: 1;
+    unsigned int	 isarg	: 1;
+    char		*name;
+};
+
 /*
  * Prototypes
  */
@@ -1839,5 +1905,11 @@ ejit_optimize(ejit_state_t *s);
 
 extern void
 ejit_print(ejit_state_t *s);
+
+/*
+ * Externs
+ */
+extern ejit_register_t	ejit_gpr_regs[];
+extern ejit_register_t	ejit_fpr_regs[];
 
 #endif /* _thunder_h */

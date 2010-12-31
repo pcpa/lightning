@@ -366,11 +366,11 @@ variable(function_t *function, symbol_t *symbol)
 #if defined(__x86_64__)
 		if (function->nextarg_f < 8) {
 		    symbol->reg = 1;
-		    symbol->offset = function->nextarg_f++;
+		    symbol->offset = EJIT_OFS_FPR_ARGS + function->nextarg_f++;
 		    return;
 		}
 #elif defined(__mips__)
-		reg = (function.framesize - FRAMESIZE) >> 2;
+		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
 		if (reg < 4) {
 		    if (!function->nextarg_i) {
 			if (reg != 0) {
@@ -381,7 +381,10 @@ variable(function_t *function, symbol_t *symbol)
 		    else
 			symbol->ireg = 1;
 		    symbol->reg = 1;
-		    symbol->offset = reg;
+		    if (symbol->ireg)
+			symbol->offset = EJIT_OFS_GPR_ARGS + reg;
+		    else
+			symbol->offset = EJIT_OFS_FPR_ARGS + reg;
 		    function->framesize += sizeof(float);
 		    return;
 		}
@@ -393,7 +396,7 @@ variable(function_t *function, symbol_t *symbol)
 #if defined(__x86_64__)
 		if (function->nextarg_f < 8) {
 		    symbol->reg = 1;
-		    symbol->offset = function->nextarg_f++;
+		    symbol->offset = EJIT_OFS_FPR_ARGS + function->nextarg_f++;
 		    return;
 		}
 #elif defined(__mips__)
@@ -401,14 +404,17 @@ variable(function_t *function, symbol_t *symbol)
 		    function.framesize += 4;
 		    function->nextarg_i = 1;
 		}
-		reg = (function.framesize - FRAMESIZE) >> 2;
+		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
 		if (reg < 4) {
 		    symbol->reg = 1;
 		    if (function->nextarg_i)
 			symbol->ireg = 1;
 		    else
 			reg >>= 1;
-		    symbol->offset = reg;
+		    if (symbol->ireg)
+			symbol->offset = EJIT_OFS_GPR_ARGS + reg;
+		    else
+			symbol->offset = EJIT_OFS_FPR_ARGS + reg;
 		    function->framesize += sizeof(double);
 		    return;
 		}
@@ -420,15 +426,15 @@ variable(function_t *function, symbol_t *symbol)
 #if defined(__x86_64__)
 		if (function->nextarg_i < 6) {
 		    symbol->reg = 1;
-		    symbol->offset = function->nextarg_i++;
+		    symbol->offset = EJIT_OFS_GPR_ARGS + function->nextarg_i++;
 		    return;
 		}
 #elif defined(__mips__)
-		reg = (function.framesize - FRAMESIZE) >> 2;
+		reg = (function.framesize - EJIT_FRAMESIZE) >> 2;
 		if (reg < 4) {
 		    symbol->reg = symbol->ireg = 1;
 		    function->nextarg_i = 1;
-		    symbol->offset = reg;
+		    symbol->offset = EJIT_OFS_GPR_ARGS + reg;
 		    function->framesize += sizeof(long);
 		    return;
 		}
