@@ -104,7 +104,7 @@ new_record(int mask)
 void
 end_record(record_t *record)
 {
-    record->length = (record->offset + DEFAULT_ALIGN - 1) & -DEFAULT_ALIGN;
+    record->length = (record->offset + ALIGN - 1) & -ALIGN;
 }
 
 record_t *
@@ -332,12 +332,7 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 		symbol->offset = (record->offset + 3) & ~3;
 		break;
 	    default:
-		if (record->type == type_double)
-		    symbol->offset = (record->offset + (DOUBLE_ALIGN - 1)) &
-				      -DOUBLE_ALIGN;
-		else
-		    symbol->offset = (record->offset + (DEFAULT_ALIGN - 1)) &
-				      -DEFAULT_ALIGN;
+		symbol->offset = (record->offset + (ALIGN - 1)) & -ALIGN;
 		break;
 	}
 	record->offset = symbol->offset + tag->size;
@@ -381,12 +376,7 @@ variable(ejit_state_t *state, symbol_t *symbol)
 	    symbol->offset = (current->offset - 4) & -4;
 	    break;
 	default:
-	    if (symbol->type == type_double)
-		symbol->offset = (current->offset - DOUBLE_ALIGN) &
-				  -DOUBLE_ALIGN;
-	    else
-		symbol->offset = (current->offset + DEFAULT_ALIGN) &
-				  -DEFAULT_ALIGN;
+	    symbol->offset = (current->offset + ALIGN) & -ALIGN;
 	    break;
     }
     current->offset = symbol->offset - symbol->tag->size;

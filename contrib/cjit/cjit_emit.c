@@ -151,6 +151,9 @@ emit_function(expr_t *expr);
 static tag_t *
 emit_return(expr_t *expr);
 
+static tag_t *
+emit_call(expr_t *expr);
+
 static void
 emit_load(expr_t *expr, value_t *value);
 
@@ -343,6 +346,8 @@ emit_expr(expr_t *expr)
 	    return (emit_function(expr));
 	case tok_return:
 	    return (emit_return(expr));
+	case tok_call:
+	    return (emit_call(expr));
 	default:
 	    warn(expr, "not yet handled");
 	    return (void_tag);
@@ -3819,6 +3824,7 @@ emit_function(expr_t *expr)
     symbol_t	*symbol;
     function_t	*function;
 
+    range_reset();
     ejit_prolog(state);
 
     inc_branch_stack(tok_function);
@@ -3834,20 +3840,16 @@ emit_function(expr_t *expr)
 	    value = get_value_stack();
 	    switch (symbol->tag->type) {
 		case type_float:
-#if defined(__mips__)
-		    if (symbol->ireg)
-			value->type = value_itype;
-		    else
-#endif
+		    if (symbol->regptr->isflt)
 			value->type = value_ftype;
+		    else
+			value->type = value_itype;
 		    break;
 		case type_double:
-#if defined(__mips__)
-		    if (symbol->ireg)
-			value->type = value_ltype;
-		    else
-#endif
+		    if (symbol->regptr->isflt)
 			value->type = value_dtype;
+		    else
+			value->type = value_ltype;
 		    break;
 		case type_char:		case type_short:	case type_int:
 		    value->type = value_itype;
@@ -3867,14 +3869,19 @@ emit_function(expr_t *expr)
 	    }
 	    value->u.ival = symbol->offset;
 	    value->type |= value_regno;
-	    inc_value_stack();
+	    if (symbol->mem) {
+		/* relocate symbol to stack */
+		symbol->reg = 0;
+		emit_store_symbol(expr, symbol, value);
+	    }
+	    else
+		inc_value_stack();
 	}
     }
-    current->length = current->offset & -DEFAULT_ALIGN;
-    alloca_offset = alloca_length = -current->length;
+    current->length = current->offset & -ALIGN;
+    alloca_length = alloca_offset = -current->length;
 
-    alloca_node =
-	ejit_subi_p(state, EJIT_SP, EJIT_SP, (void *)(long)alloca_length);
+    alloca_node = ejit_allocai(state, alloca_length);
 
     emit_stat(expr->data._function.body);
     dec_branch_stack(1);
@@ -3949,6 +3956,106 @@ emit_return(expr_t *expr)
     }
     /* could not find jump to exit point */
     error(expr, "internal error");
+}
+
+static tag_t *
+emit_call(expr_t *expr)
+{
+    tag_t	*ltag;
+    tag_t	*rtag;
+    value_t	*lval;
+    value_t	*rval;
+    int		 rreg;
+    int		 offset;
+
+    ltag = emit_expr(expr->data._binary.lvalue);
+    lval = top_value_stack();
+    if (lval->type != value_funct)
+	error(expr, "not a function");
+    offset = vstack.offset;
+
+    ejit_prepare(state);
+    for (expr = expr->data._binary.rvalue; expr; expr = expr->next) {
+	rtag = emit_expr(expr);
+	rval = top_value_stack();
+	emit_load(expr, rval);
+	rreg = rval->u.ival;
+	switch (rtag->type) {
+	    case type_char:	ejit_pusharg_c (state, rreg);	break;
+	    case type_uchar:	ejit_pusharg_uc(state, rreg);	break;
+	    case type_short:	ejit_pusharg_s (state, rreg);	break;
+	    case type_ushort:	ejit_pusharg_us(state, rreg);	break;
+	    case type_int:	ejit_pusharg_i (state, rreg);	break;
+	    case type_uint:	ejit_pusharg_ui(state, rreg);	break;
+	    case type_long:	ejit_pusharg_l (state, rreg);	break;
+	    case type_ulong:	ejit_pusharg_ul(state, rreg);	break;
+	    case type_float:	ejit_pusharg_f (state, rreg);	break;
+	    case type_double:	ejit_pusharg_d (state, rreg);	break;
+	    default:
+		if (pointer_type_p(rtag->type))
+		    error(expr, "aggregate argument by value not supported");
+		ejit_pusharg_p(state, rreg);
+		break;
+	}
+    }
+    ejit_finish(state, lval->u.pval);
+
+    /* do not call retval, but directly set the return value */
+    ltag = ltag->tag;
+    lval->u.ival = 0;
+    switch (ltag->type) {
+	case type_void:
+	    break;
+	case type_char:
+	    lval->type = value_itype;
+	    ejit_retval_c(state, 0);
+	    break;
+	case type_uchar:
+	    lval->type = value_utype;
+	    ejit_retval_uc(state, 0);
+	    break;
+	case type_short:
+	    lval->type = value_itype;
+	    ejit_retval_s(state, 0);
+	    break;
+	case type_ushort:
+	    lval->type = value_utype;
+	    ejit_retval_us(state, 0);
+	    break;
+	case type_int:
+	    lval->type = value_itype;
+	    ejit_retval_i(state, 0);
+	    break;
+	case type_uint:
+	    lval->type = value_utype;
+	    ejit_retval_ui(state, 0);
+	    break;
+	case type_long:
+	    lval->type = value_ltype;
+	    ejit_retval_l(state, 0);
+	    break;
+	case type_ulong:
+	    lval->type = value_ltype;
+	    ejit_retval_ul(state, 0);
+	    break;
+	case type_float:
+	    lval->type = value_ftype;
+	    ejit_retval_f(state, 0);
+	    break;
+	case type_double:
+	    lval->type = value_dtype;
+	    ejit_retval_d(state, 0);
+	    break;
+	default:
+	    lval->type = value_ptype;
+	    ejit_retval_p(state, 0);
+	    break;
+    }
+    if (ltag->type != type_void)
+	lval->type |= value_regno;
+    vstack_reset(offset);
+
+    return (ltag);
 }
 
 static void
@@ -4294,10 +4401,10 @@ static int
 get_register(int freg)
 {
     value_t	*entry;
-    int		 ient, fent, count, regno, size, offset;
+    int		 ient, fent, count, regno, offset;
 
     fent = freg ? 1 : 0;
-    count = fent ? EJIT_NUM_FPR_TMPS : EJIT_NUM_GPR_TMPS;
+    count = fent ? EJIT_NUM_FPR_REGS : EJIT_NUM_GPR_REGS;
     for (regno = 0; regno < count; regno++) {
 	entry = vstack.values;
 	for (offset = 0; offset < vstack.offset; offset++, entry++) {
@@ -4319,20 +4426,22 @@ get_register(int freg)
     for (; offset < vstack.offset; offset++, entry++) {
 	if (entry->type & value_regno) {
 	    ient = (entry->type & (value_ftype | value_dtype)) == 0;
-	    if (fent ^ ient)
+	    if (fent ^ ient) {
+		regno = entry->u.ival;
+		if (ient && ejit_gpr_regs[regno].isarg)
+		    continue;
+		if (fent && ejit_fpr_regs[regno].isarg)
+		    continue;
 		break;
+	    }
 	}
     }
-    regno = entry->u.ival;
-
-    size = fent ? sizeof(double) : sizeof(long);
-    alloca_offset = (alloca_offset + size - 1) & -size;
-    alloca_offset += size;
-    if (alloca_offset > alloca_length) {
-	alloca_length = alloca_offset;
+    offset = alloca_offset + range_get(fent ? sizeof(double) : sizeof(long));
+    if (offset > alloca_length) {
+	alloca_length = offset;
 	alloca_node->u.i = alloca_length;
     }
-    entry->disp = -(alloca_offset + EJIT_FRAMESIZE);
+    entry->disp = -offset;
     entry->type |= value_spill;
     if (fent)
 	ejit_stxi_d(state, entry->disp, EJIT_FP, regno);

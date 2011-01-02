@@ -22,7 +22,6 @@
 #  define EJIT_FRAMESIZE		20
 #  define EJIT_NUM_HARD_GPR_REGS	8
 #  define EJIT_NUM_GPR_REGS		6
-#  define EJIT_NUM_GPR_TMPS		6
 #  define EJIT_NUM_GPR_SAVE		0
 #  define EJIT_OFS_GPR_SAVE		3
 #  define EJIT_NUM_GPR_ARGS		0
@@ -31,7 +30,6 @@
 #  define EJIT_FP			7
 #  define EJIT_NUM_HARD_FPR_REGS	8
 #  define EJIT_NUM_FPR_REGS		6
-#  define EJIT_NUM_FPR_TMPS		6
 #  define EJIT_NUM_FPR_SAVE		0
 #  define EJIT_OFS_FPR_SAVE		6
 #  define EJIT_NUM_FPR_ARGS		0
@@ -40,7 +38,6 @@
 #  define EJIT_FRAMESIZE		48
 #  define EJIT_NUM_HARD_GPR_REGS	16
 #  define EJIT_NUM_GPR_REGS		13
-#  define EJIT_NUM_GPR_TMPS		7
 #  define EJIT_NUM_GPR_SAVE		4
 #  define EJIT_OFS_GPR_SAVE		3
 #  define EJIT_NUM_GPR_ARGS		6
@@ -58,7 +55,6 @@
 #  define EJIT_FRAMESIZE		56
 #  define EJIT_NUM_GPR_HARD_REGS	32
 #  define EJIT_NUM_GPR_REGS		21
-#  define EJIT_NUM_GPR_TMPS		17
 #  define EJIT_NUM_GPR_SAVE		8
 #  define EJIT_OFS_GPR_SAVE		9
 #  define EJIT_NUM_GPR_ARGS		4
@@ -886,34 +882,28 @@
     ejit_l_ir_fr(st, code_stxi_f, u, v, w)
 #define ejit_stxi_d(st, u, v, w)					\
     ejit_l_ir_fr(st, code_stxi_d, u, v, w)
-#define ejit_prepare_i(st, u)						\
-    ejit_i(st, code_prepare_i, u)
-#define ejit_prepare_f(st, u)						\
-    ejit_i(st, code_prepare_f, u)
-#define ejit_prepare_d(st, u)						\
-    ejit_i(st, code_prepare_d, u)
 #define ejit_pusharg_c(st, u)						\
-    ejit_ir(st, code_pusharg_c, u)
+    ejit_pusharg(st, code_pusharg_c, u)
 #define ejit_pusharg_uc(st, u)						\
-    ejit_ir(st, code_pusharg_uc, u)
+    ejit_pusharg(st, code_pusharg_uc, u)
 #define ejit_pusharg_s(st, u)						\
-    ejit_ir(st, code_pusharg_s, u)
+    ejit_pusharg(st, code_pusharg_s, u)
 #define ejit_pusharg_us(st, u)						\
-    ejit_ir(st, code_pusharg_us, u)
+    ejit_pusharg(st, code_pusharg_us, u)
 #define ejit_pusharg_i(st, u)						\
-    ejit_ir(st, code_pusharg_i, u)
+    ejit_pusharg(st, code_pusharg_i, u)
 #define ejit_pusharg_ui(st, u)						\
-    ejit_ir(st, code_pusharg_ui, u)
+    ejit_pusharg(st, code_pusharg_ui, u)
 #define ejit_pusharg_l(st, u)						\
-    ejit_ir(st, code_pusharg_l, u)
+    ejit_pusharg(st, code_pusharg_l, u)
 #define ejit_pusharg_ul(st, u)						\
-    ejit_ir(st, code_pusharg_ul, u)
+    ejit_pusharg(st, code_pusharg_ul, u)
 #define ejit_pusharg_p(st, u)						\
-    ejit_ir(st, code_pusharg_p, u)
+    ejit_pusharg(st, code_pusharg_p, u)
 #define ejit_pusharg_f(st, u)						\
-    ejit_fr(st, code_pusharg_f, u)
+    ejit_pusharg(st, code_pusharg_f, u)
 #define ejit_pusharg_d(st, u)						\
-    ejit_fr(st, code_pusharg_d, u)
+    ejit_pusharg(st, code_pusharg_d, u)
 #define ejit_getarg_c(st, u, v)						\
     ejit_ir_n(st, code_getarg_c, u, v)
 #define ejit_getarg_uc(st, u, v)					\
@@ -1202,8 +1192,6 @@
     ejit_p(st, code_calli, u)
 #define ejit_callr(st, u)						\
     ejit_ir(st, code_callr, u)
-#define ejit_finish(st, u)						\
-    ejit_p(st, code_finish, u)
 #define ejit_finishr(st, u)						\
     ejit_ir(st, code_finishr, u)
 #define ejit_jmpi(st, u)						\
@@ -1218,6 +1206,7 @@
  */
 typedef struct ejit_node	ejit_node_t;
 typedef union ejit_data		ejit_data_t;
+typedef struct ejit_frame	ejit_frame_t;
 typedef struct ejit_state	ejit_state_t;
 typedef struct ejit_register	ejit_register_t;
 
@@ -1590,9 +1579,7 @@ typedef enum {
     code_stxi_p,
     code_stxi_f,
     code_stxi_d,
-    code_prepare_i,
-    code_prepare_f,
-    code_prepare_d,
+    code_prepare,
     code_pusharg_c,
     code_pusharg_uc,
     code_pusharg_s,
@@ -1781,17 +1768,23 @@ struct ejit_node {
     ejit_node_t		*link;
 };
 
+struct ejit_frame {
+    ejit_frame_t	*next;
+    ejit_node_t		*node;
+#if defined(__x86_64__)
+    int			 argi;
+    int			 argf;
+#elif defined(__mips__)
+    int			 argi;
+#endif
+    int			 size;
+};
+
 struct ejit_state {
     ejit_node_t		*head;
     ejit_node_t		*tail;
-    ejit_node_t		*prolog;
-#if defined(__x86_64__)
-    int			 nextarg_i;
-    int			 nextarg_f;
-#elif defined(__mips__)
-    int			 nextarg_i;
-#endif
-    int			 framesize;
+    ejit_frame_t	*prolog;
+    ejit_frame_t	*prepare;
 };
 
 struct ejit_register {
@@ -1881,6 +1874,15 @@ ejit_arg_f(ejit_state_t *s, ejit_register_t **r);
 
 extern int
 ejit_arg_d(ejit_state_t *s, ejit_register_t **r);
+
+extern ejit_node_t *
+ejit_prepare(ejit_state_t *s);
+
+ejit_node_t *
+ejit_pusharg(ejit_state_t *s, ejit_code_t c, int u);
+
+extern ejit_node_t *
+ejit_finish(ejit_state_t *s, void *u);
 
 extern int
 ejit_optimize(ejit_state_t *s);

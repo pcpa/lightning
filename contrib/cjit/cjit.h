@@ -42,9 +42,7 @@
 #define hash_string		0
 #define hash_pointer		1
 #define hash_integer		2
-
-#define DOUBLE_ALIGN		(__WORDSIZE >> 3)
-#define DEFAULT_ALIGN		(__WORDSIZE >> 3)
+#define ALIGN			(__WORDSIZE >> 3)
 
 #define type_void		0x00000000
 #define type_char		0x00000001
@@ -357,6 +355,15 @@ xintern(const char *string);
 
 extern char *
 xstrdup(const char *string);
+
+extern void
+range_reset(void);
+
+extern int
+range_get(int length);
+
+extern void
+range_clr(int offset, int length);
 
 extern hash_t *
 new_hash(int kind);

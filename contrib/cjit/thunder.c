@@ -28,11 +28,26 @@
 static inline ejit_node_t *
 node_new(ejit_code_t c);
 
+static inline ejit_frame_t *
+frame_new(void);
+
+static inline void
+frame_del(ejit_frame_t *f);
+
 static inline void
 node_del(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n);
 
 static inline ejit_node_t *
 node_link(ejit_state_t *s, ejit_node_t *n);
+
+static int
+arg_i(ejit_frame_t *f, ejit_register_t **r);
+
+static int
+arg_f(ejit_frame_t *f, ejit_register_t **r);
+
+static int
+arg_d(ejit_frame_t *f, ejit_register_t **r);
 
 static int
 redundant_jump(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n);
@@ -63,6 +78,19 @@ node_new(ejit_code_t c)
     return (n);
 }
 
+static inline ejit_frame_t *
+frame_new(void)
+{
+    ejit_frame_t	*f = calloc(1, sizeof(ejit_frame_t));
+    return (f);
+}
+
+static inline void
+frame_del(ejit_frame_t *f)
+{
+    free(f);
+}
+
 static inline void
 node_del(ejit_state_t *s, ejit_node_t *p, ejit_node_t *n)
 {
@@ -83,6 +111,136 @@ node_link(ejit_state_t *s, ejit_node_t *n)
     else
 	s->head = n;
     return (s->tail = n);
+}
+
+static int
+arg_i(ejit_frame_t *f, ejit_register_t **r)
+{
+    int		o;
+
+#if defined(__x86_64__)
+    o = f->argi;
+    if (f->argi < EJIT_NUM_GPR_ARGS) {
+	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + o;
+	++f->argi;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+	f->size += sizeof(long);
+    }
+#elif defined(__mips__)
+    o = (s->size - EJIT_FRAMESIZE) >> 2;
+    if (o < 4) {
+	s->argi = 1;
+	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + o;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+    }
+    f->size += sizeof(long);
+#else
+    *r = NULL;
+    o = f->size;
+    f->size += sizeof(long);
+#endif
+
+    return (o);
+}
+
+static int
+arg_f(ejit_frame_t *f, ejit_register_t **r)
+{
+    int		o;
+
+#if defined(__x86_64__)
+    o = f->argf;
+    if (f->argf < EJIT_NUM_FPR_ARGS) {
+	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + o;
+	++f->argi;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+	f->size += sizeof(double);
+    }
+#elif defined(__mips__)
+    o = (f->size - EJIT_FRAMESIZE) >> 2;
+    if (o < EJIT_NUM_GPR_ARGS) {
+	if (!f->argi) {
+	    if (o) {
+		o = 1;
+		f->argi = 1;
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
+	    }
+	    else
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
+	}
+	else
+	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + o;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+    }
+    f->size += sizeof(float);
+#else
+    *r = NULL;
+    o = f->size;
+    f->size += sizeof(float);
+#endif
+
+    return (o);
+}
+
+static int
+arg_d(ejit_frame_t *f, ejit_register_t **r)
+{
+    int		o;
+
+#if defined(__x86_64__)
+    o = f->argf;
+    if (f->argf < EJIT_NUM_FPR_ARGS) {
+	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + o;
+	++f->argi;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+	f->size += sizeof(double);
+    }
+#elif defined(__mips__)
+    if (f->size & 7) {
+	f->size += 4;
+	f->argi = 1;
+    }
+    o = (f->size - EJIT_FRAMESIZE) >> 2;
+    if (o < EJIT_NUM_GPR_ARGS) {
+	if (!f->argi) {
+	    if (o) {
+		o = 1;
+		f->rgi = 1;
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
+	    }
+	    else
+		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
+	}
+	else
+	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + o;
+    }
+    else {
+	*r = NULL;
+	o = f->size;
+    }
+    f->size += sizeof(double);
+#else
+    *r = NULL;
+    o = f->size;
+    f->size += sizeof(double);
+#endif
+
+    return (o);
 }
 
 static int
@@ -294,14 +452,23 @@ ejit_create_state(void)
 	ejit_gpr_regs[6].regno = _RSP;		ejit_gpr_regs[6].name = "%esp";
 	ejit_gpr_regs[7].regno = _RBP;		ejit_gpr_regs[7].name = "%ebp";
 	if (jit_sse2_p()) {
-	    ejit_fpr_regs[0].regno = _XMM0;	ejit_fpr_regs[0].name = "%xmm0";
-	    ejit_fpr_regs[1].regno = _XMM1;	ejit_fpr_regs[1].name = "%xmm1";
-	    ejit_fpr_regs[2].regno = _XMM2;	ejit_fpr_regs[2].name = "%xmm2";
-	    ejit_fpr_regs[3].regno = _XMM3;	ejit_fpr_regs[3].name = "%xmm3";
-	    ejit_fpr_regs[4].regno = _XMM4;	ejit_fpr_regs[4].name = "%xmm4";
-	    ejit_fpr_regs[5].regno = _XMM5;	ejit_fpr_regs[5].name = "%xmm5";
-	    ejit_fpr_regs[5].regno = _XMM6;	ejit_fpr_regs[6].name = "%xmm6";
-	    ejit_fpr_regs[6].regno = _XMM7;	ejit_fpr_regs[7].name = "%xmm7";
+	    ejit_fpr_regs[ 0].regno = _XMM0;	ejit_fpr_regs[ 0].name = "%xmm0";
+	    ejit_fpr_regs[ 1].regno = _XMM1;	ejit_fpr_regs[ 1].name = "%xmm1";
+	    ejit_fpr_regs[ 2].regno = _XMM2;	ejit_fpr_regs[ 2].name = "%xmm2";
+	    ejit_fpr_regs[ 3].regno = _XMM3;	ejit_fpr_regs[ 3].name = "%xmm3";
+	    ejit_fpr_regs[ 4].regno = _XMM4;	ejit_fpr_regs[ 4].name = "%xmm4";
+	    ejit_fpr_regs[ 5].regno = _XMM5;	ejit_fpr_regs[ 5].name = "%xmm5";
+	    ejit_fpr_regs[ 6].regno = _XMM6;	ejit_fpr_regs[ 6].name = "%xmm6";
+	    ejit_fpr_regs[ 7].regno = _XMM7;	ejit_fpr_regs[ 7].name = "%xmm7";
+	    ejit_fpr_regs[ 8].regno = _ST0;	ejit_fpr_regs[ 8].name = "%st0";
+	    ejit_fpr_regs[ 9].regno = _ST1;	ejit_fpr_regs[ 9].name = "%st1";
+	    ejit_fpr_regs[10].regno = _ST2;	ejit_fpr_regs[10].name = "%st2";
+	    ejit_fpr_regs[11].regno = _ST3;	ejit_fpr_regs[11].name = "%st3";
+	    ejit_fpr_regs[12].regno = _ST4;	ejit_fpr_regs[12].name = "%st4";
+	    ejit_fpr_regs[13].regno = _ST5;	ejit_fpr_regs[13].name = "%st5";
+	    ejit_fpr_regs[14].regno = _ST6;	ejit_fpr_regs[14].name = "%st6";
+	    ejit_fpr_regs[15].regno = _ST7;	ejit_fpr_regs[15].name = "%st7";
+
 	}
 	else {
 	    ejit_fpr_regs[0].regno = _ST0;	ejit_fpr_regs[0].name = "%st0";
@@ -641,162 +808,91 @@ ejit_n_i_p(ejit_state_t *s, ejit_code_t c, ejit_node_t *u, int v, void *w)
 ejit_node_t *
 ejit_prolog(ejit_state_t *s)
 {
-    ejit_node_t	*n = node_new(code_prolog);
-
-    s->framesize = EJIT_FRAMESIZE;
+    ejit_frame_t	*f = frame_new();
+    ejit_node_t		*n = node_new(code_prolog);
     n = node_link(s, n);
-
-    /* placeholder to insert appropriate nodes to callee saved registers
-     * and alloca */
-    s->prolog = n;
+    f->next = s->prolog;
+    f->node = n;
+    f->size = EJIT_FRAMESIZE;
+    s->prolog = f;
+    /* FIXME add appropriate nodes to callee saved registers and alloca */
     ejit_subi_p(s, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
     ejit_movr_p(s, EJIT_FP, EJIT_SP);
-
     return (n);
 }
 
 int
 ejit_arg_i(ejit_state_t *s, ejit_register_t **r)
 {
-    int		ofs;
-
-#if defined(__x86_64__)
-    ofs = s->nextarg_i;
-    if (s->nextarg_i < EJIT_NUM_GPR_ARGS) {
-	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
-	++s->nextarg_i;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-	s->framesize += sizeof(long);
-    }
-#elif defined(__mips__)
-    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
-    if (ofs < 4) {
-	s->nextarg_i = 1;
-	*r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-    }
-    s->framesize += sizeof(long);
-#else
-    *r = NULL;
-    ofs = s->framesize;
-    s->framesize += sizeof(long);
-#endif
-
-    return (ofs);
+    return (arg_i(s->prolog, r));
 }
 
 int
 ejit_arg_f(ejit_state_t *s, ejit_register_t **r)
 {
-    int		ofs;
-
-#if defined(__x86_64__)
-    ofs = s->nextarg_f;
-    if (s->nextarg_f < EJIT_NUM_FPR_ARGS) {
-	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + ofs;
-	++s->nextarg_i;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-	s->framesize += sizeof(double);
-    }
-#elif defined(__mips__)
-    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
-    if (ofs < EJIT_NUM_GPR_ARGS) {
-	if (!s->nextarg_i) {
-	    if (ofs) {
-		ofs = 1;
-		s->nextarg_i = 1;
-		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
-	    }
-	    else
-		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
-	}
-	else
-	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-    }
-    s->framesize += sizeof(float);
-#else
-    *r = NULL;
-    ofs = s->framesize;
-    s->framesize += sizeof(float);
-#endif
-
-    return (ofs);
+    return (arg_f(s->prolog, r));
 }
 
 int
 ejit_arg_d(ejit_state_t *s, ejit_register_t **r)
 {
-    int		ofs;
-
-#if defined(__x86_64__)
-    ofs = s->nextarg_f;
-    if (s->nextarg_f < EJIT_NUM_FPR_ARGS) {
-	*r = ejit_fpr_regs + EJIT_OFS_FPR_ARGS + ofs;
-	++s->nextarg_i;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-	s->framesize += sizeof(double);
-    }
-#elif defined(__mips__)
-    if (s->framesize & 7) {
-	s->framesize += 4;
-	s->nextarg_i = 1;
-    }
-    ofs = (s->framesize - EJIT_FRAMESIZE) >> 2;
-    if (ofs < EJIT_NUM_GPR_ARGS) {
-	if (!s->nextarg_i) {
-	    if (ofs) {
-		ofs = 1;
-		s->nextarg_i = 1;
-		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS + 1;
-	    }
-	    else
-		*r = ejit_gpr_regs + EJIT_OFS_FPR_ARGS;
-	}
-	else
-	    *r = ejit_gpr_regs + EJIT_OFS_GPR_ARGS + ofs;
-    }
-    else {
-	*r = NULL;
-	ofs = s->framesize;
-    }
-    s->framesize += sizeof(double);
-#else
-    *r = NULL;
-    ofs = s->framesize;
-    s->framesize += sizeof(double);
-#endif
-
-    return (ofs);
+    return (arg_d(s->prolog, r));
 }
 
 ejit_node_t *
 ejit_epilog(ejit_state_t *s)
 {
-    ejit_node_t	*n = node_new(code_epilog);
-
+    ejit_frame_t	*f = s->prolog->next;
+    ejit_node_t		*n = node_new(code_epilog);
     n = node_link(s, n);
     ejit_movr_p(s, EJIT_SP, EJIT_FP);
     /* FIXME reload callee save registers */
     ejit_addi_p(s, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
     /* FIXME add architecture specific ret instruction when emiting code */
+    free(s->prolog);
+    s->prolog = f;
+    return (n);
+}
+
+ejit_node_t *
+ejit_prepare(ejit_state_t *s)
+{
+    ejit_frame_t	*f = frame_new();
+    ejit_node_t		*n = node_new(code_prepare);
+
+    n = node_link(s, n);
+    f->next = s->prepare;
+    f->node = n;
+    s->prepare = f;
 
     return (n);
+}
+
+ejit_node_t *
+ejit_pusharg(ejit_state_t *s, ejit_code_t c, int u)
+{
+    ejit_register_t	*r;
+    ejit_node_t		*n = node_new(c);
+
+    n->u.i = u;
+    switch (c) {
+	case code_pusharg_f:	(void)arg_f(s->prepare, &r);	break;
+	case code_pusharg_d:	(void)arg_d(s->prepare, &r);	break;
+	default:		(void)arg_i(s->prepare, &r);	break;
+    }
+
+    return (node_link(s, n));
+}
+
+ejit_node_t *
+ejit_finish(ejit_state_t *s, void *u)
+{
+    ejit_frame_t	*f = s->prepare->next;
+    ejit_node_t		*n = node_new(code_finish);
+    n->u.p = u;
+    free(s->prepare);
+    s->prepare = f;
+    return (n = node_link(s, n));
 }
 
 int
@@ -992,8 +1088,7 @@ ejit_optimize(ejit_state_t *s)
 	    case code_stxi_ui:		case code_stxi_l:
 	    case code_stxi_ul:		case code_stxi_p:
 	    case code_stxi_f:		case code_stxi_d:
-	    case code_prepare_i:	case code_prepare_f:
-	    case code_prepare_d:	case code_pusharg_c:
+	    case code_prepare:		case code_pusharg_c:
 	    case code_pusharg_uc:	case code_pusharg_s:
 	    case code_pusharg_us:	case code_pusharg_i:
 	    case code_pusharg_ui:	case code_pusharg_l:
@@ -1611,9 +1706,7 @@ ejit_print(ejit_state_t *s)
 	    case code_stxi_p:		printf("stxi_p");	goto l_ir_ir;
 	    case code_stxi_f:		printf("stxi_f");	goto l_ir_fr;
 	    case code_stxi_d:		printf("stxi_d");	goto l_ir_fr;
-	    case code_prepare_i:	printf("prepare_i");	goto i;
-	    case code_prepare_f:	printf("prepare_f");	goto i;
-	    case code_prepare_d:	printf("prepare_d");	goto i;
+	    case code_prepare:		printf("prepare");	goto i;
 	    case code_pusharg_c:	printf("pusharg_c");	goto ir;
 	    case code_pusharg_uc:	printf("pusharg_uc");	goto ir;
 	    case code_pusharg_s:	printf("pusharg_s");	goto ir;
