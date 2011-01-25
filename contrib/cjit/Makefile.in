@@ -75,9 +75,8 @@ PROGRAMS = $(bin_PROGRAMS)
 am_cjit_OBJECTS = cjit.$(OBJEXT) cjit_alloc.$(OBJEXT) \
 	cjit_data.$(OBJEXT) cjit_debug.$(OBJEXT) cjit_emit.$(OBJEXT) \
 	cjit_error.$(OBJEXT) cjit_eval.$(OBJEXT) cjit_expr.$(OBJEXT) \
-	cjit_hash.$(OBJEXT) cjit_parser.$(OBJEXT) cjit_range.$(OBJEXT) \
-	cjit_read.$(OBJEXT) cjit_stack.$(OBJEXT) cjit_type.$(OBJEXT) \
-	thunder.$(OBJEXT)
+	cjit_hash.$(OBJEXT) cjit_parser.$(OBJEXT) cjit_read.$(OBJEXT) \
+	cjit_stack.$(OBJEXT) cjit_type.$(OBJEXT) thunder.$(OBJEXT)
 cjit_OBJECTS = $(am_cjit_OBJECTS)
 am__DEPENDENCIES_1 =
 cjit_DEPENDENCIES = $(am__DEPENDENCIES_1)
@@ -250,7 +249,6 @@ cjit_SOURCES = \
 	cjit_expr.c	\
 	cjit_hash.c	\
 	cjit_parser.c	\
-	cjit_range.c	\
 	cjit_read.c	\
 	cjit_stack.c	\
 	cjit_type.c	\
@@ -361,7 +359,6 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_expr.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_hash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_parser.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_range.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_read.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_stack.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cjit_type.Po@am__quote@

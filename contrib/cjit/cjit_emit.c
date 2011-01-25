@@ -155,13 +155,16 @@ static tag_t *
 emit_call(expr_t *expr);
 
 static void
-emit_load(expr_t *expr, value_t *value);
+emit_load(value_t *value);
 
 static void
-emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value);
+emit_save(value_t *value);
 
 static void
-emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value);
+emit_load_symbol(symbol_t *symbol, value_t *value);
+
+static void
+emit_store_symbol(symbol_t *symbol, value_t *value);
 
 static value_t *
 get_value_stack(void);
@@ -189,9 +192,6 @@ add_jump(jump_t *list, ejit_node_t *node);
  */
 static ejit_state_t	*state;
 static vstack_t		 vstack;
-static int		 alloca_offset;
-static int		 alloca_length;
-static ejit_node_t	*alloca_node;
 static branch_t		 bstack;
 
 /*
@@ -472,7 +472,7 @@ emit_incdec(expr_t *expr)
     lval = top_value_stack();
     if (lexp->token == tok_symbol) {
 	symbol = lval->u.pval;
-	emit_load(lexp, lval);
+	emit_load(lval);
 	lreg = lval->u.ival;
     }
     else {
@@ -535,7 +535,7 @@ emit_incdec(expr_t *expr)
 	    error(expr, "not an integer or pointer");
     }
     if (lexp->token == tok_symbol)
-	emit_store_symbol(expr, symbol, lval);
+	emit_store_symbol(symbol, lval);
     else {
 	vreg = rval->u.ival;
 	switch (tag->type) {
@@ -582,7 +582,7 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
     if (!(ltag->type & (type_struct | type_union)))
 	error(expr->data._binary.lvalue, "not a struct or union");
     lval = top_value_stack();
-    emit_load(expr, lval);
+    emit_load(lval);
     lr = lval->u.ival;
     if (pointer_type_p(ltag->type)) {
 	if (expr->token != tok_arrow)
@@ -678,12 +678,12 @@ emit_field(expr_t *expr, token_t token, expr_t *vexp)
 	/* stored value must be in a register even if a literal constant */
 	if (tag != vtag)
 	    emit_coerce_const(expr, tag, vval);
-	emit_load(vexp, vval);
+	emit_load(vval);
 	if (tag != vtag)
 	    emit_coerce(expr, tag, vval);
 	vr = vval->u.ival;
 	/* reload if spilled, otherwise a noop */
-	emit_load(expr, lval);
+	emit_load(lval);
     }
 
     else if (token) {
@@ -808,13 +808,13 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 	    error(expr->data._binary.rvalue, "not an integer");
     }
     rval = top_value_stack();
-    emit_load(expr, lval);
+    emit_load(lval);
     lr = lval->u.ival;
     if (value_load_p(rval))
 	/* must be done before evaluating vexp (if set) because it may
 	 * have side effects that could change the offset, e.g. change
 	 * the value of a symbol */
-	emit_load(expr, rval);
+	emit_load(rval);
     rr = rval->u.ival;
     tag = ltag->tag;
 
@@ -948,14 +948,14 @@ emit_vector(expr_t *expr, token_t token, expr_t *vexp)
 	if (tag != vtag)
 	    emit_coerce_const(expr, tag, vval);
 	if (token == tok_none)
-	    emit_load(vexp, vval);
+	    emit_load(vval);
 	if (tag != vtag)
 	    emit_coerce(expr, tag, vval);
 	vr = vval->u.ival;
 	/* reload if spilled, otherwise a noop */
-	emit_load(expr, lval);
+	emit_load(lval);
 	if (token && !value_const_p(rval))
-	    emit_load(expr, rval);
+	    emit_load(rval);
     }
 
     else if (token) {
@@ -1232,7 +1232,7 @@ emit_symbol(expr_t *expr, token_t token, expr_t *rexp)
     }
     if (rexp) {
 	if (token)
-	    emit_load_symbol(expr, symbol, lval);
+	    emit_load_symbol(symbol, lval);
 	rtag = emit_expr(rexp);
 	rval = top_value_stack();
 	if (token) {
@@ -1241,22 +1241,22 @@ emit_symbol(expr_t *expr, token_t token, expr_t *rexp)
 		emit_coerce_const(expr, symbol->tag, lval);
 	    if (ltag != rtag)
 		emit_coerce(rexp, symbol->tag, lval);
-	    emit_store_symbol(expr, symbol, lval);
+	    emit_store_symbol(symbol, lval);
 	}
 	else {
 	    if (ltag != rtag)
 		emit_coerce_const(expr, symbol->tag, rval);
-	    emit_load(rexp, rval);
+	    emit_load(rval);
 	    if (ltag != rtag)
 		emit_coerce(rexp, symbol->tag, rval);
-	    emit_store_symbol(expr, symbol, rval);
+	    emit_store_symbol(symbol, rval);
 	    lval->type = rval->type;
 	    lval->u.ival = rval->u.ival;
 	}
 	dec_value_stack(1);
     }
     else
-	emit_load_symbol(expr, symbol, lval);
+	emit_load_symbol(symbol, lval);
 
     return (ltag);
 }
@@ -1272,7 +1272,7 @@ emit_not(expr_t *expr)
 
     tag = emit_expr(expr->data._unary.expr);
     value = top_value_stack();
-    emit_load(expr, value);
+    emit_load(value);
     regno = value->u.ival;
 
     switch (tag->type) {
@@ -1293,7 +1293,7 @@ emit_not(expr_t *expr)
 	    fval->type = value_ftype;
 	    fval->u.fval = 0.0;
 	    inc_value_stack();
-	    emit_load(expr, fval);
+	    emit_load(fval);
 	    ireg = get_register(0);
 	    ejit_ltgtr_f(state, ireg, regno, fval->u.ival);
 	    value->u.ival = ireg;
@@ -1304,7 +1304,7 @@ emit_not(expr_t *expr)
 	    fval->type = value_dtype;
 	    fval->u.dval = 0.0;
 	    inc_value_stack();
-	    emit_load(expr, fval);
+	    emit_load(fval);
 	    ireg = get_register(0);
 	    ejit_ltgtr_d(state, ireg, regno, fval->u.ival);
 	    value->u.ival = ireg;
@@ -1330,7 +1330,7 @@ emit_neg(expr_t *expr)
 
     tag = emit_expr(expr->data._unary.expr);
     value = top_value_stack();
-    emit_load(expr, value);
+    emit_load(value);
     regno = value->u.ival;
 
     switch (tag->type) {
@@ -1368,7 +1368,7 @@ emit_com(expr_t *expr)
 
     tag = emit_expr(expr->data._unary.expr);
     value = top_value_stack();
-    emit_load(expr, value);
+    emit_load(value);
     regno = value->u.ival;
 
     switch (tag->type) {
@@ -1450,7 +1450,7 @@ emit_pointer(expr_t *expr, token_t token, expr_t *rexp)
     if (!pointer_type_p(ltag->type))
 	error(expr, "not a pointer");
     lval = top_value_stack();
-    emit_load(expr, lval);
+    emit_load(lval);
     lreg = lval->u.ival;
     ltag = ltag->tag;
 
@@ -1528,12 +1528,12 @@ emit_pointer(expr_t *expr, token_t token, expr_t *rexp)
 
 	rval = top_value_stack();
 	if (token == tok_none)
-	    emit_load(expr, rval);
+	    emit_load(rval);
 	if (ltag != rtag)
 	    emit_coerce(expr, ltag, rval);
 	rreg = rval->u.ival;
 	/* reload if spilled, otherwise a noop */
-	emit_load(expr, lval);
+	emit_load(lval);
     }
 
     else if (token)
@@ -1637,7 +1637,7 @@ emit_cond(expr_t *expr)
     cond = expr->data._binary.lvalue;
     tag = emit_expr(cond);
     lval = top_value_stack();
-    emit_load(cond, lval);
+    emit_load(lval);
     lreg = lval->u.ival;
     switch (tag->type) {
 	case type_char:		case type_short:	case type_int:
@@ -1679,7 +1679,7 @@ emit_cond(expr_t *expr)
     cond = expr->data._binary.rvalue;
     tag = emit_expr(cond);
     rval = top_value_stack();
-    emit_load(cond, rval);
+    emit_load(rval);
     rreg = rval->u.ival;
     switch (tag->type) {
 	case type_char:		case type_short:	case type_int:
@@ -1736,7 +1736,7 @@ emit_cmp(expr_t *expr)
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
-    emit_load(expr, lval);
+    emit_load(lval);
     tag = emit_binary_setup(expr, ltag, rtag, lval, rval, expr->token);
     lreg = lval->u.ival;
     switch (tag->type) {
@@ -1921,7 +1921,7 @@ emit_binary(expr_t *expr, token_t token)
     lval = top_value_stack();
     rtag = emit_expr(expr->data._binary.rvalue);
     rval = top_value_stack();
-    emit_load(expr, lval);
+    emit_load(lval);
 
     return (emit_binary_next(expr, ltag, rtag, lval, rval, token));    
 }
@@ -2098,7 +2098,7 @@ emit_binary_next(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			ejit_addi_p(state, lreg, lreg, (void *)il);
 		    }
 		    else {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 			ejit_muli_l(state, lreg, lreg, tag->size);
 			ejit_addr_p(state, lreg, lreg, rreg);
@@ -2163,7 +2163,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 
     lreg = lval->u.ival;
     if (value_load_p(rval)) {
-	emit_load(expr, rval);
+	emit_load(rval);
 	rreg = rval->u.ival;
     }
     else
@@ -2194,7 +2194,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			    break;
 		    }
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_ftype);
@@ -2213,7 +2213,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			    break;
 		    }
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_dtype);
@@ -2322,7 +2322,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			    break;
 		    }
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_ftype);
@@ -2341,7 +2341,7 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 			    break;
 		    }
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_dtype);
@@ -2427,12 +2427,12 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 		case type_uchar:	case type_ushort:	case type_uint:
 		case type_long:		case type_ulong:
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_ftype);
 		    if (rreg == -1) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    if (rtag->type == type_long || rtag->type == type_ulong)
@@ -2468,12 +2468,12 @@ emit_binary_setup(expr_t *expr, tag_t *ltag, tag_t *rtag,
 		case type_uchar:	case type_ushort:	case type_uint:
 		case type_long:		case type_ulong:
 		    if (value_const_p(rval)) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    freg = get_register(value_ftype);
 		    if (rreg == -1) {
-			emit_load(expr, rval);
+			emit_load(rval);
 			rreg = rval->u.ival;
 		    }
 		    if (rtag->type == type_long || rtag->type == type_ulong)
@@ -2787,7 +2787,7 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 	    lval = top_value_stack();
 	    rtag = emit_expr(expr->data._binary.rvalue);
 	    rval = top_value_stack();
-	    emit_load(expr, lval);
+	    emit_load(lval);
 	    ltag = emit_binary_setup(expr, ltag, rtag, lval, rval, expr->token);
 	    lreg = lval->u.ival;
 	    switch (ltag->type) {
@@ -3129,7 +3129,7 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 		    break;
 		case type_float:
 		    if (value_const_p(rval))
-			emit_load(expr, rval);
+			emit_load(rval);
 		    rreg = rval->u.ival;
 		    switch (expr->token) {
 			case tok_lt:
@@ -3172,7 +3172,7 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 		    break;
 		case type_double:
 		    if (value_const_p(rval))
-			emit_load(expr, rval);
+			emit_load(rval);
 		    rreg = rval->u.ival;
 		    switch (expr->token) {
 			case tok_lt:
@@ -3319,7 +3319,7 @@ emit_test_branch(expr_t *expr, int jmpif, int level)
 	default:
 	    ltag = emit_expr(expr);
 	    lval = top_value_stack();
-	    emit_load(expr, lval);
+	    emit_load(lval);
 	    lreg = lval->u.ival;
 	    switch (lval->type & ~value_regno) {
 		case value_itype:
@@ -3389,7 +3389,7 @@ emit_question(expr_t *expr)
     ltag = emit_expr(expr->data._if.tcode);
     lval = top_value_stack();
     if (value_const_p(lval))
-	emit_load(expr->data._if.fcode, lval);
+	emit_load(lval);
     lreg = lval->u.ival;
     node = ejit_jmpi(state, NULL);
     /* release register so that result of false condition may
@@ -3407,7 +3407,7 @@ emit_question(expr_t *expr)
     /* actually, rval == lval */
     rval = top_value_stack();
     if (value_const_p(rval))
-	emit_load(expr->data._if.fcode, rval);
+	emit_load(rval);
     rreg = rval->u.ival;
     if (lreg != rreg) {
 	switch (ltag->type) {
@@ -3729,7 +3729,7 @@ emit_switch(expr_t *expr)
     if (emit_expr(test) != int_tag)
 	error(test, "switch test is not an integer");
     value = top_value_stack();
-    emit_load(test, value);
+    emit_load(value);
     regno = value->u.ival;
 
     /* order of comparisons is not order of definition, but sorted
@@ -3824,13 +3824,11 @@ emit_function(expr_t *expr)
     symbol_t	*symbol;
     function_t	*function;
 
-    range_reset();
     ejit_prolog(state);
 
     inc_branch_stack(tok_function);
     function = expr->data._function.function;
     current = function->table;
-    current->offset = current->length = 0;
     for (offset = 0; offset < current->count; offset++) {
 	/* FIXME need extra logic for local variables
 	 * declared in block scope */
@@ -3840,16 +3838,10 @@ emit_function(expr_t *expr)
 	    value = get_value_stack();
 	    switch (symbol->tag->type) {
 		case type_float:
-		    if (symbol->regptr->isflt)
-			value->type = value_ftype;
-		    else
-			value->type = value_itype;
+		    value->type = value_ftype;
 		    break;
 		case type_double:
-		    if (symbol->regptr->isflt)
-			value->type = value_dtype;
-		    else
-			value->type = value_ltype;
+		    value->type = value_dtype;
 		    break;
 		case type_char:		case type_short:	case type_int:
 		    value->type = value_itype;
@@ -3872,17 +3864,12 @@ emit_function(expr_t *expr)
 	    if (symbol->mem) {
 		/* relocate symbol to stack */
 		symbol->reg = 0;
-		emit_store_symbol(expr, symbol, value);
+		emit_store_symbol(symbol, value);
 	    }
 	    else
 		inc_value_stack();
 	}
     }
-    current->length = current->offset & -ALIGN;
-    alloca_length = alloca_offset = -current->length;
-
-    alloca_node = ejit_allocai(state, alloca_length);
-
     emit_stat(expr->data._function.body);
     dec_branch_stack(1);
     vstack_reset(0);
@@ -3922,7 +3909,7 @@ emit_return(expr_t *expr)
     if (expr->data._unary.expr) {
 	rtag = emit_expr(expr->data._unary.expr);
 	value = top_value_stack();
-	emit_load(expr, value);
+	emit_load(value);
 	emit_coerce(expr, ltag, value);
 	regno = value->u.ival;
 	switch (ltag->type) {
@@ -3978,7 +3965,7 @@ emit_call(expr_t *expr)
     for (expr = expr->data._binary.rvalue; expr; expr = expr->next) {
 	rtag = emit_expr(expr);
 	rval = top_value_stack();
-	emit_load(expr, rval);
+	emit_load(rval);
 	rreg = rval->u.ival;
 	switch (rtag->type) {
 	    case type_char:	ejit_pusharg_c (state, rreg);	break;
@@ -4000,7 +3987,6 @@ emit_call(expr_t *expr)
     }
     ejit_finish(state, lval->u.pval);
 
-    /* do not call retval, but directly set the return value */
     ltag = ltag->tag;
     lval->u.ival = 0;
     switch (ltag->type) {
@@ -4059,18 +4045,18 @@ emit_call(expr_t *expr)
 }
 
 static void
-emit_load(expr_t *expr, value_t *value)
+emit_load(value_t *value)
 {
     int		 regno;
 
     if (!(value->type & value_regno)) {
 	switch (value->type) {
 	    case value_funct:
-		warn(expr, "function value not handled");
+		warn(NULL, "function value not handled");
 		/* FIXME must be resolved if not jit */
 		break;
 	    case value_symbl:
-		emit_load_symbol(expr, value->u.pval, value);
+		emit_load_symbol(value->u.pval, value);
 		return;
 	    case value_itype:
 		regno = get_register(0);
@@ -4098,7 +4084,7 @@ emit_load(expr_t *expr, value_t *value)
 		value->u.ival = regno;
 		break;
 	    default:
-		error(expr, "internal error");
+		error(NULL, "internal error");
 	}
 	value->u.ival = regno;
 	value->type |= value_regno;
@@ -4114,7 +4100,32 @@ emit_load(expr_t *expr, value_t *value)
 }
 
 static void
-emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
+emit_save(value_t *value)
+{
+    int		fent;
+    int		regno;
+    int		offset;
+
+    if (!(value->type & value_spill)) {
+	regno = value->u.ival;
+	fent = value_float_p(value);
+	if (value->type & value_displ)
+	    offset = value->disp;
+	else {
+	    offset = ejit_allocai(state, fent ? sizeof(double) : sizeof(long));
+	    value->disp = offset;
+	    value->type |= value_displ;
+	}
+	value->type |= value_spill;
+	if (fent)
+	    ejit_stxi_d(state, value->disp, EJIT_FP, regno);
+	else
+	    ejit_stxi_l(state, value->disp, EJIT_FP, regno);
+    }
+}
+
+static void
+emit_load_symbol(symbol_t *symbol, value_t *value)
 {
     int		 regno;
     void	*pointer;
@@ -4261,7 +4272,7 @@ emit_load_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 }
 
 static void
-emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
+emit_store_symbol(symbol_t *symbol, value_t *value)
 {
     int		 regno;
     void	*pointer;
@@ -4326,7 +4337,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		if (pointer_type_p(symbol->tag->type))
 		    ejit_sti_p(state, pointer, regno);
 		else
-		    warn(expr, "struct copy not handled");
+		    warn(NULL, "struct copy not handled");
 		break;
 	}
     }
@@ -4366,7 +4377,7 @@ emit_store_symbol(expr_t *expr, symbol_t *symbol, value_t *value)
 		if (pointer_type_p(symbol->tag->type))
 		    ejit_stxi_p(state, symbol->offset, EJIT_FP, regno);
 		else
-		    warn(expr, "struct copy not handled");
+		    warn(NULL, "struct copy not handled");
 		break;
 	}
     }
@@ -4436,17 +4447,7 @@ get_register(int freg)
 	    }
 	}
     }
-    offset = alloca_offset + range_get(fent ? sizeof(double) : sizeof(long));
-    if (offset > alloca_length) {
-	alloca_length = offset;
-	alloca_node->u.i = alloca_length;
-    }
-    entry->disp = -offset;
-    entry->type |= value_spill;
-    if (fent)
-	ejit_stxi_d(state, entry->disp, EJIT_FP, regno);
-    else
-	ejit_stxi_l(state, entry->disp, EJIT_FP, regno);
+    emit_save(entry);
 
     return (regno);
 }

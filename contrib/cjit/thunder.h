@@ -18,6 +18,10 @@
 #ifndef _thunder_h
 #define _thunder_h
 
+#include <stdlib.h>
+
+#define EJIT_ALIGN			(__WORDSIZE >> 3)
+
 #if defined(__i386__)
 #  define EJIT_FRAMESIZE		20
 #  define EJIT_NUM_HARD_GPR_REGS	8
@@ -1198,8 +1202,6 @@
     ejit_p(st, code_jmpi, u)
 #define ejit_jmpr(st, u)						\
     ejit_ir(st, code_jmpr, u)
-#define ejit_allocai(st, u)						\
-    ejit_i(st, code_allocai, u)
 
 /*
  * Types
@@ -1874,6 +1876,9 @@ ejit_arg_f(ejit_state_t *s, ejit_register_t **r);
 
 extern int
 ejit_arg_d(ejit_state_t *s, ejit_register_t **r);
+
+extern int
+ejit_allocai(ejit_state_t *s, int u);
 
 extern ejit_node_t *
 ejit_prepare(ejit_state_t *s);

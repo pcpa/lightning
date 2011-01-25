@@ -812,12 +812,13 @@ ejit_prolog(ejit_state_t *s)
     ejit_node_t		*n = node_new(code_prolog);
     n = node_link(s, n);
     f->next = s->prolog;
-    f->node = n;
     f->size = EJIT_FRAMESIZE;
     s->prolog = f;
     /* FIXME add appropriate nodes to callee saved registers and alloca */
     ejit_subi_p(s, EJIT_SP, EJIT_SP, (void *)EJIT_FRAMESIZE);
     ejit_movr_p(s, EJIT_FP, EJIT_SP);
+    f->node = node_new(code_allocai);
+    node_link(s, f->node);
     return (n);
 }
 
@@ -854,6 +855,12 @@ ejit_epilog(ejit_state_t *s)
     return (n);
 }
 
+int
+ejit_allocai(ejit_state_t *s, int u)
+{
+    return ((s->prolog->node->u.i += (u + EJIT_ALIGN - 1) & -EJIT_ALIGN));
+}
+
 ejit_node_t *
 ejit_prepare(ejit_state_t *s)
 {
@@ -862,7 +869,6 @@ ejit_prepare(ejit_state_t *s)
 
     n = node_link(s, n);
     f->next = s->prepare;
-    f->node = n;
     s->prepare = f;
 
     return (n);

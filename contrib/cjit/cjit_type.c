@@ -104,7 +104,7 @@ new_record(int mask)
 void
 end_record(record_t *record)
 {
-    record->length = (record->offset + ALIGN - 1) & -ALIGN;
+    record->length = (record->offset + EJIT_ALIGN - 1) & -EJIT_ALIGN;
 }
 
 record_t *
@@ -308,10 +308,6 @@ new_symbol(record_t *record, tag_t *tag, char *name)
     symbol->table = record;
     symbol->arg = symbol->loc = symbol->glb = symbol->fld =
 	symbol->reg = symbol->mem = 0;
-#if defined(__mips__)
-    symbol->ireg = 0;
-#endif
-
     if (type->length == 0 && tag->type != (type_pointer | type_void))
 	/* open type declaration */
 	error(NULL, "syntax error");
@@ -332,7 +328,8 @@ new_symbol(record_t *record, tag_t *tag, char *name)
 		symbol->offset = (record->offset + 3) & ~3;
 		break;
 	    default:
-		symbol->offset = (record->offset + (ALIGN - 1)) & -ALIGN;
+		symbol->offset = (record->offset +
+				  (EJIT_ALIGN - 1)) & -EJIT_ALIGN;
 		break;
 	}
 	record->offset = symbol->offset + tag->size;
@@ -354,32 +351,28 @@ variable(ejit_state_t *state, symbol_t *symbol)
 	switch (symbol->tag->type) {
 	    case type_float:
 		symbol->offset = ejit_arg_f(state, &symbol->regptr);
+		symbol->reg = symbol->regptr != NULL;
+		if (symbol->reg && !symbol->mem && symbol->regptr->isflt)
+		    return;
 		break;
 	    case type_double:
 		symbol->offset = ejit_arg_d(state, &symbol->regptr);
+		symbol->reg = symbol->regptr != NULL;
+		if (symbol->reg && !symbol->mem && symbol->regptr->isflt)
+		    return;
 		break;
 	    default:
 		symbol->offset = ejit_arg_i(state, &symbol->regptr);
+		symbol->reg = symbol->regptr != NULL;
+		if (symbol->reg && !symbol->mem)
+		    return;
 		break;
 	}
-	if (!symbol->mem)
-	    return;
     }
-    switch (symbol->tag->size) {
-	case 1:
-	    symbol->offset = current->offset - 1;
-	    break;
-	case 2:
-	    symbol->offset = (current->offset - 2) & -2;
-	    break;
-	case 4:
-	    symbol->offset = (current->offset - 4) & -4;
-	    break;
-	default:
-	    symbol->offset = (current->offset + ALIGN) & -ALIGN;
-	    break;
-    }
-    current->offset = symbol->offset - symbol->tag->size;
+    /* if not already zero, symbol->reg is set to zero later
+     * if it needs to be relocated to memory */
+    symbol->mem = 1;
+    symbol->offset = ejit_allocai(state, symbol->tag->size);
 }
 
 static tag_t *

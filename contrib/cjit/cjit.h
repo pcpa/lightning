@@ -42,7 +42,6 @@
 #define hash_string		0
 #define hash_pointer		1
 #define hash_integer		2
-#define ALIGN			(__WORDSIZE >> 3)
 
 #define type_void		0x00000000
 #define type_char		0x00000001
@@ -81,14 +80,15 @@
 #define pointer_type_p(type)	((type) & (type_vector | type_pointer))
 
 #define value_itype		0x00000000
-#define value_funct		0x00800000
-#define value_symbl		0x01000000
-#define value_ltype		0x02000000
-#define value_utype		0x04000000
-#define value_ptype		0x08000000
-#define value_ftype		0x10000000
-#define value_dtype		0x20000000
-#define value_regno		0x40000000
+#define value_funct		0x00400000
+#define value_symbl		0x00800000
+#define value_ltype		0x01000000
+#define value_utype		0x02000000
+#define value_ptype		0x04000000
+#define value_ftype		0x08000000
+#define value_dtype		0x10000000
+#define value_regno		0x20000000
+#define value_displ		0x40000000
 #define value_spill		0x80000000
 #define value_ultype		(value_utype | value_ltype)
 #define value_float_p(value)	((value)->type & (value_ftype | value_dtype))

@@ -37,7 +37,6 @@ cjit_SOURCES =		\
 	cjit_expr.c	\
 	cjit_hash.c	\
 	cjit_parser.c	\
-	cjit_range.c	\
 	cjit_read.c	\
 	cjit_stack.c	\
 	cjit_type.c	\
