@@ -84,8 +84,6 @@ x86_inc_sil_r(jit_state_t _jit, jit_gpr_t rd)
 
 /* --- REX prefixes -------------------------------------------------------- */
 #define _BIT(X)			(!!(X))
-#define _r1e8lP(R)		((int)(R) >= _RSP && (int)(R) <= _RDX)
-
 __jit_inline void
 x86_REXwrxb(jit_state_t _jit, int l, int w, int r, int x, int b)
 {
@@ -124,13 +122,13 @@ x86_REX_mem(jit_state_t _jit, int mb, int mi)
 __jit_inline void
 x86_rex_b_rr(jit_state_t _jit, int rr, int mr)
 {
-    x86_REXw_x_(_jit, _r1e8lP(rr) || _r1e8lP(mr), 0, rr, 0, mr);
+    x86_REXw_x_(_jit, 0, 0, rr, 0, mr);
 }
 
 __jit_inline void
 x86_rex_b_mr(jit_state_t _jit, int rb, int ri, int rd)
 {
-    x86_REXw_x_(_jit, _r1e8lP(rd) || _r1e8lP(rb), 0, rd, _BIT(_rXP(ri)), rb);
+    x86_REXw_x_(_jit, 0, 0, rd, _BIT(_rXP(ri)), rb);
 }
 
 __jit_inline void
@@ -142,7 +140,7 @@ x86_rex_b_rm(jit_state_t _jit, int rs, int rb, int ri)
 __jit_inline void
 x86_rex_bl_rr(jit_state_t _jit, int rr, int mr)
 {
-    x86_REXw_x_(_jit, _r1e8lP(mr), 0, rr, 0, mr);
+    x86_REXw_x_(_jit, 0, 0, rr, 0, mr);
 }
 
 __jit_inline void
