@@ -148,25 +148,25 @@ fmtfloorif:
 fmtfloorlf:
 .c	"floorr_l_f (%lx) %f = %lx\n"
 fmtceilif:
-.c	"ceilr_i_f  (%lx) %f = %lx\n"
+.c	"ceilr_f_i  (%lx) %f = %lx\n"
 fmtceillf:
-.c	"ceilr_l_f  (%lx) %f = %lx\n"
+.c	"ceilr_f_l  (%lx) %f = %lx\n"
 fmtroundid:
-.c	"roundr_i_d (%lx) %f = %lx\n"
+.c	"roundr_d_i (%lx) %f = %lx\n"
 fmtroundld:
-.c	"roundr_l_d (%lx) %f = %lx\n"
+.c	"roundr_d_l (%lx) %f = %lx\n"
 fmttruncid:
-.c	"truncr_i_d (%lx) %f = %lx\n"
+.c	"truncr_d_i (%lx) %f = %lx\n"
 fmttruncld:
-.c	"truncr_l_d (%lx) %f = %lx\n"
+.c	"truncr_d_l (%lx) %f = %lx\n"
 fmtfloorid:
-.c	"floorr_i_d (%lx) %f = %lx\n"
+.c	"floorr_d_i (%lx) %f = %lx\n"
 fmtfloorld:
-.c	"floorr_l_d (%lx) %f = %lx\n"
+.c	"floorr_d_l (%lx) %f = %lx\n"
 fmtceilid:
-.c	"ceilr_i_d  (%lx) %f = %lx\n"
+.c	"ceilr_d_i  (%lx) %f = %lx\n"
 fmtceilld:
-.c	"ceilr_l_d  (%lx) %f = %lx\n"
+.c	"ceilr_d_l  (%lx) %f = %lx\n"
 .	$($NaN   =  0.0 / 0.0)
 .	$($pInf  =  1.0 / 0.0)
 .	$($nInf  = -1.0 / 0.0)

@@ -4178,14 +4178,14 @@ x86_sse1_fi_rm(jit_state_t _jit, _uc px, x86_sse_t op,
 
 /* SSE4.1 */
 #define ROUNDSSrri(RS, RD, IM)						\
-    (_O(0x66), _rex_ff_rr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
-     _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
-#define ROUNDSDrri(RS, RD, IM)						\
     (_O(0x66), _rex_ff_rr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0a),	\
-     _Mrm(_b11, _rX(RS), _rX(RD)), _O(IM))
+     _Mrm(_b11, _rX(RD), _rX(RS)), _O(IM))
+#define ROUNDSDrri(RS, RD, IM)						\
+    (_O(0x66), _rex_ff_rr(RD, RS), _OO(0xf00|X86_SSE_ROUND), _O(0x0b),	\
+     _Mrm(_b11, _rX(RD), _rX(RS)), _O(IM))
 #define PCMPEQQrr(RS, RD)						\
     (_O(0x66), _rex_ff_rr(RD, RS), _OO(0x0f38), _O(0x29),		\
-     _Mrm(_b11, _rX(RS), _rX(RD)))
+     _Mrm(_b11, _rX(RD), _rX(RS)))
 
 /*** References:										*/
 /*												*/
