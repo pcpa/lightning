@@ -10,7 +10,8 @@ EXTRA_DIST = i386/Makefile.frag \
         ppc/asm.h ppc/core.h ppc/funcs.h ppc/fp.h \
         mips/Makefile.frag \
         mips/asm.h mips/core.h mips/core-32.h mips/core-64.h \
-        mips/fp.h mips/fp-32.h mips/fp-64.h mips/funcs.h
+        mips/fp.h mips/fp-32.h mips/fp-64.h mips/funcs.h \
+        arm/asm.h arm/core.h arm/fp.h arm/funcs.h
 
 @lightning_frag@
 

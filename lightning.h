@@ -191,6 +191,15 @@ struct {
     _ui		mul		: 1;
     _ui		mips64		: 1;
 } jit_cpu;
+#elif defined(__arm__)
+struct jit_local_state {
+    int		 framesize;
+};
+struct {
+    _ui		armv6		: 1;
+    _ui		thumb		: 1;
+} jit_cpu;
+#endif
 #else
 #  error GNU lightning does not support the current target
 #endif
