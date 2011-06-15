@@ -141,25 +141,6 @@ encode_arm_immediate(unsigned int v)
 }
 
 __jit_inline void
-arm_cc_orr(jit_state_t _jit, int cc, int o,
-	   jit_gpr_t r0, jit_gpr_t r1)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x000fff0f));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
-}
-
-__jit_inline void
-arm_cc_ori(jit_state_t _jit, int cc, int o,
-	   jit_gpr_t r0, int i0)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x0000ffff));
-    assert(!(i0 & 0xfffff000));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u12(i0));
-}
-
-__jit_inline void
 arm_cc_orrr(jit_state_t _jit, int cc, int o,
 	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
@@ -185,7 +166,7 @@ arm_cc_orri8(jit_state_t _jit, int cc, int o,
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000ff0ff));
     assert(!(i0 & 0xffffff00));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0 & 0xf0)<<4)|_u4(i0));
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0&0xf0)<<4)|(i0&0x0f));
 }
 
 __jit_inline void
@@ -216,13 +197,13 @@ arm_cc_srri(jit_state_t _jit, int cc,
     _jit_I(cc|o|(_u4(r0)<<12)|(i0<<7)|(_u4(r1)));
 }
 
-#define _CC_MOV(cc,r0,r1)	arm_cc_orr(_jit,cc,ARM_MOV,r0,r1)
+#define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
 #define _MOV(r0,r1)		_CC_MOV(ARM_CC_AL,r0,r1)
-#define _CC_MOVI(cc,r0,i0)	arm_cc_ori(_jit,cc,ARM_MOV|ARM_I,r0,i0)
+#define _CC_MOVI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_MOV|ARM_I,r0,0,i0)
 #define _MOVI(r0,i0)		_CC_MOVI(ARM_CC_AL,r0,i0)
-#define _CC_MVN(cc,r0,r1)	arm_cc_orr(_jit,cc,ARM_MVN,r0,r1)
+#define _CC_MVN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MVN,r0,0,r1)
 #define _MVN(r0, r1)		_CC_MVN(ARM_CC_AL,r0,r1)
-#define _CC_MVNI(cc,r0,i0)	arm_cc_ori(_jit,cc,ARM_MVN|ARM_I,r0,i0)
+#define _CC_MVNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_MVN|ARM_I,r0,0,i0)
 #define _MVNI(r0,i0)		_CC_MVNI(ARM_CC_AL,r0,i0)
 #define _CC_NOT(cc,r0,r1)	_CC_MVN(cc,r0,r1)
 #define _NOT(r0, r1)		_MVN(r0, r1)
@@ -313,14 +294,14 @@ arm_cc_srri(jit_state_t _jit, int cc,
 #define _CC_RORI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_RORI,r0,r1,i0)
 #define _RORI(r0,r1,i0)		_CC_RORI(ARM_CC_AL,r0,r1,i0)
 
-#define _CC_CMP(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_CMP,r0,r1,r2)
-#define _CMP(r0,r1,r2)		_CC_CMP(ARM_CC_AL,r0,r1,r2)
-#define _CC_CMPI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_CMP|ARM_I,r0,r1,i0)
-#define _CMPI(r0,r1,i0)		_CC_CMPI(ARM_CC_AL,r0,r1,i0)
-#define _CC_CMN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_CMN,r0,r1,r2)
-#define _CMN(r0,r1,r2)		_CC_CMN(ARM_CC_AL,r0,r1,r2)
-#define _CC_CMNI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,r0,r1,i0)
-#define _CMNI(r0,r1,i0)		_CC_CMNI(ARM_CC_AL,r0,r1,i0)
+#define _CC_CMP(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_CMP,0,r0,r1)
+#define _CMP(r0,r1)		_CC_CMP(ARM_CC_AL,r0,r1)
+#define _CC_CMPI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMP|ARM_I,0,r0,i0)
+#define _CMPI(r0,i0)		_CC_CMPI(ARM_CC_AL,r0,i0)
+#define _CC_CMN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_CMN,0,r0,r1)
+#define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
+#define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
+#define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
 
 #define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB|ARM_P,r0,r1,r2)
 #define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)

@@ -286,25 +286,6 @@ encode_arm_immediate(unsigned int v)
 }
 
 __jit_inline void
-arm_cc_orr(jit_state_t _jit, int cc, int o,
-	   jit_gpr_t r0, jit_gpr_t r1)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x000fff0f));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
-}
-
-__jit_inline void
-arm_cc_ori(jit_state_t _jit, int cc, int o,
-	   jit_gpr_t r0, int i0)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x0000ffff));
-    assert(!(i0 & 0xfffff000));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u12(i0));
-}
-
-__jit_inline void
 arm_cc_orrr(jit_state_t _jit, int cc, int o,
 	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
@@ -330,7 +311,7 @@ arm_cc_orri8(jit_state_t _jit, int cc, int o,
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fff0f));
     assert(!(i0 & 0xffffff00));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0 & 0xf0)<<4)|_u4(i0));
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0&0xf0)<<4)|(i0&0x0f));
 }
 
 __jit_inline void
@@ -361,13 +342,13 @@ arm_cc_srri(jit_state_t _jit, int cc,
     _jit_I(cc|o|(_u4(r0)<<12)|(i0<<7)|(_u4(r1)));
 }
 
-#define _CC_MOV(cc,r0,r1)	arm_cc_orr(_jit,cc,ARM_MOV,r0,r1)
+#define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
 #define _MOV(r0,r1)		_CC_MOV(ARM_CC_AL,r0,r1)
-#define _CC_MOVI(cc,r0,i0)	arm_cc_ori(_jit,cc,ARM_MOV|ARM_I,r0,i0)
+#define _CC_MOVI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_MOV|ARM_I,r0,0,i0)
 #define _MOVI(r0,i0)		_CC_MOVI(ARM_CC_AL,r0,i0)
-#define _CC_MVN(cc,r0,r1)	arm_cc_orr(_jit,cc,ARM_MVN,r0,r1)
+#define _CC_MVN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MVN,r0,0,r1)
 #define _MVN(r0, r1)		_CC_MVN(ARM_CC_AL,r0,r1)
-#define _CC_MVNI(cc,r0,i0)	arm_cc_ori(_jit,cc,ARM_MVN|ARM_I,r0,i0)
+#define _CC_MVNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_MVN|ARM_I,r0,0,i0)
 #define _MVNI(r0,i0)		_CC_MVNI(ARM_CC_AL,r0,i0)
 #define _CC_NOT(cc,r0,r1)	_CC_MVN(cc,r0,r1)
 #define _NOT(r0, r1)		_MVN(r0, r1)
@@ -458,14 +439,14 @@ arm_cc_srri(jit_state_t _jit, int cc,
 #define _CC_RORI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_RORI,r0,r1,i0)
 #define _RORI(r0,r1,i0)		_CC_RORI(ARM_CC_AL,r0,r1,i0)
 
-#define _CC_CMP(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_CMP,r0,r1,r2)
-#define _CMP(r0,r1,r2)		_CC_CMP(ARM_CC_AL,r0,r1,r2)
-#define _CC_CMPI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_CMP|ARM_I,r0,r1,i0)
-#define _CMPI(r0,r1,i0)		_CC_CMPI(ARM_CC_AL,r0,r1,i0)
-#define _CC_CMN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_CMN,r0,r1,r2)
-#define _CMN(r0,r1,r2)		_CC_CMN(ARM_CC_AL,r0,r1,r2)
-#define _CC_CMNI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,r0,r1,i0)
-#define _CMNI(r0,r1,i0)		_CC_CMNI(ARM_CC_AL,r0,r1,i0)
+#define _CC_CMP(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_CMP,0,r0,r1)
+#define _CMP(r0,r1)		_CC_CMP(ARM_CC_AL,r0,r1)
+#define _CC_CMPI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMP|ARM_I,0,r0,i0)
+#define _CMPI(r0,i0)		_CC_CMPI(ARM_CC_AL,r0,i0)
+#define _CC_CMN(cc,r0)		arm_cc_orrr(_jit,cc,ARM_CMN,0,r0,r1)
+#define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
+#define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
+#define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
 
 #define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB|ARM_P,r0,r1,r2)
 #define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)
@@ -536,6 +517,15 @@ arm_cc_srri(jit_state_t _jit, int cc,
 #define JIT_PC			_R15
 #define JIT_SP			_R13
 #define JIT_TMP			_R12
+
+#define jit_nop(n)			arm_nop(_jit, n)
+__jit_inline void
+arm_nop(jit_state_t _jit, int n)
+{
+    assert(n >= 0);
+    while (n--)
+	_NOP();
+}
 
 #define jit_movr_i(r0, r1)		arm_movr_i(_jit, r0, r1)
 __jit_inline void
@@ -919,6 +909,284 @@ arm_rshi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     _LSRI(r0, r1, i0);
 }
 
+#define jit_ltr_i(r0, r1, r2)		arm_ltr_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_ltr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_LT, r0, 1);
+    _CC_MOVI(ARM_CC_GE, r0, 0);
+}
+
+#define jit_lti_i(r0, r1, i0)		arm_lti_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_lti_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_LT, r0, 1);
+    _CC_MOVI(ARM_CC_GE, r0, 0);
+}
+
+#define jit_ltr_ui(r0, r1, i0)		arm_ltr_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_ltr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_LO, r0, 1);
+    _CC_MOVI(ARM_CC_HS, r0, 0);
+}
+
+#define jit_lti_ui(r0, r1, i0)		arm_lti_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_lti_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_LO, r0, 1);
+    _CC_MOVI(ARM_CC_HS, r0, 0);
+}
+
+#define jit_ler_i(r0, r1, r2)		arm_ler_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_ler_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_LE, r0, 1);
+    _CC_MOVI(ARM_CC_GT, r0, 0);
+}
+
+#define jit_lei_i(r0, r1, i0)		arm_lei_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_lei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_LE, r0, 1);
+    _CC_MOVI(ARM_CC_GT, r0, 0);
+}
+
+#define jit_ler_ui(r0, r1, r2)		arm_ler_ui(_jit, r0, r1, r2)
+__jit_inline void
+arm_ler_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_LS, r0, 1);
+    _CC_MOVI(ARM_CC_HI, r0, 0);
+}
+
+#define jit_lei_ui(r0, r1, i0)		arm_lei_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_lei_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_LS, r0, 1);
+    _CC_MOVI(ARM_CC_HI, r0, 0);
+}
+
+#define jit_eqr_i(r0, r1, r2)		arm_eqr_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_eqr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_EQ, r0, 1);
+    _CC_MOVI(ARM_CC_NE, r0, 0);
+}
+
+#define jit_eqi_i(r0, r1, i0)		arm_eqi_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_eqi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_EQ, r0, 1);
+    _CC_MOVI(ARM_CC_NE, r0, 0);
+}
+
+#define jit_ger_i(r0, r1, r2)		arm_ger_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_ger_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_GE, r0, 1);
+    _CC_MOVI(ARM_CC_LT, r0, 0);
+}
+
+#define jit_gei_i(r0, r1, i0)		arm_gei_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_gei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_GE, r0, 1);
+    _CC_MOVI(ARM_CC_LT, r0, 0);
+}
+
+#define jit_ger_ui(r0, r1, i0)		arm_ger_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_ger_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_HS, r0, 1);
+    _CC_MOVI(ARM_CC_LO, r0, 0);
+}
+
+#define jit_gei_ui(r0, r1, i0)		arm_gei_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_gei_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_HS, r0, 1);
+    _CC_MOVI(ARM_CC_LO, r0, 0);
+}
+
+#define jit_gtr_i(r0, r1, r2)		arm_gtr_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_gtr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_GT, r0, 1);
+    _CC_MOVI(ARM_CC_LE, r0, 0);
+}
+
+#define jit_gti_i(r0, r1, i0)		arm_gti_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_gti_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_GT, r0, 1);
+    _CC_MOVI(ARM_CC_LE, r0, 0);
+}
+
+#define jit_gtr_ui(r0, r1, r2)		arm_gtr_ui(_jit, r0, r1, r2)
+__jit_inline void
+arm_gtr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _CMP(r1, r2);
+    _CC_MOVI(ARM_CC_HI, r0, 1);
+    _CC_MOVI(ARM_CC_LS, r0, 0);
+}
+
+#define jit_gti_ui(r0, r1, i0)		arm_gti_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_gti_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_CMPI(r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_CMNI(r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_CMP(r1, reg);
+    }
+    _CC_MOVI(ARM_CC_HI, r0, 1);
+    _CC_MOVI(ARM_CC_LS, r0, 0);
+}
+
+#define jit_ner_i(r0, r1, r2)		arm_ner_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_ner_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _SUBS(r0, r1, r2);
+    _CC_MOVI(ARM_CC_NE, r0, 1);
+}
+
+#define jit_nei_i(r0, r1, i0)		arm_nei_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_nei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    int		i;
+    jit_gpr_t	reg;
+    if ((i = encode_arm_immediate(i0)) != -1)
+	_SUBSI(r0, r1, i0);
+    else if ((i = encode_arm_immediate(-i0)) != -1)
+	_ADDSI(r0, r1, i);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_SUBS(r0, r1, reg);
+    }
+    _CC_MOVI(ARM_CC_NE, r0, 1);
+}
+
 #define jit_ldxr_c(r0, r1, r2)		arm_ldxr_c(_jit, r0, r1, r2)
 __jit_inline void
 arm_ldxr_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
@@ -1111,6 +1379,7 @@ main(int argc, char *argv[])
 
     jit_set_ip(buffer);
 
+    jit_nop(1);				// mov r0, r0
     jit_movr_i(_R0, _R1);		// mov r0, r1
     jit_movi_i(_R0, 1);			// mov r0, #1
     jit_movi_i(_R0, -1);		// mvn r0, #0
@@ -1139,7 +1408,7 @@ main(int argc, char *argv[])
     jit_rsbi_i(_R0, _R1, -2);		// mvn r0, #1; rsb r0, r1, r0
     jit_mulr_i(_R0, _R1, _R2);		// mul r0, r1, r2
     jit_muli_i(_R0, _R1, 2);		// mov r0, #2; mul r0, r1, r0
-    jit_muli_i(_R0, _R1, -2);		// mvn r0, #1; mull r0, r1, r0
+    jit_muli_i(_R0, _R1, -2);		// mvn r0, #1; mul r0, r1, r0
     jit_andr_i(_R0, _R1, _R2);		// and r0, r1, r2
     jit_andi_i(_R0, _R1, 2);		// and r0, r1, #2
     jit_andi_i(_R0, _R1, -2);		// bic r0, r1, #1
@@ -1155,6 +1424,36 @@ main(int argc, char *argv[])
     jit_rshi_i(_R0, _R1, 2);		// asr r0, r1, #2
     jit_rshr_ui(_R0, _R1, _R2);		// lsr r0, r1, r2
     jit_rshi_ui(_R0, _R1, 2);		// lsr r0, r1, #2
+    jit_ltr_i(_R0, _R1, _R2);		// cmp r1, r2; movlt r0, #1; movge r0, #0
+    jit_lti_i(_R0, _R1, 2);		// cmp r1, #2; movlt r0, #1; movge r0, #0
+    jit_lti_i(_R0, _R1, -2);		// cmn r1, #2; movlt r0, #1; movge r0, #0
+    jit_ltr_ui(_R0, _R1, _R2);		// cmp r1, r2; movcc r0, #1; movcs r0, #0
+    jit_lti_ui(_R0, _R1, 2);		// cmp r1, #2; movcc r0, #1; movcs r0, #0
+    jit_lti_ui(_R0, _R1, -2);		// cmn r1, #2; movcc r0, #1; movcs r0, #0
+    jit_ler_i(_R0, _R1, _R2);		// cmp r1, r2; movle r0, #1; movgt r0, #0
+    jit_lei_i(_R0, _R1, 2);		// cmp r1, #2; movle r0, #1; movgt r0, #0
+    jit_lei_i(_R0, _R1, -2);		// cmn r1, #2; movle r0, #1; movgt r0, #0
+    jit_ler_ui(_R0, _R1, _R2);		// cmp r1, r2; movls r0, #1; movhi r0, #0
+    jit_lei_ui(_R0, _R1, 2);		// cmp r1, #2; movls r0, #1; movhi r0, #0
+    jit_lei_ui(_R0, _R1, -2);		// cmn r1, #2; movls r0, #1; movhi r0, #0
+    jit_eqr_i(_R0, _R1, _R2);		// cmp r1, r2; moveq r0, #1; movne r0, #0
+    jit_eqi_i(_R0, _R1, 2);		// cmp r1, #2; moveq r0, #1; movne r0, #0
+    jit_eqi_i(_R0, _R1, -2);		// cmn r1, #2; moveq r0, #1; movne r0, #0
+    jit_ger_i(_R0, _R1, _R2);		// cmp r1, r2; movge r0, #1; movlt r0, #0
+    jit_gei_i(_R0, _R1, 2);		// cmp r1, #2; movge r0, #1; movlt r0, #0
+    jit_gei_i(_R0, _R1, -2);		// cmn r1, #2; movge r0, #1; movlt r0, #0
+    jit_ger_ui(_R0, _R1, _R2);		// cmp r1, r2; movcs r0, #1; movcc r0, #0
+    jit_gei_ui(_R0, _R1, 2);		// cmp r1, #2; movcs r0, #1; movcc r0, #0
+    jit_gei_ui(_R0, _R1, -2);		// cmn r1, #2; movcs r0, #1; movcc r0, #0
+    jit_gtr_i(_R0, _R1, _R2);		// cmp r1, r2; movgt r0, #1; movle r0, #0
+    jit_gti_i(_R0, _R1, 2);		// cmp r1, #2; movgt r0, #1; movle r0, #0
+    jit_gti_i(_R0, _R1, -2);		// cmn r1, #2; movgt r0, #1; movle r0, #0
+    jit_gtr_ui(_R0, _R1, _R2);		// cmp r1, r2; movhi r0, #1; movls r0, #0
+    jit_gti_ui(_R0, _R1, 2);		// cmp r1, #2; movhi r0, #1; movls r0, #0
+    jit_gti_ui(_R0, _R1, -2);		// cmn r1, #2; movhi r0, #1; movls r0, #0
+    jit_ner_i(_R0, _R1, _R2);		// subs r0, r1, r2; movne r0, #1
+    jit_nei_i(_R0, _R1, 2);		// subs r0, r1, #2; movne r0, #1
+    jit_nei_i(_R0, _R1, -2);		// adds r0, r1, #2; movne r0, #1
     jit_ldxr_c(_R0, _R1, _R2);		// ldrsb r0, [r1, r2]
     jit_ldxi_c(_R0, _R1, 2);		// ldrsb r0, [r1, #2]
     jit_ldxi_c(_R0, _R1, -2);		// ldrsb r0, [r1, #-2]
