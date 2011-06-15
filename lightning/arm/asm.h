@@ -108,6 +108,8 @@ typedef enum {
 #define ARM_CMP		0x01500000
 #define ARM_CMN		0x01700000
 
+#define ARM_B		0x0a000000
+
 #define ARM_P		0x00800000	/* positive offset */
 #define ARM_LDRSB	0x011000d0
 #define ARM_LDRSBI	0x015000d0
@@ -195,6 +197,14 @@ arm_cc_srri(jit_state_t _jit, int cc,
     assert(!(o  & 0x0000ff0f));
     assert(i0 >= 1 && i0 <= 31);
     _jit_I(cc|o|(_u4(r0)<<12)|(i0<<7)|(_u4(r1)));
+}
+
+__jit_inline void
+arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0x00ffffff));
+    _jit_I(cc|o|_u24(i0));
 }
 
 #define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
@@ -300,6 +310,9 @@ arm_cc_srri(jit_state_t _jit, int cc,
 #define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
 #define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
 
+#define _CC_B(cc,i0)		arm_cc_b(_jit,cc,ARM_B,i0)
+#define _B(i0)			_CC_B(ARM_CC_AL,i0)
+
 #define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB|ARM_P,r0,r1,r2)
 #define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)
 #define _CC_LDRSBN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB,r0,r1,r2)
@@ -371,7 +384,7 @@ ADR		Load program or register-relative address (short range) page 3-24 All
 ADRL		pseudo-instruction Load program or register-relative address (medium range) page 3-155 x6M
 *AND		Logical AND page 3-56 All
 *ASR		Arithmetic Shift Right page 3-71 All
-B		Branch page 3-116 All
+*B		Branch page 3-116 All
 BFC, BFI	Bit Field Clear and Insert page 3-109 T2
 *BIC		Bit Clear page 3-56 All
 BKPT		Breakpoint page 3-134 5

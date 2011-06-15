@@ -169,11 +169,14 @@ jit_state_t		_jit;
 #define _u8P(n)			!((n) & ~0xff)
 #define _u12(n)			((n) & 0xfff)
 #define _u12P(n)		!((n) & ~0xfff)
+#define _u24(n)			((n) & 0xffffff)
+#define _s24P(n)		((n) <= 0x7fffff && n >= -0x800000L)
 
 #define	jit_get_ip()		(*(jit_code *) &_jit->x.pc)
 #define	jit_set_ip(ptr)		(_jit->x.pc = (ptr), jit_get_ip ())
 #define	jit_get_label()		(_jit->x.pc)
 #define	jit_forward()		(_jit->x.pc)
+#define jit_patch(pv)		jit_patch_at((pv), (_jit->x.pc))
 
 
 /**********************************************************************/
@@ -252,6 +255,8 @@ typedef enum {
 
 #define ARM_CMP		0x01500000
 #define ARM_CMN		0x01700000
+
+#define ARM_B		0x0a000000
 
 #define ARM_P		0x00800000	/* positive offset */
 #define ARM_LDRSB	0x011000d0
@@ -340,6 +345,14 @@ arm_cc_srri(jit_state_t _jit, int cc,
     assert(!(o  & 0x0000ff0f));
     assert(i0 >= 1 && i0 <= 31);
     _jit_I(cc|o|(_u4(r0)<<12)|(i0<<7)|(_u4(r1)));
+}
+
+__jit_inline void
+arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0x00ffffff));
+    _jit_I(cc|o|_u24(i0));
 }
 
 #define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
@@ -447,6 +460,9 @@ arm_cc_srri(jit_state_t _jit, int cc,
 #define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
 #define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
 #define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
+
+#define _CC_B(cc,i0)		arm_cc_b(_jit,cc,ARM_B,i0)
+#define _B(i0)			_CC_B(ARM_CC_AL,i0)
 
 #define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB|ARM_P,r0,r1,r2)
 #define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)
@@ -586,6 +602,68 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 		_XORI(r0, r0, q0);
 	    }
 	}
+    }
+}
+
+#define jit_movi_p(r0, i0)		arm_movi_p(_jit, r0, i0)
+__jit_inline jit_insn *
+arm_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
+{
+    jit_insn	*l;
+    int		 im, q0, q1, q2, q3;
+    im = (int)i0; 		l = _jit->x.pc;
+    q0 = im & 0x000000ff;	q1 = im & 0x0000ff00;
+    q2 = im & 0x00ff0000;	q3 = im & 0xff000000;
+    _MOVI(r0, encode_arm_immediate(q3));
+    _ORI(r0, r0, encode_arm_immediate(q2));
+    _ORI(r0, r0, encode_arm_immediate(q1));
+    _ORI(r0, r0, q0);
+    return (l);
+}
+
+#define jit_patch_movi(i0, i1)		arm_patch_movi(_jit, i0, i1)
+__jit_inline void
+arm_patch_movi(jit_state_t _jit, jit_insn *i0, void *i1)
+{
+    union {
+	int		*i;
+	void		*v;
+    } u;
+    int			 im, q0, q1, q2, q3;
+    im = (int)i1;		u.v = i0;
+    q0 = im & 0x000000ff;	q1 = im & 0x0000ff00;
+    q2 = im & 0x00ff0000;	q3 = im & 0xff000000;
+    assert(  (u.i[0] & 0x0f000000) == (ARM_MOV|ARM_I));
+    u.i[0] = (u.i[0] & 0xfffff000) | encode_arm_immediate(q3);
+    assert(  (u.i[1] & 0x0f000000) == (ARM_ORR|ARM_I));
+    u.i[1] = (u.i[1] & 0xfffff000) | encode_arm_immediate(q2);
+    assert(  (u.i[2] & 0x0f000000) == (ARM_ORR|ARM_I));
+    u.i[2] = (u.i[2] & 0xfffff000) | encode_arm_immediate(q1);
+    assert(  (u.i[3] & 0x0f000000) == (ARM_ORR|ARM_I));
+    u.i[3] = (u.i[3] & 0xfffff000) | encode_arm_immediate(q0);
+}
+
+#define jit_patch_at(jump, label)	arm_patch_at(_jit, jump, label)
+__jit_inline void
+arm_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
+{
+    long		 d;
+    union {
+	int		*i;
+	void		*v;
+    } u;
+    u.v = jump;
+    switch (u.i[0] & 0x0f000000) {
+	case ARM_B:
+	    d = (((long)label - (long)jump) >> 2) - 2;
+	    assert(_s24P(d));
+	    u.i[0] = (u.i[0] & 0xff000000) | (d & 0x00ffffff);
+	    break;
+	case ARM_MOV|ARM_I:
+	    jit_patch_movi(jump, label);
+	    break;
+	default:
+	    assert(!"unhandled branch opcode");
     }
 }
 
@@ -1188,6 +1266,38 @@ arm_nei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     _CC_MOVI(ARM_CC_NE, r0, 1);
 }
 
+#define jit_jmpr(r0)			arm_jmpr(_jit, r0)
+__jit_inline void
+arm_jmpr(jit_state_t _jit, jit_gpr_t r0)
+{
+    _MOV(_R15, r0);
+}
+
+#define jit_jmpi(i0)			arm_jmpi(_jit, i0)
+__jit_inline jit_insn *
+arm_jmpi(jit_state_t _jit, void *i0)
+{
+    jit_insn	*l;
+    l = _jit->x.pc;
+    jit_movi_p(JIT_TMP, i0);
+    jit_jmpr(JIT_TMP);
+    return (l);
+}
+
+#define jit_bltr_i(i0, r0, r1)		arm_bltr_i(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+arm_bltr_i(jit_state_t _jit, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
+{
+    jit_insn	*l;
+    long	 d;
+    _CMP(r0, r1);
+    l =  _jit->x.pc;
+    d = (((long)i0 - (long)l) >> 2) - 2;
+    assert(_s24P(d));
+    _CC_B(ARM_CC_LT, d & 0x00ffffff);
+    return (l);
+}
+
 #define jit_ldxr_c(r0, r1, r2)		arm_ldxr_c(_jit, r0, r1, r2)
 __jit_inline void
 arm_ldxr_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
@@ -1376,10 +1486,14 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 int
 main(int argc, char *argv[])
 {
+    jit_insn		*temp;
+    jit_insn		*label;
     unsigned char	*buffer = malloc(4096);
 
     jit_set_ip(buffer);
 
+    label = jit_get_label();
+#if 0
     jit_nop(1);				// mov r0, r0
     jit_movr_i(_R0, _R1);		// mov r0, r1
     jit_movi_i(_R0, 1);			// mov r0, #1
@@ -1455,6 +1569,21 @@ main(int argc, char *argv[])
     jit_ner_i(_R0, _R1, _R2);		// subs r0, r1, r2; movne r0, #1
     jit_nei_i(_R0, _R1, 2);		// subs r0, r1, #2; movne r0, #1
     jit_nei_i(_R0, _R1, -2);		// adds r0, r1, #2; movne r0, #1
+    jit_jmpr(_R0);			// mov pc, r0
+    jit_jmpi(label);			// mov ip, #<q3>; orr ip, ip, #<q2>; orr ip, ip, #<q1>; orr ip, ip #<q0>; mov pc, ip
+    temp = jit_movi_p(_R0, 0);		// mov r0, #-570425344; orr r0, r0, #11337728; orr r0, r0, #48640; orr r0, r0, #239
+    jit_patch_movi(temp, (void *)0xdeadbeef);	// 0xde000000		    0xad0000		   0xbe00	       0xef
+#endif
+
+    label = jit_get_label();
+    jit_nop(2);				// #<label>; mov r0, r0; mov r0, r0
+    jit_bltr_i(label, _R0, _R1);	// cmp r0, r1; blt #<label>
+    temp = jit_bltr_i(jit_forward(), _R0, _R1);	// cmp r0, r1; blt #<temp>
+    jit_nop(2);				// mov r0, r0; mov r0, r0
+    jit_patch(temp);
+    jit_movr_i(_R0, _R1);		// #<temp>; mov r0, r1
+
+#if 0
     jit_ldxr_c(_R0, _R1, _R2);		// ldrsb r0, [r1, r2]
     jit_ldxi_c(_R0, _R1, 2);		// ldrsb r0, [r1, #2]
     jit_ldxi_c(_R0, _R1, -2);		// ldrsb r0, [r1, #-2]
@@ -1479,6 +1608,7 @@ main(int argc, char *argv[])
     jit_stxr_i(_R2, _R1, _R0);		// str r0, [r1, r2]
     jit_stxi_i(2, _R1, _R0);		// str r0, [r1, #2]
     jit_stxi_i(-2, _R1, _R0);		// str r0, [r1, #-2]
+#endif
 
     disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
     fflush(stdout);
