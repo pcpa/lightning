@@ -531,7 +531,8 @@ arm_nop(jit_state_t _jit, int n)
 __jit_inline void
 arm_movr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _MOV(r0, r1);
+    if (r0 != r1)
+	_MOV(r0, r1);
 }
 
 #define jit_movi_i(r0, i0)		arm_movi_i(_jit, r0, i0)

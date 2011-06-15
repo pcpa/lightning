@@ -91,7 +91,7 @@ typedef enum {
 #define ARM_RSB		0x00600000
 #define ARM_RSC		0x00e00000	/* ARMV7M */
 #define ARM_MUL		0x00000090
-#define ARM_MLA		0x00200090	/* ARMV6M */
+#define ARM_MLA		0x00200090
 #define ARM_AND		0x00000000
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
@@ -255,11 +255,8 @@ arm_cc_srri(jit_state_t _jit, int cc,
 
 #define _CC_MUL(cc,r0,r1,r2)	arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
 #define _MUL(r0,r1,r2)		_CC_MUL(ARM_CC_AL,r0,r1,r2)
-
-/* >> ARMV6M */
 #define _CC_MLA(cc,r0,r1,r2,r3)	arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
 #define _MLA(r0,r1,r2,r3)	_CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
-/* << ARMV6M */
 
 #define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND,r0,r1,r2)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
