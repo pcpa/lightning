@@ -97,6 +97,13 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
     }
 }
 
+#define jit_notr_i(r0, r1)		arm_notr_i(_jit, r0, r1)
+__jit_inline void
+arm_notr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _NOT(r0, r1);
+}
+
 #define jit_negr_i(r0, r1)		arm_negr_i(_jit, r0, r1)
 __jit_inline void
 arm_negr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
@@ -152,7 +159,7 @@ arm_addci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     }
 }
 
-#define jit_addxr_ui(r0, r1, r2)	arm_addxr_i(_jit, r0, r1, r2)
+#define jit_addxr_ui(r0, r1, r2)	arm_addxr_ui(_jit, r0, r1, r2)
 __jit_inline void
 arm_addxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
@@ -298,14 +305,6 @@ arm_muli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	_MUL(r0, r1, reg);
 }
 
-
-#define jit_notr_i(r0, r1)		arm_notr_i(_jit, r0, r1)
-__jit_inline void
-arm_notr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _NOT(r0, r1);
-}
-
 #define jit_andr_i(r0, r1, r2)		arm_andr_i(_jit, r0, r1, r2)
 __jit_inline void
 arm_andr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
@@ -354,7 +353,7 @@ arm_ori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 
 #define jit_xorr_i(r0, r1, r2)		arm_xorr_i(_jit, r0, r1, r2)
 __jit_inline void
-arm_orr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+arm_xorr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     _XOR(r0, r1, r2);
 }
