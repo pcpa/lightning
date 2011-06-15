@@ -107,6 +107,8 @@ typedef enum {
 
 #define ARM_CMP		0x01500000
 #define ARM_CMN		0x01700000
+#define ARM_TST		0x01100000	/* THUMB */
+#define ARM_TEQ		0x01300000	/* ARMV6T2 */
 
 #define ARM_B		0x0a000000
 
@@ -272,10 +274,18 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
 #define _CC_ANDI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_AND|ARM_I,r0,r1,i0)
 #define _ANDI(r0,r1,i0)		_CC_ANDI(ARM_CC_AL,r0,r1,i0)
+#define _CC_ANDS(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND|ARM_S,r0,r1,r2)
+#define _ANDS(r0,r1,r2)		_CC_ANDS(ARM_CC_AL,r0,r1,r2)
+#define _CC_ANDSI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_AND|ARM_S|ARM_I,r0,r1,i0)
+#define _ANDSI(r0,r1,i0)	_CC_ANDSI(ARM_CC_AL,r0,r1,i0)
 #define _CC_BIC(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_BIC,r0,r1,r2)
 #define _BIC(r0,r1,r2)		_CC_BIC(ARM_CC_AL,r0,r1,r2)
 #define _CC_BICI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_BIC|ARM_I,r0,r1,i0)
 #define _BICI(r0,r1,i0)		_CC_BICI(ARM_CC_AL,r0,r1,i0)
+#define _CC_BICS(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_BIC|ARM_S,r0,r1,r2)
+#define _BICS(r0,r1,r2)		_CC_BICS(ARM_CC_AL,r0,r1,r2)
+#define _CC_BICSI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_BIC|ARM_S|ARM_I,r0,r1,i0)
+#define _BICSI(r0,r1,i0)	_CC_BICSI(ARM_CC_AL,r0,r1,i0)
 #define _CC_OR(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_ORR,r0,r1,r2)
 #define _OR(r0,r1,r2)		_CC_OR(ARM_CC_AL,r0,r1,r2)
 #define _CC_ORI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_ORR|ARM_I,r0,r1,i0)
@@ -309,6 +319,20 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 #define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
 #define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
 #define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
+
+/* >> THUMB */
+#define _CC_TST(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_TST,0,r0,r1)
+#define _TST(r0,r1)		_CC_TST(ARM_CC_AL,r0,r1)
+#define _CC_TSTI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_TST|ARM_I,0,r0,i0)
+#define _TSTI(r0,i0)		_CC_TSTI(ARM_CC_AL,r0,i0)
+/* << THUMB */
+
+/* >> ARVM6T2 */
+#define _CC_TEQ(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_TEQ,0,r0,r1)
+#define _TEQ(r0,r1)		_CC_TEQ(ARM_CC_AL,r0,r1)
+#define _CC_TEQI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_TEQ|ARM_I,0,r0,i0)
+#define _TEQI(r0,i0)		_CC_TEQI(ARM_CC_AL,r0,i0)
+/* << ARVM6T2 */
 
 #define _CC_B(cc,i0)		arm_cc_b(_jit,cc,ARM_B,i0)
 #define _B(i0)			_CC_B(ARM_CC_AL,i0)

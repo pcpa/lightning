@@ -196,8 +196,9 @@ struct jit_local_state {
     int		 framesize;
 };
 struct {
-    _ui		armv6		: 1;
-    _ui		thumb		: 1;
+    _ui		armvn		: 4;
+    _ui		armve		: 1;
+    _ui		thumb		: 2;
 } jit_cpu;
 #endif
 #else
