@@ -554,8 +554,8 @@ SXTB, SXTH	Signed extend page 3-111 6
 SXTB16		Signed extend page 3-111 6, 7EM
 SYS		Execute system coprocessor instruction page 3-130 7A, 7R
 TBB, TBH	Table Branch Byte, Halfword page 3-123 T2
-TEQ		Test Equivalence page 3-65 x6M
-TST		Test page 3-65 All
+*TEQ		Test Equivalence page 3-65 x6M
+*TST		Test page 3-65 All
 UADD8, UADD16,	Parallel Unsigned Arithmetic page 3-102 6, 7EM
 UASX
 UDIV		Unsigned divide page 3-74 7M, 7R
