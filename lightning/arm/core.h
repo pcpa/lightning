@@ -155,6 +155,7 @@ arm_patch_movi(jit_state_t _jit, jit_insn *i0, void *i1)
     u.i[3] = (u.i[3] & 0xfffff000) | encode_arm_immediate(q0);
 }
 
+#define jit_patch_calli(i0, i1)		arm_patch_at(_jit, i0, i1)
 #define jit_patch_at(jump, label)	arm_patch_at(_jit, jump, label)
 __jit_inline void
 arm_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
@@ -165,7 +166,7 @@ arm_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
 	void		*v;
     } u;
     u.v = jump;
-    /* 0x0e000000 because 0x0f000000 is BL (branch and link) */
+    /* 0x0e000000 because 0x01000000 is (branch&) link modifier */
     if ((u.i[0] & 0x0e000000) == ARM_B) {
 	d = (((long)label - (long)jump) >> 2) - 2;
 	assert(_s24P(d));
@@ -1069,6 +1070,149 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 	jit_movi_i(reg, i0);
 	_STR(r0, r1, reg);
     }
+}
+
+#define jit_allocai(i0)			arm_allocai(_jit, i0)
+__jit_inline int
+arm_allocai(jit_state_t _jit, int i0)
+{
+    assert(i0 >= 0);
+    _jitl.alloca_offset += i0;
+    jit_patch_movi(_jitl.stack, (void *)
+		   ((_jitl.alloca_offset +
+		     _jitl.stack_length + 7) & -8));
+    return (-_jitl.alloca_offset);
+}
+
+#define jit_prolog(n)			arm_prolog(_jit, n)
+__jit_inline void
+arm_prolog(jit_state_t _jit, int i0)
+{
+    _PUSH(/* arguments (should keep state and only save "i0" registers) */
+	  (1<<_R0)|(1<<_R1)|(1<<_R2)|(1<<_R3)|
+	  /* callee save (FIXME _R9 also added to align at 8 bytes but
+	   * need to check alloca implementation and/or alignment if
+	   * running out of register arguments when calling functions) */
+	  (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
+	  /* previous fp and return address */
+	  (1<<JIT_FP)|(1<<JIT_LR));
+    _MOV(JIT_FP, JIT_SP);
+
+    _jitl.nextarg_get = 0;
+    _jitl.framesize = 48;
+
+    /* patch alloca and stack adjustment */
+    _jitl.stack = (int *)_jit->x.pc;
+    jit_movi_p(JIT_TMP, 0);
+    _SUB(JIT_SP, JIT_SP, JIT_TMP);
+    _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
+}
+
+#define jit_callr(r0)			_BLX(r0)
+#define jit_calli(i0)			arm_calli(_jit, i0)
+__jit_inline jit_insn *
+arm_calli(jit_state_t _jit, void *i0)
+{
+    /* FIXME if not patching (99% of the time), check range and use bl label */
+    jit_insn	*l;
+    l = _jit->x.pc;
+    jit_movi_p(JIT_TMP, i0);
+    _BLX(JIT_TMP);
+    return (l);
+}
+
+#define jit_prepare(i0)		arm_prepare_i(_jit, i0)
+__jit_inline void
+arm_prepare_i(jit_state_t _jit, int i0)
+{
+    assert(i0 >= 0 && !_jitl.stack_offset && !_jitl.nextarg_put);
+    if (i0 > 4) {
+	_jitl.stack_offset = i0 << 2;
+	if (_jitl.stack_length < _jitl.stack_offset) {
+	    _jitl.stack_length = _jitl.stack_offset;
+	    jit_patch_movi(_jitl.stack, (void *)
+			   ((_jitl.alloca_offset +
+			     _jitl.stack_length + 7) & -8));
+	}
+    }
+}
+
+#define jit_arg_i()			arm_arg_i(_jit)
+__jit_inline int
+arm_arg_i(jit_state_t _jit)
+{
+    int		ofs = _jitl.nextarg_get++;
+    if (ofs > 3) {
+	ofs = _jitl.framesize;
+	_jitl.framesize += sizeof(int);
+    }
+    return (ofs);
+}
+
+#define jit_getarg_i(r0, i0)		arm_getarg_i(_jit, r0, i0)
+__jit_inline void
+arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
+{
+    /* arguments are saved in prolog */
+    if (i0 < 4)
+	jit_ldxi_i(r0, JIT_FP, (i0 << 2));
+    else
+	jit_ldxi_i(r0, JIT_FP, i0);
+}
+
+#define jit_pusharg_i(r0)		arm_pusharg_i(_jit, r0)
+__jit_inline void
+arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    if (_jitl.nextarg_put < 4)
+	jit_stxi_i((_jitl.nextarg_put << 2), JIT_FP, r0);
+    else {
+	_jitl.stack_offset -= sizeof(int);
+	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
+    }
+    _jitl.nextarg_put++;
+}
+
+#define jit_finishr(rs)			arm_finishr(_jit, rs)
+__jit_inline void
+arm_finishr(jit_state_t _jit, jit_gpr_t r0)
+{
+    int		list;
+    assert(_jitl.stack_offset == 0);
+    if (_jitl.nextarg_put) {
+	list = (1 << _jitl.nextarg_put) - 1;
+	_ADDI(JIT_TMP, JIT_FP, 8);
+	_LDMIA(JIT_TMP, list);
+	_jitl.nextarg_put = 0;
+    }
+    jit_callr(r0);
+}
+
+#define jit_finish(i0)			arm_finishi(_jit, i0)
+__jit_inline jit_insn *
+arm_finishi(jit_state_t _jit, void *i0)
+{
+    int		list;
+    assert(_jitl.stack_offset == 0);
+    if (_jitl.nextarg_put) {
+	list = (1 << _jitl.nextarg_put) - 1;
+	_ADDI(JIT_TMP, JIT_FP, 8);
+	_LDMIA(JIT_TMP, list);
+	_jitl.nextarg_put = 0;
+    }
+    return (jit_calli(i0));
+}
+
+#define jit_ret()			arm_ret(_jit)
+__jit_inline void
+arm_ret(jit_state_t jit)
+{
+    /* do not restore arguments */
+    _SUBI(JIT_SP, JIT_FP, 32);
+    _POP(/* callee save */
+	 (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
+	 /* previous fp and return address */
+	 (1<<JIT_FP)|(1<<JIT_PC));
 }
 
 #endif /* __lightning_core_arm_h */

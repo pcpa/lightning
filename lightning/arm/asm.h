@@ -52,6 +52,7 @@ typedef enum {
 } jit_gpr_t;
 
 #define JIT_PC		_R15
+#define JIT_LR		_R14
 #define JIT_SP		_R13
 #define JIT_FP		_R11
 #define JIT_TMP		_R8
@@ -116,7 +117,10 @@ typedef enum {
 #define ARM_TEQ		0x01300000	/* ARMV6T2 */
 
 /* branch */
+#define ARM_BX		0x012fff10
+#define ARM_BLX		0x012fff30
 #define ARM_B		0x0a000000
+#define ARM_BL		0x0b000000
 
 /* ldr/str */
 #define ARM_P		0x00800000	/* positive offset */
@@ -221,6 +225,14 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x00ffffff));
     _jit_I(cc|o|_u24(i0));
+}
+
+__jit_inline void
+arm_cc_bx(jit_state_t _jit, int cc, int o, int r0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0x0000000f));
+    _jit_I(cc|o|_u4(r0));
 }
 
 __jit_inline void
@@ -356,8 +368,14 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _TEQI(r0,i0)		_CC_TEQI(ARM_CC_AL,r0,i0)
 /* << ARVM6T2 */
 
+#define _CC_BX(cc,r0)		arm_cc_bx(_jit,cc,ARM_BX,r0)
+#define _BX(i0)			_CC_BX(ARM_CC_AL,r0)
+#define _CC_BLX(cc,r0)		arm_cc_bx(_jit,cc,ARM_BLX,r0)
+#define _BLX(r0)		_CC_BLX(ARM_CC_AL,r0)
 #define _CC_B(cc,i0)		arm_cc_b(_jit,cc,ARM_B,i0)
 #define _B(i0)			_CC_B(ARM_CC_AL,i0)
+#define _CC_BL(cc,i0)		arm_cc_b(_jit,cc,ARM_BL,i0)
+#define _BL(i0)			_CC_BL(ARM_CC_AL,i0)
 
 #define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRSB|ARM_P,r0,r1,r2)
 #define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)
@@ -475,9 +493,9 @@ ADRL		pseudo-instruction Load program or register-relative address (medium range
 BFC, BFI	Bit Field Clear and Insert page 3-109 T2
 *BIC		Bit Clear page 3-56 All
 BKPT		Breakpoint page 3-134 5
-BL		Branch with Link page 3-116 All
-BLX		Branch with Link, change instruction set page 3-116 T
-BX		Branch, change instruction set page 3-116 T
+*BL		Branch with Link page 3-116 All
+*BLX		Branch with Link, change instruction set page 3-116 T
+*BX		Branch, change instruction set page 3-116 T
 BXJ		Branch, change to Jazelle® page 3-116 J, x7M
 CBZ, CBNZ	Compare and Branch if {Non}Zero page 3-122 T2
 CDP		Coprocessor Data Processing operation page 3-125 x6M

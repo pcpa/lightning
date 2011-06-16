@@ -194,6 +194,12 @@ struct {
 #elif defined(__arm__)
 struct jit_local_state {
     int		 framesize;
+    int		 nextarg_get;
+    int		 nextarg_put;
+    int		 alloca_offset;
+    int		 stack_length;
+    int		 stack_offset;
+    int		*stack;
 };
 struct {
     _ui		armvn		: 4;
