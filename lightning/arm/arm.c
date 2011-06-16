@@ -173,6 +173,7 @@ jit_state_t		_jit;
 #define _u8P(n)			!((n) & ~0xff)
 #define _u12(n)			((n) & 0xfff)
 #define _u12P(n)		!((n) & ~0xfff)
+#define _u16(n)			((n) & 0xffff)
 #define _u24(n)			((n) & 0xffffff)
 #define _s24P(n)		((n) <= 0x7fffff && n >= -0x800000L)
 
@@ -293,7 +294,7 @@ typedef enum {
 #define ARM_RSB		0x00600000
 #define ARM_RSC		0x00e00000	/* ARMV7M */
 #define ARM_MUL		0x00000090
-#define ARM_MLA		0x00200090	/* ARMV6M */
+#define ARM_MLA		0x00200090
 #define ARM_AND		0x00000000
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
@@ -312,8 +313,10 @@ typedef enum {
 #define ARM_TST		0x01100000	/* THUMB */
 #define ARM_TEQ		0x01300000	/* ARMV6T2 */
 
+/* branch */
 #define ARM_B		0x0a000000
 
+/* ldr/str */
 #define ARM_P		0x00800000	/* positive offset */
 #define ARM_LDRSB	0x011000d0
 #define ARM_LDRSBI	0x015000d0
@@ -331,6 +334,13 @@ typedef enum {
 #define ARM_STRHI	0x014000b0
 #define ARM_STR		0x07000000
 #define ARM_STRI	0x05000000
+
+/* ldm/stm */
+#define ARM_M		0x08000000
+#define ARM_M_L		0x00100000	/* load; store if not set */
+#define ARM_M_I		0x00800000	/* inc; dec if not set */
+#define ARM_M_B		0x01000000	/* before; after if not set */
+#define ARM_M_U		0x00200000	/* update Rn */
 
 /* from binutils */
 #define rotate_left(v, n)	(v << n | v >> (32 - n))
@@ -411,6 +421,14 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
     _jit_I(cc|o|_u24(i0));
 }
 
+__jit_inline void
+arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0x0000ffff));
+    _jit_I(cc|o|(_u4(r0)<<16)|_u16(i0));
+}
+
 #define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
 #define _MOV(r0,r1)		_CC_MOV(ARM_CC_AL,r0,r1)
 #define _CC_MOVI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_MOV|ARM_I,r0,0,i0)
@@ -469,11 +487,8 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 
 #define _CC_MUL(cc,r0,r1,r2)	arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
 #define _MUL(r0,r1,r2)		_CC_MUL(ARM_CC_AL,r0,r1,r2)
-
-/* >> ARMV6M */
 #define _CC_MLA(cc,r0,r1,r2,r3)	arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
 #define _MLA(r0,r1,r2,r3)	_CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
-/* << ARMV6M */
 
 #define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND,r0,r1,r2)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
@@ -520,7 +535,7 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 #define _CMP(r0,r1)		_CC_CMP(ARM_CC_AL,r0,r1)
 #define _CC_CMPI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMP|ARM_I,0,r0,i0)
 #define _CMPI(r0,i0)		_CC_CMPI(ARM_CC_AL,r0,i0)
-#define _CC_CMN(cc,r0)		arm_cc_orrr(_jit,cc,ARM_CMN,0,r0,r1)
+#define _CC_CMN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_CMN,0,r0,r1)
 #define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
 #define _CC_CMNI(cc,r0,i0)	arm_cc_orri(_jit,cc,ARM_CMN|ARM_I,0,r0,i0)
 #define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
@@ -607,10 +622,69 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 #define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r1,r0,i0)
 #define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
 
+#define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
+#define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
+#define _LDM(r0,i0)		_LDMIA(r0,i0)
+#define _CC_LDMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
+#define _LDMIA_S(r0,i0)		_CC_LDMIA_S(ARM_CC_AL,r0,i0)
+#define _LDM_S(r0,i0)		_LDMIA_S(r0,i0)
+#define _CC_LDMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,r0,i0)
+#define _LDMIB(r0,i0)		_CC_LDMIB(ARM_CC_AL,r0,i0)
+#define _CC_LDMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMIB_S(r0,i0)		_CC_LDMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L,r0,i0)
+#define _LDMDA(r0,i0)		_CC_LDMDA(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
+#define _LDMDA_S(r0,i0)		_CC_LDMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B,r0,i0)
+#define _LDMDB(r0,i0)		_CC_LDMDB(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMDB_S(r0,i0)		_CC_LDMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I,r0,i0)
+#define _STMIA(r0,i0)		_CC_STMIA(ARM_CC_AL,r0,i0)
+#define _STM(r0,i0)		_STMIA(r0,i0)
+#define _CC_STMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
+#define _STMIA_S(r0,i0)		_CC_STMIA_S(ARM_CC_AL,r0,i0)
+#define _STM_S(r0,i0)		_STMIA_S(r0,i0)
+#define _CC_STMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B,r0,i0)
+#define _STMIB(r0,i0)		_CC_STMIB(ARM_CC_AL,r0,i0)
+#define _CC_STMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMIB_S(r0,i0)		_CC_STMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M,r0,i0)
+#define _STMDA(r0,i0)		_CC_STMDA(ARM_CC_AL,r0,i0)
+#define _CC_STMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
+#define _STMDA_S(r0,i0)		_CC_STMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B,r0,i0)
+#define _STMDB(r0,i0)		_CC_STMDB(ARM_CC_AL,r0,i0)
+#define _CC_STMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMDB_S(r0,i0)		_CC_STMDB_S(ARM_CC_AL,r0,i0)
+
 /**********************************************************************/
-#define JIT_PC			_R15
-#define JIT_SP			_R13
-#define JIT_TMP			_R12
+#define JIT_R_NUM			4
+static const jit_gpr_t
+jit_r_order[JIT_R_NUM] = {
+    _R0, _R1, _R2, _R3
+};
+#define JIT_R(i)			jit_r_order[i]
+
+#define JIT_V_NUM			4
+static const jit_gpr_t
+jit_v_order[JIT_V_NUM] = {
+    _R4, _R5, _R6, _R7
+};
+#define JIT_V(i)			jit_v_order[i]
+
+#define JIT_R0				JIT_R(0)
+#define JIT_R1				JIT_R(1)
+#define JIT_R2				JIT_R(2)
+#define JIT_V0				JIT_V(0)
+#define JIT_V1				JIT_V(1)
+#define JIT_V2				JIT_V(2)
+
+#define JIT_PC				_R15
+#define JIT_SP				_R13
+#define JIT_FP				_R11
+#define JIT_TMP				_R8
 
 #define jit_nop(n)			arm_nop(_jit, n)
 __jit_inline void
@@ -1650,6 +1724,7 @@ main(int argc, char *argv[])
 	   jit_cpu.thumb ? "t" : "",
 	   jit_cpu.thumb > 1 ? "2" : "");
     jit_set_ip(buffer);
+
     back = jit_get_label();
     jit_nop(1);				// mov r0, r0
     jit_movr_i(_R0, _R1);		// mov r0, r1
@@ -1869,6 +1944,23 @@ main(int argc, char *argv[])
     jit_stxr_i(_R2, _R1, _R0);		// str r0, [r1, r2]
     jit_stxi_i(2, _R1, _R0);		// str r0, [r1, #2]
     jit_stxi_i(-2, _R1, _R0);		// str r0, [r1, #-2]
+
+    _LDMIA(_R0, 0xffff);	// ldm r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
+    _LDMIA_S(_R1, 0x7ffe);	// ldm r1!, {r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr}
+    _LDMIB(_R2, 0x3ffc);	// ldmib r2, {r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp}
+    _LDMIB_S(_R3, 0x1ff8);	// ldmib r3!, {r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+    _LDMDA(_R4, 0x0ff0);	// ldmda r4, {r4, r5, r6, r7, r8, r9, sl, fp}
+    _LDMDA_S(_R5, 0x07e0);	// ldmda r5!, {r5, r6, r7, r8, r9, sl}
+    _LDMDB(_R6, 0x03c0);	// ldmdb r6, {r6, r7, r8, r9}
+    _LDMDB_S(_R7, 0x0180);	// ldmdb r7!, {r7, r8}
+    _STMIA(_R8, 0x0240);	// stm r8, {r6, r9}
+    _STMIA_S(_R9, 0x0660);	// stmia r9!, {r5, r6, r9, sl}
+    _STMIB(_R10, 0x0e70);	// stmib sl, {r4, r5, r6, r9, sl, fp}
+    _STMIB_S(_R11, 0x1e78);	// stmib fp!, {r3, r4, r5, r6, r9, sl, fp, ip}
+    _STMDA(_R12, 0x3e7c);	// stmda ip, {r2, r3, r4, r5, r6, r9, sl, fp, ip, sp}
+    _STMDA_S(_R13, 0x7e7e);	// stmda sp!, {r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr}
+    _STMDB(_R14, 0xfe7f);	// stmdb lr, {r0, r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr, pc}
+    _STMDB_S(JIT_FP, 0xffff);	// stmdb fp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
 
     jit_flush_code(buffer, jit_get_ip().ptr);
 

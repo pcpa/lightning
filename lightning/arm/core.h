@@ -32,9 +32,24 @@
 #ifndef __lightning_core_arm_h
 #define __lightning_core_arm_h
 
-#define JIT_PC			_R15
-#define JIT_SP			_R13
-#define JIT_TMP			_R12
+#define JIT_R_NUM			4
+static const jit_gpr_t
+jit_r_order[JIT_R_NUM] = {
+    _R0, _R1, _R2, _R3
+};
+#define JIT_R(i)			jit_r_order[i]
+
+#define JIT_V_NUM			4
+static const jit_gpr_t
+jit_v_order[JIT_V_NUM] = {
+    _R4, _R5, _R6, _R7
+};
+#define JIT_V(i)			jit_v_order[i]
+
+#define JIT_PC				_R15
+#define JIT_SP				_R13
+#define JIT_FP				_R11
+#define JIT_TMP				_R8
 
 #define jit_nop(n)			arm_nop(_jit, n)
 __jit_inline void

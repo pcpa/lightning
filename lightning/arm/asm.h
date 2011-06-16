@@ -110,8 +110,10 @@ typedef enum {
 #define ARM_TST		0x01100000	/* THUMB */
 #define ARM_TEQ		0x01300000	/* ARMV6T2 */
 
+/* branch */
 #define ARM_B		0x0a000000
 
+/* ldr/str */
 #define ARM_P		0x00800000	/* positive offset */
 #define ARM_LDRSB	0x011000d0
 #define ARM_LDRSBI	0x015000d0
@@ -129,6 +131,13 @@ typedef enum {
 #define ARM_STRHI	0x014000b0
 #define ARM_STR		0x07000000
 #define ARM_STRI	0x05000000
+
+/* ldm/stm */
+#define ARM_M		0x08000000
+#define ARM_M_L		0x00100000	/* load; store if not set */
+#define ARM_M_I		0x00800000	/* inc; dec if not set */
+#define ARM_M_B		0x01000000	/* before; after if not set */
+#define ARM_M_U		0x00200000	/* update Rn */
 
 /* from binutils */
 #define rotate_left(v, n)	(v << n | v >> (32 - n))
@@ -168,7 +177,7 @@ arm_cc_orri8(jit_state_t _jit, int cc, int o,
 	     jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x000ff0ff));
+    assert(!(o  & 0x000fff0f));
     assert(!(i0 & 0xffffff00));
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0&0xf0)<<4)|(i0&0x0f));
 }
@@ -207,6 +216,14 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x00ffffff));
     _jit_I(cc|o|_u24(i0));
+}
+
+__jit_inline void
+arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0x000fffff));
+    _jit_I(cc|o|(_u4(r0)<<16)|_u16(i0));
 }
 
 #define _CC_MOV(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_MOV,r0,0,r1)
@@ -402,6 +419,43 @@ arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
 #define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r1,r0,i0)
 #define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
 
+#define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
+#define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
+#define _LDM(r0,i0)		_LDMIA(r0,i0)
+#define _CC_LDMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
+#define _LDMIA_S(r0,i0)		_CC_LDMIA_S(ARM_CC_AL,r0,i0)
+#define _LDM_S(r0,i0)		_LDMIA_S(r0,i0)
+#define _CC_LDMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,r0,i0)
+#define _LDMIB(r0,i0)		_CC_LDMIB(ARM_CC_AL,r0,i0)
+#define _CC_LDMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMIB_S(r0,i0)		_CC_LDMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L,r0,i0)
+#define _LDMDA(r0,i0)		_CC_LDMDA(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
+#define _LDMDA_S(r0,i0)		_CC_LDMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B,r0,i0)
+#define _LDMDB(r0,i0)		_CC_LDMDB(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMDB_S(r0,i0)		_CC_LDMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I,r0,i0)
+#define _STMIA(r0,i0)		_CC_STMIA(ARM_CC_AL,r0,i0)
+#define _STM(r0,i0)		_STMIA(r0,i0)
+#define _CC_STMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
+#define _STMIA_S(r0,i0)		_CC_STMIA_S(ARM_CC_AL,r0,i0)
+#define _STM_S(r0,i0)		_STMIA_S(r0,i0)
+#define _CC_STMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B,r0,i0)
+#define _STMIB(r0,i0)		_CC_STMIB(ARM_CC_AL,r0,i0)
+#define _CC_STMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMIB_S(r0,i0)		_CC_STMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M,r0,i0)
+#define _STMDA(r0,i0)		_CC_STMDA(ARM_CC_AL,r0,i0)
+#define _CC_STMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
+#define _STMDA_S(r0,i0)		_CC_STMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B,r0,i0)
+#define _STMDB(r0,i0)		_CC_STMDB(ARM_CC_AL,r0,i0)
+#define _CC_STMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMDB_S(r0,i0)		_CC_STMDB_S(ARM_CC_AL,r0,i0)
+
 /*
 *ADC, ADD	Add with Carry, Add page 3-50 All
 ADR		Load program or register-relative address (short range) page 3-24 All
@@ -433,7 +487,7 @@ ISB		Instruction Synchronization Barrier page 3-147 7, 6M
 IT		If-Then page 3-119 T2
 LDC		Load Coprocessor page 3-131 x6M
 LDC2		Load Coprocessor page 3-131 5, x6M
-LDM		Load Multiple registers page 3-30 All
+*LDM		Load Multiple registers page 3-30 All
 *LDR		Load Register with word page 3-9 All
 LDR		pseudo-instruction Load Register pseudo-instruction page 3-158 All
 *LDRB		Load Register with byte page 3-9 All
@@ -532,7 +586,7 @@ SSUB8, SSUB16,	Parallel signed arithmetic page 3-102 6, 7EM
 SSAX
 STC		Store Coprocessor page 3-131 x6M
 STC2		Store Coprocessor page 3-131 5, x6M
-STM		Store Multiple registers page 3-30 All
+*STM		Store Multiple registers page 3-30 All
 *STR		Store Register with word page 3-9 All
 *STRB		Store Register with byte page 3-9 All
 STRBT		Store Register with byte, user mode page 3-9 x6M
