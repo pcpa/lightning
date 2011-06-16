@@ -265,6 +265,11 @@ typedef enum {
     _F7,	/* variable */
 } jit_fpr_t;
 
+#define JIT_PC		_R15
+#define JIT_SP		_R13
+#define JIT_FP		_R11
+#define JIT_TMP		_R8
+
 #define ARM_CC_EQ	0x00000000	/* Z=1 */
 #define ARM_CC_NE	0x10000000	/* Z=0 */
 #define ARM_CC_HS	0x20000000	/* C=1 */
@@ -625,39 +630,43 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
 #define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
 #define _LDM(r0,i0)		_LDMIA(r0,i0)
-#define _CC_LDMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
-#define _LDMIA_S(r0,i0)		_CC_LDMIA_S(ARM_CC_AL,r0,i0)
-#define _LDM_S(r0,i0)		_LDMIA_S(r0,i0)
+#define _CC_LDMIA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
+#define _LDMIA_U(r0,i0)		_CC_LDMIA_U(ARM_CC_AL,r0,i0)
+#define _LDM_U(r0,i0)		_LDMIA_U(r0,i0)
 #define _CC_LDMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,r0,i0)
 #define _LDMIB(r0,i0)		_CC_LDMIB(ARM_CC_AL,r0,i0)
-#define _CC_LDMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMIB_S(r0,i0)		_CC_LDMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMIB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMIB_U(r0,i0)		_CC_LDMIB_U(ARM_CC_AL,r0,i0)
 #define _CC_LDMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L,r0,i0)
 #define _LDMDA(r0,i0)		_CC_LDMDA(ARM_CC_AL,r0,i0)
-#define _CC_LDMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
-#define _LDMDA_S(r0,i0)		_CC_LDMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
+#define _LDMDA_U(r0,i0)		_CC_LDMDA_U(ARM_CC_AL,r0,i0)
 #define _CC_LDMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B,r0,i0)
 #define _LDMDB(r0,i0)		_CC_LDMDB(ARM_CC_AL,r0,i0)
-#define _CC_LDMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMDB_S(r0,i0)		_CC_LDMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMDB_U(r0,i0)		_CC_LDMDB_U(ARM_CC_AL,r0,i0)
 #define _CC_STMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I,r0,i0)
 #define _STMIA(r0,i0)		_CC_STMIA(ARM_CC_AL,r0,i0)
 #define _STM(r0,i0)		_STMIA(r0,i0)
-#define _CC_STMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
-#define _STMIA_S(r0,i0)		_CC_STMIA_S(ARM_CC_AL,r0,i0)
-#define _STM_S(r0,i0)		_STMIA_S(r0,i0)
+#define _CC_STMIA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
+#define _STMIA_U(r0,i0)		_CC_STMIA_U(ARM_CC_AL,r0,i0)
+#define _STM_U(r0,i0)		_STMIA_U(r0,i0)
 #define _CC_STMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B,r0,i0)
 #define _STMIB(r0,i0)		_CC_STMIB(ARM_CC_AL,r0,i0)
-#define _CC_STMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMIB_S(r0,i0)		_CC_STMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMIB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMIB_U(r0,i0)		_CC_STMIB_U(ARM_CC_AL,r0,i0)
 #define _CC_STMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M,r0,i0)
 #define _STMDA(r0,i0)		_CC_STMDA(ARM_CC_AL,r0,i0)
-#define _CC_STMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
-#define _STMDA_S(r0,i0)		_CC_STMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
+#define _STMDA_U(r0,i0)		_CC_STMDA_U(ARM_CC_AL,r0,i0)
 #define _CC_STMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B,r0,i0)
 #define _STMDB(r0,i0)		_CC_STMDB(ARM_CC_AL,r0,i0)
-#define _CC_STMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMDB_S(r0,i0)		_CC_STMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMDB_U(r0,i0)		_CC_STMDB_U(ARM_CC_AL,r0,i0)
+#define _CC_PUSH(cc,i0)		_CC_STMDB_U(cc,JIT_SP,i0)
+#define _PUSH(i0)		_CC_PUSH(ARM_CC_AL,i0)
+#define _CC_POP(cc,i0)		_CC_LDMIA_U(cc,JIT_SP,i0)
+#define _POP(i0)		_CC_POP(ARM_CC_AL,i0)
 
 /**********************************************************************/
 #define JIT_R_NUM			4
@@ -680,11 +689,6 @@ jit_v_order[JIT_V_NUM] = {
 #define JIT_V0				JIT_V(0)
 #define JIT_V1				JIT_V(1)
 #define JIT_V2				JIT_V(2)
-
-#define JIT_PC				_R15
-#define JIT_SP				_R13
-#define JIT_FP				_R11
-#define JIT_TMP				_R8
 
 #define jit_nop(n)			arm_nop(_jit, n)
 __jit_inline void
@@ -1725,6 +1729,7 @@ main(int argc, char *argv[])
 	   jit_cpu.thumb > 1 ? "2" : "");
     jit_set_ip(buffer);
 
+#if 0
     back = jit_get_label();
     jit_nop(1);				// mov r0, r0
     jit_movr_i(_R0, _R1);		// mov r0, r1
@@ -1944,23 +1949,27 @@ main(int argc, char *argv[])
     jit_stxr_i(_R2, _R1, _R0);		// str r0, [r1, r2]
     jit_stxi_i(2, _R1, _R0);		// str r0, [r1, #2]
     jit_stxi_i(-2, _R1, _R0);		// str r0, [r1, #-2]
+#endif
 
     _LDMIA(_R0, 0xffff);	// ldm r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
-    _LDMIA_S(_R1, 0x7ffe);	// ldm r1!, {r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr}
+    _LDMIA_U(_R1, 0x7ffe);	// ldm r1!, {r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr}
     _LDMIB(_R2, 0x3ffc);	// ldmib r2, {r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp}
-    _LDMIB_S(_R3, 0x1ff8);	// ldmib r3!, {r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
+    _LDMIB_U(_R3, 0x1ff8);	// ldmib r3!, {r3, r4, r5, r6, r7, r8, r9, sl, fp, ip}
     _LDMDA(_R4, 0x0ff0);	// ldmda r4, {r4, r5, r6, r7, r8, r9, sl, fp}
-    _LDMDA_S(_R5, 0x07e0);	// ldmda r5!, {r5, r6, r7, r8, r9, sl}
+    _LDMDA_U(_R5, 0x07e0);	// ldmda r5!, {r5, r6, r7, r8, r9, sl}
     _LDMDB(_R6, 0x03c0);	// ldmdb r6, {r6, r7, r8, r9}
-    _LDMDB_S(_R7, 0x0180);	// ldmdb r7!, {r7, r8}
+    _LDMDB_U(_R7, 0x0180);	// ldmdb r7!, {r7, r8}
     _STMIA(_R8, 0x0240);	// stm r8, {r6, r9}
-    _STMIA_S(_R9, 0x0660);	// stmia r9!, {r5, r6, r9, sl}
+    _STMIA_U(_R9, 0x0660);	// stmia r9!, {r5, r6, r9, sl}
     _STMIB(_R10, 0x0e70);	// stmib sl, {r4, r5, r6, r9, sl, fp}
-    _STMIB_S(_R11, 0x1e78);	// stmib fp!, {r3, r4, r5, r6, r9, sl, fp, ip}
+    _STMIB_U(_R11, 0x1e78);	// stmib fp!, {r3, r4, r5, r6, r9, sl, fp, ip}
     _STMDA(_R12, 0x3e7c);	// stmda ip, {r2, r3, r4, r5, r6, r9, sl, fp, ip, sp}
-    _STMDA_S(_R13, 0x7e7e);	// stmda sp!, {r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr}
+    _STMDA_U(_R13, 0x7e7e);	// stmda sp!, {r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr}
     _STMDB(_R14, 0xfe7f);	// stmdb lr, {r0, r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr, pc}
-    _STMDB_S(JIT_FP, 0xffff);	// stmdb fp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
+    _STMDB_U(JIT_FP, 0xffff);	// stmdb fp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
+
+    _PUSH(0xf);
+    _POP(0xf);
 
     jit_flush_code(buffer, jit_get_ip().ptr);
 

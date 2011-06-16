@@ -46,11 +46,6 @@ jit_v_order[JIT_V_NUM] = {
 };
 #define JIT_V(i)			jit_v_order[i]
 
-#define JIT_PC				_R15
-#define JIT_SP				_R13
-#define JIT_FP				_R11
-#define JIT_TMP				_R8
-
 #define jit_nop(n)			arm_nop(_jit, n)
 __jit_inline void
 arm_nop(jit_state_t _jit, int n)

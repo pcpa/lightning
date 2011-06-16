@@ -51,6 +51,11 @@ typedef enum {
     _R15,	/* pc - program counter */
 } jit_gpr_t;
 
+#define JIT_PC		_R15
+#define JIT_SP		_R13
+#define JIT_FP		_R11
+#define JIT_TMP		_R8
+
 typedef enum {
     _F0,	/* result */
     _F1,	/* scratch */
@@ -422,39 +427,43 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
 #define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
 #define _LDM(r0,i0)		_LDMIA(r0,i0)
-#define _CC_LDMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
-#define _LDMIA_S(r0,i0)		_CC_LDMIA_S(ARM_CC_AL,r0,i0)
-#define _LDM_S(r0,i0)		_LDMIA_S(r0,i0)
+#define _CC_LDMIA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
+#define _LDMIA_U(r0,i0)		_CC_LDMIA_U(ARM_CC_AL,r0,i0)
+#define _LDM_U(r0,i0)		_LDMIA_U(r0,i0)
 #define _CC_LDMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,r0,i0)
 #define _LDMIB(r0,i0)		_CC_LDMIB(ARM_CC_AL,r0,i0)
-#define _CC_LDMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMIB_S(r0,i0)		_CC_LDMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMIB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMIB_U(r0,i0)		_CC_LDMIB_U(ARM_CC_AL,r0,i0)
 #define _CC_LDMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L,r0,i0)
 #define _LDMDA(r0,i0)		_CC_LDMDA(ARM_CC_AL,r0,i0)
-#define _CC_LDMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
-#define _LDMDA_S(r0,i0)		_CC_LDMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
+#define _LDMDA_U(r0,i0)		_CC_LDMDA_U(ARM_CC_AL,r0,i0)
 #define _CC_LDMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B,r0,i0)
 #define _LDMDB(r0,i0)		_CC_LDMDB(ARM_CC_AL,r0,i0)
-#define _CC_LDMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMDB_S(r0,i0)		_CC_LDMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_LDMDB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
+#define _LDMDB_U(r0,i0)		_CC_LDMDB_U(ARM_CC_AL,r0,i0)
 #define _CC_STMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I,r0,i0)
 #define _STMIA(r0,i0)		_CC_STMIA(ARM_CC_AL,r0,i0)
 #define _STM(r0,i0)		_STMIA(r0,i0)
-#define _CC_STMIA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
-#define _STMIA_S(r0,i0)		_CC_STMIA_S(ARM_CC_AL,r0,i0)
-#define _STM_S(r0,i0)		_STMIA_S(r0,i0)
+#define _CC_STMIA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
+#define _STMIA_U(r0,i0)		_CC_STMIA_U(ARM_CC_AL,r0,i0)
+#define _STM_U(r0,i0)		_STMIA_U(r0,i0)
 #define _CC_STMIB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B,r0,i0)
 #define _STMIB(r0,i0)		_CC_STMIB(ARM_CC_AL,r0,i0)
-#define _CC_STMIB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMIB_S(r0,i0)		_CC_STMIB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMIB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMIB_U(r0,i0)		_CC_STMIB_U(ARM_CC_AL,r0,i0)
 #define _CC_STMDA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M,r0,i0)
 #define _STMDA(r0,i0)		_CC_STMDA(ARM_CC_AL,r0,i0)
-#define _CC_STMDA_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
-#define _STMDA_S(r0,i0)		_CC_STMDA_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDA_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_U,r0,i0)
+#define _STMDA_U(r0,i0)		_CC_STMDA_U(ARM_CC_AL,r0,i0)
 #define _CC_STMDB(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B,r0,i0)
 #define _STMDB(r0,i0)		_CC_STMDB(ARM_CC_AL,r0,i0)
-#define _CC_STMDB_S(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMDB_S(r0,i0)		_CC_STMDB_S(ARM_CC_AL,r0,i0)
+#define _CC_STMDB_U(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
+#define _STMDB_U(r0,i0)		_CC_STMDB_U(ARM_CC_AL,r0,i0)
+#define _CC_PUSH(cc,i0)		_CC_STMDB_U(cc,JIT_SP,i0)
+#define _PUSH(i0)		_CC_PUSH(ARM_CC_AL,i0)
+#define _CC_POP(cc,i0)		_CC_LDMIA_U(cc,JIT_SP,i0)
+#define _POP(i0)		_CC_POP(ARM_CC_AL,i0)
 
 /*
 *ADC, ADD	Add with Carry, Add page 3-50 All
