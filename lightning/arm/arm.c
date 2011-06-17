@@ -2148,12 +2148,13 @@ main(int argc, char *argv[])
     fflush(stdout);
 #endif
 
+#if 1
     /*
      * void f(int a, int b) { printf("%d + %d + %d = %d\n", a, b, a + b); }
      */
     {
 	int	a0, a1;
-	jit_prolog(2);		// push {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,fp,lr}; mov r8, r8, #8, orr, r8, r8, #0...; sub sp, sp, r8
+	jit_prolog(2);		// push {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,fp,lr}; mov fp, sp; mov r8, r8, #8, orr, r8, r8, #0...; sub sp, sp, r8
 	a0 = jit_arg_i();
 	a1 = jit_arg_i();
 	jit_getarg_i(JIT_V0, a0);	// ldr r4, [fp]
@@ -2162,16 +2163,18 @@ main(int argc, char *argv[])
 	jit_movi_p(JIT_R0, "%d + %d = %d\n");	// mov r0, r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(4);
 	{
-	    jit_pusharg_i(JIT_R1);	// str r1, [fp]
-	    jit_pusharg_i(JIT_V1);	// str r5, [fp #4]
-	    jit_pusharg_i(JIT_V0);	// str r4, [fp #8]
+	    jit_pusharg_i(JIT_R1);	// str r1, [fp, #24]
+	    jit_pusharg_i(JIT_V1);	// str r5, [fp, #20]
+	    jit_pusharg_i(JIT_V0);	// str r4, [fp, #16]
 	    jit_pusharg_i(JIT_R0);	// str r0, [fp, #12]
 	}
-	jit_finish(printf);		// add r8, fp, #8, ldm r8, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
-	jit_ret();			// sub sp, fp, #32; pop {r4, r5, r6, r7, r8, r9, fp, pc}
+	jit_finish(printf);		// add r8, fp, #12, ldm r8, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+	jit_ret();			// sub sp, fp, #16; pop {r4, r5, r6, r7, r8, r9, fp, pc}
     }
     jit_flush_code(buffer, jit_get_ip().ptr);
     ((void (*)(int,int))buffer)(1, 2);
+    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
+#endif
 
     return (0);
 }
