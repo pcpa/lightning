@@ -1169,9 +1169,18 @@ arm_prolog(jit_state_t _jit, int i0)
 
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
-    jit_movi_p(JIT_TMP, 0);
+
+    assert(_jitl.softfp);
+
+    if (_jitl.softfp)
+	/* 6 soft double registers */
+	_jitl.alloca_offset = _jitl.stack_length = 48;
+    else
+	_jitl.alloca_offset = _jitl.stack_length = 0;
+
+    jit_movi_p(JIT_TMP, (void *)_jitl.stack_length);
     _SUB(JIT_SP, JIT_SP, JIT_TMP);
-    _jitl.alloca_offset = _jitl.stack_offset = _jitl.stack_length = 0;
+    _jitl.stack_offset = 0;
 }
 
 #define jit_callr(r0)			_BLX(r0)
@@ -1269,6 +1278,7 @@ arm_finishi(jit_state_t _jit, void *i0)
     return (jit_calli(i0));
 }
 
+#define jit_retval_i(r0)		jit_movr_i(r0, JIT_RET)
 #define jit_ret()			arm_ret(_jit)
 __jit_inline void
 arm_ret(jit_state_t jit)

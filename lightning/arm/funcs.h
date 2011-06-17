@@ -67,7 +67,7 @@ jit_get_cpu(void)
 	if (strncasecmp(buf, "CPU architecture:", 17) == 0) {
 	    jit_cpu.armvn = strtol(buf + 17, &ptr, 10);
 	    while (*ptr) {
-		if (*ptr == 'T') {
+		if (*ptr == 'T' || *ptr == 't') {
 		    ++ptr;
 		    if (*ptr == '2') {
 			jit_cpu.thumb = 2;
@@ -76,7 +76,7 @@ jit_get_cpu(void)
 		    else
 			jit_cpu.thumb = 1;
 		}
-		else if (*ptr == 'E') {
+		else if (*ptr == 'E' || *ptr == 'e') {
 		    jit_cpu.armve = 1;
 		    ++ptr;
 		}
@@ -88,6 +88,7 @@ jit_get_cpu(void)
     }
     fclose(fp);
 #endif
+    jit_cpu.softfp = 1;
 }
 
 #endif /* __lightning_funcs_h */

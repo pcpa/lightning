@@ -51,11 +51,14 @@ typedef enum {
     _R15,	/* pc - program counter */
 } jit_gpr_t;
 
+#define JIT_RET		_R0
 #define JIT_PC		_R15
 #define JIT_LR		_R14
 #define JIT_SP		_R13
 #define JIT_FP		_R11
 #define JIT_TMP		_R8
+#define JIT_FTMP	_R9
+#define JIT_FPRET	_F0
 
 typedef enum {
     _F0,	/* result */
@@ -171,8 +174,7 @@ encode_arm_immediate(unsigned int v)
 }
 
 __jit_inline void
-arm_cc_orrr(jit_state_t _jit, int cc, int o,
-	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+arm_cc_orrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fff0f));
@@ -180,8 +182,7 @@ arm_cc_orrr(jit_state_t _jit, int cc, int o,
 }
 
 __jit_inline void
-arm_cc_orri(jit_state_t _jit, int cc, int o,
-	    jit_gpr_t r0, jit_gpr_t r1, int i0)
+arm_cc_orri(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fffff));
@@ -190,8 +191,7 @@ arm_cc_orri(jit_state_t _jit, int cc, int o,
 }
 
 __jit_inline void
-arm_cc_orri8(jit_state_t _jit, int cc, int o,
-	     jit_gpr_t r0, jit_gpr_t r1, int i0)
+arm_cc_orri8(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fff0f));
@@ -200,8 +200,7 @@ arm_cc_orri8(jit_state_t _jit, int cc, int o,
 }
 
 __jit_inline void
-arm_cc_orrrr(jit_state_t _jit, int cc, int o,
-	     jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, jit_gpr_t r3)
+arm_cc_orrrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int r3)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fff0f));
@@ -209,8 +208,7 @@ arm_cc_orrrr(jit_state_t _jit, int cc, int o,
 }
 
 __jit_inline void
-arm_cc_srrr(jit_state_t _jit, int cc, int o,
-	    jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+arm_cc_srrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x0000ff0f));
@@ -218,8 +216,7 @@ arm_cc_srrr(jit_state_t _jit, int cc, int o,
 }
 
 __jit_inline void
-arm_cc_srri(jit_state_t _jit, int cc,
-	    int o, jit_gpr_t r0, jit_gpr_t r1, int i0)
+arm_cc_srri(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x0000ff0f));
@@ -244,7 +241,7 @@ arm_cc_bx(jit_state_t _jit, int cc, int o, int r0)
 }
 
 __jit_inline void
-arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
+arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0x000fffff));
