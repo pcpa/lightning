@@ -2028,7 +2028,7 @@ arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
     assert(jit_cpu.softfp);
     u.f = i0;
     jit_movi_i(JIT_FTMP, u.i);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
 }
 
 #define jit_ldr_f(r0, r1)		arm_ldr_f(_jit, r0, r1)
@@ -2037,7 +2037,7 @@ arm_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(jit_cpu.softfp);
     jit_ldr_i(JIT_FTMP, r1);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
 }
 
 #define jit_ldi_f(r0, i0)		arm_ldi_f(_jit, r0, i0)
@@ -2046,7 +2046,7 @@ arm_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     assert(jit_cpu.softfp);
     jit_ldi_i(JIT_FTMP, i0);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
 }
 
 #define jit_ldxr_f(r0, r1, r2)		arm_ldxr_f(_jit, r0, r1, r2)
@@ -2055,7 +2055,7 @@ arm_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(jit_cpu.softfp);
     jit_ldxr_i(JIT_FTMP, r1, r2);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
 }
 
 #define jit_ldxi_f(r0, r1, i0)		arm_ldxi_f(_jit, r0, r1, i0)
@@ -2064,7 +2064,7 @@ arm_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(jit_cpu.softfp);
     jit_ldxi_i(JIT_FTMP, r1, i0);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
 }
 
 #define jit_str_f(r0, r1)		arm_str_f(_jit, r0, r1)
@@ -2072,7 +2072,7 @@ __jit_inline void
 arm_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3));
     jit_str_i(r0, JIT_FTMP);
 }
 
@@ -2081,7 +2081,7 @@ __jit_inline void
 arm_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 3));
     jit_sti_i(i0, JIT_FTMP);
 }
 
@@ -2090,7 +2090,7 @@ __jit_inline void
 arm_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r2 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r2 << 3));
     jit_stxr_i(r0, r1, JIT_FTMP);
 }
 
@@ -2099,7 +2099,7 @@ __jit_inline void
 arm_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3));
     jit_stxi_i(i0, r0, JIT_FTMP);
 }
 
@@ -2114,9 +2114,9 @@ arm_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     assert(jit_cpu.softfp);
     u.d = i0;
     jit_movi_i(JIT_FTMP, u.i[0]);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
     jit_movi_i(JIT_FTMP, u.i[1]);
-    jit_stxi_i(-(r0 << 4) + 4, JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3) + 4, JIT_FP, JIT_FTMP);
 }
 
 #define jit_ldr_d(r0, r1)		arm_ldr_d(_jit, r0, r1)
@@ -2125,9 +2125,9 @@ arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(jit_cpu.softfp);
     jit_ldr_i(JIT_FTMP, r1);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
     jit_ldxi_i(JIT_FTMP, r1, 4);
-    jit_stxi_i(-(r0 << 4) + 4, JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3) + 4, JIT_FP, JIT_FTMP);
 #if 0
     _LDRDI(r0, r1, 0);
 #endif
@@ -2140,9 +2140,9 @@ arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
     assert(jit_cpu.softfp);
     jit_movi_i(JIT_TMP, (int)i0);
     jit_ldr_i(JIT_FTMP, JIT_TMP);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
     jit_ldxi_i(JIT_FTMP, JIT_TMP, 4);
-    jit_stxi_i(-(r0 << 4) + 4, JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3) + 4, JIT_FP, JIT_FTMP);
 #if 0
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRDI(r0, JIT_TMP, 0);
@@ -2155,10 +2155,10 @@ arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(jit_cpu.softfp);
     jit_ldxr_i(JIT_FTMP, r1, r2);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
     jit_addi_i(JIT_TMP, r2, 4);
     jit_ldxr_i(JIT_FTMP, r1, JIT_TMP);
-    jit_stxi_i(-(r0 << 4) + 4, JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3) + 4, JIT_FP, JIT_FTMP);
 #if 0
     _LDRD(r0, r1, r2);
 #endif
@@ -2170,9 +2170,9 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(jit_cpu.softfp);
     jit_ldxi_i(JIT_FTMP, r1, i0);
-    jit_stxi_i(-(r0 << 4), JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
     jit_ldxr_i(JIT_FTMP, r1, i0 + 4);
-    jit_stxi_i(-(r0 << 4) + 4, JIT_FP, JIT_FTMP);
+    jit_stxi_i(-(r0 << 3) + 4, JIT_FP, JIT_FTMP);
 #if 0
     jit_fpr_t		reg;
     assert(jit_cpu.softfp);
@@ -2193,9 +2193,9 @@ __jit_inline void
 arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3));
     jit_str_i(r0, JIT_FTMP);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4) + 4);
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3) + 4);
     jit_stxi_i(4, r0, JIT_FTMP);
 #if 0
     _STRDI(r0, r1, 0);
@@ -2207,10 +2207,10 @@ __jit_inline void
 arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 3));
     jit_movi_i(JIT_TMP, (int)i0);
     jit_str_i(JIT_TMP, JIT_FTMP);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 4) + 4);
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r0 << 3) + 4);
     jit_stxr_i(4, JIT_TMP, JIT_FTMP);
 #if 0
     jit_movi_i(JIT_TMP, (int)i0);
@@ -2223,9 +2223,9 @@ __jit_inline void
 arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3));
     jit_stxr_i(r0, r1, JIT_FTMP);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4) + 4);
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3) + 4);
     jit_addi_i(JIT_TMP, r1, 4);
     jit_stxr_i(r0, JIT_TMP, JIT_FTMP);
 #if 0
@@ -2238,9 +2238,9 @@ __jit_inline void
 arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(jit_cpu.softfp);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4));
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3));
     jit_stxi_i(i0, r0, JIT_FTMP);
-    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 4) + 4);
+    jit_ldxi_i(JIT_FTMP, JIT_FP, -(r1 << 3) + 4);
     jit_stxi_i(i0 + 4, r0, JIT_FTMP);
 #if 0
     jit_fpr_t		reg;
@@ -2254,6 +2254,113 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	_STRD(r0, r1, reg);
     }
 #endif
+}
+
+#define jit_prepare_f(i0)		arm_prepare_f(_jit, i0)
+__jit_inline void
+arm_prepare_f(jit_state_t _jit, int i0)
+{
+    assert(i0 >= 0);
+    _jitl.stack_offset += i0 << 2;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	jit_patch_movi(_jitl.stack, (void *)
+		       ((_jitl.alloca_offset +
+			 _jitl.stack_length + 7) & -8));
+    }
+}
+
+#define jit_prepare_d(i0)		arm_prepare_d(_jit, i0)
+__jit_inline void
+arm_prepare_d(jit_state_t _jit, int i0)
+{
+    assert(i0 >= 0);
+    _jitl.stack_offset += i0 << 3;
+    if (_jitl.stack_length < _jitl.stack_offset) {
+	_jitl.stack_length = _jitl.stack_offset;
+	jit_patch_movi(_jitl.stack, (void *)
+		       ((_jitl.alloca_offset +
+			 _jitl.stack_length + 7) & -8));
+    }
+}
+
+#define jit_arg_f()			arm_arg_f(_jit)
+__jit_inline int
+arm_arg_f(jit_state_t _jit)
+{
+    int		ofs = _jitl.nextarg_get++;
+    if (ofs > 3) {
+	ofs = _jitl.framesize;
+	_jitl.framesize += sizeof(int);
+    }
+    return (ofs);
+}
+
+#define jit_arg_d()			arm_arg_d(_jit)
+__jit_inline int
+arm_arg_d(jit_state_t _jit)
+{
+    int		ofs = _jitl.nextarg_get;
+    if (ofs & 1)
+	++ofs;
+    if (ofs > 2) {
+	ofs = _jitl.framesize;
+	_jitl.framesize += sizeof(double);
+    }
+    _jitl.nextarg_get += 2;
+    return (ofs);
+}
+
+#define jit_getarg_f(f0, i0)		arm_getarg_f(_jit, f0, i0)
+__jit_inline void
+arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
+{
+    if (i0 < 4)
+	jit_ldxi_i(JIT_FTMP, JIT_FP, (i0 << 2));
+    else
+	jit_ldxi_i(JIT_FTMP, JIT_FP, i0);
+    jit_stxi_i(-(r0 << 3), JIT_FP, JIT_FTMP);
+}
+
+#define jit_getarg_d(f0, i0)		arm_getarg_d(_jit, f0, i0)
+__jit_inline void
+arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
+{
+    if (i0 < 4)
+	_LDRDI(JIT_TMP, JIT_FP, (i0 << 2));
+    else
+	_LDRDI(JIT_TMP, JIT_FP, i0);
+    _STRDI(JIT_TMP, JIT_FP, -(r0 << 3));
+}
+
+#define jit_pusharg_f(r0)		arm_pusharg_f(_jit, r0)
+__jit_inline void
+arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
+{
+    jit_ldxi_i(JIT_FTMP, JIT_FP, (r0 << 3));
+    if (_jitl.nextarg_put < 4)
+	jit_stxi_i(16 - (_jitl.nextarg_put << 2) + 8, JIT_FP, JIT_FTMP);
+    else {
+	_jitl.stack_offset -= sizeof(float);
+	jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
+    }
+    _jitl.nextarg_put++;
+}
+
+#define jit_pusharg_d(r0)		arm_pusharg_d(_jit, r0)
+__jit_inline void
+arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
+{
+    _LDRDI(JIT_TMP, JIT_FP, -(r0 << 3));
+    if (_jitl.nextarg_put < 4)
+	_STRDI(JIT_TMP, JIT_FP, 16 - (_jitl.nextarg_put << 2) + 8);
+    else {
+	_jitl.stack_offset -= sizeof(double);
+	/* FIXME */
+	assert(_jitl.stack_offset <= 255);
+	_STRDI(JIT_TMP, JIT_FP, _jitl.stack_offset);
+    }
+    _jitl.nextarg_put += 2;
 }
 
 /**********************************************************************/
