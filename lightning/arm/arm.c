@@ -149,7 +149,7 @@ typedef struct jit_local_state {
     int		 alloca_offset;
     int		 stack_length;
     int		 stack_offset;
-    int		*stack;
+    void	*stack;
 } jit_local_state;
 struct {
     unsigned	armvn		: 4;
@@ -1833,7 +1833,7 @@ __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
     if (_jitl.nextarg_put < 4)
-	jit_stxi_i((_jitl.nextarg_put << 2), JIT_FP, r0);
+	jit_stxi_i(16 - (_jitl.nextarg_put << 2) + 8, JIT_FP, r0);
     else {
 	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
@@ -1849,7 +1849,7 @@ arm_finishr(jit_state_t _jit, jit_gpr_t r0)
     assert(_jitl.stack_offset == 0);
     if (_jitl.nextarg_put) {
 	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 8);
+	_ADDI(JIT_TMP, JIT_FP, 12);
 	_LDMIA(JIT_TMP, list);
 	_jitl.nextarg_put = 0;
     }
@@ -1864,7 +1864,7 @@ arm_finishi(jit_state_t _jit, void *i0)
     assert(_jitl.stack_offset == 0);
     if (_jitl.nextarg_put) {
 	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 8);
+	_ADDI(JIT_TMP, JIT_FP, 12);
 	_LDMIA(JIT_TMP, list);
 	_jitl.nextarg_put = 0;
     }
@@ -1876,7 +1876,7 @@ __jit_inline void
 arm_ret(jit_state_t jit)
 {
     /* do not restore arguments */
-    _SUBI(JIT_SP, JIT_FP, 32);
+    _ADDI(JIT_SP, JIT_FP, 16);
     _POP(/* callee save */
 	 (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
 	 /* previous fp and return address */
@@ -1893,9 +1893,9 @@ main(int argc, char *argv[])
 
     jit_get_cpu();
     printf("jit for armv%d%s%s%s\n",
-	   jit_cpu.armvn, jit_cpu.armve ? "e" : "",
-	   jit_cpu.thumb ? "t" : "",
-	   jit_cpu.thumb > 1 ? "2" : "");
+	   jit_cpu.armvn,
+	   jit_cpu.thumb ? "t" : "", jit_cpu.thumb > 1 ? "2" : "",
+	   jit_cpu.armve ? "e" : "");
     jit_set_ip(buffer);
 
     /* <T> is JIT_TMP (may still change) */
@@ -2144,6 +2144,8 @@ main(int argc, char *argv[])
     jit_movi_p(JIT_R0, main);	// mov r0, #<q3>, orrr r0, r0, #<q2> ...
     jit_callr(JIT_R0);		// blx r0
     jit_calli(printf);		// mov <T>, #<q3>, orrr r0, r8, #<q2> ...; blx <T>
+    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
+    fflush(stdout);
 #endif
 
     /*
@@ -2151,28 +2153,25 @@ main(int argc, char *argv[])
      */
     {
 	int	a0, a1;
-	jit_prolog(2);
+	jit_prolog(2);		// push {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,fp,lr}; mov r8, r8, #8, orr, r8, r8, #0...; sub sp, sp, r8
 	a0 = jit_arg_i();
 	a1 = jit_arg_i();
-	jit_getarg_i(JIT_V0, a0);
-	jit_getarg_i(JIT_V1, a1);
-	jit_addr_i(JIT_R1, JIT_V0, JIT_V1);
-	jit_movi_p(JIT_R0, "%d + %d = %d\n");
+	jit_getarg_i(JIT_V0, a0);	// ldr r4, [fp]
+	jit_getarg_i(JIT_V1, a1);	// ldr r5, [fp, #4]
+	jit_addr_i(JIT_R1, JIT_V0, JIT_V1);	// add r1, r4, r5
+	jit_movi_p(JIT_R0, "%d + %d = %d\n");	// mov r0, r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(4);
 	{
-	    jit_pusharg_i(JIT_R1);
-	    jit_pusharg_i(JIT_V1);
-	    jit_pusharg_i(JIT_V0);
-	    jit_pusharg_i(JIT_R0);
+	    jit_pusharg_i(JIT_R1);	// str r1, [fp]
+	    jit_pusharg_i(JIT_V1);	// str r5, [fp #4]
+	    jit_pusharg_i(JIT_V0);	// str r4, [fp #8]
+	    jit_pusharg_i(JIT_R0);	// str r0, [fp, #12]
 	}
-	jit_finish(printf);
-	jit_ret();
+	jit_finish(printf);		// add r8, fp, #8, ldm r8, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+	jit_ret();			// sub sp, fp, #32; pop {r4, r5, r6, r7, r8, r9, fp, pc}
     }
-
     jit_flush_code(buffer, jit_get_ip().ptr);
-
-    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
-    fflush(stdout);
+    ((void (*)(int,int))buffer)(1, 2);
 
     return (0);
 }

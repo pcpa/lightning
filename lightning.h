@@ -168,7 +168,7 @@ struct jit_local_state {
     int		 alloca_offset;
     int		 stack_length;
     int		 stack_offset;
-    int		*stack;
+    void	*stack;
 #if !defined(__mips64__)
     int		*arguments[256];
     int		 types[8];

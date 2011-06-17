@@ -1165,7 +1165,7 @@ __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
     if (_jitl.nextarg_put < 4)
-	jit_stxi_i((_jitl.nextarg_put << 2), JIT_FP, r0);
+	jit_stxi_i(16 - (_jitl.nextarg_put << 2) + 8, JIT_FP, r0);
     else {
 	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
@@ -1181,7 +1181,7 @@ arm_finishr(jit_state_t _jit, jit_gpr_t r0)
     assert(_jitl.stack_offset == 0);
     if (_jitl.nextarg_put) {
 	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 8);
+	_ADDI(JIT_TMP, JIT_FP, 12);
 	_LDMIA(JIT_TMP, list);
 	_jitl.nextarg_put = 0;
     }
@@ -1196,7 +1196,7 @@ arm_finishi(jit_state_t _jit, void *i0)
     assert(_jitl.stack_offset == 0);
     if (_jitl.nextarg_put) {
 	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 8);
+	_ADDI(JIT_TMP, JIT_FP, 12);
 	_LDMIA(JIT_TMP, list);
 	_jitl.nextarg_put = 0;
     }
@@ -1208,7 +1208,7 @@ __jit_inline void
 arm_ret(jit_state_t jit)
 {
     /* do not restore arguments */
-    _SUBI(JIT_SP, JIT_FP, 32);
+    _ADDI(JIT_SP, JIT_FP, 16);
     _POP(/* callee save */
 	 (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
 	 /* previous fp and return address */
