@@ -392,10 +392,10 @@ arm_hmulr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1 && jit_cpu.armvn < 6) {
 	assert(r2 != JIT_TMP);
-	_SMULL(r0, JIT_TMP, r2, r1);
+	_SMULL(JIT_TMP, r0, r2, r1);
     }
     else
-	_SMULL(r0, JIT_TMP, r1, r2);
+	_SMULL(JIT_TMP, r0, r1, r2);
 }
 
 #define jit_hmuli_i(r0, r1, i0)		arm_hmuli_i(_jit, r0, r1, i0)
@@ -405,7 +405,7 @@ arm_hmuli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     jit_gpr_t	reg;
     if (r0 != r1 || jit_cpu.armvn >= 6) {
 	jit_movi_i(JIT_TMP, i0);
-	_SMULL(r0, JIT_TMP, r1, JIT_TMP);
+	_SMULL(JIT_TMP, r0, r1, JIT_TMP);
     }
     else {
 	if (r0 != _R0)		reg = _R0;
@@ -414,7 +414,7 @@ arm_hmuli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	else			reg = _R3;
 	_PUSH(1<<reg);
 	jit_movi_i(reg, i0);
-	_SMULL(r0, JIT_TMP, r1, reg);
+	_SMULL(JIT_TMP, r0, r1, reg);
 	_POP(1<<reg);
     }
 }
@@ -425,10 +425,10 @@ arm_hmulr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (r0 == r1 && jit_cpu.armvn < 6) {
 	assert(r2 != JIT_TMP);
-	_UMULL(r0, JIT_TMP, r2, r1);
+	_UMULL(JIT_TMP, r0, r2, r1);
     }
     else
-	_UMULL(r0, JIT_TMP, r1, r2);
+	_UMULL(JIT_TMP, r0, r1, r2);
 }
 
 #define jit_hmuli_ui(r0, r1, i0)	arm_hmuli_ui(_jit, r0, r1, i0)
@@ -438,7 +438,7 @@ arm_hmuli_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     jit_gpr_t	reg;
     if (r0 != r1 || jit_cpu.armvn >= 6) {
 	jit_movi_i(JIT_TMP, i0);
-	_UMULL(r0, JIT_TMP, r1, JIT_TMP);
+	_UMULL(JIT_TMP, r0, r1, JIT_TMP);
     }
     else {
 	if (r0 != _R0)		reg = _R0;
@@ -447,7 +447,7 @@ arm_hmuli_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	else			reg = _R3;
 	_PUSH(1<<reg);
 	jit_movi_i(reg, i0);
-	_UMULL(r0, JIT_TMP, r1, reg);
+	_UMULL(JIT_TMP, r0, r1, reg);
 	_POP(1<<reg);
     }
 }
