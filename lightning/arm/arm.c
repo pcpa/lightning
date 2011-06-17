@@ -308,6 +308,10 @@ typedef enum {
 #define ARM_RSC		0x00e00000	/* ARMV7M */
 #define ARM_MUL		0x00000090
 #define ARM_MLA		0x00200090
+#define ARM_UMULL	0x00800090
+#define ARM_UMLAL	0x00a00090
+#define ARM_SMULL	0x00c00090
+#define ARM_SMLAL	0x00e00090
 #define ARM_AND		0x00000000
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
@@ -509,10 +513,18 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _RSCI(r0,r1,i0)		_CC_RSCI(ARM_CC_AL,r0,r1,i0)
 /* << ARMV7M */
 
-#define _CC_MUL(cc,r0,r1,r2)	arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
-#define _MUL(r0,r1,r2)		_CC_MUL(ARM_CC_AL,r0,r1,r2)
-#define _CC_MLA(cc,r0,r1,r2,r3)	arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
-#define _MLA(r0,r1,r2,r3)	_CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_MUL(cc,r0,r1,r2)	  arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
+#define _MUL(r0,r1,r2)		  _CC_MUL(ARM_CC_AL,r0,r1,r2)
+#define _CC_MLA(cc,r0,r1,r2,r3)	  arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
+#define _MLA(r0,r1,r2,r3)	  _CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_UMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_UMULL,r1,r0,r3,r2)
+#define _UMULL(r0,r1,r2,r3)	  _CC_UMULL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_UMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_UMLAL,r1,r0,r3,r2)
+#define _UMLAL(r0,r1,r2,r3)	  _CC_UMLAL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_SMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_SMULL,r1,r0,r3,r2)
+#define _SMULL(r0,r1,r2,r3)	  _CC_SMULL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_SMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_SMLAL,r1,r0,r3,r2)
+#define _SMLAL(r0,r1,r2,r3)	  _CC_SMLAL(ARM_CC_AL,r0,r1,r2,r3)
 
 #define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND,r0,r1,r2)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
@@ -1053,6 +1065,72 @@ arm_muli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	_MUL(r0, reg, r1);
     else
 	_MUL(r0, r1, reg);
+}
+
+#define jit_hmulr_i(r0, r1, r2)		arm_hmulr_i(_jit, r0, r1, r2)
+__jit_inline void
+arm_hmulr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r0 == r1 && jit_cpu.armvn < 6) {
+	assert(r2 != JIT_TMP);
+	_SMULL(r0, JIT_TMP, r2, r1);
+    }
+    else
+	_SMULL(r0, JIT_TMP, r1, r2);
+}
+
+#define jit_hmuli_i(r0, r1, i0)		arm_hmuli_i(_jit, r0, r1, i0)
+__jit_inline void
+arm_hmuli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    jit_gpr_t	reg;
+    if (r0 != r1 || jit_cpu.armvn >= 6) {
+	jit_movi_i(JIT_TMP, i0);
+	_SMULL(r0, JIT_TMP, r1, JIT_TMP);
+    }
+    else {
+	if (r0 != _R0)		reg = _R0;
+	else if (r0 != _R1)	reg = _R1;
+	else if (r0 != _R2)	reg = _R2;
+	else			reg = _R3;
+	_PUSH(1<<reg);
+	jit_movi_i(reg, i0);
+	_SMULL(r0, JIT_TMP, r1, reg);
+	_POP(1<<reg);
+    }
+}
+
+#define jit_hmulr_ui(r0, r1, r2)	arm_hmulr_ui(_jit, r0, r1, r2)
+__jit_inline void
+arm_hmulr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    if (r0 == r1 && jit_cpu.armvn < 6) {
+	assert(r2 != JIT_TMP);
+	_UMULL(r0, JIT_TMP, r2, r1);
+    }
+    else
+	_UMULL(r0, JIT_TMP, r1, r2);
+}
+
+#define jit_hmuli_ui(r0, r1, i0)	arm_hmuli_ui(_jit, r0, r1, i0)
+__jit_inline void
+arm_hmuli_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    jit_gpr_t	reg;
+    if (r0 != r1 || jit_cpu.armvn >= 6) {
+	jit_movi_i(JIT_TMP, i0);
+	_UMULL(r0, JIT_TMP, r1, JIT_TMP);
+    }
+    else {
+	if (r0 != _R0)		reg = _R0;
+	else if (r0 != _R1)	reg = _R1;
+	else if (r0 != _R2)	reg = _R2;
+	else			reg = _R3;
+	_PUSH(1<<reg);
+	jit_movi_i(reg, i0);
+	_UMULL(r0, JIT_TMP, r1, reg);
+	_POP(1<<reg);
+    }
 }
 
 #define jit_andr_i(r0, r1, r2)		arm_andr_i(_jit, r0, r1, r2)
@@ -1932,6 +2010,12 @@ main(int argc, char *argv[])
     jit_mulr_i(_R0, _R1, _R2);		// mul r0, r1, r2
     jit_muli_i(_R0, _R1, 2);		// mov r0, #2; mul r0, r1, r0
     jit_muli_i(_R0, _R1, -2);		// mvn r0, #1; mul r0, r1, r0
+    jit_mulr_i(_R0, _R1, _R2);		// mul r0, r1, r2
+    jit_muli_i(_R0, _R1, 2);		// mov r0, #2; mul r0, r1, r0
+    jit_hmulr_i(_R0, _R1, _R2);		// smull r0, <T>, r1, r2
+    jit_hmuli_i(_R0, _R1, 2);		// mov <T>, #2; smull r0, <T>, r1, <T>
+    jit_hmulr_ui(_R0, _R1, _R2);	// umull r0, <T>, r1, r2
+    jit_hmuli_ui(_R0, _R1, 2);		// mov <T>, #2; umull r0, <T>, r1, <T>
     jit_andr_i(_R0, _R1, _R2);		// and r0, r1, r2
     jit_andi_i(_R0, _R1, 2);		// and r0, r1, #2
     jit_andi_i(_R0, _R1, -2);		// bic r0, r1, #1
@@ -2144,8 +2228,6 @@ main(int argc, char *argv[])
     jit_movi_p(JIT_R0, main);	// mov r0, #<q3>, orrr r0, r0, #<q2> ...
     jit_callr(JIT_R0);		// blx r0
     jit_calli(printf);		// mov <T>, #<q3>, orrr r0, r8, #<q2> ...; blx <T>
-    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
-    fflush(stdout);
 #endif
 
 #if 1
@@ -2173,8 +2255,8 @@ main(int argc, char *argv[])
     }
     jit_flush_code(buffer, jit_get_ip().ptr);
     ((void (*)(int,int))buffer)(1, 2);
-    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
 #endif
+    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
 
     return (0);
 }

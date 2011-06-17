@@ -98,6 +98,10 @@ typedef enum {
 #define ARM_RSC		0x00e00000	/* ARMV7M */
 #define ARM_MUL		0x00000090
 #define ARM_MLA		0x00200090
+#define ARM_UMULL	0x00800090
+#define ARM_UMLAL	0x00a00090
+#define ARM_SMULL	0x00c00090
+#define ARM_SMLAL	0x00e00090
 #define ARM_AND		0x00000000
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
@@ -299,10 +303,18 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _RSCI(r0,r1,i0)		_CC_RSCI(ARM_CC_AL,r0,r1,i0)
 /* << ARMV7M */
 
-#define _CC_MUL(cc,r0,r1,r2)	arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
-#define _MUL(r0,r1,r2)		_CC_MUL(ARM_CC_AL,r0,r1,r2)
-#define _CC_MLA(cc,r0,r1,r2,r3)	arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
-#define _MLA(r0,r1,r2,r3)	_CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_MUL(cc,r0,r1,r2)	  arm_cc_orrrr(_jit,cc,ARM_MUL,r0,0,r2,r1)
+#define _MUL(r0,r1,r2)		  _CC_MUL(ARM_CC_AL,r0,r1,r2)
+#define _CC_MLA(cc,r0,r1,r2,r3)	  arm_cc_orrrr(_jit,cc,ARM_MLA,r0,r3,r2,r1)
+#define _MLA(r0,r1,r2,r3)	  _CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_UMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_UMULL,r1,r0,r3,r2)
+#define _UMULL(r0,r1,r2,r3)	  _CC_UMULL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_UMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_UMLAL,r1,r0,r3,r2)
+#define _UMLAL(r0,r1,r2,r3)	  _CC_UMLAL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_SMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_SMULL,r1,r0,r3,r2)
+#define _SMULL(r0,r1,r2,r3)	  _CC_SMULL(ARM_CC_AL,r0,r1,r2,r3)
+#define _CC_SMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(_jit,cc,ARM_SMLAL,r1,r0,r3,r2)
+#define _SMLAL(r0,r1,r2,r3)	  _CC_SMLAL(ARM_CC_AL,r0,r1,r2,r3)
 
 #define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND,r0,r1,r2)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
@@ -588,7 +600,7 @@ SMC		Secure Monitor Call page 3-141 Z
 SMLAxy		Signed Multiply with Accumulate (32 <= 16 x 16 + 32) page 3-80 5E, 7EM
 SMLAD		Dual Signed Multiply Accumulate page 3-89 6, 7EM
 		(32 <= 32 + 16 x 16 + 16 x 16)
-SMLAL		Signed Multiply Accumulate (64 <= 64 + 32 x 32) page 3-78 x6M
+*SMLAL		Signed Multiply Accumulate (64 <= 64 + 32 x 32) page 3-78 x6M
 SMLALxy		Signed Multiply Accumulate (64 <= 64 + 16 x 16) page 3-83 5E, 7EM
 SMLALD		Dual Signed Multiply Accumulate Long page 3-91 6, 7EM
 		(64 <= 64 + 16 x 16 + 16 x 16)
@@ -604,7 +616,7 @@ SMMLS		Signed top word Multiply with Subtract (32 <= page 3-87 6, 7EM
 SMMUL		Signed top word Multiply (32 <= TopWord(32 x 32)) page 3-87 6, 7EM
 SMUAD, SMUSD	Dual Signed Multiply, and Add or Subtract products page 3-85 6, 7EM
 SMULxy		Signed Multiply (32 <= 16 x 16) page 3-80 5E, 7EM
-SMULL		Signed Multiply (64 <= 32 x 32) page 3-78 x6M
+*SMULL		Signed Multiply (64 <= 32 x 32) page 3-78 x6M
 SMULWy		Signed Multiply (32 <= 32 x 16) page 3-82 5E, 7EM
 SRS		Store Return State page 3-37 T2, x7M
 SSAT		Signed Saturate page 3-99 6, x6M
@@ -645,7 +657,7 @@ UHASX, UHSUB8,
 UHSUB16, UHSAX 
 UMAAL		Unsigned Multiply Accumulate Accumulate Long page 3-93 6, 7EM
 		(64 <= 32 + 32 + 32 x 32)
-UMLAL, UMULL	Unsigned Multiply Accumulate, Unsigned Multiply page 3-78 x6M
+*UMLAL, UMULL	Unsigned Multiply Accumulate, Unsigned Multiply page 3-78 x6M
 		(64 <= 32 x 32 + 64), (64 <= 32 x 32)
 UQADD8,UQADD16,	Parallel Unsigned Saturating Arithmetic page 3-102 6, 7EM
 UQASX, UQSUB8,
