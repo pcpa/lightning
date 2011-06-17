@@ -138,12 +138,16 @@ typedef enum {
 #define ARM_LDRHI	0x015000b0
 #define ARM_LDR		0x07100000
 #define ARM_LDRI	0x05100000
+#define ARM_LDRD	0x010000d0
+#define ARM_LDRDI	0x014000d0
 #define ARM_STRB	0x07400000
 #define ARM_STRBI	0x05400000
 #define ARM_STRH	0x010000b0
 #define ARM_STRHI	0x014000b0
 #define ARM_STR		0x07000000
 #define ARM_STRI	0x05000000
+#define ARM_STRD	0x010000f0
+#define ARM_STRDI	0x014000f0
 
 /* ldm/stm */
 #define ARM_M		0x08000000
@@ -429,6 +433,14 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _LDRI(r0,r1,i0)		_CC_LDRI(ARM_CC_AL,r0,r1,i0)
 #define _CC_LDRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_LDRI,r0,r1,i0)
 #define _LDRIN(r0,r1,i0)	_CC_LDRIN(ARM_CC_AL,r0,r1,i0)
+#define _CC_LDRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRD|ARM_P,r0,r1,r2)
+#define _LDRD(r0,r1,r2)		_CC_LDRD(ARM_CC_AL,r0,r1,r2)
+#define _CC_LDRDN(cc,r0,r1,r2)  arm_cc_orrr(_jit,cc,ARM_LDRD,r0,r1,r2)
+#define _LDRDN(r0,r1,r2)	_CC_LDRDN(ARM_CC_AL,r0,r1,r2)
+#define _CC_LDRDI(cc,r0,r1,i0)  arm_cc_orri8(_jit,cc,ARM_LDRDI|ARM_P,r0,r1,i0)
+#define _LDRDI(r0,r1,i0)	_CC_LDRDI(ARM_CC_AL,r0,r1,i0)
+#define _CC_LDRDIN(cc,r0,r1,i0) arm_cc_orri8(_jit,cc,ARM_LDRDI,r0,r1,i0)
+#define _LDRDIN(r0,r1,i0)	_CC_LDRDIN(ARM_CC_AL,r0,r1,i0)
 #define _CC_STRB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB|ARM_P,r2,r1,r0)
 #define _STRB(r0,r1,r2)		_CC_STRB(ARM_CC_AL,r0,r1,r2)
 #define _CC_STRBN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB,r2,r1,r0)
@@ -453,6 +465,14 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _STRI(r0,r1,i0)		_CC_STRI(ARM_CC_AL,r0,r1,i0)
 #define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r1,r0,i0)
 #define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
+#define _CC_STRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRD|ARM_P,r2,r1,r0)
+#define _STRD(r0,r1,r2)		_CC_STRD(ARM_CC_AL,r0,r1,r2)
+#define _CC_STRDN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_STRD,r2,r1,r0)
+#define _STRDN(r0,r1,r2)	_CC_STRDN(ARM_CC_AL,r0,r1,r2)
+#define _CC_STRDI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI|ARM_P,r1,r0,i0)
+#define _STRDI(r0,r1,i0)	_CC_STRDI(ARM_CC_AL,r0,r1,i0)
+#define _CC_STRDIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI,r1,r0,i0)
+#define _STRDIN(r0,r1,i0)	_CC_STRDIN(ARM_CC_AL,r0,r1,i0)
 
 #define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
 #define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)

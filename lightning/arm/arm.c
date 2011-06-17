@@ -348,12 +348,16 @@ typedef enum {
 #define ARM_LDRHI	0x015000b0
 #define ARM_LDR		0x07100000
 #define ARM_LDRI	0x05100000
+#define ARM_LDRD	0x010000d0
+#define ARM_LDRDI	0x014000d0
 #define ARM_STRB	0x07400000
 #define ARM_STRBI	0x05400000
 #define ARM_STRH	0x010000b0
 #define ARM_STRHI	0x014000b0
 #define ARM_STR		0x07000000
 #define ARM_STRI	0x05000000
+#define ARM_STRD	0x010000f0
+#define ARM_STRDI	0x014000f0
 
 /* ldm/stm */
 #define ARM_M		0x08000000
@@ -403,6 +407,22 @@ arm_cc_orri8(jit_state_t _jit, int cc, int o,
     assert(!(o  & 0x000fff0f));
     assert(!(i0 & 0xffffff00));
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0&0xf0)<<4)|(i0&0x0f));
+}
+
+__jit_inline void
+arm_cc_xdr(jit_state_t _jit, int cc, int o,
+	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, jit_gpr_t r3)
+{
+    assert(r1 == r0 + 1);
+    arm_cc_orrr(_jit, cc, o, r0, r2, r3);
+}
+
+__jit_inline void
+arm_cc_xdi(jit_state_t _jit, int cc, int o,
+	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2, int i0)
+{
+    assert(r1 == r0 + 1);
+    arm_cc_orri(_jit, cc, o, r0, r2, i0);
 }
 
 __jit_inline void
@@ -639,6 +659,14 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _LDRI(r0,r1,i0)		_CC_LDRI(ARM_CC_AL,r0,r1,i0)
 #define _CC_LDRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_LDRI,r0,r1,i0)
 #define _LDRIN(r0,r1,i0)	_CC_LDRIN(ARM_CC_AL,r0,r1,i0)
+#define _CC_LDRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_LDRD|ARM_P,r0,r1,r2)
+#define _LDRD(r0,r1,r2)		_CC_LDRD(ARM_CC_AL,r0,r1,r2)
+#define _CC_LDRDN(cc,r0,r1,r2)  arm_cc_orrr(_jit,cc,ARM_LDRD,r0,r1,r2)
+#define _LDRDN(r0,r1,r2)	_CC_LDRDN(ARM_CC_AL,r0,r1,r2)
+#define _CC_LDRDI(cc,r0,r1,i0)  arm_cc_orri8(_jit,cc,ARM_LDRDI|ARM_P,r0,r1,i0)
+#define _LDRDI(r0,r1,i0)	_CC_LDRDI(ARM_CC_AL,r0,r1,i0)
+#define _CC_LDRDIN(cc,r0,r1,i0) arm_cc_orri8(_jit,cc,ARM_LDRDI,r0,r1,i0)
+#define _LDRDIN(r0,r1,i0)	_CC_LDRDIN(ARM_CC_AL,r0,r1,i0)
 #define _CC_STRB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB|ARM_P,r2,r1,r0)
 #define _STRB(r0,r1,r2)		_CC_STRB(ARM_CC_AL,r0,r1,r2)
 #define _CC_STRBN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB,r2,r1,r0)
@@ -663,6 +691,14 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, jit_gpr_t r0, int i0)
 #define _STRI(r0,r1,i0)		_CC_STRI(ARM_CC_AL,r0,r1,i0)
 #define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r1,r0,i0)
 #define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
+#define _CC_STRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRD|ARM_P,r2,r1,r0)
+#define _STRD(r0,r1,r2)		_CC_STRD(ARM_CC_AL,r0,r1,r2)
+#define _CC_STRDN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_STRD,r2,r1,r0)
+#define _STRDN(r0,r1,r2)	_CC_STRDN(ARM_CC_AL,r0,r1,r2)
+#define _CC_STRDI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI|ARM_P,r1,r0,i0)
+#define _STRDI(r0,r1,i0)	_CC_STRDI(ARM_CC_AL,r0,r1,i0)
+#define _CC_STRDIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI,r1,r0,i0)
+#define _STRDIN(r0,r1,i0)	_CC_STRDIN(ARM_CC_AL,r0,r1,i0)
 
 #define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
 #define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
@@ -1961,6 +1997,88 @@ arm_ret(jit_state_t jit)
 	 (1<<JIT_FP)|(1<<JIT_PC));
 }
 
+/*
+ * FIXME Just the basic logic for now; if not using a vfp, need to
+ * also assert the registers are consecutive for load/store.
+ * Probably should map float registers to stack offsets, and use
+ * _R8/_R9 when a "double" is required.
+ */
+#define jit_ldr_d(r0, r1)		arm_ldr_d(_jit, r0, r1)
+__jit_inline void
+arm_ldr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _LDRDI(r0, r1, 0);
+}
+
+#define jit_ldi_d(r0, i0)		arm_ldi_d(_jit, r0, i0)
+__jit_inline void
+arm_ldi_d(jit_state_t _jit, jit_gpr_t r0, void *i0)
+{
+    jit_movi_i(JIT_TMP, (int)i0);
+    _LDRDI(r0, JIT_TMP, 0);
+}
+
+#define jit_ldxr_d(r0, r1, r2)		arm_ldxr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_ldxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _LDRD(r0, r1, r2);
+}
+
+#define jit_ldxi_d(r0, r1, i0)		arm_ldxi_d(_jit, r0, r1, i0)
+__jit_inline void
+arm_ldxi_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
+{
+    jit_gpr_t		reg;
+    if (i0 >= 0 && i0 <= 255)
+	_LDRDI(r0, r1, i0);
+    else if (i0 < 0 && i0 >= -255)
+	_LDRDIN(r0, r1, -i0);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_LDRD(r0, r1, reg);
+    }
+}
+
+#define jit_str_d(r0, r1)		arm_str_d(_jit, r0, r1)
+__jit_inline void
+arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _STRDI(r0, r1, 0);
+}
+
+#define jit_sti_d(r0, i0)		arm_sti_d(_jit, r0, i0)
+__jit_inline void
+arm_sti_d(jit_state_t _jit, void *i0, jit_gpr_t r0)
+{
+    jit_movi_i(JIT_TMP, (int)i0);
+    _STRDI(JIT_TMP, r0, 0);
+}
+
+#define jit_stxr_d(r0, r1, r2)		arm_stxr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+{
+    _STRD(r0, r1, r2);
+}
+
+#define jit_stxi_d(r0, r1, i0)		arm_stxi_d(_jit, r0, r1, i0)
+__jit_inline void
+arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
+{
+    jit_gpr_t		reg;
+    if (i0 >= 0 && i0 <= 255)
+	_STRDI(r0, r1, i0);
+    else if (i0 < 0 && i0 >= -255)
+	_STRDIN(r0, r1, -i0);
+    else {
+	reg = r0 != r1 ? r0 : JIT_TMP;
+	jit_movi_i(reg, i0);
+	_STRD(r0, r1, reg);
+    }
+}
+
 /**********************************************************************/
 int
 main(int argc, char *argv[])
@@ -2204,7 +2322,16 @@ main(int argc, char *argv[])
     jit_stxr_i(_R2, _R1, _R0);		// str r0, [r1, r2]
     jit_stxi_i(2, _R1, _R0);		// str r0, [r1, #2]
     jit_stxi_i(-2, _R1, _R0);		// str r0, [r1, #-2]
-
+    jit_ldr_d(_R0, _R2);		// ldrd r0, [r2]
+    jit_ldi_d(_R0, (void*)0x80000000);	// mov <T>, #-2147483648; ldrd r0, [<T>]
+    jit_ldxr_d(_R0, _R2, _R3);		// ldrd r0, [r2, r3]
+    jit_ldxi_d(_R0, _R2, 3);		// ldrd r0, [r2, #3]
+    jit_ldxi_d(_R0, _R2, -3);		// ldrd r0, [r1, #-3]
+    jit_str_d(_R2, _R0);		// strd r0, [r2]
+    jit_sti_d((void*)0x80000000, _R0);	// mov <T>, #-2147483648; strd r0, [<T>]
+    jit_stxr_d(_R3, _R2, _R0);		// strd r0, [r2, r3]
+    jit_stxi_d(3, _R3, _R0);		// strd r0, [r2, #3]
+    jit_stxi_d(-3, _R3, _R0);		// strd r0, [r2, #-3]
     _LDMIA(_R0, 0xffff);	// ldm r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
     _LDMIA_U(_R1, 0x7ffe);	// ldm r1!, {r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr}
     _LDMIB(_R2, 0x3ffc);	// ldmib r2, {r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp}
@@ -2230,7 +2357,7 @@ main(int argc, char *argv[])
     jit_calli(printf);		// mov <T>, #<q3>, orrr r0, r8, #<q2> ...; blx <T>
 #endif
 
-#if 1
+#if 0
     /*
      * void f(int a, int b) { printf("%d + %d + %d = %d\n", a, b, a + b); }
      */
