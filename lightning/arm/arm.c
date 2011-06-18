@@ -2042,6 +2042,103 @@ jit_f_order[JIT_FPR_NUM] = {
  * FIXME should use another register for JIT_TMP (_r11?) and _R8/_R9
  * for softfp?
  */
+extern double	__adddf3(double, double);
+extern double	__aeabi_dsub(double, double);
+extern double	__aeabi_dmul(double, double);
+extern double	__aeabi_ddiv(double, double);
+extern float	__aeabi_d2f(double);
+extern double	__aeabi_f2d(float);
+
+static void
+arm_ddd(jit_state_t _jit, double (*i0)(double, double),
+	jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+{
+    int			addr;
+    assert(jit_cpu.softfp);
+    _PUSH(0xf);
+    _LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+    _LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+    addr = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
+    if ((addr & 0xff800000) == 0xff800000 || (addr & 0xff000000) == 0x00000000)
+	_BL(addr & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)i0);
+	_BLX(JIT_FTMP);
+    }
+    _STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+
+#if 0
+/* Better to only convert float to/from double on load/store from memory,
+ * and keep the shadow/virtual registers in double precision format */
+#define jit_extr_f_d(r0, r1)		arm_extr_f_d(_jit, r0, r1)
+static void
+arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			addr;
+    assert(jit_cpu.softfp);
+    _PUSH(0xf);
+    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    addr = (((int)f2d - (int)_jit->x.pc) >> 2) - 2;
+    if ((addr & 0xff800000) == 0xff800000 || (addr & 0xff000000) == 0x00000000)
+	_BL(addr & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)f2d);
+	_BLX(JIT_FTMP);
+    }
+    _STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+
+#define jit_extr_d_f(r0, r1)		arm_extr_d_f(_jit, r0, r1)
+static void
+arm_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			addr;
+    assert(jit_cpu.softfp);
+    _PUSH(0xf);
+    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    addr = (((int)d2f - (int)_jit->x.pc) >> 2) - 2;
+    if ((addr & 0xff800000) == 0xff800000 || (addr & 0xff000000) == 0x00000000)
+	_BL(addr & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)d2f);
+	_BLX(JIT_FTMP);
+    }
+    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+#endif
+
+#define jit_addr_d(r0, r1, r2)		arm_addr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_addr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+{
+    arm_ddd(_jit, __adddf3, r0, r1, r2);
+}
+
+#define jit_subr_d(r0, r1, r2)		arm_subr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_subr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+{
+    arm_ddd(_jit, __aeabi_dsub, r0, r1, r2);
+}
+
+#define jit_mulr_d(r0, r1, r2)		arm_mulr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_mulr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+{
+    arm_ddd(_jit, __aeabi_dmul, r0, r1, r2);
+}
+
+#define jit_divr_d(r0, r1, r2)		arm_divr_d(_jit, r0, r1, r2)
+__jit_inline void
+arm_divr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+{
+    arm_ddd(_jit, __aeabi_ddiv, r0, r1, r2);
+}
+
 #define jit_movi_f(r0, i0)		arm_movi_f(_jit, r0, i0)
 __jit_inline void
 arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
@@ -2711,38 +2808,14 @@ main(int argc, char *argv[])
     ((void (*)(int,int))buffer)(1, 2);
 #endif
 
-#if 0
-    /*
-     * void f(double a, double b) { int x = 1; printf("%d, %f, %f\n", x, a, b); }
-     */
-    {
-	int	a0, a1;
-	jit_prolog(0);		// push {r0,r1,r2,r3,r4,r5,r6,r7,r8,r9,fp,lr}; mov fp, sp; mov r8, r8, #8, orr, r8, r8, #0...; sub sp, sp, r8
-	jit_prolog_d(2);
-	a0 = jit_arg_d();
-	a1 = jit_arg_d();
-	jit_getarg_d(JIT_FPR0, a0);	// ldrd r8, [fp]; strd r8, [fp, #-8]
-	jit_getarg_d(JIT_FPR1, a1);	// ldrd r8, [fp, #8]; strd r8, [fp, #-16]
-	jit_movi_i(JIT_R1, 1);		// mov r1, 1
-	jit_movi_p(JIT_R0, "%d, %f, %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
-	jit_prepare(2);
-	jit_prepare_d(2);
-	{
-	    jit_pusharg_d(JIT_FPR1);	// ldrd r8, [fp, #-16]; strd r8, [sp]
-	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #8]
-	    jit_pusharg_i(JIT_R1);	// str r1, [fp #4]
-	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
-	}
-	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
-	jit_ret();			// add sp, fp, #16; pop {r4, r5, r6, r7, r8, r9, fp, pc}
-    }
-    jit_flush_code(buffer, jit_get_ip().ptr);
-    ((void (*)(double,double))buffer)(2.0, 3.0);
-#endif
-
 #if 1
     /*
-     * void f(double a, double b) { double c = 3.0; printf("%f, %f, %f\n", a, b, c); }
+     *	void f(double a, double b) {
+     *		printf("%f + %f = %f\n", a, b, a + b);
+     *		printf("%f - %f = %f\n", a, b, a - b);
+     *		printf("%f * %f = %f\n", a, b, a * b);
+     *		printf("%f / %f = %f\n", a, b, a / b);
+     *	}
      */
     {
 	int	a0, a1;
@@ -2752,8 +2825,8 @@ main(int argc, char *argv[])
 	a1 = jit_arg_d();
 	jit_getarg_d(JIT_FPR0, a0);	// ldrd r8, [fp]; strd r8, [fp, #-8]
 	jit_getarg_d(JIT_FPR1, a1);	// ldrd r8, [fp, #8]; strd r8, [fp, #-16]
-	jit_movi_d(JIT_FPR2, 3.0);	// mov r9, #0; str r9, [fp, #-24]; mov r9...; str r9, [fp #-20]
-	jit_movi_p(JIT_R0, "%f, %f, %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_addr_d(JIT_FPR2, JIT_FPR0, JIT_FPR1);	// push {r0, r1, r2, r3}; ldrd r0, [fp, #-8]; ldrd r0, [fp, #-16]; bl #<__adddf3>; strd r0, [fp, #-24]; pop {r0, r1, r2, r3}
+	jit_movi_p(JIT_R0, "%f + %f = %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(1);
 	jit_prepare_d(3);
 	{
@@ -2763,12 +2836,49 @@ main(int argc, char *argv[])
 	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
 	}
 	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+
+	jit_subr_d(JIT_FPR2, JIT_FPR0, JIT_FPR1);	// push {r0, r1, r2, r3}; ldrd r0, [fp, #-8]; ldrd r0, [fp, #-16]; bl #<__aeabi_dsub>; strd r0, [fp, #-24]; pop {r0, r1, r2, r3}
+	jit_movi_p(JIT_R0, "%f - %f = %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_prepare(1);
+	jit_prepare_d(3);
+	{
+	    jit_pusharg_d(JIT_FPR2);	// ldrd r8, [fp, #-24]; strd r8, [sp, #8]
+	    jit_pusharg_d(JIT_FPR1);	// ldrd r8, [fp, #-16]; strd r8, [sp]
+	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #8]
+	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
+	}
+	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+
+	jit_mulr_d(JIT_FPR2, JIT_FPR0, JIT_FPR1);	// push {r0, r1, r2, r3}; ldrd r0, [fp, #-8]; ldrd r0, [fp, #-16]; bl #<__aeabi_dmul>; strd r0, [fp, #-24]; pop {r0, r1, r2, r3}
+	jit_movi_p(JIT_R0, "%f * %f = %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_prepare(1);
+	jit_prepare_d(3);
+	{
+	    jit_pusharg_d(JIT_FPR2);	// ldrd r8, [fp, #-24]; strd r8, [sp, #8]
+	    jit_pusharg_d(JIT_FPR1);	// ldrd r8, [fp, #-16]; strd r8, [sp]
+	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #8]
+	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
+	}
+	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+
+	jit_divr_d(JIT_FPR2, JIT_FPR0, JIT_FPR1);	// push {r0, r1, r2, r3}; ldrd r0, [fp, #-8]; ldrd r0, [fp, #-16]; bl #<__aeabi_ddiv>; strd r0, [fp, #-24]; pop {r0, r1, r2, r3}
+	jit_movi_p(JIT_R0, "%f / %f = %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_prepare(1);
+	jit_prepare_d(3);
+	{
+	    jit_pusharg_d(JIT_FPR2);	// ldrd r8, [fp, #-24]; strd r8, [sp, #8]
+	    jit_pusharg_d(JIT_FPR1);	// ldrd r8, [fp, #-16]; strd r8, [sp]
+	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #8]
+	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
+	}
+	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8
+
 	jit_ret();			// add sp, fp, #16; pop {r4, r5, r6, r7, r8, r9, fp, pc}
     }
     jit_flush_code(buffer, jit_get_ip().ptr);
-    ((void (*)(double,double))buffer)(1.0, 2.0);
+    ((void (*)(double,double))buffer)(1.5, 2.5);
 #endif
-    disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
+    //disassemble(buffer, (long)jit_get_ip().ptr - (long)buffer);
 
     return (0);
 }
