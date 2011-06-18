@@ -1250,12 +1250,15 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
+    if (_jitl.alignhack == 1)
+	--_jitl.nextarg_put;
     if (--_jitl.nextarg_put < 4)
 	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, r0);
     else {
 	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
     }
+    _jitl.alignhack = 2;
 }
 
 #define jit_finishr(rs)			arm_finishr(_jit, rs)
@@ -1267,6 +1270,7 @@ arm_finishr(jit_state_t _jit, jit_gpr_t r0)
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
+    _jitl.alignhack = 0;
     jit_callr(r0);
 }
 
@@ -1279,6 +1283,7 @@ arm_finishi(jit_state_t _jit, void *i0)
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
+    _jitl.alignhack = 0;
     return (jit_calli(i0));
 }
 

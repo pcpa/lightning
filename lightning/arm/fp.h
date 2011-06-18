@@ -324,7 +324,10 @@ arm_arg_f(jit_state_t _jit)
 __jit_inline int
 arm_arg_d(jit_state_t _jit)
 {
-    int		ofs = _jitl.nextarg_get;
+    int		ofs;
+    if (_jitl.nextarg_get & 1)
+	++_jitl.nextarg_get;
+    ofs = _jitl.nextarg_get;
     if (ofs > 3) {
 	ofs = _jitl.framesize;
 	_jitl.framesize += sizeof(double);
@@ -348,14 +351,10 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
-    if (i0 < 3)
+    if (i0 < 4)
 	_LDRDI(JIT_TMP, JIT_FP, i0 << 2);
-    else if (i0 > 3)
+    else
 	_LDRDI(JIT_TMP, JIT_FP, i0);
-    else {
-	jit_ldxi_i(JIT_TMP, JIT_FP, i0 << 2);
-	jit_ldxi_i(JIT_FTMP, JIT_FP, JIT_FRAMESIZE);
-    }
     _STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
@@ -364,23 +363,35 @@ __jit_inline void
 arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     _LDF(r0, JIT_FTMP);
+    if (_jitl.alignhack == 1)
+	--_jitl.nextarg_put;
     if (--_jitl.nextarg_put < 4)
 	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, JIT_FTMP);
     else {
 	_jitl.stack_offset -= sizeof(float);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
     }
+    _jitl.alignhack = 2;
 }
 
 #define jit_pusharg_d(r0)		arm_pusharg_d(_jit, r0)
 __jit_inline void
 arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
-    if ((_jitl.nextarg_put -= 2) < 3) {
+    if (_jitl.nextarg_put & 1) {
+	if (_jitl.alignhack)
+	    assert(!"only one misalignment patched!\n");
+	/* ugly hack */
+	++_jitl.nextarg_put;
+	arm_prepare_adjust(_jit);
+	_jitl.alignhack = 1;
+    }
+    _jitl.nextarg_put -= 2;
+    if (_jitl.nextarg_put < 4) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRDI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
     }
-    else if (_jitl.nextarg_put > 3) {
+    else {
 	_jitl.stack_offset -= sizeof(double);
 	if (_jitl.stack_offset <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
@@ -388,18 +399,10 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 	}
 	else {
 	    _LDF(r0, JIT_FTMP);
-	    jit_stxi_i(12, JIT_FP, JIT_FTMP);
+	    jit_stxi_i(_jitl.stack_offset, JIT_FP, JIT_FTMP);
 	    _LDFH(r0, JIT_FTMP);
-	    jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
+	    jit_stxi_i(_jitl.stack_offset + 4, JIT_SP, JIT_FTMP);
 	}
-    }
-    else {
-	_jitl.stack_offset -= sizeof(float);
-	assert(_jitl.stack_offset == 0);
-	_LDF(r0, JIT_FTMP);
-	jit_stxi_i(12, JIT_SP, JIT_FTMP);
-	_LDFH(r0, JIT_FTMP);
-	jit_str_i(JIT_SP, JIT_FTMP);
     }
 }
 

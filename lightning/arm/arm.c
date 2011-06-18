@@ -143,7 +143,11 @@ typedef union jit_code {
 
 typedef unsigned char	jit_insn;
 typedef struct jit_local_state {
+    /* hack to only support one misalignment, so that it is not
+     * required to patch arguments being constructed from right
+     * to left */
     int		 reglist;
+    int		 alignhack;
     int		 framesize;
     int		 nextarg_get;
     int		 nextarg_put;
@@ -1964,12 +1968,15 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
+    if (_jitl.alignhack == 1)
+	--_jitl.nextarg_put;
     if (--_jitl.nextarg_put < 4)
 	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, r0);
     else {
 	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
     }
+    _jitl.alignhack = 2;
 }
 
 #define jit_finishr(rs)			arm_finishr(_jit, rs)
@@ -1981,6 +1988,7 @@ arm_finishr(jit_state_t _jit, jit_gpr_t r0)
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
+    _jitl.alignhack = 0;
     jit_callr(r0);
 }
 
@@ -1993,6 +2001,7 @@ arm_finishi(jit_state_t _jit, void *i0)
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
+    _jitl.alignhack = 0;
     return (jit_calli(i0));
 }
 
@@ -2309,7 +2318,10 @@ arm_arg_f(jit_state_t _jit)
 __jit_inline int
 arm_arg_d(jit_state_t _jit)
 {
-    int		ofs = _jitl.nextarg_get;
+    int		ofs;
+    if (_jitl.nextarg_get & 1)
+	++_jitl.nextarg_get;
+    ofs = _jitl.nextarg_get;
     if (ofs > 3) {
 	ofs = _jitl.framesize;
 	_jitl.framesize += sizeof(double);
@@ -2333,14 +2345,10 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
-    if (i0 < 3)
+    if (i0 < 4)
 	_LDRDI(JIT_TMP, JIT_FP, i0 << 2);
-    else if (i0 > 3)
+    else
 	_LDRDI(JIT_TMP, JIT_FP, i0);
-    else {
-	jit_ldxi_i(JIT_TMP, JIT_FP, i0 << 2);
-	jit_ldxi_i(JIT_FTMP, JIT_FP, JIT_FRAMESIZE);
-    }
     _STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
@@ -2349,23 +2357,35 @@ __jit_inline void
 arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     _LDF(r0, JIT_FTMP);
+    if (_jitl.alignhack == 1)
+	--_jitl.nextarg_put;
     if (--_jitl.nextarg_put < 4)
 	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, JIT_FTMP);
     else {
 	_jitl.stack_offset -= sizeof(float);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
     }
+    _jitl.alignhack = 2;
 }
 
 #define jit_pusharg_d(r0)		arm_pusharg_d(_jit, r0)
 __jit_inline void
 arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
-    if ((_jitl.nextarg_put -= 2) < 3) {
+    if (_jitl.nextarg_put & 1) {
+	if (_jitl.alignhack)
+	    assert(!"only one misalignment patched!\n");
+	/* ugly hack */
+	++_jitl.nextarg_put;
+	arm_prepare_adjust(_jit);
+	_jitl.alignhack = 1;
+    }
+    _jitl.nextarg_put -= 2;
+    if (_jitl.nextarg_put < 4) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRDI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
     }
-    else if (_jitl.nextarg_put > 3) {
+    else {
 	_jitl.stack_offset -= sizeof(double);
 	if (_jitl.stack_offset <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
@@ -2373,18 +2393,10 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 	}
 	else {
 	    _LDF(r0, JIT_FTMP);
-	    jit_stxi_i(12, JIT_FP, JIT_FTMP);
+	    jit_stxi_i(_jitl.stack_offset, JIT_FP, JIT_FTMP);
 	    _LDFH(r0, JIT_FTMP);
-	    jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
+	    jit_stxi_i(_jitl.stack_offset + 4, JIT_SP, JIT_FTMP);
 	}
-    }
-    else {
-	_jitl.stack_offset -= sizeof(float);
-	assert(_jitl.stack_offset == 0);
-	_LDF(r0, JIT_FTMP);
-	jit_stxi_i(12, JIT_SP, JIT_FTMP);
-	_LDFH(r0, JIT_FTMP);
-	jit_str_i(JIT_SP, JIT_FTMP);
     }
 }
 
@@ -2684,7 +2696,7 @@ main(int argc, char *argv[])
 	jit_getarg_i(JIT_V0, a0);	// ldr r4, [fp]
 	jit_getarg_i(JIT_V1, a1);	// ldr r5, [fp, #4]
 	jit_addr_i(JIT_R1, JIT_V0, JIT_V1);	// add r1, r4, r5
-	jit_movi_p(JIT_R0, "%d + %d = %d\n");	// mov r0, r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_movi_p(JIT_R0, "%d + %d = %d\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(4);
 	{
 	    jit_pusharg_i(JIT_R1);	// str r1, [fp, #12]
@@ -2699,7 +2711,7 @@ main(int argc, char *argv[])
     ((void (*)(int,int))buffer)(1, 2);
 #endif
 
-#if 1
+#if 0
     /*
      * void f(double a, double b) { int x = 1; printf("%d, %f, %f\n", x, a, b); }
      */
@@ -2712,7 +2724,7 @@ main(int argc, char *argv[])
 	jit_getarg_d(JIT_FPR0, a0);	// ldrd r8, [fp]; strd r8, [fp, #-8]
 	jit_getarg_d(JIT_FPR1, a1);	// ldrd r8, [fp, #8]; strd r8, [fp, #-16]
 	jit_movi_i(JIT_R1, 1);		// mov r1, 1
-	jit_movi_p(JIT_R0, "%d, %f, %f\n");	// mov r0, r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_movi_p(JIT_R0, "%d, %f, %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(2);
 	jit_prepare_d(2);
 	{
@@ -2728,7 +2740,7 @@ main(int argc, char *argv[])
     ((void (*)(double,double))buffer)(2.0, 3.0);
 #endif
 
-#if 0
+#if 1
     /*
      * void f(double a, double b) { double c = 3.0; printf("%f, %f, %f\n", a, b, c); }
      */
@@ -2741,14 +2753,13 @@ main(int argc, char *argv[])
 	jit_getarg_d(JIT_FPR0, a0);	// ldrd r8, [fp]; strd r8, [fp, #-8]
 	jit_getarg_d(JIT_FPR1, a1);	// ldrd r8, [fp, #8]; strd r8, [fp, #-16]
 	jit_movi_d(JIT_FPR2, 3.0);	// mov r9, #0; str r9, [fp, #-24]; mov r9...; str r9, [fp #-20]
-	jit_movi_p(JIT_R0, "%f, %f, %f\n");	// mov r0, r0, #<q0>, orr, r0, r0, #<q1>...
+	jit_movi_p(JIT_R0, "%f, %f, %f\n");	// mov r0, #<q0>, orr, r0, r0, #<q1>...
 	jit_prepare(1);
 	jit_prepare_d(3);
 	{
-	    jit_pusharg_d(JIT_FPR2);	// ldrd r8, [fp, #-24]; strd r8, [sp, #4]
-	    jit_pusharg_d(JIT_FPR1);	// ldr r9, [fp, #-16]; str r9, [sp, #12]; ldr r9, [fp, #-12]; str r9, [sp]
-
-	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #4]
+	    jit_pusharg_d(JIT_FPR2);	// ldrd r8, [fp, #-24]; strd r8, [sp, #8]
+	    jit_pusharg_d(JIT_FPR1);	// ldrd r8, [fp, #-16]; strd r8, [sp]
+	    jit_pusharg_d(JIT_FPR0);	// ldrd r8, [fp, #-8]; strd r8, [fp, #8]
 	    jit_pusharg_i(JIT_R0);	// str r0, [fp]
 	}
 	jit_finish(printf);		// ldm fp, {r0, r1, r2, r3}, mov r0, #<q3>; orr r8, r8, #<q2>...; blx r8

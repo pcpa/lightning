@@ -193,7 +193,11 @@ struct {
 } jit_cpu;
 #elif defined(__arm__)
 struct jit_local_state {
+    /* hack to only support one misalignment, so that it is not
+     * required to patch arguments being constructed from right
+     * to left */
     int		 reglist;
+    int		 alignhack;
     int		 framesize;
     int		 nextarg_get;
     int		 nextarg_put;
