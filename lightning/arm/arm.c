@@ -665,37 +665,37 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 #define _LDRDI(r0,r1,i0)	_CC_LDRDI(ARM_CC_AL,r0,r1,i0)
 #define _CC_LDRDIN(cc,r0,r1,i0) arm_cc_orri8(_jit,cc,ARM_LDRDI,r0,r1,i0)
 #define _LDRDIN(r0,r1,i0)	_CC_LDRDIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB|ARM_P,r2,r1,r0)
+#define _CC_STRB(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB|ARM_P,r0,r1,r2)
 #define _STRB(r0,r1,r2)		_CC_STRB(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRBN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB,r2,r1,r0)
+#define _CC_STRBN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRB,r0,r1,r2)
 #define _STRBN(r0,r1,r2)	_CC_STRBN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRBI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRBI|ARM_P,r1,r0,i0)
+#define _CC_STRBI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRBI|ARM_P,r0,r1,i0)
 #define _STRBI(r0,r1,i0)	_CC_STRBI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRBIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRBI,r1,r0,i0)
+#define _CC_STRBIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRBI,r0,r1,i0)
 #define _STRBIN(r0,r1,i0)	_CC_STRBIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRH(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRH|ARM_P,r2,r1,r0)
+#define _CC_STRH(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRH|ARM_P,r0,r1,r2)
 #define _STRH(r0,r1,r2)		_CC_STRH(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRHN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRH,r2,r1,r0)
+#define _CC_STRHN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRH,r0,r1,r2)
 #define _STRHN(r0,r1,r2)	_CC_STRHN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRHI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRHI|ARM_P,r1,r0,i0)
+#define _CC_STRHI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRHI|ARM_P,r0,r1,i0)
 #define _STRHI(r0,r1,i0)	_CC_STRHI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRHIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRHI,r1,r0,i0)
+#define _CC_STRHIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRHI,r0,r1,i0)
 #define _STRHIN(r0,r1,i0)	_CC_STRHIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STR(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STR|ARM_P,r2,r1,r0)
+#define _CC_STR(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STR|ARM_P,r0,r1,r2)
 #define _STR(r0,r1,r2)		_CC_STR(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STR,r2,r1,r0)
+#define _CC_STRN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STR,r0,r1,r2)
 #define _STRN(r0,r1,r2)		_CC_STRN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI|ARM_P,r1,r0,i0)
+#define _CC_STRI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI|ARM_P,r0,r1,i0)
 #define _STRI(r0,r1,i0)		_CC_STRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r1,r0,i0)
+#define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_STRI,r0,r1,i0)
 #define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRD|ARM_P,r2,r1,r0)
+#define _CC_STRD(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRD|ARM_P,r0,r1,r2)
 #define _STRD(r0,r1,r2)		_CC_STRD(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRDN(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_STRD,r2,r1,r0)
+#define _CC_STRDN(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_STRD,r0,r1,r2)
 #define _STRDN(r0,r1,r2)	_CC_STRDN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRDI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI|ARM_P,r1,r0,i0)
+#define _CC_STRDI(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI|ARM_P,r0,r1,i0)
 #define _STRDI(r0,r1,i0)	_CC_STRDI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRDIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI,r1,r0,i0)
+#define _CC_STRDIN(cc,r0,r1,i0)	arm_cc_orri8(_jit,cc,ARM_STRDI,r0,r1,i0)
 #define _STRDIN(r0,r1,i0)	_CC_STRDIN(ARM_CC_AL,r0,r1,i0)
 
 #define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(_jit,cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
@@ -1744,7 +1744,7 @@ arm_ldxi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_str_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRBI(r0, r1, 0);
+    _STRBI(r1, r0, 0);
 }
 
 #define jit_sti_c(r0, i0)		arm_sti_c(_jit, r0, i0)
@@ -1752,14 +1752,14 @@ __jit_inline void
 arm_sti_c(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRBI(JIT_TMP, r0, 0);
+    _STRBI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_c(r0, r1, r2)		arm_stxr_c(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STRB(r0, r1, r2);
+    _STRB(r2, r1, r0);
 }
 
 #define jit_stxi_c(r0, r1, i0)		arm_stxi_c(_jit, r0, r1, i0)
@@ -1768,13 +1768,13 @@ arm_stxi_c(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 4095)
-	_STRBI(r0, r1, i0);
+	_STRBI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -4095)
-	_STRBIN(r0, r1, -i0);
+	_STRBIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRB(r0, r1, reg);
+	_STRB(r1, r0, reg);
     }
 }
 
@@ -1782,7 +1782,7 @@ arm_stxi_c(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_str_s(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRHI(r0, r1, 0);
+    _STRHI(r1, r0, 0);
 }
 
 #define jit_sti_s(r0, i0)		arm_sti_s(_jit, r0, i0)
@@ -1790,14 +1790,14 @@ __jit_inline void
 arm_sti_s(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRHI(JIT_TMP, r0, 0);
+    _STRHI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_s(r0, r1, r2)		arm_stxr_s(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_s(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STRH(r0, r1, r2);
+    _STRH(r2, r1, r0);
 }
 
 #define jit_stxi_s(r0, r1, i0)		arm_stxi_s(_jit, r0, r1, i0)
@@ -1806,13 +1806,13 @@ arm_stxi_s(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 255)
-	_STRHI(r0, r1, i0);
+	_STRHI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -255)
-	_STRHIN(r0, r1, -i0);
+	_STRHIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRH(r0, r1, reg);
+	_STRH(r1, r0, reg);
     }
 }
 
@@ -1820,7 +1820,7 @@ arm_stxi_s(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_str_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRI(r0, r1, 0);
+    _STRI(r1, r0, 0);
 }
 
 #define jit_sti_i(r0, i0)		arm_sti_i(_jit, r0, i0)
@@ -1828,14 +1828,14 @@ __jit_inline void
 arm_sti_i(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRI(JIT_TMP, r0, 0);
+    _STRI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_i(r0, r1, r2)		arm_stxr_i(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STR(r0, r1, r2);
+    _STR(r2, r1, r0);
 }
 
 #define jit_stxi_i(r0, r1, i0)		arm_stxi_i(_jit, r0, r1, i0)
@@ -1844,13 +1844,13 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 4095)
-	_STRI(r0, r1, i0);
+	_STRI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -4095)
-	_STRIN(r0, r1, -i0);
+	_STRIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STR(r0, r1, reg);
+	_STR(r1, r0, reg);
     }
 }
 
@@ -2187,7 +2187,7 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
     assert(jit_cpu.softfp);
     jit_ldxi_i(JIT_FTMP, r1, i0);
     _STF(r0, JIT_FTMP);
-    jit_ldxr_i(JIT_FTMP, r1, i0 + 4);
+    jit_ldxi_i(JIT_FTMP, r1, i0 + 4);
     _STFH(r0, JIT_FTMP);
 #if 0
     jit_fpr_t		reg;
@@ -2214,7 +2214,7 @@ arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     _LDFH(r1, JIT_FTMP);
     jit_stxi_i(4, r0, JIT_FTMP);
 #if 0
-    _STRDI(r0, r1, 0);
+    _STRDI(r1, r0, 0);
 #endif
 }
 
@@ -2227,10 +2227,10 @@ arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
     jit_movi_i(JIT_TMP, (int)i0);
     jit_str_i(JIT_TMP, JIT_FTMP);
     _LDFH(r0, JIT_FTMP);
-    jit_stxr_i(4, JIT_TMP, JIT_FTMP);
+    jit_stxi_i(4, JIT_TMP, JIT_FTMP);
 #if 0
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRDI(JIT_TMP, r0, 0);
+    _STRDI(r0, JIT_TMP, 0);
 #endif
 }
 
@@ -2242,10 +2242,10 @@ arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
     _LDF(r2, JIT_FTMP);
     jit_stxr_i(r0, r1, JIT_FTMP);
     _LDFH(r2, JIT_FTMP);
-    jit_addi_i(JIT_TMP, r1, 4);
-    jit_stxr_i(r0, JIT_TMP, JIT_FTMP);
+    jit_addi_i(JIT_TMP, r0, 4);
+    jit_stxr_i(JIT_TMP, r1, JIT_FTMP);
 #if 0
-    _STRD(r0, r1, r2);
+    _STRD(r2, r1, r0);
 #endif
 }
 
@@ -2261,13 +2261,13 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 #if 0
     jit_fpr_t		reg;
     if (i0 >= 0 && i0 <= 255)
-	_STRDI(r0, r1, i0);
+	_STRDI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -255)
-	_STRDIN(r0, r1, -i0);
+	_STRDIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRD(r0, r1, reg);
+	_STRD(r1, r0, reg);
     }
 #endif
 }
@@ -2341,7 +2341,7 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	jit_ldxi_i(JIT_TMP, JIT_FP, i0 << 2);
 	jit_ldxi_i(JIT_FTMP, JIT_FP, JIT_FRAMESIZE);
     }
-    _STRDIN(JIT_FP, JIT_TMP, (r0 << 3) + 8);
+    _STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
 #define jit_pusharg_f(r0)		arm_pusharg_f(_jit, r0)
@@ -2363,13 +2363,13 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     if ((_jitl.nextarg_put -= 2) < 3) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRDI(JIT_FP, JIT_TMP, _jitl.nextarg_put << 2);
+	_STRDI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
     }
     else if (_jitl.nextarg_put > 3) {
 	_jitl.stack_offset -= sizeof(double);
 	if (_jitl.stack_offset <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _STRDI(JIT_SP, JIT_TMP, _jitl.stack_offset);
+	    _STRDI(JIT_TMP, JIT_SP, _jitl.stack_offset);
 	}
 	else {
 	    _LDF(r0, JIT_FTMP);
@@ -2631,16 +2631,24 @@ main(int argc, char *argv[])
     jit_stxr_i(_R2, _R1, _R0);		// str r0, [r1, r2]
     jit_stxi_i(2, _R1, _R0);		// str r0, [r1, #2]
     jit_stxi_i(-2, _R1, _R0);		// str r0, [r1, #-2]
-    jit_ldr_d(_R0, _R2);		// ldrd r0, [r2]
-    jit_ldi_d(_R0, (void*)0x80000000);	// mov <T>, #-2147483648; ldrd r0, [<T>]
-    jit_ldxr_d(_R0, _R2, _R3);		// ldrd r0, [r2, r3]
-    jit_ldxi_d(_R0, _R2, 3);		// ldrd r0, [r2, #3]
-    jit_ldxi_d(_R0, _R2, -3);		// ldrd r0, [r1, #-3]
-    jit_str_d(_R2, _R0);		// strd r0, [r2]
-    jit_sti_d((void*)0x80000000, _R0);	// mov <T>, #-2147483648; strd r0, [<T>]
-    jit_stxr_d(_R3, _R2, _R0);		// strd r0, [r2, r3]
-    jit_stxi_d(3, _R3, _R0);		// strd r0, [r2, #3]
-    jit_stxi_d(-3, _R3, _R0);		// strd r0, [r2, #-3]
+    jit_ldr_d(_F0, _R2);		// ldrd r9, [r2]; str r9, [fp, #-8]; ldrd r9, [r2, #4]; str r9, [fp, #-4]
+    jit_ldi_d(_F0, (void*)0x80000000);	// mov <T>, #-2147483648; ldrd r9, [r8]; str r9, [fp, #-8]; ldrd r9, [r8, #4]; str r9, [fp, #-4]
+    jit_ldxr_d(_F0, _R2, _R3);		// ldr r9, [r2, r3]; str r9, [fp, #-8]; add r8, r3, #4; ldrd r9, [r2, r8]; str r9, [fp, #-4]
+    jit_ldxi_d(_F0, _R2, 3);		// ldr r9, [r2, #3]; str r9, [fp, #-8]; ldrd r9, [r2, #7]; str r9, [fp, #-4]
+    jit_ldxi_d(_F0, _R2, -3);		// ldr r9, [r2, #-3]; str r9, [fp, #-8]; ldrd r9, [r2, #1]; str r9, [fp, #-4]
+    jit_str_d(_R2, _F0);		// ldr r9, [fp, #-8]; str r9, [r2]; ldr r9, [fp, #-4]; str r9, [r2, #4]
+    jit_sti_d((void*)0x80000000, _R0);	// ldr r9, [fp, #-8]; mov <T>, #-2147483648; strd r0, [<T>]; str r9, [f8]; ldr r9, [fp, #-4]; str r9, [r8, #4]
+    jit_stxr_d(_R3, _R2, _F0);		// ldr r9, [fp, #-8]; str r9, [r2, r3]; ldr r9, [fp, #-4]; add r8, r3, #4; str r9, [r2, r8]
+    jit_stxi_d(3, _R2, _F0);		// ldr r9, [fp, #-8]; str r9, [r2, #3]; ldr r9, [fp, #-4]; str r9, [r2, #7]
+    jit_stxi_d(-3, _R2, _F0);		// ldr r9, [fp, #-8]; str r9, [r2, #-3]; ldr r9, [fp, #-4]; str r9, [r2, #1]
+    _LDRD(_F0, _R2, _R3);		// ldrd r0, [r2, r3]
+    _LDRDN(_F0, _R2, _R3);		// ldrd r0, [r2, -r3]
+    _LDRDI(_F0, _R2, 3);		// ldrd r0, [r2, #3]
+    _LDRDIN(_F0, _R2, 3);		// ldrd r0, [r2, #-3]
+    _STRD(_F0, _R2, _R3);		// strd r0, [r2, r3]
+    _STRDN(_F0, _R2, _R3);		// strd r0, [r2, -r3]
+    _STRDI(_F0, _R2, 3);		// strd r0, [r2, #3]
+    _STRDIN(_F0, _R2, 3);		// strd r0, [r2, #-3]
     _LDMIA(_R0, 0xffff);	// ldm r0, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
     _LDMIA_U(_R1, 0x7ffe);	// ldm r1!, {r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr}
     _LDMIB(_R2, 0x3ffc);	// ldmib r2, {r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp}
@@ -2657,10 +2665,8 @@ main(int argc, char *argv[])
     _STMDA_U(_R13, 0x7e7e);	// stmda sp!, {r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr}
     _STMDB(_R14, 0xfe7f);	// stmdb lr, {r0, r1, r2, r3, r4, r5, r6, r9, sl, fp, ip, sp, lr, pc}
     _STMDB_U(JIT_FP, 0xffff);	// stmdb fp!, {r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, sl, fp, ip, sp, lr, pc}
-
     _PUSH(0xf);			// push {r0, r1, r2, r3}
     _POP(0xf);			// pop {r0, r1, r2, r3}
-
     jit_movi_p(JIT_R0, main);	// mov r0, #<q3>, orrr r0, r0, #<q2> ...
     jit_callr(JIT_R0);		// blx r0
     jit_calli(printf);		// mov <T>, #<q3>, orrr r0, r8, #<q2> ...; blx <T>

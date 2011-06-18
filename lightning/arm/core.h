@@ -1030,7 +1030,7 @@ arm_ldxi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_str_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRBI(r0, r1, 0);
+    _STRBI(r1, r0, 0);
 }
 
 #define jit_sti_c(r0, i0)		arm_sti_c(_jit, r0, i0)
@@ -1038,14 +1038,14 @@ __jit_inline void
 arm_sti_c(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRBI(JIT_TMP, r0, 0);
+    _STRBI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_c(r0, r1, r2)		arm_stxr_c(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STRB(r0, r1, r2);
+    _STRB(r2, r1, r0);
 }
 
 #define jit_stxi_c(r0, r1, i0)		arm_stxi_c(_jit, r0, r1, i0)
@@ -1054,13 +1054,13 @@ arm_stxi_c(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 4095)
-	_STRBI(r0, r1, i0);
+	_STRBI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -4095)
-	_STRBIN(r0, r1, -i0);
+	_STRBIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRB(r0, r1, reg);
+	_STRB(r1, r0, reg);
     }
 }
 
@@ -1068,7 +1068,7 @@ arm_stxi_c(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_str_s(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRHI(r0, r1, 0);
+    _STRHI(r1, r0, 0);
 }
 
 #define jit_sti_s(r0, i0)		arm_sti_s(_jit, r0, i0)
@@ -1076,14 +1076,14 @@ __jit_inline void
 arm_sti_s(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRHI(JIT_TMP, r0, 0);
+    _STRHI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_s(r0, r1, r2)		arm_stxr_s(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_s(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STRH(r0, r1, r2);
+    _STRH(r2, r1, r0);
 }
 
 #define jit_stxi_s(r0, r1, i0)		arm_stxi_s(_jit, r0, r1, i0)
@@ -1092,13 +1092,13 @@ arm_stxi_s(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 255)
-	_STRHI(r0, r1, i0);
+	_STRHI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -255)
-	_STRHIN(r0, r1, -i0);
+	_STRHIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRH(r0, r1, reg);
+	_STRH(r1, r0, reg);
     }
 }
 
@@ -1106,7 +1106,7 @@ arm_stxi_s(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_str_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _STRI(r0, r1, 0);
+    _STRI(r1, r0, 0);
 }
 
 #define jit_sti_i(r0, i0)		arm_sti_i(_jit, r0, i0)
@@ -1114,14 +1114,14 @@ __jit_inline void
 arm_sti_i(jit_state_t _jit, void *i0, jit_gpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRI(JIT_TMP, r0, 0);
+    _STRI(r0, JIT_TMP, 0);
 }
 
 #define jit_stxr_i(r0, r1, r2)		arm_stxr_i(_jit, r0, r1, r2)
 __jit_inline void
 arm_stxr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _STR(r0, r1, r2);
+    _STR(r2, r1, r0);
 }
 
 #define jit_stxi_i(r0, r1, i0)		arm_stxi_i(_jit, r0, r1, i0)
@@ -1130,13 +1130,13 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_gpr_t		reg;
     if (i0 >= 0 && i0 <= 4095)
-	_STRI(r0, r1, i0);
+	_STRI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -4095)
-	_STRIN(r0, r1, -i0);
+	_STRIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STR(r0, r1, reg);
+	_STR(r1, r0, reg);
     }
 }
 

@@ -202,7 +202,7 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
     assert(jit_cpu.softfp);
     jit_ldxi_i(JIT_FTMP, r1, i0);
     _STF(r0, JIT_FTMP);
-    jit_ldxr_i(JIT_FTMP, r1, i0 + 4);
+    jit_ldxi_i(JIT_FTMP, r1, i0 + 4);
     _STFH(r0, JIT_FTMP);
 #if 0
     jit_fpr_t		reg;
@@ -229,7 +229,7 @@ arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     _LDFH(r1, JIT_FTMP);
     jit_stxi_i(4, r0, JIT_FTMP);
 #if 0
-    _STRDI(r0, r1, 0);
+    _STRDI(r1, r0, 0);
 #endif
 }
 
@@ -242,10 +242,10 @@ arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
     jit_movi_i(JIT_TMP, (int)i0);
     jit_str_i(JIT_TMP, JIT_FTMP);
     _LDFH(r0, JIT_FTMP);
-    jit_stxr_i(4, JIT_TMP, JIT_FTMP);
+    jit_stxi_i(4, JIT_TMP, JIT_FTMP);
 #if 0
     jit_movi_i(JIT_TMP, (int)i0);
-    _STRDI(JIT_TMP, r0, 0);
+    _STRDI(r0, JIT_TMP, 0);
 #endif
 }
 
@@ -257,10 +257,10 @@ arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
     _LDF(r2, JIT_FTMP);
     jit_stxr_i(r0, r1, JIT_FTMP);
     _LDFH(r2, JIT_FTMP);
-    jit_addi_i(JIT_TMP, r1, 4);
-    jit_stxr_i(r0, JIT_TMP, JIT_FTMP);
+    jit_addi_i(JIT_TMP, r0, 4);
+    jit_stxr_i(JIT_TMP, r1, JIT_FTMP);
 #if 0
-    _STRD(r0, r1, r2);
+    _STRD(r2, r1, r0);
 #endif
 }
 
@@ -276,13 +276,13 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 #if 0
     jit_fpr_t		reg;
     if (i0 >= 0 && i0 <= 255)
-	_STRDI(r0, r1, i0);
+	_STRDI(r1, r0, i0);
     else if (i0 < 0 && i0 >= -255)
-	_STRDIN(r0, r1, -i0);
+	_STRDIN(r1, r0, -i0);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_STRD(r0, r1, reg);
+	_STRD(r1, r0, reg);
     }
 #endif
 }
@@ -356,7 +356,7 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	jit_ldxi_i(JIT_TMP, JIT_FP, i0 << 2);
 	jit_ldxi_i(JIT_FTMP, JIT_FP, JIT_FRAMESIZE);
     }
-    _STRDIN(JIT_FP, JIT_TMP, (r0 << 3) + 8);
+    _STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
 #define jit_pusharg_f(r0)		arm_pusharg_f(_jit, r0)
@@ -378,13 +378,13 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     if ((_jitl.nextarg_put -= 2) < 3) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRDI(JIT_FP, JIT_TMP, _jitl.nextarg_put << 2);
+	_STRDI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
     }
     else if (_jitl.nextarg_put > 3) {
 	_jitl.stack_offset -= sizeof(double);
 	if (_jitl.stack_offset <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _STRDI(JIT_SP, JIT_TMP, _jitl.stack_offset);
+	    _STRDI(JIT_TMP, JIT_SP, _jitl.stack_offset);
 	}
 	else {
 	    _LDF(r0, JIT_FTMP);
