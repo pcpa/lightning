@@ -37,6 +37,7 @@
 #  include <string.h>
 #endif
 
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/mman.h>
 

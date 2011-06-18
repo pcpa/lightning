@@ -3752,7 +3752,7 @@ fi
 
 
 
-BACKENDS="i386 i386:-32 i386:-64 sparc ppc"
+BACKENDS="i386 i386:-32 i386:-64 sparc ppc mips arm"
 
 
 case "$target_cpu" in
@@ -3762,6 +3762,7 @@ case "$target_cpu" in
   powerpc) LIGHTNING_TARGET=LIGHTNING_PPC	;;
   mips64*) LIGHTNING_TARGET=LIGHTNING_MIPS64	;;
   mips*)   LIGHTNING_TARGET=LIGHTNING_MIPS	;;
+  arm*)    LIGHTNING_TARGET=LIGHTNING_ARM	;;
   *)					        ;;
 esac
 
@@ -3777,6 +3778,7 @@ case "$target_cpu" in
   sparc*)  cpu=sparc	;;
   powerpc) cpu=ppc      ;;
   mips*)   cpu=mips	;;
+  arm*)    cpu=arm	;;
   *)		        ;;
 esac
 if test -n "$cpu" && test -d "$srcdir/lightning/$cpu"; then

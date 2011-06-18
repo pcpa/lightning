@@ -1,7 +1,7 @@
 dnl I'd like this to be edited in -*- Autoconf -*- mode...
 dnl
 # serial 2 LIGHTNING_CONFIGURE_IF_NOT_FOUND
-m4_define([LIGHTNING_BACKENDS], [i386 i386:-32 i386:-64 sparc ppc])
+m4_define([LIGHTNING_BACKENDS], [i386 i386:-32 i386:-64 sparc ppc mips arm])
 
 AC_DEFUN([LIGHTNING_CONFIGURE_LINKS_PREREQ], [
 lightning_frag=/dev/null
@@ -17,6 +17,7 @@ case "$target_cpu" in
   sparc*)  cpu=sparc	;;
   powerpc) cpu=ppc      ;;
   mips*)   cpu=mips	;;
+  arm*)    cpu=arm	;;
   *)		        ;;
 esac
 if test -n "$cpu" && test -d "$srcdir/lightning/$cpu"; then

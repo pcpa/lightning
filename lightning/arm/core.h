@@ -1214,7 +1214,7 @@ arm_calli(jit_state_t _jit, void *i0)
     return (l);
 }
 
-#define jit_prepare(i0)			arm_prepare_i(_jit, i0)
+#define jit_prepare_i(i0)		arm_prepare_i(_jit, i0)
 __jit_inline void
 arm_prepare_i(jit_state_t _jit, int i0)
 {
@@ -1223,7 +1223,15 @@ arm_prepare_i(jit_state_t _jit, int i0)
     arm_prepare_adjust(_jit);
 }
 
+#define jit_arg_c()			arm_arg_i(_jit)
+#define jit_arg_uc()			arm_arg_i(_jit)
+#define jit_arg_s()			arm_arg_i(_jit)
+#define jit_arg_us()			arm_arg_i(_jit)
 #define jit_arg_i()			arm_arg_i(_jit)
+#define jit_arg_ui()			arm_arg_i(_jit)
+#define jit_arg_l()			arm_arg_i(_jit)
+#define jit_arg_ul()			arm_arg_i(_jit)
+#define jit_arg_p()			arm_arg_i(_jit)
 __jit_inline int
 arm_arg_i(jit_state_t _jit)
 {
@@ -1235,7 +1243,15 @@ arm_arg_i(jit_state_t _jit)
     return (ofs);
 }
 
+#define jit_getarg_c(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_uc(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_s(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_us(r0, i0)		arm_getarg_i(_jit, r0, i0)
 #define jit_getarg_i(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_ui(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_l(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_ul(r0, i0)		arm_getarg_i(_jit, r0, i0)
+#define jit_getarg_p(r0, i0)		arm_getarg_i(_jit, r0, i0)
 __jit_inline void
 arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 {

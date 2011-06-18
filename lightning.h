@@ -108,7 +108,7 @@ struct {
      * logic not dependent on patched value in jit_prolog */
     _ui		push_pop	: 1;
 } jit_flags;
-#elif !defined(__mips__)
+#elif !defined(__mips__) && !defined(__arm__)
 #  define	jit_gpr_t	int
 #  define	jit_fpr_t	int
 #endif
@@ -212,7 +212,6 @@ struct {
     _ui		thumb		: 2;
     _ui		softfp		: 1;
 } jit_cpu;
-#endif
 #else
 #  error GNU lightning does not support the current target
 #endif
