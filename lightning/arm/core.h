@@ -46,6 +46,8 @@ jit_v_order[JIT_V_NUM] = {
 };
 #define JIT_V(i)			jit_v_order[i]
 
+#define JIT_FRAMESIZE			48
+
 #define jit_nop(n)			arm_nop(_jit, n)
 __jit_inline void
 arm_nop(jit_state_t _jit, int n)
@@ -1145,9 +1147,25 @@ arm_allocai(jit_state_t _jit, int i0)
     assert(i0 >= 0);
     _jitl.alloca_offset += i0;
     jit_patch_movi(_jitl.stack, (void *)
-		   ((_jitl.alloca_offset +
-		     _jitl.stack_length + 7) & -8));
+		   ((_jitl.alloca_offset + _jitl.stack_length + 7) & -8));
     return (-_jitl.alloca_offset);
+}
+
+static void
+arm_prepare_adjust(jit_state_t _jit)
+{
+    if (_jitl.nextarg_put > 4) {
+	_jitl.reglist = 0xf;
+	_jitl.stack_offset = (_jitl.nextarg_put - 4) << 2;
+	if (_jitl.stack_length < _jitl.stack_offset) {
+	    _jitl.stack_length = _jitl.stack_offset;
+	    jit_patch_movi(_jitl.stack, (void *)
+			   ((_jitl.alloca_offset +
+			     _jitl.stack_length + 7) & -8));
+	}
+    }
+    else
+	_jitl.reglist = (1 << _jitl.nextarg_put) - 1;
 }
 
 #define jit_prolog(n)			arm_prolog(_jit, n)
@@ -1165,14 +1183,14 @@ arm_prolog(jit_state_t _jit, int i0)
     _MOV(JIT_FP, JIT_SP);
 
     _jitl.nextarg_get = 0;
-    _jitl.framesize = 48;
+    _jitl.framesize = JIT_FRAMESIZE;
 
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
 
-    assert(_jitl.softfp);
+    assert(jit_cpu.softfp);
 
-    if (_jitl.softfp)
+    if (jit_cpu.softfp)
 	/* 6 soft double registers */
 	_jitl.alloca_offset = _jitl.stack_length = 48;
     else
@@ -1196,20 +1214,13 @@ arm_calli(jit_state_t _jit, void *i0)
     return (l);
 }
 
-#define jit_prepare(i0)		arm_prepare_i(_jit, i0)
+#define jit_prepare(i0)			arm_prepare_i(_jit, i0)
 __jit_inline void
 arm_prepare_i(jit_state_t _jit, int i0)
 {
     assert(i0 >= 0 && !_jitl.stack_offset && !_jitl.nextarg_put);
-    if (i0 > 4) {
-	_jitl.stack_offset = i0 << 2;
-	if (_jitl.stack_length < _jitl.stack_offset) {
-	    _jitl.stack_length = _jitl.stack_offset;
-	    jit_patch_movi(_jitl.stack, (void *)
-			   ((_jitl.alloca_offset +
-			     _jitl.stack_length + 7) & -8));
-	}
-    }
+    _jitl.nextarg_put = i0;
+    arm_prepare_adjust(_jit);
 }
 
 #define jit_arg_i()			arm_arg_i(_jit)
@@ -1239,26 +1250,22 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    if (_jitl.nextarg_put < 4)
-	jit_stxi_i(16 - (_jitl.nextarg_put << 2) + 8, JIT_FP, r0);
+    if (--_jitl.nextarg_put < 4)
+	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, r0);
     else {
 	_jitl.stack_offset -= sizeof(int);
 	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
     }
-    _jitl.nextarg_put++;
 }
 
 #define jit_finishr(rs)			arm_finishr(_jit, rs)
 __jit_inline void
 arm_finishr(jit_state_t _jit, jit_gpr_t r0)
 {
-    int		list;
-    assert(_jitl.stack_offset == 0);
-    if (_jitl.nextarg_put) {
-	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 12);
-	_LDMIA(JIT_TMP, list);
-	_jitl.nextarg_put = 0;
+    assert(!_jitl.stack_offset && !_jitl.nextarg_put);
+    if (_jitl.reglist) {
+	_LDMIA(JIT_FP, _jitl.reglist);
+	_jitl.reglist = 0;
     }
     jit_callr(r0);
 }
@@ -1267,13 +1274,10 @@ arm_finishr(jit_state_t _jit, jit_gpr_t r0)
 __jit_inline jit_insn *
 arm_finishi(jit_state_t _jit, void *i0)
 {
-    int		list;
-    assert(_jitl.stack_offset == 0);
-    if (_jitl.nextarg_put) {
-	list = (1 << _jitl.nextarg_put) - 1;
-	_ADDI(JIT_TMP, JIT_FP, 12);
-	_LDMIA(JIT_TMP, list);
-	_jitl.nextarg_put = 0;
+    assert(!_jitl.stack_offset && !_jitl.nextarg_put);
+    if (_jitl.reglist) {
+	_LDMIA(JIT_FP, _jitl.reglist);
+	_jitl.reglist = 0;
     }
     return (jit_calli(i0));
 }

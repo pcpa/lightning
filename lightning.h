@@ -193,6 +193,7 @@ struct {
 } jit_cpu;
 #elif defined(__arm__)
 struct jit_local_state {
+    int		 reglist;
     int		 framesize;
     int		 nextarg_get;
     int		 nextarg_put;
