@@ -146,19 +146,16 @@ main(int argc, char *argv[])
 	    else if (scond[0] == '!') {
 		if (scond[1] == '=') {
 		    if (scond[2] == '\0')	cond = NE;
+		    else if (scond[2] == '=') {
+			if (scond[3] == '\0')	cond = UNEQ;
+			else			break;
+		    }
 		    else			break;
 		}
 		else if (scond[1] == '<') {
 		    if (scond[2] == '\0')	cond = UNLT;
 		    else if (scond[2] == '=') {
 			if (scond[3] == '\0')	cond = UNLE;
-			else			break;
-		    }
-		    else			break;
-		}
-		else if (scond[1] == '=') {
-		    if (scond[2] == '=') {
-			if (scond[3] == '\0')	cond = UNEQ;
 			else			break;
 		    }
 		    else			break;

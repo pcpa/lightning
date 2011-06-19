@@ -42,7 +42,7 @@ typedef enum {
     _R6,	/* variable */
     _R7,	/* variable */
     _R8,	/* variable */
-    _R9,	/* variable (real frame pointer) */
+    _R9,	/* variable */
     _R10,	/* sl - stack limit */
     _R11,	/* fp - frame pointer */
     _R12,	/* ip - temporary */
