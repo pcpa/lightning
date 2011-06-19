@@ -108,7 +108,7 @@ main(int argc, char *argv[])
 
     for (;;) {
 	printf("enter expr: ");	fflush(stdout);
-	if (scanf("%f %s %f", &a, scond, &b) == 3) {
+	if (scanf("%lf %s %lf", &a, scond, &b) == 3) {
 	    jit_set_ip(buffer);
 	    jit_prolog(0);
 	    jit_prolog_d(2);
@@ -179,7 +179,7 @@ main(int argc, char *argv[])
 		    else			break;
 		}
 		else if (scond[1] == '@') {
-		    if (scond[1] == '\0')	cond = UNORD;
+		    if (scond[2] == '\0')	cond = UNORD;
 		    else			break;
 		}
 	    }
@@ -295,7 +295,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNORD:
 #if defined(jit_unordr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !q %f\n");
+		jit_movi_i(JIT_R1, (int)"%d: %f !@ %f\n");
 		jit_unordr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;

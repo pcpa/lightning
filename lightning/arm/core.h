@@ -48,7 +48,11 @@ jit_v_order[JIT_V_NUM] = {
 
 #define JIT_FRAMESIZE			48
 
-#define jit_FIXME()			abort()
+#define jit_thumb_p()			(jit_cpu.thumb >= 0)
+#define jit_thumb2_p()			(jit_cpu.thumb >= 1)
+#define jit_armv5_p()			(jit_cpu.version >= 5)
+#define jit_armv6_p()			(jit_cpu.version >= 6)
+#define jit_softfp_p()			(jit_cpu.softfp)
 
 extern int	__aeabi_idivmod(int, int);
 extern unsigned	__aeabi_uidivmod(unsigned, unsigned);
@@ -372,7 +376,7 @@ arm_rsbi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_mulr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1 && jit_cpu.armvn < 6) {
+    if (r0 == r1 && !jit_armv6_p()) {
 	_MOV(JIT_TMP, r1);
 	_MUL(r0, JIT_TMP, r2);
     }
@@ -388,7 +392,7 @@ arm_muli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     jit_gpr_t	reg;
     reg = r0 != r1 ? r0 : JIT_TMP;
     jit_movi_i(reg, i0);
-    if (r0 == r1 && jit_cpu.armvn < 6)
+    if (r0 == r1 && !jit_armv6_p())
 	_MUL(r0, reg, r1);
     else
 	_MUL(r0, r1, reg);
@@ -398,7 +402,7 @@ arm_muli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_hmulr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1 && jit_cpu.armvn < 6) {
+    if (r0 == r1 && !jit_armv6_p()) {
 	assert(r2 != JIT_TMP);
 	_SMULL(JIT_TMP, r0, r2, r1);
     }
@@ -411,7 +415,7 @@ __jit_inline void
 arm_hmuli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     jit_gpr_t	reg;
-    if (r0 != r1 || jit_cpu.armvn >= 6) {
+    if (r0 != r1 || jit_armv6_p()) {
 	jit_movi_i(JIT_TMP, i0);
 	_SMULL(JIT_TMP, r0, r1, JIT_TMP);
     }
@@ -431,7 +435,7 @@ arm_hmuli_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_hmulr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r1 && jit_cpu.armvn < 6) {
+    if (r0 == r1 && !jit_armv6_p()) {
 	assert(r2 != JIT_TMP);
 	_UMULL(JIT_TMP, r0, r2, r1);
     }
@@ -444,7 +448,7 @@ __jit_inline void
 arm_hmuli_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
     jit_gpr_t	reg;
-    if (r0 != r1 || jit_cpu.armvn >= 6) {
+    if (r0 != r1 || jit_armv6_p()) {
 	jit_movi_i(JIT_TMP, i0);
 	_UMULL(JIT_TMP, r0, r1, JIT_TMP);
     }
@@ -469,7 +473,8 @@ arm_divmod(jit_state_t _jit, int div, int sign,
     void		*p;
     l = 0xf;
     if ((int)r0 < 4)
-	l &= ~(1 << r0);
+	/* bogus extra push to align at 8 bytes */
+	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     if (r1 == _R1 && r2 == _R0) {
 	jit_movr_i(JIT_FTMP, _R0);
@@ -504,88 +509,76 @@ arm_divmod(jit_state_t _jit, int div, int sign,
 __jit_inline void
 arm_divr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (jit_cpu.armvn < 6)
-	arm_divmod(_jit, 1, 1, r0, r1, r2);
-    else
-	jit_FIXME();
+    //if (!jit_armv6_p())
+    arm_divmod(_jit, 1, 1, r0, r1, r2);
 }
 
 #define jit_divi_i(r0, r1, i0)		arm_divi_i(_jit, r0, r1, i0)
 __jit_inline void
 arm_divi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (jit_cpu.armvn < 6) {
+    //if (!jit_armv6_p())
+    {
 	jit_movi_i(JIT_TMP, i0);
 	arm_divmod(_jit, 1, 1, r0, r1, JIT_TMP);
     }
-    else
-	jit_FIXME();
 }
 
 #define jit_divr_ui(r0, r1, r2)		arm_divr_ui(_jit, r0, r1, r2)
 __jit_inline void
 arm_divr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (jit_cpu.armvn < 6)
-	arm_divmod(_jit, 1, 0, r0, r1, r2);
-    else
-	jit_FIXME();
+    //if (!jit_armv6_p())
+    arm_divmod(_jit, 1, 0, r0, r1, r2);
 }
 
 #define jit_divi_ui(r0, r1, i0)		arm_divi_ui(_jit, r0, r1, i0)
 __jit_inline void
 arm_divi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    if (jit_cpu.armvn < 6) {
+    //if (!jit_armv6_p())
+    {
 	jit_movi_i(JIT_TMP, i0);
 	arm_divmod(_jit, 1, 0, r0, r1, JIT_TMP);
     }
-    else
-	jit_FIXME();
 }
 
 #define jit_modr_i(r0, r1, r2)		arm_modr_i(_jit, r0, r1, r2)
 __jit_inline void
 arm_modr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (jit_cpu.armvn < 6)
-	arm_divmod(_jit, 0, 1, r0, r1, r2);
-    else
-	jit_FIXME();
+    //if (!jit_armv6_p())
+    arm_divmod(_jit, 0, 1, r0, r1, r2);
 }
 
 #define jit_modi_i(r0, r1, i0)		arm_modi_i(_jit, r0, r1, i0)
 __jit_inline void
 arm_modi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (jit_cpu.armvn < 6) {
+    //if (!jit_armv6_p())
+    {
 	jit_movi_i(JIT_TMP, i0);
 	arm_divmod(_jit, 0, 1, r0, r1, JIT_TMP);
     }
-    else
-	jit_FIXME();
 }
 
 #define jit_modr_ui(r0, r1, r2)		arm_modr_ui(_jit, r0, r1, r2)
 __jit_inline void
 arm_modr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (jit_cpu.armvn < 6)
-	arm_divmod(_jit, 0, 0, r0, r1, r2);
-    else
-	jit_FIXME();
+    //if (!jit_armv6_p())
+    arm_divmod(_jit, 0, 0, r0, r1, r2);
 }
 
 #define jit_modi_ui(r0, r1, i0)		arm_modi_ui(_jit, r0, r1, i0)
 __jit_inline void
 arm_modi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (jit_cpu.armvn < 6) {
+    //if (!jit_armv6_p())
+    {
 	jit_movi_i(JIT_TMP, i0);
 	arm_divmod(_jit, 0, 0, r0, r1, JIT_TMP);
     }
-    else
-	jit_FIXME();
 }
 
 #define jit_andr_i(r0, r1, r2)		arm_andr_i(_jit, r0, r1, r2)
@@ -922,7 +915,7 @@ arm_bmxr(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)
 {
     jit_insn	*l;
     long	 d;
-    if (jit_cpu.thumb)
+    if (jit_thumb_p())
 	_TST(r0, r1);
     else
 	_ANDS(JIT_TMP, r0, r1);
@@ -938,10 +931,10 @@ arm_bmxi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
     jit_insn	*l;
     long	 d;
     int		 i;
-    if (jit_cpu.thumb) {
+    if (jit_thumb_p()) {
 	if ((i = encode_arm_immediate(i1)) != -1)
 	    _TSTI(r0, i);
-	else if (jit_cpu.armvn >= 6 && (i = encode_arm_immediate(-i1)) != -1)
+	else if (jit_armv6_p() && (i = encode_arm_immediate(-i1)) != -1)
 	    _TEQI(r0, i);
 	else {
 	    jit_movi_i(JIT_TMP, i1);
@@ -1321,13 +1314,11 @@ arm_prolog(jit_state_t _jit, int i0)
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
 
-    assert(jit_cpu.softfp);
-
-    if (jit_cpu.softfp)
+    //if (jit_softfp_p())
 	/* 6 soft double registers */
-	_jitl.alloca_offset = _jitl.stack_length = 48;
-    else
-	_jitl.alloca_offset = _jitl.stack_length = 0;
+    _jitl.alloca_offset = _jitl.stack_length = 48;
+    //else
+	//_jitl.alloca_offset = _jitl.stack_length = 0;
 
     jit_movi_p(JIT_TMP, (void *)_jitl.stack_length);
     _SUB(JIT_SP, JIT_SP, JIT_TMP);

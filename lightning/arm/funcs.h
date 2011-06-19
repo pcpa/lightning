@@ -66,7 +66,7 @@ jit_get_cpu(void)
 
     while (fgets(buf, sizeof (buf), fp)) {
 	if (strncasecmp(buf, "CPU architecture:", 17) == 0) {
-	    jit_cpu.armvn = strtol(buf + 17, &ptr, 10);
+	    jit_cpu.version = strtol(buf + 17, &ptr, 10);
 	    while (*ptr) {
 		if (*ptr == 'T' || *ptr == 't') {
 		    ++ptr;

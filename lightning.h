@@ -207,7 +207,7 @@ struct jit_local_state {
     void	*stack;
 };
 struct {
-    _ui		armvn		: 4;
+    _ui		version		: 4;
     _ui		armve		: 1;
     _ui		thumb		: 2;
     _ui		softfp		: 1;
