@@ -191,7 +191,7 @@ main(int argc, char *argv[])
 	switch (cond) {
 	    case LT:
 #if defined(jit_ltr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f < %f\n");
+		jit_movi_i(JIT_R1, (int)"%f < %f = %d\n");
 		jit_ltr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -199,7 +199,7 @@ main(int argc, char *argv[])
 		break;
 	    case LE:
 #if defined(jit_ler_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f <= %f\n");
+		jit_movi_i(JIT_R1, (int)"%f <= %f = %d\n");
 		jit_ler_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -207,7 +207,7 @@ main(int argc, char *argv[])
 		break;
 	    case EQ:
 #if defined(jit_eqr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f == %f\n");
+		jit_movi_i(JIT_R1, (int)"%f == %f = %d\n");
 		jit_eqr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -215,7 +215,7 @@ main(int argc, char *argv[])
 		break;
 	    case GE:
 #if defined(jit_ger_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f >= %f\n");
+		jit_movi_i(JIT_R1, (int)"%f >= %f = %d\n");
 		jit_ger_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -223,7 +223,7 @@ main(int argc, char *argv[])
 		break;
 	    case GT:
 #if defined(jit_gtr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f > %f\n");
+		jit_movi_i(JIT_R1, (int)"%f > %f = %d\n");
 		jit_gtr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -231,7 +231,7 @@ main(int argc, char *argv[])
 		break;
 	    case NE:
 #if defined(jit_ner_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f != %f\n");
+		jit_movi_i(JIT_R1, (int)"%f != %f = %d\n");
 		jit_ner_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -239,7 +239,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNLT:
 #if defined(jit_unltr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !< %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !< %f = %d\n");
 		jit_unltr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -247,7 +247,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNLE:
 #if defined(jit_unler_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !<= %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !<= %f = %d\n");
 		jit_unler_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -255,7 +255,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNEQ:
 #if defined(jit_uneqr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !== %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !== %f = %d\n");
 		jit_uneqr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -263,7 +263,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNGE:
 #if defined(jit_unger_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !>= %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !>= %f = %d\n");
 		jit_unger_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -271,7 +271,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNGT:
 #if defined(jit_ungtr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !> %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !> %f = %d\n");
 		jit_ungtr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -279,7 +279,7 @@ main(int argc, char *argv[])
 		break;
 	    case LTGT:
 #if defined(jit_ltgtr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !!= %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !!= %f = %d\n");
 		jit_ltgtr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -287,7 +287,7 @@ main(int argc, char *argv[])
 		break;
 	    case ORD:
 #if defined(jit_ordr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f @ %f\n");
+		jit_movi_i(JIT_R1, (int)"%f @ %f = %d\n");
 		jit_ordr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -295,7 +295,7 @@ main(int argc, char *argv[])
 		break;
 	    case UNORD:
 #if defined(jit_unordr_d)
-		jit_movi_i(JIT_R1, (int)"%d: %f !@ %f\n");
+		jit_movi_i(JIT_R1, (int)"%f !@ %f = %d\n");
 		jit_unordr_d(JIT_R0, JIT_FPR0, JIT_FPR1);
 #else
 		goto fail;
@@ -307,9 +307,9 @@ main(int argc, char *argv[])
 	jit_prepare(2);
 	jit_prepare_d(2);
 	{
+	    jit_pusharg_i(JIT_R0);
 	    jit_pusharg_d(JIT_FPR1);
 	    jit_pusharg_d(JIT_FPR0);
-	    jit_pusharg_i(JIT_R0);
 	    jit_pusharg_p(JIT_R1);
 	}
 	jit_finish(printf);

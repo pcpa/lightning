@@ -197,7 +197,6 @@ struct jit_local_state {
      * required to patch arguments being constructed from right
      * to left */
     int		 reglist;
-    int		 alignhack;
     int		 framesize;
     int		 nextarg_get;
     int		 nextarg_put;
@@ -205,6 +204,13 @@ struct jit_local_state {
     int		 stack_length;
     int		 stack_offset;
     void	*stack;
+    int		*arguments[256];
+    int		 types[8];
+#ifdef JIT_NEED_PUSH_POP
+    /* minor support for unsupported code but that exists in test cases... */
+    int		 push[32];
+    int		 pop;
+#endif
 };
 struct {
     _ui		version		: 4;

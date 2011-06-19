@@ -433,9 +433,6 @@ arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
-#if 0
-    _LDRDI(r0, r1, 0);
-#endif
 }
 
 #define jit_ldi_f(r0, i0)		arm_ldi_f(_jit, r0, i0)
@@ -461,10 +458,6 @@ arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
-#if 0
-    jit_movi_i(JIT_TMP, (int)i0);
-    _LDRDI(r0, JIT_TMP, 0);
-#endif
 }
 
 #define jit_ldxr_f(r0, r1, r2)		arm_ldxr_f(_jit, r0, r1, r2)
@@ -490,9 +483,6 @@ arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
-#if 0
-    _LDRD(r0, r1, r2);
-#endif
 }
 
 #define jit_ldxi_f(r0, r1, i0)		arm_ldxi_f(_jit, r0, r1, i0)
@@ -538,18 +528,6 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
-#if 0
-    jit_fpr_t		reg;
-    if (i0 >= 0 && i0 <= 255)
-	_LDRDI(r0, r1, i0);
-    else if (i0 < 0 && i0 >= -255)
-	_LDRDIN(r0, r1, -i0);
-    else {
-	reg = r0 != r1 ? r0 : JIT_TMP;
-	jit_movi_i(reg, i0);
-	_LDRD(r0, r1, reg);
-    }
-#endif
 }
 
 #define jit_str_f(r0, r1)		arm_str_f(_jit, r0, r1)
@@ -574,9 +552,6 @@ arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 	_STRI(JIT_TMP, r0, 0);
 	_STRI(JIT_FTMP, r0, 4);
     }
-#if 0
-    _STRDI(r1, r0, 0);
-#endif
 }
 
 #define jit_sti_f(r0, i0)		arm_sti_f(_jit, r0, i0)
@@ -596,10 +571,6 @@ arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
     _STRI(JIT_FTMP, JIT_TMP, 0);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     _STRI(JIT_FTMP, JIT_TMP, 4);
-#if 0
-    jit_movi_i(JIT_TMP, (int)i0);
-    _STRDI(r0, JIT_TMP, 0);
-#endif
 }
 
 #define jit_stxr_f(r0, r1, r2)		arm_stxr_f(_jit, r0, r1, r2)
@@ -625,9 +596,6 @@ arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 	_LDRIN(JIT_FTMP, JIT_FP, (r2 << 3) + 4);
 	_STRI(JIT_FTMP, JIT_TMP, 4);
     }
-#if 0
-    _STRD(r2, r0, r1);
-#endif
 }
 
 #define jit_stxi_f(r0, r1, i0)		arm_stxi_f(_jit, r0, r1, i0)
@@ -666,18 +634,6 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
 	_STRI(JIT_FTMP, JIT_TMP, 4);
     }
-#if 0
-    jit_fpr_t		reg;
-    if (i0 >= 0 && i0 <= 255)
-	_STRDI(r1, r0, i0);
-    else if (i0 < 0 && i0 >= -255)
-	_STRDIN(r1, r0, -i0);
-    else {
-	reg = r0 != r1 ? r0 : JIT_TMP;
-	jit_movi_i(reg, i0);
-	_STRD(r1, r0, reg);
-    }
-#endif
 }
 
 #define jit_prolog_f(i0)		do {} while (0)
@@ -688,8 +644,7 @@ __jit_inline void
 arm_prepare_f(jit_state_t _jit, int i0)
 {
     assert(i0 >= 0);
-    _jitl.nextarg_put += i0;
-    arm_prepare_adjust(_jit);
+    _jitl.stack_offset += i0 << 2;
 }
 
 #define jit_prepare_d(i0)		arm_prepare_d(_jit, i0)
@@ -697,8 +652,7 @@ __jit_inline void
 arm_prepare_d(jit_state_t _jit, int i0)
 {
     assert(i0 >= 0);
-    _jitl.nextarg_put += i0 << 1;
-    arm_prepare_adjust(_jit);
+    _jitl.stack_offset += i0 << 3;
 }
 
 #define jit_arg_f()			arm_arg_f(_jit)
@@ -779,56 +733,32 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
+    int		ofs = _jitl.nextarg_put++;
+    assert(ofs < 256);
+    _jitl.stack_offset -= sizeof(float);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
-    if (_jitl.alignhack == 1)
-	--_jitl.nextarg_put;
-    if (--_jitl.nextarg_put < 4)
-	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, JIT_FTMP);
-    else {
-	_jitl.stack_offset -= sizeof(float);
-	jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
-    }
-    _jitl.alignhack = 2;
+    _jitl.arguments[ofs] = (int *)_jit->x.pc;
+    _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
+    jit_stxi_i(0, JIT_SP, JIT_FTMP);
 }
 
 #define jit_pusharg_d(r0)		arm_pusharg_d(_jit, r0)
 __jit_inline void
 arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
-    if (_jitl.nextarg_put & 1) {
-	if (_jitl.alignhack)
-	    assert(!"only one misalignment patched!\n");
-	/* ugly hack */
-	++_jitl.nextarg_put;
-	arm_prepare_adjust(_jit);
-	_jitl.alignhack = 1;
-    }
-    _jitl.nextarg_put -= 2;
-    if (_jitl.nextarg_put < 4) {
-	if (jit_armv5_p()) {
-	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _STRDI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
-	}
-	else {
-	    _LDRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
-	    _STRI(JIT_TMP, JIT_FP, _jitl.nextarg_put << 2);
-	    _STRI(JIT_FTMP, JIT_FP, (_jitl.nextarg_put << 2) + 4);
-	}
-    }
+    int		ofs = _jitl.nextarg_put++;
+    assert(ofs < 256);
+    _jitl.stack_offset -= sizeof(double);
+    if (jit_armv5_p())
+	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     else {
-	_jitl.stack_offset -= sizeof(double);
-	if (jit_armv5_p() && _jitl.stack_offset <= 255) {
-	    _LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _STRDI(JIT_TMP, JIT_SP, _jitl.stack_offset);
-	}
-	else {
-	    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
-	    jit_stxi_i(_jitl.stack_offset, JIT_SP, JIT_FTMP);
-	    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
-	    jit_stxi_i(_jitl.stack_offset + 4, JIT_SP, JIT_FTMP);
-	}
+	_LDRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
+    _jitl.arguments[ofs] = (int *)_jit->x.pc;
+    _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
+    jit_stxi_i(0, JIT_SP, JIT_TMP);
+    jit_stxi_i(0, JIT_SP, JIT_FTMP);
 }
 
 #endif /* __lightning_fp_arm_h */

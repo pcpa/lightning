@@ -1277,23 +1277,6 @@ arm_allocai(jit_state_t _jit, int i0)
     return (-_jitl.alloca_offset);
 }
 
-static void
-arm_prepare_adjust(jit_state_t _jit)
-{
-    if (_jitl.nextarg_put > 4) {
-	_jitl.reglist = 0xf;
-	_jitl.stack_offset = (_jitl.nextarg_put - 4) << 2;
-	if (_jitl.stack_length < _jitl.stack_offset) {
-	    _jitl.stack_length = _jitl.stack_offset;
-	    jit_patch_movi(_jitl.stack, (void *)
-			   ((_jitl.alloca_offset +
-			     _jitl.stack_length + 7) & -8));
-	}
-    }
-    else
-	_jitl.reglist = (1 << _jitl.nextarg_put) - 1;
-}
-
 #define jit_prolog(n)			arm_prolog(_jit, n)
 __jit_inline void
 arm_prolog(jit_state_t _jit, int i0)
@@ -1343,8 +1326,7 @@ __jit_inline void
 arm_prepare_i(jit_state_t _jit, int i0)
 {
     assert(i0 >= 0 && !_jitl.stack_offset && !_jitl.nextarg_put);
-    _jitl.nextarg_put = i0;
-    arm_prepare_adjust(_jit);
+    _jitl.stack_offset = i0 << 2;
 }
 
 #define jit_arg_c()			arm_arg_i(_jit)
@@ -1390,40 +1372,83 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 __jit_inline void
 arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 {
-    if (_jitl.alignhack == 1)
-	--_jitl.nextarg_put;
-    if (--_jitl.nextarg_put < 4)
-	jit_stxi_i(_jitl.nextarg_put << 2, JIT_FP, r0);
-    else {
-	_jitl.stack_offset -= sizeof(int);
-	jit_stxi_i(_jitl.stack_offset, JIT_SP, r0);
+    int		ofs = _jitl.nextarg_put++;
+    assert(ofs < 256);
+    _jitl.stack_offset -= sizeof(int);
+    _jitl.arguments[ofs] = (int *)_jit->x.pc;
+    _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
+    jit_stxi_i(0, JIT_SP, r0);
+}
+
+static void
+arm_patch_arguments(jit_state_t _jit)
+{
+    int		*insn;
+    int		 size;
+    int		 index;
+    int		 offset;
+
+    for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
+	if (_jitl.types[index >> 5] & (1 << (index & 31))) {
+	    if (offset & 7)
+		offset += sizeof(int);
+	    size = sizeof(double);
+	}
+	else
+	    size = sizeof(int);
+	insn = _jitl.arguments[index];
+	if (offset < 16) {
+	    /* str rX, sp, #M => str rX, fp, #N */
+	    insn[0] = (insn[0] & 0xfff0f000) | (JIT_FP<<16) | offset;
+	    if (size == 8)
+		insn[1] = (insn[1] & 0xfff0f000) | (JIT_FP<<16) | (offset + 4);
+	}
+	else {
+	    /* str rX, sp, #M => str rX, sp, #N */
+	    insn[0] = (insn[0] & 0xfffff000) | (offset - 16);
+	    if (size == 8)
+		insn[1] = (insn[1] & 0xfffff000) | (offset - 12);
+	}
+	offset += size;
     }
-    _jitl.alignhack = 2;
+    if (offset > 16) {
+	_jitl.reglist = 0xff;
+	offset -= 16;
+	if (_jitl.stack_length < offset) {
+	    _jitl.stack_length = offset;
+	    jit_patch_movi(_jitl.stack, (void *)
+			   ((_jitl.alloca_offset +
+			     _jitl.stack_length + 7) & -8));
+	}
+    }
+    else
+	_jitl.reglist = (1 << (offset >> 2)) - 1;
 }
 
 #define jit_finishr(rs)			arm_finishr(_jit, rs)
 __jit_inline void
 arm_finishr(jit_state_t _jit, jit_gpr_t r0)
 {
-    assert(!_jitl.stack_offset && !_jitl.nextarg_put);
+    assert(!_jitl.stack_offset);
+    arm_patch_arguments(_jit);
+    _jitl.nextarg_put = 0;
     if (_jitl.reglist) {
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
-    _jitl.alignhack = 0;
-    jit_callr(r0);
 }
 
 #define jit_finish(i0)			arm_finishi(_jit, i0)
 __jit_inline jit_insn *
 arm_finishi(jit_state_t _jit, void *i0)
 {
-    assert(!_jitl.stack_offset && !_jitl.nextarg_put);
+    assert(!_jitl.stack_offset);
+    arm_patch_arguments(_jit);
+    _jitl.nextarg_put = 0;
     if (_jitl.reglist) {
 	_LDMIA(JIT_FP, _jitl.reglist);
 	_jitl.reglist = 0;
     }
-    _jitl.alignhack = 0;
     return (jit_calli(i0));
 }
 
@@ -1439,5 +1464,29 @@ arm_ret(jit_state_t jit)
 	 /* previous fp and return address */
 	 (1<<JIT_FP)|(1<<JIT_PC));
 }
+
+/* just to pass make check... */
+#ifdef JIT_NEED_PUSH_POP
+# define jit_pushr_i(r0)		mips_pushr_i(_jit, r0)
+__jit_inline int
+mips_pushr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    int		offset;
+    assert(_jitl.pop < sizeof(_jitl.push) / sizeof(_jitl.push[0]));
+    offset = jit_allocai(4);
+    _jitl.push[_jitl.pop++] = offset;
+    jit_stxi_i(offset, JIT_FP, r0);
+}
+
+# define jit_popr_i(r0)			mips_popr_i(_jit, r0)
+__jit_inline int
+mips_popr_i(jit_state_t _jit, jit_gpr_t r0)
+{
+    int		offset;
+    assert(_jitl.pop > 0);
+    offset = _jitl.push[--_jitl.pop];
+    jit_ldxi_i(r0, JIT_FP, offset);
+}
+#endif
 
 #endif /* __lightning_core_arm_h */
