@@ -32,6 +32,8 @@
 #ifndef __lightning_fp_arm_h
 #define __lightning_fp_arm_h
 
+#include <math.h>
+
 #define JIT_FPR_NUM			6
 static const jit_fpr_t
 jit_f_order[JIT_FPR_NUM] = {
@@ -47,8 +49,12 @@ extern float	__aeabi_fmul(float, float);
 extern double	__aeabi_dmul(double, double);
 extern float	__aeabi_fdiv(float, float);
 extern double	__aeabi_ddiv(double, double);
+extern float	__aeabi_i2f(int);
+extern double	__aeabi_i2d(int);
 extern float	__aeabi_d2f(double);
 extern double	__aeabi_f2d(float);
+extern int	__aeabi_f2iz(double);
+extern int	__aeabi_d2iz(float);
 extern int	__aeabi_fcmplt(float, float);
 extern int	__aeabi_dcmplt(double, double);
 extern int	__aeabi_fcmple(float, float);
@@ -61,6 +67,73 @@ extern int	__aeabi_fcmpgt(float, float);
 extern int	__aeabi_dcmpgt(double, double);
 extern int	__aeabi_fcmpun(float, float);
 extern int	__aeabi_dcmpun(double, double);
+
+static void
+arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    int			l;
+    l = 0xf;
+    if ((int)r0 < 4)
+	/* bogus extra push to align at 8 bytes */
+	l = (l & ~(1 << r0)) | 0x10;
+    _PUSH(l);
+    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    if (i0) {
+	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
+	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	    _BL(d & 0x00ffffff);
+	else {
+	    jit_movi_i(JIT_FTMP, (int)i0);
+	    _BLX(JIT_FTMP);
+	}
+    }
+    d = (((int)__aeabi_f2iz - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)__aeabi_f2iz);
+	_BLX(JIT_FTMP);
+    }
+    jit_movr_i(r0, _R0);
+    _POP(l);
+}
+
+static void
+arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    int			l;
+    l = 0xf;
+    if ((int)r0 < 4)
+	/* bogus extra push to align at 8 bytes */
+	l = (l & ~(1 << r0)) | 0x10;
+    _PUSH(l);
+    if (jit_armv5_p())
+	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+    else {
+	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+    }
+    if (i0) {
+	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
+	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	    _BL(d & 0x00ffffff);
+	else {
+	    jit_movi_i(JIT_FTMP, (int)i0);
+	    _BLX(JIT_FTMP);
+	}
+    }
+    d = (((int)__aeabi_d2iz - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)__aeabi_d2iz);
+	_BLX(JIT_FTMP);
+    }
+    jit_movr_i(r0, _R0);
+    _POP(l);
+}
 
 static void
 arm_fff(jit_state_t _jit, float (*i0)(float, float),
@@ -193,7 +266,7 @@ arm_iunff(jit_state_t _jit, int (*i0)(float, float),
     _CMPI(_R0, 0);
     _CC_MOVI(ARM_CC_NE, r0, 1);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_NE, (int)_jit->x.pc);
+    _CC_B(ARM_CC_NE, 0);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
@@ -240,7 +313,7 @@ arm_iundd(jit_state_t _jit, int (*i0)(double, double),
     _CMPI(_R0, 0);
     _CC_MOVI(ARM_CC_NE, r0, 1);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_NE, (int)_jit->x.pc);
+    _CC_B(ARM_CC_NE, 0);
     if (jit_armv5_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
@@ -282,7 +355,7 @@ arm_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
     _CMPI(_R0, 0);
     _POP(0xf);
     l = _jit->x.pc;
-    d = (((int)i0 - (int)l) >> 2) - 2;
+    d = (((int)i1 - (int)l) >> 2) - 2;
     assert(_s24P(d));
     _CC_B(cc, d & 0x00ffffff);
     return (l);
@@ -315,7 +388,7 @@ arm_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
     _CMPI(_R0, 0);
     _POP(0xf);
     l = _jit->x.pc;
-    d = (((int)i0 - (int)l) >> 2) - 2;
+    d = (((int)i1 - (int)l) >> 2) - 2;
     assert(_s24P(d));
     _CC_B(cc, d & 0x00ffffff);
     return (l);
@@ -340,7 +413,7 @@ arm_bunff(jit_state_t _jit, int (*i0)(float, float), int cc,
     }
     _CMPI(_R0, 0);
     i = _jit->x.pc;
-    _CC_B(cc, (int)_jit->x.pc);
+    _CC_B(cc, 0);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
@@ -354,7 +427,7 @@ arm_bunff(jit_state_t _jit, int (*i0)(float, float), int cc,
     jit_patch(i);
     _POP(0xf);
     l = _jit->x.pc;
-    d = (((int)i0 - (int)l) >> 2) - 2;
+    d = (((int)i1 - (int)l) >> 2) - 2;
     assert(_s24P(d));
     _CC_B(cc, d & 0x00ffffff);
     return (l);
@@ -387,7 +460,7 @@ arm_bundd(jit_state_t _jit, int (*i0)(double, double), int cc,
     }
     _CMPI(_R0, 0);
     i = _jit->x.pc;
-    _CC_B(cc, (int)_jit->x.pc);
+    _CC_B(cc, 0);
     if (jit_armv5_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
@@ -409,10 +482,53 @@ arm_bundd(jit_state_t _jit, int (*i0)(double, double), int cc,
     jit_patch(i);
     _POP(0xf);
     l = _jit->x.pc;
-    d = (((int)i0 - (int)l) >> 2) - 2;
+    d = (((int)i1 - (int)l) >> 2) - 2;
     assert(_s24P(d));
     _CC_B(cc, d & 0x00ffffff);
     return (l);
+}
+
+#define jit_extr_i_f(r0, r1)		arm_extr_i_f(_jit, r0, r1)
+__jit_inline void
+arm_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+{
+    int			d;
+    _PUSH(0xf);
+    if (r1 != _R0)
+	jit_movr_i(_R0, r1);
+    d = (((int)__aeabi_i2f - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)__aeabi_i2f);
+	_BLX(JIT_FTMP);
+    }
+    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+
+#define jit_extr_i_d(r0, r1)		arm_extr_i_d(_jit, r0, r1)
+__jit_inline void
+arm_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+{
+    int			d;
+    _PUSH(0xf);
+    if (r1 != _R0)
+	jit_movr_i(_R0, r1);
+    d = (((int)__aeabi_i2d - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)__aeabi_i2d);
+	_BLX(JIT_FTMP);
+    }
+    if (jit_armv5_p())
+	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    else {
+	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+    }
+    _POP(0xf);
 }
 
 #define jit_extr_d_f(r0, r1)		arm_extr_d_f(_jit, r0, r1)
@@ -459,6 +575,64 @@ arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
     }
     _POP(0xf);
+}
+
+#define jit_roundr_f_i(r0, r1)		arm_roundr_f_i(_jit, r0, r1)
+__jit_inline void
+arm_roundr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_if(_jit, roundf, r0, r1);
+}
+
+#define jit_roundr_d_i(r0, r1)		arm_roundr_d_i(_jit, r0, r1)
+__jit_inline void
+arm_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_id(_jit, round, r0, r1);
+}
+
+#define jit_truncr_f_i(r0, r1)		arm_truncr_f_i(_jit, r0, r1)
+#define jit_rintr_f_i(r0, r1)		arm_truncr_f_i(_jit, r0, r1)
+__jit_inline void
+arm_truncr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_if(_jit, (void *)0, r0, r1);
+}
+
+#define jit_truncr_d_i(r0, r1)		arm_truncr_d_i(_jit, r0, r1)
+#define jit_rintr_d_i(r0, r1)		arm_truncr_d_i(_jit, r0, r1)
+__jit_inline void
+arm_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_id(_jit, (void *)0, r0, r1);
+}
+
+#define jit_ceilr_f_i(r0, r1)		arm_ceilr_f_i(_jit, r0, r1)
+__jit_inline void
+arm_ceilr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_if(_jit, ceilf, r0, r1);
+}
+
+#define jit_ceilr_d_i(r0, r1)		arm_ceilr_d_i(_jit, r0, r1)
+__jit_inline void
+arm_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_id(_jit, ceil, r0, r1);
+}
+
+#define jit_floorr_f_i(r0, r1)		arm_floorr_f_i(_jit, r0, r1)
+__jit_inline void
+arm_floorr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_if(_jit, floorf, r0, r1);
+}
+
+#define jit_floorr_d_i(r0, r1)		arm_floorr_d_i(_jit, r0, r1)
+__jit_inline void
+arm_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_id(_jit, floor, r0, r1);
 }
 
 #define jit_movr_f(r0, r1)		arm_movr_f(_jit, r0, r1)
@@ -517,12 +691,34 @@ arm_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
 }
 
+#define jit_absr_f(r0, r1)		arm_absr_f(_jit, r0, r1)
+__jit_inline void
+arm_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    _BICI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
+    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+}
+
+#define jit_absr_d(r0, r1)		arm_absr_d(_jit, r0, r1)
+__jit_inline void
+arm_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
+    _BICI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
+    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    if (r0 != r1) {
+	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    }
+}
+
 #define jit_negr_f(r0, r1)		arm_negr_f(_jit, r0, r1)
 __jit_inline void
 arm_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-    _XORI(JIT_FTMP, JIT_FTMP, 0x80000000);
+    _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
@@ -531,12 +727,58 @@ __jit_inline void
 arm_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-    _XORI(JIT_FTMP, JIT_FTMP, 0x80000000);
+    _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     if (r0 != r1) {
 	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
     }
+}
+
+#define jit_sqrtr_f(r0, r1)		arm_sqrtr_f(_jit, r0, r1)
+__jit_inline void
+arm_sqrtr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    _PUSH(0xf);
+    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    d = (((int)sqrtf - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)sqrt);
+	_BLX(JIT_FTMP);
+    }
+    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+
+#define jit_sqrtr_d(r0, r1)		arm_sqrtr_d(_jit, r0, r1)
+__jit_inline void
+arm_sqrtr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    _PUSH(0xf);
+    if (jit_armv5_p())
+	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+    else {
+	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+    }
+    d = (((int)sqrt - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)sqrt);
+	_BLX(JIT_FTMP);
+    }
+    if (jit_armv5_p())
+	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    else {
+	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+    }
+    _POP(0xf);
 }
 
 #define jit_addr_f(r0, r1, r2)		arm_addr_f(_jit, r0, r1, r2)
@@ -953,7 +1195,7 @@ arm_bungtr_d(jit_state_t _jit, void *i0, jit_fpr_t r0, jit_fpr_t r1)
 
 #define jit_bltgtr_f(i0, r0, r1)	arm_bltgtr_f(_jit, i0, r0, r1)
 __jit_inline jit_insn *
-arm_bnltgt_f(jit_state_t _jit, void *i0, jit_fpr_t r0, jit_fpr_t r1)
+arm_bltgtr_f(jit_state_t _jit, void *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     return (arm_bunff(_jit, __aeabi_fcmpeq, ARM_CC_EQ, i0, r0, r1));
 }
@@ -1265,7 +1507,7 @@ arm_arg_d(jit_state_t _jit)
     return (ofs);
 }
 
-#define jit_getarg_f(f0, i0)		arm_getarg_f(_jit, f0, i0)
+#define jit_getarg_f(r0, i0)		arm_getarg_f(_jit, r0, i0)
 __jit_inline void
 arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
@@ -1276,7 +1518,7 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
-#define jit_getarg_d(f0, i0)		arm_getarg_d(_jit, f0, i0)
+#define jit_getarg_d(r0, i0)		arm_getarg_d(_jit, r0, i0)
 __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {

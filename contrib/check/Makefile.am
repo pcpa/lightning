@@ -66,6 +66,7 @@ EXTRA_DIST = 			\
 	branch.inc		\
 	branch.tst		\
 	call.tst		\
+	carry.tst		\
 	c_call.tst		\
 	clobber.tst		\
 	consts.inc		\

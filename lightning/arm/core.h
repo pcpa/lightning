@@ -595,7 +595,7 @@ arm_andi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_ANDI(r0, r1, i0);
+	_ANDI(r0, r1, i);
     else if ((i = encode_arm_immediate(~i0)) != -1)
 	_BICI(r0, r1, i);
     else {
@@ -619,7 +619,7 @@ arm_ori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_ORI(r0, r1, i0);
+	_ORI(r0, r1, i);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
@@ -641,7 +641,7 @@ arm_xori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_XORI(r0, r1, i0);
+	_XORI(r0, r1, i);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
@@ -709,7 +709,7 @@ arm_cci(jit_state_t _jit, int cct, int ccf,
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_CMPI(r1, i0);
+	_CMPI(r1, i);
     else if ((i = encode_arm_immediate(-i0)) != -1)
 	_CMNI(r1, i);
     else {
@@ -754,7 +754,7 @@ arm_nei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_SUBSI(r0, r1, i0);
+	_SUBSI(r0, r1, i);
     else if ((i = encode_arm_immediate(-i0)) != -1)
 	_ADDSI(r0, r1, i);
     else {
@@ -957,10 +957,10 @@ arm_bmxi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
     _CC_B(cc, d & 0x00ffffff);
     return (l);
 }
-#define jit_bmsr_i(i0, r0, r1)		arm_bmxr(_jit, ARM_CC_EQ, i0, r0, r1)
-#define jit_bmsi_i(i0, r0, i1)		arm_bmxi(_jit, ARM_CC_EQ, i0, r0, i1)
-#define jit_bmcr_i(i0, r0, r1)		arm_bmxr(_jit, ARM_CC_NE, i0, r0, r1)
-#define jit_bmci_i(i0, r0, i1)		arm_bmxi(_jit, ARM_CC_NE, i0, r0, i1)
+#define jit_bmsr_i(i0, r0, r1)		arm_bmxr(_jit, ARM_CC_NE, i0, r0, r1)
+#define jit_bmsi_i(i0, r0, i1)		arm_bmxi(_jit, ARM_CC_NE, i0, r0, i1)
+#define jit_bmcr_i(i0, r0, r1)		arm_bmxr(_jit, ARM_CC_EQ, i0, r0, r1)
+#define jit_bmci_i(i0, r0, i1)		arm_bmxi(_jit, ARM_CC_EQ, i0, r0, i1)
 
 #define jit_ldr_c(r0, r1)		arm_ldr_c(_jit, r0, r1)
 __jit_inline void
