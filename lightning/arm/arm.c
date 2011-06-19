@@ -136,6 +136,12 @@ main(int argc, char *argv[])
     jit_hmuli_i(_R0, _R1, 2);		// mov <T>, #2; smull <T>, r0, r1, <T>
     jit_hmulr_ui(_R0, _R1, _R2);	// umull <T>, r0, r1, r2
     jit_hmuli_ui(_R0, _R1, 2);		// mov <T>, #2; umull <T>, r0, r1, <T>
+    jit_divr_i(_R0, _R1, _R2);		// push {r1,r2,r3}; mov r0, r1; mov r1, r2; bl #<__eabi_idivmod>; pop {r1, r2, r3}
+    jit_divr_ui(_R0, _R1, _R2);		// push {r1,r2,r3}; mov r0, r1; mov r1, r2; bl #<__eabi_uidivmod>; pop {r1, r2, r3}
+    jit_divi_i(_R0, _R1, 2);		// mov r8, #2; push {r1,r2,r3}; mov r0, r1; mov r1, r8; bl #<__eabi_idivmod>; pop {r1, r2, r3}
+    jit_modr_i(_R0, _R1, _R2);		// push {r1,r2,r3}; mov r0, r1; mov r1, r2; bl #<__eabi_idivmod>; mov r0, r1; pop {r1, r2, r3}
+    jit_modr_ui(_R0, _R1, _R2);		// push {r1,r2,r3}; mov r0, r1; mov r1, r2; bl #<__eabi_uidivmod>; mov r0, r1; pop {r1, r2, r3}
+    jit_modi_i(_R0, _R1, 2);		// mov r8, #2; push {r1,r2,r3}; mov r0, r1; mov r1, r8; bl #<__eabi_idivmod>; mov r0, r1; pop {r1, r2, r3}
     jit_andr_i(_R0, _R1, _R2);		// and r0, r1, r2
     jit_andi_i(_R0, _R1, 2);		// and r0, r1, #2
     jit_andi_i(_R0, _R1, -2);		// bic r0, r1, #1

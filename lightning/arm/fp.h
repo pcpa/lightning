@@ -145,6 +145,16 @@ arm_divr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
     arm_ddd(_jit, __aeabi_ddiv, r0, r1, r2);
 }
 
+#define jit_movr_f(r0, r1)		arm_movr_f(_jit, r0, r1)
+arm_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    if (r0 != r1) {
+	assert(jit_cpu.softfp);
+	_LDF(JIT_FTMP, r1);
+	_STF(r0, JIT_FTMP);
+    }
+}
+
 #define jit_movi_f(r0, i0)		arm_movi_f(_jit, r0, i0)
 __jit_inline void
 arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
@@ -229,6 +239,16 @@ arm_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
     assert(jit_cpu.softfp);
     _LDF(r1, JIT_FTMP);
     jit_stxi_i(i0, r0, JIT_FTMP);
+}
+
+#define jit_movr_d(r0, r1)		arm_movr_d(_jit, r0, r1)
+arm_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+{
+    if (r0 != r1) {
+	assert(jit_cpu.softfp);
+	_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+    }
 }
 
 #define jit_movi_d(r0, i0)		arm_movi_d(_jit, r0, i0)
