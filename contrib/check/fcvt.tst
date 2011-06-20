@@ -123,6 +123,10 @@ fn##fr##tr##ir##ft##tt##n:
 #define pinf_check(n, fn)	f2i3(n, fn, $(1.0/0.0), pinf_i, pinf_l)
 #define ninf_check(n, fn)	f2i3(n, fn, $(-1.0/0.0), ninf_i, ninf_l)
 
+/* "#if __arm__" tests are when actually calling rintf/rint functions,
+ * otherwise, roundf/round should match the results in these tests
+ */
+
 	/* ties (or any non integral) to default rounding mode,
 	 * usually to nearest even */
 	rint(__LINE__,    0.0,			 0)
@@ -136,18 +140,35 @@ fn##fr##tr##ir##ft##tt##n:
 	rint(__LINE__, $(-1.0/3.0),		 0)
 	rint(__LINE__, $( 1.0/2.0),		 0)
 	rint(__LINE__, $(-1.0/2.0),		 0)
+#if __arm__
+	rint(__LINE__, $( 2.0/3.0),		 0)
+	rint(__LINE__, $(-2.0/3.0),		 0)
+	rint(__LINE__, $( 3.0/2.0),		 1)
+	rint(__LINE__, $(-3.0/2.0),		-1)
+#else
 	rint(__LINE__, $( 2.0/3.0),		 1)
 	rint(__LINE__, $(-2.0/3.0),		-1)
 	rint(__LINE__, $( 3.0/2.0),		 2)
 	rint(__LINE__, $(-3.0/2.0),		-2)
+#endif
 	rint(__LINE__, $( 4.0/3.0),		 1)
 	rint(__LINE__, $(-4.0/3.0),		-1)
+#if __arm__
+	rint(__LINE__, $( 5.0/3.0),		 1)
+	rint(__LINE__, $(-5.0/3.0),		-1)
+#else
 	rint(__LINE__, $( 5.0/3.0),		 2)
 	rint(__LINE__, $(-5.0/3.0),		-2)
+#endif
 	rint(__LINE__, $( 5.0/2.0),		 2)
 	rint(__LINE__, $(-5.0/2.0),		-2)
+#if __arm__
+	rint(__LINE__, $( 7.0/2.0),		 3)
+	rint(__LINE__, $(-7.0/2.0),		-3)
+#else
 	rint(__LINE__, $( 7.0/2.0),		 4)
 	rint(__LINE__, $(-7.0/2.0),		-4)
+#endif
 	rint(__LINE__, $( 7.0/3.0),		 2)
 	rint(__LINE__, $(-7.0/3.0),		-2)
 	rint(__LINE__, $( 0x80000000*1.0),	0x80000000)

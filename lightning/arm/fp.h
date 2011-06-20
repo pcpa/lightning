@@ -1404,7 +1404,7 @@ arm_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(r0 != JIT_FPRET);
     _LDR(JIT_TMP, r1, r2);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
 #define jit_ldxr_d(r0, r1, r2)		arm_ldxr_d(_jit, r0, r1, r2)
@@ -1417,9 +1417,9 @@ arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
     else {
-	jit_addi_i(JIT_TMP, r1, r2);
-	_LDR(JIT_FTMP, JIT_TMP, 4);
-	_LDR(JIT_TMP, JIT_TMP, 0);
+	jit_addr_i(JIT_TMP, r1, r2);
+	_LDRI(JIT_FTMP, JIT_TMP, 4);
+	_LDRI(JIT_TMP, JIT_TMP, 0);
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     }
@@ -1478,7 +1478,7 @@ arm_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-    jit_str_i(r0, JIT_FTMP);
+    _STRI(JIT_FTMP, r0, 0);
 }
 
 #define jit_str_d(r0, r1)		arm_str_d(_jit, r0, r1)
@@ -1503,8 +1503,9 @@ __jit_inline void
 arm_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     assert(r0 != JIT_FPRET);
+    jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
-    jit_sti_i(i0, JIT_FTMP);
+    _STRI(JIT_FTMP, JIT_TMP, 0);
 }
 
 #define jit_sti_d(r0, i0)		arm_sti_d(_jit, r0, i0)
@@ -1524,8 +1525,8 @@ __jit_inline void
 arm_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(r2 != JIT_FPRET);
-    _LDRIN(JIT_FTMP, JIT_FP, (r2 << 3) + 8);
-    jit_stxr_i(r0, r1, JIT_FTMP);
+    _LDRIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
+    _STR(JIT_TMP, r0, r1);
 }
 
 #define jit_stxr_d(r0, r1, r2)		arm_stxr_d(_jit, r0, r1, r2)
@@ -1567,7 +1568,7 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	}
 	else if (i0 < 0 && i0 >= -255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-	    _STRDIN(JIT_TMP, r1, -i0);
+	    _STRDIN(JIT_TMP, r0, -i0);
 	}
 	else {
 	    jit_addi_i(JIT_TMP, r1, i0);
@@ -1626,6 +1627,8 @@ arm_arg_d(jit_state_t _jit)
 	++_jitl.nextarg_get;
     ofs = _jitl.nextarg_get;
     if (ofs > 3) {
+	if (_jitl.framesize & 7)
+	    _jitl.framesize += 4;
 	ofs = _jitl.framesize;
 	_jitl.framesize += sizeof(double);
     }
