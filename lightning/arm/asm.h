@@ -58,7 +58,6 @@ typedef enum {
 #define JIT_FP		_R11
 #define JIT_TMP		_R8
 #define JIT_FTMP	_R9
-#define JIT_FPRET	_F0
 
 typedef enum {
     _F0,	/* result */
@@ -69,6 +68,7 @@ typedef enum {
     _F5,	/* variable */
     _F6,	/* variable */
     _F7,	/* variable */
+    JIT_FPRET,	/* for abstraction of returning a float/double result */
 } jit_fpr_t;
 
 #define ARM_CC_EQ	0x00000000	/* Z=1 */

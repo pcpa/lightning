@@ -76,6 +76,7 @@ arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     jit_insn		*is_nan;
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
+    assert(r1 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -125,6 +126,7 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     jit_insn		*is_nan;
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
+    assert(r1 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -176,6 +178,7 @@ arm_fff(jit_state_t _jit, float (*i0)(float, float),
 	jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
@@ -195,6 +198,7 @@ arm_ddd(jit_state_t _jit, double (*i0)(double, double),
 	jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -228,6 +232,7 @@ arm_iff(jit_state_t _jit, int (*i0)(float, float),
 {
     int			d;
     int			l;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -252,6 +257,7 @@ arm_idd(jit_state_t _jit, int (*i0)(double, double),
 {
     int			l;
     int			d;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -285,6 +291,7 @@ arm_iunff(jit_state_t _jit, int (*i0)(float, float),
     int			 d;
     int			 l;
     jit_insn		*i;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -324,6 +331,7 @@ arm_iundd(jit_state_t _jit, int (*i0)(double, double),
     int			 d;
     int			 l;
     jit_insn		*i;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -378,6 +386,7 @@ arm_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
 {
     jit_insn		*l;
     int			 d;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
@@ -403,6 +412,7 @@ arm_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
 {
     jit_insn		*l;
     int			 d;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -437,6 +447,7 @@ arm_bunff(jit_state_t _jit, int (*i0)(float, float), int cc,
     jit_insn		*i;
     jit_insn		*l;
     int			 d;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
@@ -476,6 +487,7 @@ arm_bundd(jit_state_t _jit, int (*i0)(double, double), int cc,
     jit_insn		*i;
     jit_insn		*l;
     int			 d;
+    assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -529,6 +541,7 @@ __jit_inline void
 arm_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET);
     _PUSH(0xf);
     if (r1 != _R0)
 	jit_movr_i(_R0, r1);
@@ -548,6 +561,7 @@ __jit_inline void
 arm_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET);
     _PUSH(0xf);
     if (r1 != _R0)
 	jit_movr_i(_R0, r1);
@@ -572,6 +586,7 @@ static void
 arm_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5_p())
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -595,6 +610,7 @@ static void
 arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     d = (((int)__aeabi_f2d - (int)_jit->x.pc) >> 2) - 2;
@@ -688,8 +704,13 @@ __jit_inline void
 arm_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	if (r0 == JIT_FPRET)
+	    /* jit_ret() must follow! */
+	    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+	else {
+	    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+	    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	}
     }
 }
 
@@ -699,14 +720,26 @@ arm_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
 	if (jit_armv5_p()) {
-	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-	    _STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	    if (r0 == JIT_FPRET)
+		/* jit_ret() must follow! */
+		_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+	    else {
+		_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+		_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	    }
 	}
 	else {
-	    _LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-	    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-	    _STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	    if (r0 == JIT_FPRET) {
+		/* jit_ret() must follow! */
+		_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+		_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+	    }
+	    else {
+		_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+		_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
+		_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+		_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	    }
 	}
     }
 }
@@ -720,8 +753,13 @@ arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 	float	f;
     } u;
     u.f = i0;
-    jit_movi_i(JIT_FTMP, u.i);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    if (r0 == JIT_FPRET)
+	/* jit_ret() must follow! */
+	jit_movi_i(_R0, u.i);
+    else {
+	jit_movi_i(JIT_FTMP, u.i);
+	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    }
 }
 
 #define jit_movi_d(r0, i0)		arm_movi_d(_jit, r0, i0)
@@ -733,10 +771,17 @@ arm_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 	double	d;
     } u;
     u.d = i0;
-    jit_movi_i(JIT_FTMP, u.i[0]);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
-    jit_movi_i(JIT_FTMP, u.i[1]);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    if (r0 == JIT_FPRET) {
+	/* jit_ret() must follow! */
+	jit_movi_i(_R0, u.i[0]);
+	jit_movi_i(_R1, u.i[1]);
+    }
+    else {
+	jit_movi_i(JIT_FTMP, u.i[0]);
+	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	jit_movi_i(JIT_FTMP, u.i[1]);
+	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    }
 }
 
 #define jit_absr_f(r0, r1)		arm_absr_f(_jit, r0, r1)
@@ -752,6 +797,7 @@ arm_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
     _BICI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
@@ -765,6 +811,7 @@ arm_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
@@ -774,6 +821,7 @@ arm_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
     _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
@@ -788,6 +836,7 @@ __jit_inline void
 arm_sqrtr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     d = (((int)sqrtf - (int)_jit->x.pc) >> 2) - 2;
@@ -806,6 +855,7 @@ __jit_inline void
 arm_sqrtr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5_p())
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -1287,6 +1337,7 @@ arm_bunordr_d(jit_state_t _jit, void *i0, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
+    assert(r0 != JIT_FPRET);
     jit_ldr_i(JIT_FTMP, r1);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
@@ -1295,6 +1346,7 @@ arm_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
+    assert(r0 != JIT_FPRET);
     if (jit_armv5_p()) {
 	_LDRDI(JIT_TMP, r1, 0);
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
@@ -1311,6 +1363,7 @@ arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
+    assert(r0 != JIT_FPRET);
     jit_ldi_i(JIT_FTMP, i0);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
@@ -1319,6 +1372,7 @@ arm_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 __jit_inline void
 arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
+    assert(r0 != JIT_FPRET);
     jit_movi_i(JIT_TMP, (int)i0);
     if (jit_armv5_p()) {
 	_LDRDI(JIT_TMP, JIT_TMP, 0);
@@ -1336,6 +1390,7 @@ arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 __jit_inline void
 arm_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
+    assert(r0 != JIT_FPRET);
     _LDR(JIT_TMP, r1, r2);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
@@ -1344,6 +1399,7 @@ arm_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
+    assert(r0 != JIT_FPRET);
     if (jit_armv5_p()) {
 	_LDRD(JIT_TMP, r1, r2);
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
@@ -1361,6 +1417,7 @@ arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(r0 != JIT_FPRET);
     jit_ldxi_i(JIT_FTMP, r1, i0);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
@@ -1369,6 +1426,7 @@ arm_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(r0 != JIT_FPRET);
     if (jit_armv5_p()) {
 	if (i0 >= 0 && i0 <= 255)
 	    _LDRDI(JIT_TMP, r1, i0);
@@ -1406,6 +1464,7 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     jit_str_i(r0, JIT_FTMP);
 }
@@ -1414,6 +1473,7 @@ arm_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(r1 != JIT_FPRET);
     if (jit_armv5_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
 	_STRDI(JIT_TMP, r0, 0);
@@ -1430,6 +1490,7 @@ arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
+    assert(r0 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
     jit_sti_i(i0, JIT_FTMP);
 }
@@ -1438,6 +1499,7 @@ arm_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 __jit_inline void
 arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
+    assert(r0 != JIT_FPRET);
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
     _STRI(JIT_FTMP, JIT_TMP, 0);
@@ -1449,6 +1511,7 @@ arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 __jit_inline void
 arm_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
+    assert(r2 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r2 << 3) + 8);
     jit_stxr_i(r0, r1, JIT_FTMP);
 }
@@ -1457,6 +1520,7 @@ arm_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 __jit_inline void
 arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
+    assert(r2 != JIT_FPRET);
     if (jit_armv5_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
 	_STRD(JIT_TMP, r0, r1);
@@ -1474,6 +1538,7 @@ arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 __jit_inline void
 arm_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(r1 != JIT_FPRET);
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     jit_stxi_i(i0, r0, JIT_FTMP);
 }
@@ -1482,6 +1547,7 @@ arm_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(r1 != JIT_FPRET);
     if (jit_armv5_p()) {
 	if (i0 >= 0 && i0 <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
@@ -1559,6 +1625,7 @@ arm_arg_d(jit_state_t _jit)
 __jit_inline void
 arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
+    assert(r0 != JIT_FPRET);
     if (i0 < 4)
 	jit_ldxi_i(JIT_FTMP, JIT_FP, i0 << 2);
     else
@@ -1570,6 +1637,7 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
+    assert(r0 != JIT_FPRET);
     if (jit_armv5_p()) {
 	if (i0 < 4)
 	    _LDRDI(JIT_TMP, JIT_FP, i0 << 2);
@@ -1606,6 +1674,7 @@ __jit_inline void
 arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
+    assert(r0 != JIT_FPRET);
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(float);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
@@ -1619,6 +1688,7 @@ __jit_inline void
 arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
+    assert(r0 != JIT_FPRET);
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(double);
     if (jit_armv5_p())
@@ -1631,6 +1701,25 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
     jit_stxi_i(0, JIT_SP, JIT_TMP);
     jit_stxi_i(0, JIT_SP, JIT_FTMP);
+}
+
+#define jit_retval_f(r0)		arm_retval_f(_jit, r0)
+__jit_inline void
+arm_retval_f(jit_state_t _jit, jit_fpr_t r0)
+{
+    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+}
+
+#define jit_retval_d(r0)		arm_retval_d(_jit, r0)
+__jit_inline void
+arm_retval_d(jit_state_t _jit, jit_fpr_t r0)
+{
+    if (jit_armv5_p())
+	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    else {
+	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+    }
 }
 
 #endif /* __lightning_fp_arm_h */
