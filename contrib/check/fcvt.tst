@@ -140,32 +140,21 @@ fn##fr##tr##ir##ft##tt##n:
 	rint(__LINE__, $(-1.0/3.0),		 0)
 	rint(__LINE__, $( 1.0/2.0),		 0)
 	rint(__LINE__, $(-1.0/2.0),		 0)
-#if __arm__
-	rint(__LINE__, $( 2.0/3.0),		 0)
-	rint(__LINE__, $(-2.0/3.0),		 0)
-	rint(__LINE__, $( 3.0/2.0),		 1)
-	rint(__LINE__, $(-3.0/2.0),		-1)
-#else
 	rint(__LINE__, $( 2.0/3.0),		 1)
 	rint(__LINE__, $(-2.0/3.0),		-1)
+#if !__arm__	/* soft float and double do not agree... */
 	rint(__LINE__, $( 3.0/2.0),		 2)
 	rint(__LINE__, $(-3.0/2.0),		-2)
 #endif
 	rint(__LINE__, $( 4.0/3.0),		 1)
 	rint(__LINE__, $(-4.0/3.0),		-1)
-#if __arm__
-	rint(__LINE__, $( 5.0/3.0),		 1)
-	rint(__LINE__, $(-5.0/3.0),		-1)
-#else
+#if !__arm__	/* soft float and double do not agree... */
 	rint(__LINE__, $( 5.0/3.0),		 2)
 	rint(__LINE__, $(-5.0/3.0),		-2)
 #endif
 	rint(__LINE__, $( 5.0/2.0),		 2)
 	rint(__LINE__, $(-5.0/2.0),		-2)
-#if __arm__
-	rint(__LINE__, $( 7.0/2.0),		 3)
-	rint(__LINE__, $(-7.0/2.0),		-3)
-#else
+#if !__arm__	/* soft float and double do not agree... */
 	rint(__LINE__, $( 7.0/2.0),		 4)
 	rint(__LINE__, $(-7.0/2.0),		-4)
 #endif

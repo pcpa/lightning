@@ -4386,6 +4386,11 @@ main(int argc, char *argv[])
 			  sizeof(cmdline) - opt_short,
 			  " -D__mips__=1");
 #  endif
+#  if defined(__arm__)
+    opt_short += snprintf(cmdline + opt_short,
+			  sizeof(cmdline) - opt_short,
+			  " -D__arm__=1");
+#  endif
     if ((parser.fp = popen(cmdline, "r")) == NULL)
 	error("cannot execute %s", cmdline);
 #endif
