@@ -174,6 +174,52 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 }
 
 static void
+arm_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
+    _PUSH(0xf);
+    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)i0);
+	_BLX(JIT_FTMP);
+    }
+    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _POP(0xf);
+}
+
+static void
+arm_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
+{
+    int			d;
+    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
+    _PUSH(0xf);
+    if (jit_armv5_p())
+	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+    else {
+	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+    }
+    d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
+    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
+	_BL(d & 0x00ffffff);
+    else {
+	jit_movi_i(JIT_FTMP, (int)i0);
+	_BLX(JIT_FTMP);
+    }
+    if (jit_armv5_p())
+	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+    else {
+	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+    }
+    _POP(0xf);
+}
+
+static void
 arm_fff(jit_state_t _jit, float (*i0)(float, float),
 	jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
@@ -835,48 +881,14 @@ arm_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_sqrtr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    int			d;
-    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    _PUSH(0xf);
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-    d = (((int)sqrtf - (int)_jit->x.pc) >> 2) - 2;
-    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
-    else {
-	jit_movi_i(JIT_FTMP, (int)sqrt);
-	_BLX(JIT_FTMP);
-    }
-    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-    _POP(0xf);
+    arm_ff(_jit, sqrtf, r0, r1);
 }
 
 #define jit_sqrtr_d(r0, r1)		arm_sqrtr_d(_jit, r0, r1)
 __jit_inline void
 arm_sqrtr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    int			d;
-    assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    _PUSH(0xf);
-    if (jit_armv5_p())
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-    else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-    }
-    d = (((int)sqrt - (int)_jit->x.pc) >> 2) - 2;
-    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
-    else {
-	jit_movi_i(JIT_FTMP, (int)sqrt);
-	_BLX(JIT_FTMP);
-    }
-    if (jit_armv5_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
-    else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
-    }
-    _POP(0xf);
+    arm_dd(_jit, sqrt, r0, r1);
 }
 
 #define jit_addr_f(r0, r1, r2)		arm_addr_f(_jit, r0, r1, r2)
