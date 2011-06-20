@@ -1417,56 +1417,48 @@ arm_extr_s_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_getarg_c(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
+    if (i0 < 4)
+	i0 << = 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(char);
 #endif
-    /* arguments are saved in prolog */
-    if (i0 < 4)
-	jit_ldxi_c(r0, JIT_FP, (i0 << 2));
-    else
-	jit_ldxi_c(r0, JIT_FP, i0);
+    jit_ldxi_c(r0, JIT_FP, i0);
 }
 
 #define jit_getarg_uc(r0, i0)		arm_getarg_uc(_jit, r0, i0)
 __jit_inline void
 arm_getarg_uc(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
+    if (i0 < 4)
+	i0 << = 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(char);
 #endif
-    /* arguments are saved in prolog */
-    if (i0 < 4)
-	jit_ldxi_uc(r0, JIT_FP, (i0 << 2));
-    else
-	jit_ldxi_uc(r0, JIT_FP, i0);
+    jit_ldxi_uc(r0, JIT_FP, i0);
 }
 
 #define jit_getarg_s(r0, i0)		arm_getarg_s(_jit, r0, i0)
 __jit_inline void
 arm_getarg_s(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
+    if (i0 < 4)
+	i0 << = 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(short);
 #endif
-    /* arguments are saved in prolog */
-    if (i0 < 4)
-	jit_ldxi_s(r0, JIT_FP, (i0 << 2));
-    else
-	jit_ldxi_s(r0, JIT_FP, i0);
+    jit_ldxi_s(r0, JIT_FP, i0);
 }
 
 #define jit_getarg_us(r0, i0)		arm_getarg_us(_jit, r0, i0)
 __jit_inline void
 arm_getarg_us(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
+    if (i0 < 4)
+	i0 << = 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(short);
 #endif
-    /* arguments are saved in prolog */
-    if (i0 < 4)
-	jit_ldxi_us(r0, JIT_FP, (i0 << 2));
-    else
-	jit_ldxi_us(r0, JIT_FP, i0);
+    jit_ldxi_us(r0, JIT_FP, i0);
 }
 
 #define jit_getarg_i(r0, i0)		arm_getarg_i(_jit, r0, i0)
@@ -1479,9 +1471,8 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     /* arguments are saved in prolog */
     if (i0 < 4)
-	jit_ldxi_i(r0, JIT_FP, (i0 << 2));
-    else
-	jit_ldxi_i(r0, JIT_FP, i0);
+	i0 << = 2;
+    jit_ldxi_i(r0, JIT_FP, i0);
 }
 
 #define jit_pusharg_i(r0)		arm_pusharg_i(_jit, r0)
