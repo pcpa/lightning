@@ -105,18 +105,18 @@ typedef enum {
 #define ARM_UMLAL	0x00a00090
 #define ARM_SMULL	0x00c00090
 #define ARM_SMLAL	0x00e00090
+
 #define ARM_AND		0x00000000
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
 #define ARM_EOR		0x00200000
-#define ARM_ASR		0x01a00050
-#define ARM_LSR		0x01a00030
-#define ARM_LSL		0x01a00010
-#define ARM_ROR		0x01a00070
-#define ARM_ASRI	0x01a00040
-#define ARM_LSRI	0x01a00020
-#define ARM_LSLI	0x01a00000
-#define ARM_RORI	0x01a00060
+
+#define ARM_SHIFT	0x01a00000
+#define ARM_R		0x00000010	/* register shift */
+#define ARM_LSL		0x00000000
+#define ARM_LSR		0x00000020
+#define ARM_ASR		0x00000040
+#define ARM_ROR		0x00000060
 
 #define ARM_CMP		0x01500000
 #define ARM_CMN		0x01700000
@@ -208,20 +208,20 @@ arm_cc_orrrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int r3)
 }
 
 __jit_inline void
-arm_cc_srrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+arm_cc_srrri(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
 {
     assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x0000ff0f));
-    _jit_I(cc|o|(_u4(r0)<<12)|(_u4(r2)<<8)|_u4(r1));
+    assert(!(o  & 0x0000ff8f));
+    _jit_I(cc|o|(_u4(r0)<<12)|(_u4(r1)<<16)|(i0<<7)|_u4(r2));
 }
 
 __jit_inline void
-arm_cc_srri(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
+arm_cc_shift(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
 {
     assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x0000ff0f));
-    assert(i0 >= 1 && i0 <= 31);
-    _jit_I(cc|o|(_u4(r0)<<12)|(i0<<7)|(_u4(r1)));
+    assert(!(o  & 0x0ff0ff8f));
+    assert(((_u4(r2)<<8)&(i0<<7)) == 0);
+    _jit_I(cc|ARM_SHIFT|o|(_u4(r0)<<12)|(_u4(r2)<<8)|(i0<<7)|_u4(r1));
 }
 
 __jit_inline void
@@ -319,6 +319,9 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 
 #define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND,r0,r1,r2)
 #define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
+#define _CC_AND_SI(cc,r0,r1,r2,sh,im)					\
+    arm_cc_srrri(_jit,cc,ARM_AND|sh,r0,r1,r2,im)
+#define _AND_SI(r0,r1,r2,sh,im)	_CC_AND_SI(ARM_CC_AL,r0,r1,r2,sh,im)
 #define _CC_ANDI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_AND|ARM_I,r0,r1,i0)
 #define _ANDI(r0,r1,i0)		_CC_ANDI(ARM_CC_AL,r0,r1,i0)
 #define _CC_ANDS(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_AND|ARM_S,r0,r1,r2)
@@ -327,6 +330,9 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 #define _ANDSI(r0,r1,i0)	_CC_ANDSI(ARM_CC_AL,r0,r1,i0)
 #define _CC_BIC(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_BIC,r0,r1,r2)
 #define _BIC(r0,r1,r2)		_CC_BIC(ARM_CC_AL,r0,r1,r2)
+#define _CC_BIC_SI(cc,r0,r1,r2,sh,im)					\
+    arm_cc_srrri(_jit,cc,ARM_BIC|sh,r0,r1,r2,im)
+#define _BIC_SI(r0,r1,r2,sh,im)	_CC_BIC_SI(ARM_CC_AL,r0,r1,r2,sh,im)
 #define _CC_BICI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_BIC|ARM_I,r0,r1,i0)
 #define _BICI(r0,r1,i0)		_CC_BICI(ARM_CC_AL,r0,r1,i0)
 #define _CC_BICS(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_BIC|ARM_S,r0,r1,r2)
@@ -335,27 +341,35 @@ arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 #define _BICSI(r0,r1,i0)	_CC_BICSI(ARM_CC_AL,r0,r1,i0)
 #define _CC_OR(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_ORR,r0,r1,r2)
 #define _OR(r0,r1,r2)		_CC_OR(ARM_CC_AL,r0,r1,r2)
+#define _CC_OR_SI(cc,r0,r1,r2,sh,im)					\
+    arm_cc_srrri(_jit,cc,ARM_ORR|sh,r0,r1,r2,im)
+#define _OR_SI(r0,r1,r2,sh,im)	_CC_OR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
 #define _CC_ORI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_ORR|ARM_I,r0,r1,i0)
 #define _ORI(r0,r1,i0)		_CC_ORI(ARM_CC_AL,r0,r1,i0)
 #define _CC_XOR(cc,r0,r1,r2)	arm_cc_orrr(_jit,cc,ARM_EOR,r0,r1,r2)
 #define _XOR(r0,r1,r2)		_CC_XOR(ARM_CC_AL,r0,r1,r2)
+#define _CC_XOR_SI(cc,r0,r1,r2,sh,im)					\
+    arm_cc_srrri(_jit,cc,ARM_EOR|sh,r0,r1,r2,im)
+#define _XOR_SI(r0,r1,r2,sh,im)	_CC_XOR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
 #define _CC_XORI(cc,r0,r1,i0)	arm_cc_orri(_jit,cc,ARM_EOR|ARM_I,r0,r1,i0)
 #define _XORI(r0,r1,i0)		_CC_XORI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ASR(cc,r0,r1,r2)	arm_cc_srrr(_jit,cc,ARM_ASR,r0,r1,r2)
-#define _ASR(r0,r1,r2)		_CC_ASR(ARM_CC_AL,r0,r1,r2)
-#define _CC_ASRI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_ASRI,r0,r1,i0)
-#define _ASRI(r0,r1,i0)		_CC_ASRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LSR(cc,r0,r1,r2)	arm_cc_srrr(_jit,cc,ARM_LSR,r0,r1,r2)
-#define _LSR(r0,r1,r2)		_CC_LSR(ARM_CC_AL,r0,r1,r2)
-#define _CC_LSRI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_LSRI,r0,r1,i0)
-#define _LSRI(r0,r1,i0)		_CC_LSRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LSL(cc,r0,r1,r2)	arm_cc_srrr(_jit,cc,ARM_LSL,r0,r1,r2)
+
+#define _CC_SHIFT(cc,o,r0,r1,r2,i0) arm_cc_shift(_jit,cc,o,r0,r1,r2,i0)
+#define _CC_LSL(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_LSL|ARM_R,r0,r1,r2,0)
 #define _LSL(r0,r1,r2)		_CC_LSL(ARM_CC_AL,r0,r1,r2)
-#define _CC_LSLI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_LSLI,r0,r1,i0)
+#define _CC_LSLI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_LSL,r0,r1,0,i0)
 #define _LSLI(r0,r1,i0)		_CC_LSLI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ROR(cc,r0,r1,r2)	arm_cc_srrr(_jit,cc,ARM_ROR,r0,r1,r2)
+#define _CC_LSR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_LSR|ARM_R,r0,r1,r2,0)
+#define _LSR(r0,r1,r2)		_CC_LSR(ARM_CC_AL,r0,r1,r2)
+#define _CC_LSRI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_LSR,r0,r1,0,i0)
+#define _LSRI(r0,r1,i0)		_CC_LSRI(ARM_CC_AL,r0,r1,i0)
+#define _CC_ASR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_ASR|ARM_R,r0,r1,r2,0)
+#define _ASR(r0,r1,r2)		_CC_ASR(ARM_CC_AL,r0,r1,r2)
+#define _CC_ASRI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_ASR,r0,r1,0,i0)
+#define _ASRI(r0,r1,i0)		_CC_ASRI(ARM_CC_AL,r0,r1,i0)
+#define _CC_ROR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_ROR|ARM_R,r0,r1,r2,0)
 #define _ROR(r0,r1,r2)		_CC_ROR(ARM_CC_AL,r0,r1,r2)
-#define _CC_RORI(cc,r0,r1,i0)	arm_cc_srri(_jit,cc,ARM_RORI,r0,r1,i0)
+#define _CC_RORI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_ROR,r0,r1,0,i0)
 #define _RORI(r0,r1,i0)		_CC_RORI(ARM_CC_AL,r0,r1,i0)
 
 #define _CC_CMP(cc,r0,r1)	arm_cc_orrr(_jit,cc,ARM_CMP,0,r0,r1)

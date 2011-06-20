@@ -49,7 +49,7 @@ str_d:
 fmt_f2i:
 .c	"%2ld: %sr_%s_%s %8.5f = %2ld\n"
 
-.code	$(16 * 1024 * 1024)
+.code	$(24 * 1024 * 1024)
 	prolog 0
 
 /* r0 = function(f0) 	->	ir = function((ftype)fr) */
