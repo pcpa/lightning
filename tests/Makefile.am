@@ -24,3 +24,4 @@ TESTS_ENVIRONMENT=$(srcdir)/run-test
 endif
 
 ldst_CFLAGS = -ffloat-store
+testfp_CFLAGS = -lm

@@ -50,7 +50,7 @@ int			 oo;
 
 pvv_t			 pvv;
 types_t			 t0, t1;
-jit_insn		 code[16384];
+jit_insn		 code[32768];
 
 char			*progname;
 
