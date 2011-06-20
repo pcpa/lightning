@@ -219,7 +219,7 @@ __jit_inline void
 arm_cc_shift(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
 {
     assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0x0ff0ff8f));
+    assert(!(o  & 0x0fe0ff8f));
     assert(((_u4(r2)<<8)&(i0<<7)) == 0);
     _jit_I(cc|ARM_SHIFT|o|(_u4(r0)<<12)|(_u4(r2)<<8)|(i0<<7)|_u4(r1));
 }

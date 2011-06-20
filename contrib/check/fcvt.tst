@@ -16,11 +16,14 @@
 #if __mips__
 #  define nan_i			ix7f
 #  define nan_l			lx7f
-#  define pinf_i		ix7f
-#  define pinf_l		lx7f
 #else
 #  define nan_i			ix80
 #  define nan_l			lx80
+#endif
+#if __mips__ || __arm__
+#  define pinf_i		ix7f
+#  define pinf_l		lx7f
+#else
 #  define pinf_i		ix80
 #  define pinf_l		lx80
 #endif

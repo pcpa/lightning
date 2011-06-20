@@ -71,14 +71,31 @@ extern int	__aeabi_dcmpun(double, double);
 static void
 arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 {
-    int			d;
-    int			l;
+    int			 d;
+    int			 l;
+    jit_insn		*is_nan;
+    jit_insn		*fast_not_nan;
+    jit_insn		*slow_not_nan;
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    /* >> based on fragment of __eabi_fcmpun */
+    _LSLI(JIT_FTMP, _R0, 1);
+    arm_cc_srrri(_jit,ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_FTMP,24);
+    fast_not_nan = _jit->x.pc;
+    _CC_B(ARM_CC_NE, 0);
+    arm_cc_shift(_jit,ARM_CC_AL,ARM_S|ARM_LSL,JIT_TMP,_R0,0,9);
+    slow_not_nan = _jit->x.pc;
+    _CC_B(ARM_CC_EQ, 0);
+    _MOVI(r0, encode_arm_immediate(0x80000000));
+    is_nan = _jit->x.pc;
+    _CC_B(ARM_CC_AL, 0);
+    jit_patch(fast_not_nan);
+    jit_patch(slow_not_nan);
+    /* << based on fragment of __eabi_fcmpun */
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -96,14 +113,18 @@ arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     jit_movr_i(r0, _R0);
+    jit_patch(is_nan);
     _POP(l);
 }
 
 static void
 arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 {
-    int			d;
-    int			l;
+    int			 d;
+    int			 l;
+    jit_insn		*is_nan;
+    jit_insn		*fast_not_nan;
+    jit_insn		*slow_not_nan;
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -115,6 +136,20 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
     }
+    /* >> based on fragment of __eabi_dcmpun */
+    _LSLI(JIT_TMP, _R1, 1);
+    arm_cc_srrri(_jit,ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_TMP,21);
+    fast_not_nan = _jit->x.pc;
+    _CC_B(ARM_CC_NE, 0);
+    arm_cc_srrri(_jit,ARM_CC_AL,ARM_ORR|ARM_S|ARM_LSL,JIT_TMP,_R0,_R1,12);
+    slow_not_nan = _jit->x.pc;
+    _CC_B(ARM_CC_EQ, 0);
+    _MOVI(r0, encode_arm_immediate(0x80000000));
+    is_nan = _jit->x.pc;
+    _CC_B(ARM_CC_AL, 0);
+    jit_patch(fast_not_nan);
+    jit_patch(slow_not_nan);
+    /* << based on fragment of __eabi_dcmpun */
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -132,6 +167,7 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     jit_movr_i(r0, _R0);
+    jit_patch(is_nan);
     _POP(l);
 }
 
@@ -577,6 +613,20 @@ arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     _POP(0xf);
 }
 
+#define jit_rintr_f_i(r0, r1)		arm_rintr_f_i(_jit, r0, r1)
+__jit_inline void
+arm_rintr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_if(_jit, rintf, r0, r1);
+}
+
+#define jit_rintr_d_i(r0, r1)		arm_truncr_d_i(_jit, r0, r1)
+__jit_inline void
+arm_rintr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+{
+    arm_id(_jit, rint, r0, r1);
+}
+
 #define jit_roundr_f_i(r0, r1)		arm_roundr_f_i(_jit, r0, r1)
 __jit_inline void
 arm_roundr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
@@ -592,7 +642,6 @@ arm_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 }
 
 #define jit_truncr_f_i(r0, r1)		arm_truncr_f_i(_jit, r0, r1)
-#define jit_rintr_f_i(r0, r1)		arm_truncr_f_i(_jit, r0, r1)
 __jit_inline void
 arm_truncr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
@@ -600,7 +649,6 @@ arm_truncr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 }
 
 #define jit_truncr_d_i(r0, r1)		arm_truncr_d_i(_jit, r0, r1)
-#define jit_rintr_d_i(r0, r1)		arm_truncr_d_i(_jit, r0, r1)
 __jit_inline void
 arm_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
