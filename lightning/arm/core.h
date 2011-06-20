@@ -1308,13 +1308,13 @@ arm_prolog(jit_state_t _jit, int i0)
 
     //if (jit_softfp_p())
 	/* 6 soft double registers */
-    _jitl.alloca_offset = _jitl.stack_length = 48;
+    _jitl.alloca_offset = 48;
     //else
-	//_jitl.alloca_offset = _jitl.stack_length = 0;
+	//_jitl.alloca_offset = 0;
 
-    jit_movi_p(JIT_TMP, (void *)_jitl.stack_length);
+    jit_movi_p(JIT_TMP, (void *)_jitl.alloca_offset);
     _SUB(JIT_SP, JIT_SP, JIT_TMP);
-    _jitl.stack_offset = 0;
+    _jitl.stack_length = _jitl.stack_offset = 0;
 }
 
 #define jit_callr(r0)			_BLX(r0)
