@@ -1292,9 +1292,6 @@ arm_prolog(jit_state_t _jit, int i0)
 {
     _PUSH(/* arguments (should keep state and only save "i0" registers) */
 	  (1<<_R0)|(1<<_R1)|(1<<_R2)|(1<<_R3)|
-	  /* callee save (FIXME _R9 also added to align at 8 bytes but
-	   * need to check alloca implementation and/or alignment if
-	   * running out of register arguments when calling functions) */
 	  (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
 	  /* previous fp and return address */
 	  (1<<JIT_FP)|(1<<JIT_LR));
@@ -1418,7 +1415,7 @@ __jit_inline void
 arm_getarg_c(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 < 4)
-	i0 << = 2;
+	i0 <<= 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(char);
 #endif
@@ -1430,7 +1427,7 @@ __jit_inline void
 arm_getarg_uc(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 < 4)
-	i0 << = 2;
+	i0 <<= 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(char);
 #endif
@@ -1442,7 +1439,7 @@ __jit_inline void
 arm_getarg_s(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 < 4)
-	i0 << = 2;
+	i0 <<= 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(short);
 #endif
@@ -1454,7 +1451,7 @@ __jit_inline void
 arm_getarg_us(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     if (i0 < 4)
-	i0 << = 2;
+	i0 <<= 2;
 #if __BYTE_ORDER == __BIG_ENDIAN
     i0 += sizeof(int) - sizeof(short);
 #endif
@@ -1471,7 +1468,7 @@ arm_getarg_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 {
     /* arguments are saved in prolog */
     if (i0 < 4)
-	i0 << = 2;
+	i0 <<= 2;
     jit_ldxi_i(r0, JIT_FP, i0);
 }
 
