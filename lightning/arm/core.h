@@ -785,10 +785,19 @@ arm_jmpr(jit_state_t _jit, jit_gpr_t r0)
 __jit_inline jit_insn *
 arm_jmpi(jit_state_t _jit, void *i0)
 {
+#if 1	/* do not pretend will jump outside of jit */
+    jit_insn	*l;
+    long	 d;
+    l = _jit->x.pc;
+    d = (((long)i0 - (long)l) >> 2) - 2;
+    assert(_s24P(d));
+    _CC_B(ARM_CC_AL, d & 0x00ffffff);
+#else
     jit_insn	*l;
     l = _jit->x.pc;
     jit_movi_p(JIT_TMP, i0);
     jit_jmpr(JIT_TMP);
+#endif
     return (l);
 }
 
