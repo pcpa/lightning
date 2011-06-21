@@ -925,8 +925,8 @@ arm_bsubi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
 }
 #define jit_bosubr_i(i0, r0, r1)	arm_bsubr(_jit, ARM_CC_VS, i0, r0, r1)
 #define jit_bosubi_i(i0, r0, i1)	arm_bsubi(_jit, ARM_CC_VS, i0, r0, i1)
-#define jit_bosubr_ui(i0, r0, r1)	arm_bsubr(_jit, ARM_CC_HS, i0, r0, r1)
-#define jit_bosubi_ui(i0, r0, i1)	arm_bsubi(_jit, ARM_CC_HS, i0, r0, i1)
+#define jit_bosubr_ui(i0, r0, r1)	arm_bsubr(_jit, ARM_CC_LO, i0, r0, r1)
+#define jit_bosubi_ui(i0, r0, i1)	arm_bsubi(_jit, ARM_CC_LO, i0, r0, i1)
 
 __jit_inline jit_insn *
 arm_bmxr(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, jit_gpr_t r1)

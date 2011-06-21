@@ -51,7 +51,12 @@ DEFDATA(d,  d)
 #define offf		4
 #define offd		8
 
+#if __arm__
+/* software float... */
+.code	$(24 * 1024 * 1024)
+#else
 .code	$(4 * 1024 * 1024)
+#endif
 	jmpi main
 
 #define IV0	0x10000
@@ -81,18 +86,68 @@ DEFDATA(d,  d)
 #define FR5	f5
 
 /*--------------------------------------------------------------------*/
-/* setup registers with unlikely values, for clobber detection
- * just don't use these values on tests :-); calee save registers
- * setting must be done inline */
-#define setup()						\
+#if __arm__
+#  define setup_f					\
+	movi_i %r0 IV0					\
+	movi_i %r1 IV1					\
+	movi_i %r2 IV2					\
+	movi_f %f0 FV0					\
+	movi_f %f1 FV1					\
+	movi_f %f2 FV2					\
+	movi_f %f3 FV3					\
+	movi_f %f4 FV4					\
+	movi_f %f5 FV5
+#  define setup_d					\
+	movi_i %r0 IV0					\
+	movi_i %r1 IV1					\
+	movi_i %r2 IV2					\
+	movi_d %f0 FV0					\
+	movi_d %f1 FV1					\
+	movi_d %f2 FV2					\
+	movi_d %f3 FV3					\
+	movi_d %f4 FV4					\
+	movi_d %f5 FV5
+#  define setup()					\
 	movi_i %v0 IV3					\
 	movi_i %v1 IV4					\
 	movi_i %v2 IV5					\
-	calli setup
+	setup_d
 /* this indirectly also ensures that calee save registers are
  * properly restored */
-
-setup:
+#  define fsetup(f)					\
+	movi_i %v0 IV3					\
+	movi_i %v1 IV4					\
+	movi_i %v2 IV5					\
+	setup_##f
+#else
+/* setup registers with unlikely values, for clobber detection
+ * just don't use these values on tests :-); calee save registers
+ * setting must be done inline */
+#  define setup()					\
+	movi_i %v0 IV3					\
+	movi_i %v1 IV4					\
+	movi_i %v2 IV5					\
+	calli setup_d
+/* this indirectly also ensures that calee save registers are
+ * properly restored */
+#  define fsetup(f)					\
+	movi_i %v0 IV3					\
+	movi_i %v1 IV4					\
+	movi_i %v2 IV5					\
+	calli setup_##f
+setup_f:
+	prolog 0
+	movi_i %r0 IV0
+	movi_i %r1 IV1
+	movi_i %r2 IV2
+	movi_f %f0 FV0
+	movi_f %f1 FV1
+	movi_f %f2 FV2
+	movi_f %f3 FV3
+	movi_f %f4 FV4
+	movi_f %f5 FV5
+	ret
+setup_d:
 	prolog 0
 	movi_i %r0 IV0
 	movi_i %r1 IV1
@@ -104,6 +159,7 @@ setup:
 	movi_d %f4 FV4
 	movi_d %f5 FV5
 	ret
+#endif
 
 /*--------------------------------------------------------------------*/
 error:
@@ -141,9 +197,9 @@ main:
 label:
 
 /* require clobbering a register for comparison */
-#define checkf(line, label, rn, fr)			\
-	movi_d %FR##fr FV##rn				\
-	beqr_d label %FR##rn %FR##fr			\
+#define checkf(line, kind, label, rn, fr)		\
+	movi_##kind %FR##fr FV##rn			\
+	beqr_##kind label %FR##rn %FR##fr		\
 	movi_i %r0 $(rn + 6)				\
 	movi_i %r1 line					\
 	jmpi error					\
@@ -177,25 +233,25 @@ label:
 	check(line, i##line##kind##i0##i1##i2##i3##i4##i5##_4, i4)	\
 	check(line, i##line##kind##i0##i1##i2##i3##i4##i5##_5, i5)
 #define checkf1(line, kind, t, f0, fr)			\
-	checkf(line, t, t##line##kind##f0##_0, f0, fr)
-#define  checkf2(line, kind, t, fr, f0, f1)			\
-	checkf(line, t##line##kind##f0##f1##_0, f0, fr)		\
-	checkf(line, t, t##line##kind##f0##f1##_1, f1, fr)
-#define  checkf3(line, kind, t, fr, f0, f1, f2)			\
-	checkf(line, t##line##kind##f0##f1##f2##_0, f0, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##_1, f1, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##_2, f2, fr)
-#define  checkf4(line, kind, t, fr, f0, f1, f2, f3)		\
-	checkf(line, t##line##kind##f0##f1##f2##f3##_0, f0, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##_1, f1, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##_2, f2, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##_3, f3, fr)
-#define  checkf5(line, kind, t, fr, f0, f1, f2, f3, f4)			\
-	checkf(line, t##line##kind##f0##f1##f2##f3##f4##_0, f0, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##f4##_1, f1, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##f4##_2, f2, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##f4##_3, f3, fr)	\
-	checkf(line, t##line##kind##f0##f1##f2##f3##f4##_4, f4, fr)
+	checkf(line, kind, t##line##kind##f0##_0, f0, fr)
+#define checkf2(line, kind, t, fr, f0, f1)				\
+	checkf(line, kind, t##line##kind##f0##f1##_0, f0, fr)		\
+	checkf(line, kind, t##line##kind##f0##f1##_1, f1, fr)
+#define checkf3(line, kind, t, fr, f0, f1, f2)				\
+	checkf(line, kind, t##line##kind##f0##f1##f2##_0, f0, fr)	\
+	checkf(line, kind, t##line##kind##f0##f1##f2##_1, f1, fr)	\
+	checkf(line, kind, t##line##kind##f0##f1##f2##_2, f2, fr)
+#define checkf4(line, kind, t, fr, f0, f1, f2, f3)			\
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##_0, f0, fr)	\
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##_1, f1, fr)	\
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##_2, f2, fr)	\
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##_3, f3, fr)
+#define checkf5(line, kind, t, fr, f0, f1, f2, f3, f4)			  \
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##f4##_0, f0, fr) \
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##f4##_1, f1, fr) \
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##f4##_2, f2, fr) \
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##f4##_3, f3, fr) \
+	checkf(line, kind, t##line##kind##f0##f1##f2##f3##f4##_4, f4, fr)
 
 #define alui(line, op, i, i0, i1, i2, i3, i4, i5)	\
 	setup()						\
@@ -231,36 +287,36 @@ label:
 	op##r_##i %IR##i0 %IR##i0 %IR##i0		\
 	check5(line, rc2, i1, i2, i3, i4, i5)
 #define fopr(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	movi_##f %FR##f1 1.0				\
 	op##r_##f %FR##f2 %FR##f0 %FR##f1		\
 	check6(line, f##op##r##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf3(line, r, f, f0, f3, f4, f5)
+	checkf3(line, f, r, f0, f3, f4, f5)
 #define foprc0(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	movi_##f %FR##f1 1.0				\
 	op##r_##f %FR##f0 %FR##f0 %FR##f1		\
 	check6(line, f##op##r0##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf4(line, r0, f, f0, f2, f3, f4, f5)
+	checkf4(line, f, r0, f0, f2, f3, f4, f5)
 #define foprc1(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	movi_##f %FR##f1 1.0				\
 	op##r_##f %FR##f1 %FR##f0 %FR##f1		\
 	check6(line, f##op##r1##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf4(line, r1, f, f0, f2, f3, f4, f5)
+	checkf4(line, f, r1, f0, f2, f3, f4, f5)
 #define foprc2(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	op##r_##f %FR##f0 %FR##f0 %FR##f0		\
 	check6(line, f##op##r2##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, r2, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, r2, f0, f1, f2, f3, f4, f5)
 #define aluxii(line, op, i, i0, i1, i2, i3, i4, i5)	\
 	setup()						\
 	movi_u##i %IR##i0 1				\
@@ -298,34 +354,34 @@ label:
 	op##r_##i %IR##i0 %IR##i0			\
 	check5(line, rr, i1, i2, i3, i4, i5)
 #define unfr(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	op##r_##f %FR##f1 %FR##f0			\
 	check6(line, f##op##r##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf4(line, r, f, f0, f2, f3, f4, f5)
+	checkf4(line, f, r, f0, f2, f3, f4, f5)
 #define unfrc(line, op, f, f0, f1, f2, f3, f4, f5)	\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1.0				\
 	op##r_##f %FR##f0 %FR##f0			\
 	check6(line, f##op##rc##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, r, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, r, f0, f1, f2, f3, f4, f5)
 #define  fcpr(line, op, f, r0, r1, r2, r3, r4, r5, f0, f1, f2, f3, f4, f5) \
-	setup()								   \
+	fsetup(f)								   \
 	movi_##f %FR##f0 1.0						   \
 	movi_##f %FR##f1 1.0						   \
 	op##r_##f %IR##r0 %FR##f0 %FR##f1				   \
 	check5(line, f##op##r##r0##f0##f1##f2##f3##f4##f5,		   \
 	       r1, r2, r3, r4, r5)					   \
-	checkf4(line, op##c##r0, f, f0, f2, f3, f4, f5)
+	checkf4(line, f, op##c##r0, f0, f2, f3, f4, f5)
 #define fcprc(line, op, f, r0, r1, r2, r3, r4, r5, f0, f1, f2, f3, f4, f5) \
-	setup()								   \
+	fsetup(f)								   \
 	movi_##f %FR##f0 1.0						   \
 	op##r_##f %IR##r0 %FR##f0 %FR##f0				   \
 	check5(line, f##op##rc##r0##f0##f1##f2##f3##f4##f5,		   \
 	       r1, r2, r3, r4, r5)					   \
-	checkf5(line, op##cc##r0, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, op##cc##r0, f0, f1, f2, f3, f4, f5)
 #define imvi(line, i, i0, i1, i2, i3, i4, i5)		\
 	setup()						\
 	movi_##i %IR##i0 1				\
@@ -339,23 +395,23 @@ label:
 	movr_##i %IR##i0 %IR##i1			\
 	check5(line, mvrc, i1, i2, i3, i4, i5)
 #define fmvi(line, f, f0, f1, f2, f3, f4, f5)		\
-	setup()						\
+	fsetup(f)					\
 	movi_##f %FR##f0 1				\
 	check6(line, mvi##f##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, mvi, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, mvi, f0, f1, f2, f3, f4, f5)
 #define fmvr(line, f, f0, f1, f2, f3, f4, f5)		\
-	setup()						\
+	fsetup(f)					\
 	movr_##f %FR##f0 %FR##f1			\
 	check6(line, mvr##f##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, mvr, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, mvr, f0, f1, f2, f3, f4, f5)
 #define fmvrc(line, f, f0, f1, f2, f3, f4, f5)		\
-	setup()						\
+	fsetup(f)					\
 	movr_##f %FR##f0 %FR##f0			\
 	check6(line, mvc##f##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, mvc, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, mvc, f0, f1, f2, f3, f4, f5)
 #define exti(line, op, t, i, i0, i1, i2, i3, i4, i5)	\
 	setup()						\
 	op##_##t##_##i %IR##i0 %IR##i1			\
@@ -365,17 +421,17 @@ label:
 	op##_##t##_##i %IR##i0 %IR##i0			\
 	check5(line, xc, i1, i2, i3, i4, i5)
 #define extfi(line, i, f, i0,i1,i2,i3,i4,i5, f0,f1,f2,f3,f4,f5)		\
-	setup()								\
+	fsetup(f)							\
 	movi_##i %IR##i0 1						\
 	extr_##i##_##f %FR##f0 %IR##i0					\
 	check5(line, x##i0##f0##f1##f2##f3##f4##f5, i1,i2,i3,i4,i5)	\
-	checkf5(line, x##i0, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, x##i0, f0, f1, f2, f3, f4, f5)
 #define extif(line, op, f, i, i0,i1,i2,i3,i4,i5,f0,f1,f2,f3,f4,f5)	\
-	setup()								\
+	fsetup(f)							\
 	movi_##f %FR##f0 1.5						\
 	op##r_##f##_##i %IR##i0 %FR##f0					\
 	check5(line, x##i0##f0##f1##f2##f3##f4##f5, i1,i2,i3,i4,i5)	\
-	checkf5(line, x##i0, f, f0, f1, f2, f3, f4, f5)
+	checkf5(line, f, x##i0, f0, f1, f2, f3, f4, f5)
 #define htni(line, op, i, i0, i1, i2, i3, i4, i5)	\
 	setup()						\
 	op##_##i %IR##i0 %IR##i1			\
@@ -399,18 +455,18 @@ label:
 	ldi_##t %IR##i0 t				\
 	check5(line, i, i1, i2, i3, i4, i5)
 #define ldrf(line,t,i0,i1,i2,i3,i4,i5,f0,f1,f2,f3,f4,f5)\
-	setup()						\
+	fsetup(t)					\
 	movi_p %IR##i0 t				\
 	ldr_##t %FR##f0 %IR##i0				\
 	check5(line, f##i0##f0##f1##f2##f3##f4##f5,	\
 	       i1, i2, i3, i4, i5)			\
-	checkf5(line, f##i0, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f##i0, f0, f1, f2, f3, f4, f5)
 #define ldif(line, t, f0, f1, f2, f3, f4, f5)		\
-	setup()						\
+	fsetup(t)					\
 	ldi_##t %FR##f0 t				\
 	check6(line, f##i##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, f, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f, f0, f1, f2, f3, f4, f5)
 #define ldxii(line, t, i0, i1, i2, i3, i4, i5)		\
 	setup()						\
 	movi_p %IR##i0 $(t - off##t)			\
@@ -440,13 +496,13 @@ label:
 	ldxr_##t %IR##i1 %IR##i0 %IR##i1		\
 	check4(line, xri1, i2, i3, i4, i5)
 #define ldxrf(line,t,i0,i1,i2,i3,i4,i5,f0,f1,f2,f3,f4,f5)	\
-	setup()							\
+	fsetup(t)						\
 	movi_p %IR##i0 $(t - off##t)				\
 	movi_i %IR##i1 off##t					\
 	ldxr_##t %FR##f0 %IR##i0 %IR##i1			\
 	check4(line, t##f##i0##i1##f0##f1##f2##f3##f4##f5,	\
 	       i2, i3, i4, i5)					\
-	checkf5(line, f##i0##i1, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f##i0##i1, f0, f1, f2, f3, f4, f5)
 #define stri(line, t, i0, i1, i2, i3, i4, i5)		\
 	setup()						\
 	movi_p %IR##i0 t				\
@@ -462,18 +518,18 @@ label:
 	sti_##t t %IR##i0				\
 	check5(line, ldi, i1, i2, i3, i4, i5)
 #define strf(line,t,i0,i1,i2,i3,i4,i5,f0,f1,f2,f3,f4,f5)\
-	setup()						\
+	fsetup(t)					\
 	movi_p %IR##i0 t				\
 	str_##t %IR##i0 %FR##f0				\
 	check5(line, f##i0##f0##f1##f2##f3##f4##f5,	\
 	       i1, i2, i3, i4, i5)			\
-	checkf5(line, f##i0, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f##i0, f0, f1, f2, f3, f4, f5)
 #define stif(line, t, f0, f1, f2, f3, f4, f5)		\
-	setup()						\
+	fsetup(t)					\
 	sti_##t t %FR##f0				\
 	check6(line, f##i##f0##f1##f2##f3##f4##f5,	\
 	       0, 1, 2, 3, 4, 5)			\
-	checkf5(line, f, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f, f0, f1, f2, f3, f4, f5)
 #define stxii(line, t, i0, i1, i2, i3, i4, i5)		\
 	setup()						\
 	movi_p %IR##i0 $(t - off##t)			\
@@ -503,13 +559,13 @@ label:
 	stxr_##t %IR##i1 %IR##i0 %IR##i0		\
 	check4(line, xri1, i2, i3, i4, i5)
 #define stxrf(line,t,i0,i1,i2,i3,i4,i5,f0,f1,f2,f3,f4,f5)	\
-	setup()							\
+	fsetup(t)						\
 	movi_p %IR##i0 $(t - off##t)				\
 	movi_i %IR##i1 off##t					\
 	stxr_##t %IR##i1 %IR##i0 %FR##f0			\
 	check4(line, t##f##i0##i1##f0##f1##f2##f3##f4##f5,	\
 	       i2, i3, i4, i5)					\
-	checkf5(line, f##i0##i1, t, f0, f1, f2, f3, f4, f5)
+	checkf5(line, t, f##i0##i1, f0, f1, f2, f3, f4, f5)
 #define bri(line, op, i, i0, i1, i2, i3, i4, i5)			\
 	setup()								\
 	movi_##i %IR##i0 1						\
@@ -524,14 +580,14 @@ i##line##op##i0##i1##i2##i3##i4##i5:					\
  r##line##op##i0##i1##i2##i3##i4##i5:					\
 	check4(line, r, i2, i3, i4, i5)
 #define brf(line, op, f, f0, f1, f2, f3, f4, f5)			\
-	setup()								\
+	fsetup(f)							\
 	movi_##f %FR##f0 1.0						\
 	movr_##f %FR##f1 %FR##f0					\
 	b##op##r_##f r##line##op##f0##f1##f2##f3##f4##f5 %FR##f1 %FR##f0\
  r##line##op##f0##f1##f2##f3##f4##f5:					\
 	check6(line, f##r##f0##f1##f2##f3##f4##f5,			\
 	       0, 1, 2, 3, 4, 5)					\
-	checkf3(line, r, f, f0, f3, f4, f5)
+	checkf3(line, f, r, f0, f3, f4, f5)
 
 #define   xalu(line, op, i, i0, i1, i2, i3, i4, i5)		\
 	  alui(line, op, i, i0, i1,	i2, i3, i4, i5)		\

@@ -527,7 +527,7 @@ arm_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 	jit_patch(j0);
     }
     else
-	_CC_B(ARM_CC_NE);
+	_CC_B(ARM_CC_NE, 0);
     _POP(0xf);
     l = _jit->x.pc;
     d = (((int)i1 - (int)l) >> 2) - 2;
@@ -597,7 +597,7 @@ arm_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 	jit_patch(j0);
     }
     else
-	_CC_B(ARM_CC_NE);
+	_CC_B(ARM_CC_NE, 0);
     _POP(0xf);
     l = _jit->x.pc;
     d = (((int)i1 - (int)l) >> 2) - 2;
