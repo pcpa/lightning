@@ -254,7 +254,7 @@ arm_ddd(jit_state_t _jit, double (*i0)(double, double),
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
 	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 8);
+	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -1642,9 +1642,8 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
     assert(r0 != JIT_FPRET);
     if (i0 < 4)
-	jit_ldxi_i(JIT_FTMP, JIT_FP, i0 << 2);
-    else
-	jit_ldxi_i(JIT_FTMP, JIT_FP, i0);
+	i0 <<= 2;
+    jit_ldxi_i(JIT_FTMP, JIT_FP, i0);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
@@ -1652,11 +1651,11 @@ arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
+    if (i0 < 4)
+	i0 <<= 2;
     assert(r0 != JIT_FPRET);
     if (jit_armv5_p()) {
-	if (i0 < 4)
-	    _LDRDI(JIT_TMP, JIT_FP, i0 << 2);
-	else if (i0 < 255)
+	if (i0 < 255)
 	    _LDRDI(JIT_TMP, JIT_FP, i0);
 	else {
 	    jit_addi_i(JIT_TMP, JIT_FP, i0);
@@ -1666,11 +1665,7 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
     else {
-	if (i0 < 4) {
-	    _LDRI(JIT_TMP, JIT_FP, i0 << 2);
-	    _LDRI(JIT_FTMP, JIT_FP, (i0 << 2) + 4);
-	}
-	else if (i0 + 4 < 255) {
+	if (i0 + 4 < 255) {
 	    _LDRI(JIT_TMP, JIT_FP, i0);
 	    _LDRI(JIT_FTMP, JIT_FP, i0 + 4);
 	}

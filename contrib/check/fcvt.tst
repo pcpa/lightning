@@ -140,9 +140,9 @@ fn##fr##tr##ir##ft##tt##n:
 	rint(__LINE__, $(-1.0/3.0),		 0)
 	rint(__LINE__, $( 1.0/2.0),		 0)
 	rint(__LINE__, $(-1.0/2.0),		 0)
+#if !__arm__	/* soft float and double do not agree... */
 	rint(__LINE__, $( 2.0/3.0),		 1)
 	rint(__LINE__, $(-2.0/3.0),		-1)
-#if !__arm__	/* soft float and double do not agree... */
 	rint(__LINE__, $( 3.0/2.0),		 2)
 	rint(__LINE__, $(-3.0/2.0),		-2)
 #endif

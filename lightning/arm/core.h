@@ -1275,6 +1275,61 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
     }
 }
 
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+/* inline glibc htons (without register clobber) */
+#define jit_ntoh_us(r0, r1)		arm_ntoh_us(_jit, r0, r1)
+__jit_inline void
+arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _LSLI(JIT_TMP, r1, 24);
+    _LSRI(r0, r1, 8);
+    _OR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
+}
+
+/* inline glibc htonl (without register clobber) */
+#define jit_ntoh_ui(r0, r1)		arm_ntoh_ui(_jit, r0, r1)
+__jit_inline void
+arm_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _XOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
+    _LSRI(JIT_TMP, JIT_TMP, 8);
+    _BICI(JIT_TMP, JIT_TMP, encode_arm_immediate(0xff00));
+    _XOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
+}
+#endif
+
+#define jit_extr_c_i(r0, r1)		arm_extr_c_i(_jit, r0, r1)
+__jit_inline void
+arm_extr_c_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _LSLI(r0, r1, 24);
+    _ASRI(r0, r0, 24);
+}
+
+#define jit_extr_c_ui(r0, r1)		arm_extr_c_ui(_jit, r0, r1)
+__jit_inline void
+arm_extr_c_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _ANDI(r0, r1, 0xff);
+}
+
+#define jit_extr_s_i(r0, r1)		arm_extr_s_i(_jit, r0, r1)
+__jit_inline void
+arm_extr_s_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    _LSLI(r0, r1, 16);
+    _ASRI(r0, r0, 16);
+}
+
+#define jit_extr_s_ui(r0, r1)		arm_extr_s_ui(_jit, r0, r1)
+__jit_inline void
+arm_extr_s_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
+{
+    /* _ANDI(r0, r1, 0xffff) needs more instructions */
+    _LSLI(r0, r1, 16);
+    _LSRI(r0, r0, 16);
+}
+
 #define jit_allocai(i0)			arm_allocai(_jit, i0)
 __jit_inline int
 arm_allocai(jit_state_t _jit, int i0)
@@ -1353,61 +1408,6 @@ arm_arg_i(jit_state_t _jit)
 	_jitl.framesize += sizeof(int);
     }
     return (ofs);
-}
-
-#if __BYTE_ORDER == __LITTLE_ENDIAN
-/* inline glibc htons (without register clobber) */
-#define jit_ntoh_us(r0, r1)		arm_ntoh_us(_jit, r0, r1)
-__jit_inline void
-arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _LSLI(JIT_TMP, r1, 24);
-    _LSRI(r0, r1, 8);
-    _OR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
-}
-
-/* inline glibc htonl (without register clobber) */
-#define jit_ntoh_ui(r0, r1)		arm_ntoh_ui(_jit, r0, r1)
-__jit_inline void
-arm_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _XOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
-    _LSRI(JIT_TMP, JIT_TMP, 8);
-    _BICI(JIT_TMP, JIT_TMP, encode_arm_immediate(0xff00));
-    _XOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
-}
-#endif
-
-#define jit_extr_c_i(r0, r1)		arm_extr_c_i(_jit, r0, r1)
-__jit_inline void
-arm_extr_c_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _LSLI(r0, r1, 24);
-    _ASRI(r0, r0, 24);
-}
-
-#define jit_extr_c_ui(r0, r1)		arm_extr_c_ui(_jit, r0, r1)
-__jit_inline void
-arm_extr_c_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _ANDI(r0, r1, 0xff);
-}
-
-#define jit_extr_s_i(r0, r1)		arm_extr_s_i(_jit, r0, r1)
-__jit_inline void
-arm_extr_s_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    _LSLI(r0, r1, 16);
-    _ASRI(r0, r0, 16);
-}
-
-#define jit_extr_s_ui(r0, r1)		arm_extr_s_ui(_jit, r0, r1)
-__jit_inline void
-arm_extr_s_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
-{
-    /* _ANDI(r0, r1, 0xffff) needs more instructions */
-    _LSLI(r0, r1, 16);
-    _LSRI(r0, r0, 16);
 }
 
 #define jit_getarg_c(r0, i0)		arm_getarg_c(_jit, r0, i0)
@@ -1516,7 +1516,7 @@ arm_patch_arguments(jit_state_t _jit)
 	offset += size;
     }
     if (offset > 16) {
-	_jitl.reglist = 0xff;
+	_jitl.reglist = 0xf;
 	offset -= 16;
 	if (_jitl.stack_length < offset) {
 	    _jitl.stack_length = offset;
