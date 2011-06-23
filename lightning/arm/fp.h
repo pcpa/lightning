@@ -69,7 +69,7 @@ extern int	__aeabi_fcmpun(float, float);
 extern int	__aeabi_dcmpun(double, double);
 
 static void
-arm_if(jit_state_t _jit, int (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
+arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
@@ -119,7 +119,7 @@ arm_if(jit_state_t _jit, int (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 }
 
 static void
-arm_id(jit_state_t _jit, int (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
+arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
