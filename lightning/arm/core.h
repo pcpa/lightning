@@ -48,8 +48,8 @@ jit_v_order[JIT_V_NUM] = {
 
 #define JIT_FRAMESIZE			48
 
-#define jit_thumb_p()			(jit_cpu.thumb >= 0)
-#define jit_thumb2_p()			(jit_cpu.thumb >= 1)
+#define jit_thumb_p()			(jit_cpu.thumb > 0)
+#define jit_thumb2_p()			(jit_cpu.thumb > 1)
 #define jit_armv5_p()			(jit_cpu.version >= 5)
 #define jit_armv6_p()			(jit_cpu.version >= 6)
 #define jit_softfp_p()			(jit_cpu.softfp)
@@ -1568,7 +1568,7 @@ arm_finishi(jit_state_t _jit, void *i0)
 #define jit_retval_i(r0)		jit_movr_i(r0, JIT_RET)
 #define jit_ret()			arm_ret(_jit)
 __jit_inline void
-arm_ret(jit_state_t jit)
+arm_ret(jit_state_t _jit)
 {
     /* do not restore arguments */
     _ADDI(JIT_SP, JIT_FP, 16);
