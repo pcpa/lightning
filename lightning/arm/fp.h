@@ -132,7 +132,7 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
     else {
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -197,7 +197,7 @@ arm_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
     int			d;
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
     _PUSH(0xf);
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
     else {
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -210,7 +210,7 @@ arm_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
     }
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
     else {
 	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
@@ -246,7 +246,7 @@ arm_ddd(jit_state_t _jit, double (*i0)(double, double),
     int			d;
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -263,7 +263,7 @@ arm_ddd(jit_state_t _jit, double (*i0)(double, double),
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
     }
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
     else {
 	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
@@ -309,7 +309,7 @@ arm_idd(jit_state_t _jit, int (*i0)(double, double),
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -383,7 +383,7 @@ arm_iundd(jit_state_t _jit, int (*i0)(double, double),
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -404,7 +404,7 @@ arm_iundd(jit_state_t _jit, int (*i0)(double, double),
     _CC_MOVI(ARM_CC_NE, r0, 1);
     i = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -460,7 +460,7 @@ arm_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
     int			 d;
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -550,7 +550,7 @@ arm_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     int			 i0;
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -572,7 +572,7 @@ arm_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     /* if unordered */
     j0 = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
     }
@@ -646,7 +646,7 @@ arm_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)__aeabi_i2d);
 	_BLX(JIT_FTMP);
     }
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
     else {
 	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
@@ -662,7 +662,7 @@ arm_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     int			d;
     assert(r0 != JIT_FPRET);
     _PUSH(0xf);
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
     else {
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -694,7 +694,7 @@ arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)__aeabi_f2d);
 	_BLX(JIT_FTMP);
     }
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
     else {
 	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
@@ -793,7 +793,7 @@ __jit_inline void
 arm_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
-	if (jit_armv5_p()) {
+	if (jit_armv5e_p()) {
 	    if (r0 == JIT_FPRET)
 		/* jit_ret() must follow! */
 		_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
@@ -1387,7 +1387,7 @@ __jit_inline void
 arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, r1, 0);
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
@@ -1414,7 +1414,7 @@ arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     assert(r0 != JIT_FPRET);
     jit_movi_i(JIT_TMP, (int)i0);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, JIT_TMP, 0);
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
@@ -1440,7 +1440,7 @@ __jit_inline void
 arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRD(JIT_TMP, r1, r2);
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
@@ -1467,7 +1467,7 @@ __jit_inline void
 arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255)
 	    _LDRDI(JIT_TMP, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
@@ -1514,7 +1514,7 @@ __jit_inline void
 arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
 	_STRDI(JIT_TMP, r0, 0);
     }
@@ -1562,7 +1562,7 @@ __jit_inline void
 arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(r2 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
 	_STRD(JIT_TMP, r0, r1);
     }
@@ -1589,7 +1589,7 @@ __jit_inline void
 arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
 	    _STRDI(JIT_TMP, r0, i0);
@@ -1682,7 +1682,7 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
     if (i0 < 4)
 	i0 <<= 2;
     assert(r0 != JIT_FPRET);
-    if (jit_armv5_p()) {
+    if (jit_armv5e_p()) {
 	if (i0 < 255)
 	    _LDRDI(JIT_TMP, JIT_FP, i0);
 	else {
@@ -1729,7 +1729,7 @@ arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     assert(r0 != JIT_FPRET);
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(double);
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     else {
 	_LDRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
@@ -1752,7 +1752,7 @@ arm_retval_f(jit_state_t _jit, jit_fpr_t r0)
 __jit_inline void
 arm_retval_d(jit_state_t _jit, jit_fpr_t r0)
 {
-    if (jit_armv5_p())
+    if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
     else {
 	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);

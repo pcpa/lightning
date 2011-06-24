@@ -214,7 +214,7 @@ struct jit_local_state {
 };
 struct {
     _ui		version		: 4;
-    _ui		armve		: 1;
+    _ui		extend		: 1;
     _ui		thumb		: 2;
     _ui		softfp		: 1;
 } jit_cpu;

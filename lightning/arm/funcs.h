@@ -78,7 +78,7 @@ jit_get_cpu(void)
 			jit_cpu.thumb = 1;
 		}
 		else if (*ptr == 'E' || *ptr == 'e') {
-		    jit_cpu.armve = 1;
+		    jit_cpu.extend = 1;
 		    ++ptr;
 		}
 		else
