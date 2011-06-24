@@ -1473,8 +1473,8 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	else if (i0 < 0 && i0 >= -255)
 	    _LDRDIN(JIT_TMP, r1, -i0);
 	else {
-	    jit_addi_i(JIT_TMP, r1, i0);
-	    _LDRDI(JIT_TMP, JIT_TMP, 0);
+	    jit_addi_i(JIT_FTMP, r1, i0);
+	    _LDRDI(JIT_TMP, JIT_FTMP, 0);
 	}
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
@@ -1491,9 +1491,9 @@ arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 		_LDRIN(JIT_FTMP, r1, -i0);
 	}
 	else {
-	    jit_addi_i(JIT_TMP, r1, i0);
-	    _LDRI(JIT_FTMP, JIT_TMP, 4);
-	    _LDRI(JIT_TMP, JIT_TMP, 0);
+	    jit_addi_i(JIT_FTMP, r1, i0);
+	    _LDRI(JIT_TMP, JIT_FTMP, 0);
+	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
@@ -1599,19 +1599,19 @@ arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	    _STRDIN(JIT_TMP, r0, -i0);
 	}
 	else {
-	    jit_addi_i(JIT_TMP, r1, i0);
-	    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	    _STRI(JIT_FTMP, JIT_TMP, 0);
-	    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-	    _STRI(JIT_FTMP, JIT_TMP, 4);
+	    jit_addi_i(JIT_FTMP, r0, i0);
+	    _LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	    _STRI(JIT_TMP, JIT_FTMP, 0);
+	    _LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 4);
+	    _STRI(JIT_TMP, JIT_FTMP, 4);
 	}
     }
     else {
-	jit_addi_i(JIT_TMP, r1, i0);
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	_STRI(JIT_FTMP, JIT_TMP, 0);
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-	_STRI(JIT_FTMP, JIT_TMP, 4);
+	jit_addi_i(JIT_FTMP, r0, i0);
+	_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	_STRI(JIT_TMP, JIT_FTMP, 0);
+	_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 4);
+	_STRI(JIT_TMP, JIT_FTMP, 4);
     }
 }
 
@@ -1686,9 +1686,9 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	if (i0 < 255)
 	    _LDRDI(JIT_TMP, JIT_FP, i0);
 	else {
-	    jit_addi_i(JIT_TMP, JIT_FP, i0);
-	    _LDRI(JIT_FTMP, JIT_TMP, 4);
-	    _LDRI(JIT_TMP, JIT_TMP, 0);
+	    jit_addi_i(JIT_FTMP, JIT_FP, i0);
+	    _LDRI(JIT_TMP, JIT_FTMP, 0);
+	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
 	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
     }
@@ -1698,9 +1698,9 @@ arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	    _LDRI(JIT_FTMP, JIT_FP, i0 + 4);
 	}
 	else {
-	    jit_addi_i(JIT_TMP, JIT_FP, i0);
-	    _LDRI(JIT_FTMP, JIT_TMP, 4);
-	    _LDRI(JIT_TMP, JIT_TMP, 0);
+	    jit_addi_i(JIT_FTMP, JIT_FP, i0);
+	    _LDRI(JIT_TMP, JIT_FTMP, 0);
+	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
 	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
