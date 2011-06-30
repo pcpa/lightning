@@ -85,10 +85,10 @@ arm_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
     /* >> based on fragment of __aeabi_fcmpun */
     _LSLI(JIT_FTMP, _R0, 1);
-    arm_cc_srrri(_jit,ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_FTMP,24);
+    arm_cc_srrri(ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_FTMP,24);
     fast_not_nan = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    arm_cc_shift(_jit,ARM_CC_AL,ARM_S|ARM_LSL,JIT_TMP,_R0,0,9);
+    arm_cc_shift(ARM_CC_AL,ARM_S|ARM_LSL,JIT_TMP,_R0,0,9);
     slow_not_nan = _jit->x.pc;
     _CC_B(ARM_CC_EQ, 0);
     _MOVI(r0, encode_arm_immediate(0x80000000));
@@ -140,10 +140,10 @@ arm_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     }
     /* >> based on fragment of __aeabi_dcmpun */
     _LSLI(JIT_TMP, _R1, 1);
-    arm_cc_srrri(_jit,ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_TMP,21);
+    arm_cc_srrri(ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_TMP,21);
     fast_not_nan = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    arm_cc_srrri(_jit,ARM_CC_AL,ARM_ORR|ARM_S|ARM_LSL,JIT_TMP,_R0,_R1,12);
+    arm_cc_srrri(ARM_CC_AL,ARM_ORR|ARM_S|ARM_LSL,JIT_TMP,_R0,_R1,12);
     slow_not_nan = _jit->x.pc;
     _CC_B(ARM_CC_EQ, 0);
     _MOVI(r0, encode_arm_immediate(0x80000000));

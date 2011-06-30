@@ -953,8 +953,10 @@ arm_bmxi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
     if (jit_thumb_p()) {
 	if ((i = encode_arm_immediate(i1)) != -1)
 	    _TSTI(r0, i);
-	else if (jit_armv6_p() && (i = encode_arm_immediate(-i1)) != -1)
-	    _TEQI(r0, i);
+	else if ((i = encode_arm_immediate(~i1)) != -1) {
+	    cc = cc == ARM_CC_NE ? ARM_CC_EQ : ARM_CC_NE;
+	    _TSTI(r0, i);
+	}
 	else {
 	    jit_movi_i(JIT_TMP, i1);
 	    _TST(r0, JIT_TMP);
@@ -963,7 +965,7 @@ arm_bmxi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
     else {
 	if ((i = encode_arm_immediate(i1)) != -1)
 	    _ANDSI(JIT_TMP, r0, i);
-	else if ((i = encode_arm_immediate(-i1)) != -1)
+	else if ((i = encode_arm_immediate(~i1)) != -1)
 	    _BICSI(JIT_TMP, r0, i);
 	else {
 	    jit_movi_i(JIT_TMP, i1);

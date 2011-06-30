@@ -1069,7 +1069,7 @@ print_address(bfd_vma addr, struct disassemble_info *info)
     label_t		*label;
     char		 buffer[address_buffer_length];
 
-    sprintf(buffer, address_buffer_format, addr);
+    sprintf(buffer, address_buffer_format, (long long)addr);
     (*info->fprintf_func)(info->stream, "0x%s", buffer);
     if ((label = get_label_by_value((void *)(long)addr)))
 	(*info->fprintf_func)(info->stream, " # %s", label->name);
@@ -1118,7 +1118,7 @@ static void disassemble(void *code, int length)
 	    else if (label->value > (void *)(long)pc)
 		break;
 	}
-	bytes = sprintf(buffer, address_buffer_format, pc);
+	bytes = sprintf(buffer, address_buffer_format, (long long)pc);
 	(*info.fprintf_func)(stream, "%*c0x%s\t", 16 - bytes, ' ', buffer);
 	bytes = (*print_insn)(pc, &info);
 	if (flag_verbose > 1) {
@@ -2471,7 +2471,15 @@ dot(void)
     else if (strcmp(parser.string, "code") == 0) {
 	if (code_start != NULL)	error(".code must be specified once only");
 	size = get_int(skip_ws);
+#if __arm__
+	code_start = (char *)mmap(NULL, size,
+				  PROT_EXEC | PROT_READ | PROT_WRITE,
+				  MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+	if (code_start == MAP_FAILED)
+	    error("mmap failed (%s)", strerror(errno));
+#else
 	code_start = (char *)xmalloc(size);
+#endif
 	code_end = code_start + size;
 	(void)jit_set_ip((jit_insn *)code_start);
     }
