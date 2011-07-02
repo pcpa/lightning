@@ -10098,6 +10098,7 @@ gnu*)
   library_names_spec='${libname}${release}${shared_ext}$versuffix ${libname}${release}${shared_ext}${major} ${libname}${shared_ext}'
   soname_spec='${libname}${release}${shared_ext}$major'
   shlibpath_var=LD_LIBRARY_PATH
+  shlibpath_overrides_runpath=no
   hardcode_into_libs=yes
   ;;
 
@@ -10270,7 +10271,7 @@ fi
   libsuff=
   case "$host_cpu" in
   x86_64*|s390x*|powerpc64*)
-    echo '#line 10273 "configure"' > conftest.$ac_ext
+    echo '#line 10274 "configure"' > conftest.$ac_ext
     if { { eval echo "\"\$as_me\":${as_lineno-$LINENO}: \"$ac_compile\""; } >&5
   (eval $ac_compile) 2>&5
   ac_status=$?
@@ -11502,6 +11503,7 @@ case "$target_cpu" in
   sparc*)	cpu=sparc	;;
   powerpc)	cpu=ppc		;;
   mips*)	cpu=mips	;;
+  arm*)		cpu=arm		;;
   *)			        ;;
 esac
 

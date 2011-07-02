@@ -32,8 +32,6 @@
 #ifndef __lightning_fp_arm_h
 #define __lightning_fp_arm_h
 
-#define jit_softfp_p()			jit_cpu.vfp == 0
-
 #define JIT_FPR_NUM			6
 static const jit_fpr_t
 jit_f_order[JIT_FPR_NUM] = {
@@ -41,14 +39,14 @@ jit_f_order[JIT_FPR_NUM] = {
 };
 #define JIT_FPR(n)			jit_f_order[n]
 
-#include "fp-soft.h"
+#include "fp-swf.h"
 #include "fp-vfp.h"
 
 #define jit_movr_f(r0, r1)		arm_movr_f(_jit, r0, r1)
 __jit_inline void
 arm_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    if (jit_softfp_p())	soft_movr_f(_jit, r0, r1);
+    if (jit_swfp_p())	swf_movr_f(_jit, r0, r1);
     else		vfp_movr_f(_jit, r0, r1);
 }
 
@@ -56,7 +54,7 @@ arm_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    if (jit_softfp_p())	soft_movr_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_movr_d(_jit, r0, r1);
     else		vfp_movr_d(_jit, r0, r1);
 }
 
@@ -64,7 +62,7 @@ arm_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 {
-    if (jit_softfp_p())	soft_movi_f(_jit, r0, i0);
+    if (jit_swf_p())	swf_movi_f(_jit, r0, i0);
     else		vfp_movi_f(_jit, r0, i0);
 }
 
@@ -72,7 +70,7 @@ arm_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 __jit_inline void
 arm_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 {
-    if (jit_softfp_p())	soft_movi_d(_jit, r0, i0);
+    if (jit_swf_p())	swf_movi_d(_jit, r0, i0);
     else		vfp_movi_d(_jit, r0, i0);
 }
 
@@ -81,7 +79,7 @@ __jit_inline void
 arm_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_extr_i_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_extr_i_f(_jit, r0, r1);
     else		vfp_extr_i_f(_jit, r0, r1);
 }
 
@@ -90,7 +88,7 @@ __jit_inline void
 arm_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_extr_i_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_extr_i_d(_jit, r0, r1);
     else		vfp_extr_i_d(_jit, r0, r1);
 }
 
@@ -99,7 +97,7 @@ static void
 arm_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_extr_d_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_extr_d_f(_jit, r0, r1);
     else		vfp_extr_d_f(_jit, r0, r1);
 }
 
@@ -107,7 +105,7 @@ arm_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 static void
 arm_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    if (jit_softfp_p())	soft_extr_f_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_extr_f_d(_jit, r0, r1);
     else		vfp_extr_f_d(_jit, r0, r1);
 }
 
@@ -116,7 +114,7 @@ static void
 arm_rintr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_rintr_f_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_rintr_f_i(_jit, r0, r1);
     else		vfp_rintr_f_i(_jit, r0, r1);
 }
 
@@ -125,7 +123,7 @@ static void
 arm_rintr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_rintr_d_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_rintr_d_i(_jit, r0, r1);
     else		vfp_rintr_d_i(_jit, r0, r1);
 }
 
@@ -134,7 +132,7 @@ static void
 arm_roundr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_roundr_f_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_roundr_f_i(_jit, r0, r1);
     else		vfp_roundr_f_i(_jit, r0, r1);
 }
 
@@ -143,7 +141,7 @@ static void
 arm_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_roundr_d_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_roundr_d_i(_jit, r0, r1);
     else		vfp_roundr_d_i(_jit, r0, r1);
 }
 
@@ -152,7 +150,7 @@ static void
 arm_truncr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_truncr_f_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_truncr_f_i(_jit, r0, r1);
     else		vfp_truncr_f_i(_jit, r0, r1);
 }
 
@@ -161,7 +159,7 @@ static void
 arm_truncr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_truncr_d_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_truncr_d_i(_jit, r0, r1);
     else		vfp_truncr_d_i(_jit, r0, r1);
 }
 
@@ -170,7 +168,7 @@ static void
 arm_ceilr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ceilr_f_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_ceilr_f_i(_jit, r0, r1);
     else		vfp_ceilr_f_i(_jit, r0, r1);
 }
 
@@ -179,7 +177,7 @@ static void
 arm_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ceilr_d_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_ceilr_d_i(_jit, r0, r1);
     else		vfp_ceilr_d_i(_jit, r0, r1);
 }
 
@@ -188,7 +186,7 @@ static void
 arm_floorr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_floorr_f_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_floorr_f_i(_jit, r0, r1);
     else		vfp_floorr_f_i(_jit, r0, r1);
 }
 
@@ -197,7 +195,7 @@ static void
 arm_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_floorr_d_i(_jit, r0, r1);
+    if (jit_swf_p())	swf_floorr_d_i(_jit, r0, r1);
     else		vfp_floorr_d_i(_jit, r0, r1);
 }
 
@@ -206,7 +204,7 @@ static void
 arm_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_absr_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_absr_f(_jit, r0, r1);
     else		vfp_absr_f(_jit, r0, r1);
 }
 
@@ -215,7 +213,7 @@ static void
 arm_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_absr_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_absr_d(_jit, r0, r1);
     else		vfp_absr_d(_jit, r0, r1);
 }
 
@@ -224,7 +222,7 @@ static void
 arm_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_negr_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_negr_f(_jit, r0, r1);
     else		vfp_negr_f(_jit, r0, r1);
 }
 
@@ -233,7 +231,7 @@ static void
 arm_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_negr_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_negr_d(_jit, r0, r1);
     else		vfp_negr_d(_jit, r0, r1);
 }
 
@@ -242,7 +240,7 @@ static void
 arm_sqrtr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_sqrtr_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_sqrtr_f(_jit, r0, r1);
     else		vfp_sqrtr_f(_jit, r0, r1);
 }
 
@@ -251,7 +249,7 @@ static void
 arm_sqrtr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_sqrtr_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_sqrtr_d(_jit, r0, r1);
     else		vfp_sqrtr_d(_jit, r0, r1);
 }
 
@@ -260,7 +258,7 @@ static void
 arm_addr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_addr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_addr_f(_jit, r0, r1, r2);
     else		vfp_addr_f(_jit, r0, r1, r2);
 }
 
@@ -269,7 +267,7 @@ static void
 arm_addr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_addr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_addr_d(_jit, r0, r1, r2);
     else		vfp_addr_d(_jit, r0, r1, r2);
 }
 
@@ -278,7 +276,7 @@ static void
 arm_subr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_subr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_subr_f(_jit, r0, r1, r2);
     else		vfp_subr_f(_jit, r0, r1, r2);
 }
 
@@ -287,7 +285,7 @@ static void
 arm_subr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_subr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_subr_d(_jit, r0, r1, r2);
     else		vfp_subr_d(_jit, r0, r1, r2);
 }
 
@@ -296,7 +294,7 @@ static void
 arm_mulr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_mulr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_mulr_f(_jit, r0, r1, r2);
     else		vfp_mulr_f(_jit, r0, r1, r2);
 }
 
@@ -305,7 +303,7 @@ static void
 arm_mulr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_mulr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_mulr_d(_jit, r0, r1, r2);
     else		vfp_mulr_d(_jit, r0, r1, r2);
 }
 
@@ -314,7 +312,7 @@ static void
 arm_divr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_divr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_divr_f(_jit, r0, r1, r2);
     else		vfp_divr_f(_jit, r0, r1, r2);
 }
 
@@ -323,7 +321,7 @@ static void
 arm_divr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_divr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_divr_d(_jit, r0, r1, r2);
     else		vfp_divr_d(_jit, r0, r1, r2);
 }
 
@@ -332,7 +330,7 @@ __jit_inline void
 arm_ltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ltr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ltr_f(_jit, r0, r1, r2);
     else		vfp_ltr_f(_jit, r0, r1, r2);
 }
 
@@ -341,7 +339,7 @@ __jit_inline void
 arm_ltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ltr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ltr_d(_jit, r0, r1, r2);
     else		vfp_ltr_d(_jit, r0, r1, r2);
 }
 
@@ -350,7 +348,7 @@ __jit_inline void
 arm_ler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ler_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ler_f(_jit, r0, r1, r2);
     else		vfp_ler_f(_jit, r0, r1, r2);
 }
 
@@ -359,7 +357,7 @@ __jit_inline void
 arm_ler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ler_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ler_d(_jit, r0, r1, r2);
     else		vfp_ler_d(_jit, r0, r1, r2);
 }
 
@@ -368,7 +366,7 @@ __jit_inline void
 arm_eqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_eqr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_eqr_f(_jit, r0, r1, r2);
     else		vfp_eqr_f(_jit, r0, r1, r2);
 }
 
@@ -377,7 +375,7 @@ __jit_inline void
 arm_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_eqr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_eqr_d(_jit, r0, r1, r2);
     else		vfp_eqr_d(_jit, r0, r1, r2);
 }
 
@@ -386,7 +384,7 @@ __jit_inline void
 arm_ger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ger_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ger_f(_jit, r0, r1, r2);
     else		vfp_ger_f(_jit, r0, r1, r2);
 }
 
@@ -395,7 +393,7 @@ __jit_inline void
 arm_ger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ger_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ger_d(_jit, r0, r1, r2);
     else		vfp_ger_d(_jit, r0, r1, r2);
 }
 
@@ -404,7 +402,7 @@ __jit_inline void
 arm_gtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_gtr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_gtr_f(_jit, r0, r1, r2);
     else		vfp_gtr_f(_jit, r0, r1, r2);
 }
 
@@ -413,7 +411,7 @@ __jit_inline void
 arm_gtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_gtr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_gtr_d(_jit, r0, r1, r2);
     else		vfp_gtr_d(_jit, r0, r1, r2);
 }
 
@@ -422,7 +420,7 @@ __jit_inline void
 arm_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ner_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ner_f(_jit, r0, r1, r2);
     else		vfp_ner_f(_jit, r0, r1, r2);
 }
 
@@ -431,7 +429,7 @@ __jit_inline void
 arm_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ner_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ner_d(_jit, r0, r1, r2);
     else		vfp_ner_d(_jit, r0, r1, r2);
 }
 
@@ -440,7 +438,7 @@ __jit_inline void
 arm_unltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unltr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unltr_f(_jit, r0, r1, r2);
     else		vfp_unltr_f(_jit, r0, r1, r2);
 }
 
@@ -449,7 +447,7 @@ __jit_inline void
 arm_unltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unltr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unltr_d(_jit, r0, r1, r2);
     else		vfp_unltr_d(_jit, r0, r1, r2);
 }
 
@@ -458,7 +456,7 @@ __jit_inline void
 arm_unler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unler_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unler_f(_jit, r0, r1, r2);
     else		vfp_unler_f(_jit, r0, r1, r2);
 }
 
@@ -467,7 +465,7 @@ __jit_inline void
 arm_unler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unler_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unler_d(_jit, r0, r1, r2);
     else		vfp_unler_d(_jit, r0, r1, r2);
 }
 
@@ -476,7 +474,7 @@ __jit_inline void
 arm_uneqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_uneqr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_uneqr_f(_jit, r0, r1, r2);
     else		vfp_uneqr_f(_jit, r0, r1, r2);
 }
 
@@ -485,7 +483,7 @@ __jit_inline void
 arm_uneqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_uneqr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_uneqr_d(_jit, r0, r1, r2);
     else		vfp_uneqr_d(_jit, r0, r1, r2);
 }
 
@@ -494,7 +492,7 @@ __jit_inline void
 arm_unger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unger_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unger_f(_jit, r0, r1, r2);
     else		vfp_unger_f(_jit, r0, r1, r2);
 }
 
@@ -503,7 +501,7 @@ __jit_inline void
 arm_unger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unger_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unger_d(_jit, r0, r1, r2);
     else		vfp_unger_d(_jit, r0, r1, r2);
 }
 
@@ -512,7 +510,7 @@ __jit_inline void
 arm_ungtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ungtr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ungtr_f(_jit, r0, r1, r2);
     else		vfp_ungtr_f(_jit, r0, r1, r2);
 }
 
@@ -521,7 +519,7 @@ __jit_inline void
 arm_ungtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ungtr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ungtr_d(_jit, r0, r1, r2);
     else		vfp_ungtr_d(_jit, r0, r1, r2);
 }
 
@@ -530,7 +528,7 @@ __jit_inline void
 arm_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ltgtr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ltgtr_f(_jit, r0, r1, r2);
     else		vfp_ltgtr_f(_jit, r0, r1, r2);
 }
 
@@ -539,7 +537,7 @@ __jit_inline void
 arm_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ltgtr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ltgtr_d(_jit, r0, r1, r2);
     else		vfp_ltgtr_d(_jit, r0, r1, r2);
 }
 
@@ -548,7 +546,7 @@ __jit_inline void
 arm_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ordr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ordr_f(_jit, r0, r1, r2);
     else		vfp_ordr_f(_jit, r0, r1, r2);
 }
 
@@ -557,7 +555,7 @@ __jit_inline void
 arm_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ordr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ordr_d(_jit, r0, r1, r2);
     else		vfp_ordr_d(_jit, r0, r1, r2);
 }
 
@@ -566,7 +564,7 @@ __jit_inline void
 arm_unordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unordr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unordr_f(_jit, r0, r1, r2);
     else		vfp_unordr_f(_jit, r0, r1, r2);
 }
 
@@ -575,7 +573,7 @@ __jit_inline void
 arm_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_unordr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_unordr_d(_jit, r0, r1, r2);
     else		vfp_unordr_d(_jit, r0, r1, r2);
 }
 
@@ -584,7 +582,7 @@ __jit_inline jit_insn *
 arm_bltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bltr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bltr_f(_jit, i0, r0, r1));
     return (vfp_bltr_f(_jit, i0, r0, r1));
 }
 
@@ -593,7 +591,7 @@ __jit_inline jit_insn *
 arm_bltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bltr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bltr_d(_jit, i0, r0, r1));
     return (vfp_bltr_d(_jit, i0, r0, r1));
 }
 
@@ -602,7 +600,7 @@ __jit_inline jit_insn *
 arm_bler_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bler_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bler_f(_jit, i0, r0, r1));
     return (vfp_bler_f(_jit, i0, r0, r1));
 }
 
@@ -611,7 +609,7 @@ __jit_inline jit_insn *
 arm_bler_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bler_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bler_d(_jit, i0, r0, r1));
     return (vfp_bler_d(_jit, i0, r0, r1));
 }
 
@@ -620,7 +618,7 @@ __jit_inline jit_insn *
 arm_beqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_beqr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_beqr_f(_jit, i0, r0, r1));
     return (vfp_beqr_f(_jit, i0, r0, r1));
 }
 
@@ -629,7 +627,7 @@ __jit_inline jit_insn *
 arm_beqr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_beqr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_beqr_d(_jit, i0, r0, r1));
     return (vfp_beqr_d(_jit, i0, r0, r1));
 }
 
@@ -638,7 +636,7 @@ __jit_inline jit_insn *
 arm_bger_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bger_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bger_f(_jit, i0, r0, r1));
     return (vfp_bger_f(_jit, i0, r0, r1));
 }
 
@@ -647,7 +645,7 @@ __jit_inline jit_insn *
 arm_bger_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bger_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bger_d(_jit, i0, r0, r1));
     return (vfp_bger_d(_jit, i0, r0, r1));
 }
 
@@ -656,7 +654,7 @@ __jit_inline jit_insn *
 arm_bgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bgtr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bgtr_f(_jit, i0, r0, r1));
     return (vfp_bgtr_f(_jit, i0, r0, r1));
 }
 
@@ -665,7 +663,7 @@ __jit_inline jit_insn *
 arm_bgtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bgtr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bgtr_d(_jit, i0, r0, r1));
     return (vfp_bgtr_d(_jit, i0, r0, r1));
 }
 
@@ -674,7 +672,7 @@ __jit_inline jit_insn *
 arm_bner_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bner_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bner_f(_jit, i0, r0, r1));
     return (vfp_bner_f(_jit, i0, r0, r1));
 }
 
@@ -683,7 +681,7 @@ __jit_inline jit_insn *
 arm_bner_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bner_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bner_d(_jit, i0, r0, r1));
     return (vfp_bner_d(_jit, i0, r0, r1));
 }
 
@@ -692,7 +690,7 @@ __jit_inline jit_insn *
 arm_bunltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunltr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunltr_f(_jit, i0, r0, r1));
     return (vfp_bunltr_f(_jit, i0, r0, r1));
 }
 
@@ -701,7 +699,7 @@ __jit_inline jit_insn *
 arm_bunltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunltr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunltr_d(_jit, i0, r0, r1));
     return (vfp_bunltr_d(_jit, i0, r0, r1));
 }
 
@@ -710,7 +708,7 @@ __jit_inline jit_insn *
 arm_bunler_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunler_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunler_f(_jit, i0, r0, r1));
     return (vfp_bunler_f(_jit, i0, r0, r1));
 }
 
@@ -719,7 +717,7 @@ __jit_inline jit_insn *
 arm_bunler_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunler_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunler_d(_jit, i0, r0, r1));
     return (vfp_bunler_d(_jit, i0, r0, r1));
 }
 
@@ -728,7 +726,7 @@ __jit_inline jit_insn *
 arm_buneqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_buneqr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_buneqr_f(_jit, i0, r0, r1));
     return (vfp_buneqr_f(_jit, i0, r0, r1));
 }
 
@@ -737,7 +735,7 @@ __jit_inline jit_insn *
 arm_buneqr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_buneqr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_buneqr_d(_jit, i0, r0, r1));
     return (vfp_buneqr_d(_jit, i0, r0, r1));
 }
 
@@ -746,7 +744,7 @@ __jit_inline jit_insn *
 arm_bunger_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunger_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunger_f(_jit, i0, r0, r1));
     return (vfp_bunger_f(_jit, i0, r0, r1));
 }
 
@@ -755,7 +753,7 @@ __jit_inline jit_insn *
 arm_bunger_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunger_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunger_d(_jit, i0, r0, r1));
     return (vfp_bunger_d(_jit, i0, r0, r1));
 }
 
@@ -764,7 +762,7 @@ __jit_inline jit_insn *
 arm_bungtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bungtr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bungtr_f(_jit, i0, r0, r1));
     return (vfp_bungtr_f(_jit, i0, r0, r1));
 }
 
@@ -773,7 +771,7 @@ __jit_inline jit_insn *
 arm_bungtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bungtr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bungtr_d(_jit, i0, r0, r1));
     return (vfp_bungtr_d(_jit, i0, r0, r1));
 }
 
@@ -782,7 +780,7 @@ __jit_inline jit_insn *
 arm_bltgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bltgtr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bltgtr_f(_jit, i0, r0, r1));
     return (vfp_bltgtr_f(_jit, i0, r0, r1));
 }
 
@@ -791,7 +789,7 @@ __jit_inline jit_insn *
 arm_bltgtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bltgtr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bltgtr_d(_jit, i0, r0, r1));
     return (vfp_bltgtr_d(_jit, i0, r0, r1));
 }
 
@@ -800,7 +798,7 @@ __jit_inline jit_insn *
 arm_bordr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bordr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bordr_f(_jit, i0, r0, r1));
     return (vfp_bordr_f(_jit, i0, r0, r1));
 }
 
@@ -809,7 +807,7 @@ __jit_inline jit_insn *
 arm_bordr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bordr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bordr_d(_jit, i0, r0, r1));
     return (vfp_bordr_d(_jit, i0, r0, r1));
 }
 
@@ -818,7 +816,7 @@ __jit_inline jit_insn *
 arm_bunordr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunordr_f(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunordr_f(_jit, i0, r0, r1));
     return (vfp_bunordr_f(_jit, i0, r0, r1));
 }
 
@@ -827,7 +825,7 @@ __jit_inline jit_insn *
 arm_bunordr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     assert(r0 != JIT_FPRET && r1 != JIT_FPRET);
-    if (jit_softfp_p())	return (soft_bunordr_d(_jit, i0, r0, r1));
+    if (jit_swf_p())	return (swf_bunordr_d(_jit, i0, r0, r1));
     return (vfp_bunordr_d(_jit, i0, r0, r1));
 }
 
@@ -836,7 +834,7 @@ __jit_inline void
 arm_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldr_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_ldr_f(_jit, r0, r1);
     else		vfp_ldr_f(_jit, r0, r1);
 }
 
@@ -845,7 +843,7 @@ __jit_inline void
 arm_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldr_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_ldr_d(_jit, r0, r1);
     else		vfp_ldr_d(_jit, r0, r1);
 }
 
@@ -854,7 +852,7 @@ __jit_inline void
 arm_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldi_f(_jit, r0, i0);
+    if (jit_swf_p())	swf_ldi_f(_jit, r0, i0);
     else		vfp_ldi_f(_jit, r0, i0);
 }
 
@@ -863,7 +861,7 @@ __jit_inline void
 arm_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldi_d(_jit, r0, i0);
+    if (jit_swf_p())	swf_ldi_d(_jit, r0, i0);
     else		vfp_ldi_d(_jit, r0, i0);
 }
 
@@ -872,7 +870,7 @@ __jit_inline void
 arm_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldxr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ldxr_f(_jit, r0, r1, r2);
     else		vfp_ldxr_f(_jit, r0, r1, r2);
 }
 
@@ -881,7 +879,7 @@ __jit_inline void
 arm_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldxr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_ldxr_d(_jit, r0, r1, r2);
     else		vfp_ldxr_d(_jit, r0, r1, r2);
 }
 
@@ -890,7 +888,7 @@ __jit_inline void
 arm_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldxi_f(_jit, r0, r1, i0);
+    if (jit_swf_p())	swf_ldxi_f(_jit, r0, r1, i0);
     else		vfp_ldxi_f(_jit, r0, r1, i0);
 }
 
@@ -899,7 +897,7 @@ __jit_inline void
 arm_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_ldxi_d(_jit, r0, r1, i0);
+    if (jit_swf_p())	swf_ldxi_d(_jit, r0, r1, i0);
     else		vfp_ldxi_d(_jit, r0, r1, i0);
 }
 
@@ -908,7 +906,7 @@ __jit_inline void
 arm_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_str_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_str_f(_jit, r0, r1);
     else		vfp_str_f(_jit, r0, r1);
 }
 
@@ -917,7 +915,7 @@ __jit_inline void
 arm_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_str_d(_jit, r0, r1);
+    if (jit_swf_p())	swf_str_d(_jit, r0, r1);
     else		vfp_str_d(_jit, r0, r1);
 }
 
@@ -926,7 +924,7 @@ __jit_inline void
 arm_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_sti_f(_jit, i0, r0);
+    if (jit_swf_p())	swf_sti_f(_jit, i0, r0);
     else		vfp_sti_f(_jit, i0, r0);
 }
 
@@ -935,7 +933,7 @@ __jit_inline void
 arm_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_sti_d(_jit, i0, r0);
+    if (jit_swf_p())	swf_sti_d(_jit, i0, r0);
     else		vfp_sti_d(_jit, i0, r0);
 }
 
@@ -944,7 +942,7 @@ __jit_inline void
 arm_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_stxr_f(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_stxr_f(_jit, r0, r1, r2);
     else		vfp_stxr_f(_jit, r0, r1, r2);
 }
 
@@ -953,7 +951,7 @@ __jit_inline void
 arm_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     assert(r2 != JIT_FPRET);
-    if (jit_softfp_p())	soft_stxr_d(_jit, r0, r1, r2);
+    if (jit_swf_p())	swf_stxr_d(_jit, r0, r1, r2);
     else		vfp_stxr_d(_jit, r0, r1, r2);
 }
 
@@ -962,7 +960,7 @@ __jit_inline void
 arm_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_stxi_f(_jit, i0, r0, r1);
+    if (jit_swf_p())	swf_stxi_f(_jit, i0, r0, r1);
     else		vfp_stxi_f(_jit, i0, r0, r1);
 }
 
@@ -971,7 +969,7 @@ __jit_inline void
 arm_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     assert(r1 != JIT_FPRET);
-    if (jit_softfp_p())	soft_stxi_d(_jit, i0, r0, r1);
+    if (jit_swf_p())	swf_stxi_d(_jit, i0, r0, r1);
     else		vfp_stxi_d(_jit, i0, r0, r1);
 }
 
@@ -1029,7 +1027,7 @@ __jit_inline void
 arm_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_getarg_f(_jit, r0, i0);
+    if (jit_swf_p())	swf_getarg_f(_jit, r0, i0);
     else		vfp_getarg_f(_jit, r0, i0);
 }
 
@@ -1038,7 +1036,7 @@ __jit_inline void
 arm_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_getarg_d(_jit, r0, i0);
+    if (jit_swf_p())	swf_getarg_d(_jit, r0, i0);
     else		vfp_getarg_d(_jit, r0, i0);
 }
 
@@ -1047,7 +1045,7 @@ __jit_inline void
 arm_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_pusharg_f(_jit, r0);
+    if (jit_swf_p())	swf_pusharg_f(_jit, r0);
     else		vfp_pusharg_f(_jit, r0);
 }
 
@@ -1056,7 +1054,7 @@ __jit_inline void
 arm_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     assert(r0 != JIT_FPRET);
-    if (jit_softfp_p())	soft_pusharg_d(_jit, r0);
+    if (jit_swf_p())	swf_pusharg_d(_jit, r0);
     else		vfp_pusharg_d(_jit, r0);
 }
 
@@ -1065,7 +1063,7 @@ __jit_inline void
 arm_retval_f(jit_state_t _jit, jit_fpr_t r0)
 {
     if (r0 != JIT_FPRET) {
-	if (jit_softfp_p())	soft_retval_f(_jit, r0);
+	if (jit_swf_p())	swf_retval_f(_jit, r0);
 	else			vfp_retval_f(_jit, r0);
     }
     /* else assume chaining call to jit_retval_f as done in tests/funcfp.c */
@@ -1076,7 +1074,7 @@ __jit_inline void
 arm_retval_d(jit_state_t _jit, jit_fpr_t r0)
 {
     if (r0 != JIT_FPRET) {
-	if (jit_softfp_p())	soft_retval_d(_jit, r0);
+	if (jit_swf_p())	swf_retval_d(_jit, r0);
 	else			vfp_retval_d(_jit, r0);
     }
     /* else assume chaining call to jit_retval_d as done in tests/funcfp.c */

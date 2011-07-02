@@ -53,6 +53,7 @@ jit_v_order[JIT_V_NUM] = {
 #define jit_armv5_p()			(jit_cpu.version >= 5)
 #define jit_armv5e_p()			(jit_cpu.version >= 5 && jit_cpu.extend)
 #define jit_armv6_p()			(jit_cpu.version >= 6)
+#define jit_swf_p()			(jit_cpu.vfp == 0)
 
 extern int	__aeabi_idivmod(int, int);
 extern unsigned	__aeabi_uidivmod(unsigned, unsigned);
@@ -1365,8 +1366,8 @@ arm_prolog(jit_state_t _jit, int i0)
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
 
-    if (jit_softfp_p())
-	/* 6 soft double registers */
+    if (jit_swf_p())
+	/* 6 soft double precision float registers */
 	_jitl.alloca_offset = 48;
     else
 	_jitl.alloca_offset = 0;

@@ -31,8 +31,8 @@
  ***********************************************************************/
 
 
-#ifndef __lightning_fp_soft_h
-#define __lightning_fp_soft_h
+#ifndef __lightning_fp_swf_h
+#define __lightning_fp_swf_h
 
 #include <math.h>
 
@@ -64,7 +64,7 @@ extern int	__aeabi_fcmpun(float, float);
 extern int	__aeabi_dcmpun(double, double);
 
 __jit_inline void
-soft_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
 	if (r0 == JIT_FPRET)
@@ -78,7 +78,7 @@ soft_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
 	if (jit_armv5e_p()) {
@@ -107,7 +107,7 @@ soft_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
+swf_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 {
     union {
 	int	i;
@@ -124,7 +124,7 @@ soft_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 }
 
 __jit_inline void
-soft_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
+swf_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 {
     union {
 	int	i[2];
@@ -145,7 +145,7 @@ soft_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 }
 
 __jit_inline void
-soft_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+swf_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -163,7 +163,7 @@ soft_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 }
 
 __jit_inline void
-soft_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+swf_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -186,7 +186,7 @@ soft_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 }
 
 static void
-soft_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -208,7 +208,7 @@ soft_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 static void
-soft_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -230,7 +230,7 @@ soft_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 static void
-soft_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
+swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
@@ -279,7 +279,7 @@ soft_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 }
 
 static void
-soft_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
+swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
@@ -332,19 +332,19 @@ soft_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     _POP(l);
 }
 
-#define soft_rintr_f_i(_jit, r0, r1)	soft_if(_jit, rintf, r0, r1)
-#define soft_rintr_d_i(_jit, r0, r1)	soft_id(_jit, rint, r0, r1)
-#define soft_roundr_f_i(_jit, r0, r1)	soft_if(_jit, roundf, r0, r1)
-#define soft_roundr_d_i(_jit, r0, r1)	soft_id(_jit, round, r0, r1)
-#define soft_truncr_f_i(_jit, r0, r1)	soft_if(_jit, (void *)0, r0, r1)
-#define soft_truncr_d_i(_jit, r0, r1)	soft_id(_jit, (void *)0, r0, r1)
-#define soft_ceilr_f_i(_jit, r0, r1)	soft_if(_jit, ceilf, r0, r1)
-#define soft_ceilr_d_i(_jit, r0, r1)	soft_id(_jit, ceil, r0, r1)
-#define soft_floorr_f_i(_jit, r0, r1)	soft_if(_jit, floorf, r0, r1)
-#define soft_floorr_d_i(_jit, r0, r1)	soft_id(_jit, floor, r0, r1)
+#define swf_rintr_f_i(_jit, r0, r1)	swf_if(_jit, rintf, r0, r1)
+#define swf_rintr_d_i(_jit, r0, r1)	swf_id(_jit, rint, r0, r1)
+#define swf_roundr_f_i(_jit, r0, r1)	swf_if(_jit, roundf, r0, r1)
+#define swf_roundr_d_i(_jit, r0, r1)	swf_id(_jit, round, r0, r1)
+#define swf_truncr_f_i(_jit, r0, r1)	swf_if(_jit, (void *)0, r0, r1)
+#define swf_truncr_d_i(_jit, r0, r1)	swf_id(_jit, (void *)0, r0, r1)
+#define swf_ceilr_f_i(_jit, r0, r1)	swf_if(_jit, ceilf, r0, r1)
+#define swf_ceilr_d_i(_jit, r0, r1)	swf_id(_jit, ceil, r0, r1)
+#define swf_floorr_f_i(_jit, r0, r1)	swf_if(_jit, floorf, r0, r1)
+#define swf_floorr_d_i(_jit, r0, r1)	swf_id(_jit, floor, r0, r1)
 
 __jit_inline void
-soft_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     _BICI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
@@ -352,7 +352,7 @@ soft_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
     _BICI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
@@ -364,7 +364,7 @@ soft_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
@@ -372,7 +372,7 @@ soft_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
+swf_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
     _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
@@ -384,7 +384,7 @@ soft_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 static void
-soft_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
+swf_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -401,7 +401,7 @@ soft_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
 }
 
 static void
-soft_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
+swf_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
@@ -427,11 +427,11 @@ soft_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
     _POP(0xf);
 }
 
-#define soft_sqrtr_f(_jit, r0, r1)	soft_ff(_jit, sqrtf, r0, r1)
-#define soft_sqrtr_d(_jit, r0, r1)	soft_dd(_jit, sqrt, r0, r1)
+#define swf_sqrtr_f(_jit, r0, r1)	swf_ff(_jit, sqrtf, r0, r1)
+#define swf_sqrtr_d(_jit, r0, r1)	swf_dd(_jit, sqrt, r0, r1)
 
 static void
-soft_fff(jit_state_t _jit, float (*i0)(float, float),
+swf_fff(jit_state_t _jit, float (*i0)(float, float),
 	 jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
@@ -450,7 +450,7 @@ soft_fff(jit_state_t _jit, float (*i0)(float, float),
 }
 
 static void
-soft_ddd(jit_state_t _jit, double (*i0)(double, double),
+swf_ddd(jit_state_t _jit, double (*i0)(double, double),
 	 jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
@@ -481,18 +481,18 @@ soft_ddd(jit_state_t _jit, double (*i0)(double, double),
     _POP(0xf);
 }
 
-#define soft_addr_f(_jit, r0, r1, r2)	soft_fff(_jit, __addsf3, r0, r1, r2)
-#define soft_addr_d(_jit, r0, r1, r2)	soft_ddd(_jit, __adddf3, r0, r1, r2)
-#define soft_subr_f(_jit, r0, r1, r2)	soft_fff(_jit, __aeabi_fsub, r0, r1, r2)
-#define soft_subr_d(_jit, r0, r1, r2)	soft_ddd(_jit, __aeabi_dsub, r0, r1, r2)
-#define soft_mulr_f(_jit, r0, r1, r2)	soft_fff(_jit, __aeabi_fmul, r0, r1, r2)
-#define soft_mulr_d(_jit, r0, r1, r2)	soft_ddd(_jit, __aeabi_dmul, r0, r1, r2)
-#define soft_divr_f(_jit, r0, r1, r2)	soft_fff(_jit, __aeabi_fdiv, r0, r1, r2)
-#define soft_divr_d(_jit, r0, r1, r2)	soft_ddd(_jit, __aeabi_ddiv, r0, r1, r2)
+#define swf_addr_f(_jit, r0, r1, r2)	swf_fff(_jit, __addsf3, r0, r1, r2)
+#define swf_addr_d(_jit, r0, r1, r2)	swf_ddd(_jit, __adddf3, r0, r1, r2)
+#define swf_subr_f(_jit, r0, r1, r2)	swf_fff(_jit, __aeabi_fsub, r0, r1, r2)
+#define swf_subr_d(_jit, r0, r1, r2)	swf_ddd(_jit, __aeabi_dsub, r0, r1, r2)
+#define swf_mulr_f(_jit, r0, r1, r2)	swf_fff(_jit, __aeabi_fmul, r0, r1, r2)
+#define swf_mulr_d(_jit, r0, r1, r2)	swf_ddd(_jit, __aeabi_dmul, r0, r1, r2)
+#define swf_divr_f(_jit, r0, r1, r2)	swf_fff(_jit, __aeabi_fdiv, r0, r1, r2)
+#define swf_divr_d(_jit, r0, r1, r2)	swf_ddd(_jit, __aeabi_ddiv, r0, r1, r2)
 
 static void
-soft_iff(jit_state_t _jit, int (*i0)(float, float),
-	 jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_iff(jit_state_t _jit, int (*i0)(float, float),
+	jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
     int			l;
@@ -515,8 +515,8 @@ soft_iff(jit_state_t _jit, int (*i0)(float, float),
 }
 
 static void
-soft_idd(jit_state_t _jit, int (*i0)(double, double),
-	 jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_idd(jit_state_t _jit, int (*i0)(double, double),
+	jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			l;
     int			d;
@@ -546,34 +546,34 @@ soft_idd(jit_state_t _jit, int (*i0)(double, double),
     _POP(l);
 }
 
-#define soft_ltr_f(_jit, r0, r1, r2)	soft_iff(_jit, __aeabi_fcmplt,r0,r1,r2)
-#define soft_ltr_d(_jit, r0, r1, r2)	soft_idd(_jit, __aeabi_dcmplt,r0,r1,r2)
-#define soft_ler_f(_jit, r0, r1, r2)	soft_iff(_jit, __aeabi_fcmple,r0,r1,r2)
-#define soft_ler_d(_jit, r0, r1, r2)	soft_idd(_jit, __aeabi_dcmple,r0,r1,r2)
-#define soft_eqr_f(_jit, r0, r1, r2)	soft_iff(_jit, __aeabi_fcmpeq,r0,r1,r2)
-#define soft_eqr_d(_jit, r0, r1, r2)	soft_idd(_jit, __aeabi_dcmpeq,r0,r1,r2)
-#define soft_ger_f(_jit, r0, r1, r2)	soft_iff(_jit, __aeabi_fcmpge,r0,r1,r2)
-#define soft_ger_d(_jit, r0, r1, r2)	soft_idd(_jit, __aeabi_dcmpge,r0,r1,r2)
-#define soft_gtr_f(_jit, r0, r1, r2)	soft_iff(_jit, __aeabi_fcmpgt,r0,r1,r2)
-#define soft_gtr_d(_jit, r0, r1, r2)	soft_idd(_jit, __aeabi_dcmpgt,r0,r1,r2)
+#define swf_ltr_f(_jit, r0, r1, r2)	swf_iff(_jit, __aeabi_fcmplt,r0,r1,r2)
+#define swf_ltr_d(_jit, r0, r1, r2)	swf_idd(_jit, __aeabi_dcmplt,r0,r1,r2)
+#define swf_ler_f(_jit, r0, r1, r2)	swf_iff(_jit, __aeabi_fcmple,r0,r1,r2)
+#define swf_ler_d(_jit, r0, r1, r2)	swf_idd(_jit, __aeabi_dcmple,r0,r1,r2)
+#define swf_eqr_f(_jit, r0, r1, r2)	swf_iff(_jit, __aeabi_fcmpeq,r0,r1,r2)
+#define swf_eqr_d(_jit, r0, r1, r2)	swf_idd(_jit, __aeabi_dcmpeq,r0,r1,r2)
+#define swf_ger_f(_jit, r0, r1, r2)	swf_iff(_jit, __aeabi_fcmpge,r0,r1,r2)
+#define swf_ger_d(_jit, r0, r1, r2)	swf_idd(_jit, __aeabi_dcmpge,r0,r1,r2)
+#define swf_gtr_f(_jit, r0, r1, r2)	swf_iff(_jit, __aeabi_fcmpgt,r0,r1,r2)
+#define swf_gtr_d(_jit, r0, r1, r2)	swf_idd(_jit, __aeabi_dcmpgt,r0,r1,r2)
 
 __jit_inline void
-soft_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_iff(_jit, __aeabi_fcmpeq, r0, r1, r2);
+    swf_iff(_jit, __aeabi_fcmpeq, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
 __jit_inline void
-soft_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_idd(_jit, __aeabi_dcmpeq, r0, r1, r2);
+    swf_idd(_jit, __aeabi_dcmpeq, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
 static void
-soft_iunff(jit_state_t _jit, int (*i0)(float, float),
-	   jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_iunff(jit_state_t _jit, int (*i0)(float, float),
+	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			 d;
     int			 l;
@@ -611,8 +611,8 @@ soft_iunff(jit_state_t _jit, int (*i0)(float, float),
 }
 
 static void
-soft_iundd(jit_state_t _jit, int (*i0)(double, double),
-	   jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_iundd(jit_state_t _jit, int (*i0)(double, double),
+	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			 d;
     int			 l;
@@ -665,51 +665,51 @@ soft_iundd(jit_state_t _jit, int (*i0)(double, double),
     _POP(l);
 }
 
-#define soft_unltr_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmplt,r0,r1,r2)
-#define soft_unltr_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmplt,r0,r1,r2)
-#define soft_unler_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmple,r0,r1,r2)
-#define soft_unler_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmple,r0,r1,r2)
-#define soft_uneqr_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmpeq,r0,r1,r2)
-#define soft_uneqr_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmpeq,r0,r1,r2)
-#define soft_unger_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmpge,r0,r1,r2)
-#define soft_unger_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmpge,r0,r1,r2)
-#define soft_ungtr_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmpgt,r0,r1,r2)
-#define soft_ungtr_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmpgt,r0,r1,r2)
+#define swf_unltr_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmplt,r0,r1,r2)
+#define swf_unltr_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmplt,r0,r1,r2)
+#define swf_unler_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmple,r0,r1,r2)
+#define swf_unler_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmple,r0,r1,r2)
+#define swf_uneqr_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmpeq,r0,r1,r2)
+#define swf_uneqr_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmpeq,r0,r1,r2)
+#define swf_unger_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmpge,r0,r1,r2)
+#define swf_unger_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmpge,r0,r1,r2)
+#define swf_ungtr_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmpgt,r0,r1,r2)
+#define swf_ungtr_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmpgt,r0,r1,r2)
 
 __jit_inline void
-soft_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_iunff(_jit, __aeabi_fcmpeq, r0, r1, r2);
+    swf_iunff(_jit, __aeabi_fcmpeq, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
 __jit_inline void
-soft_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_iundd(_jit, __aeabi_dcmpeq, r0, r1, r2);
+    swf_iundd(_jit, __aeabi_dcmpeq, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
 __jit_inline void
-soft_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_iff(_jit, __aeabi_fcmpun, r0, r1, r2);
+    swf_iff(_jit, __aeabi_fcmpun, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
 __jit_inline void
-soft_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+swf_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
-    soft_idd(_jit, __aeabi_dcmpun, r0, r1, r2);
+    swf_idd(_jit, __aeabi_dcmpun, r0, r1, r2);
     _XORI(r0, r0, 1);
 }
 
-#define soft_unordr_f(_jit, r0, r1, r2)	soft_iunff(_jit,__aeabi_fcmpun,r0,r1,r2)
-#define soft_unordr_d(_jit, r0, r1, r2)	soft_iundd(_jit,__aeabi_dcmpun,r0,r1,r2)
+#define swf_unordr_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmpun,r0,r1,r2)
+#define swf_unordr_d(_jit, r0, r1, r2)	swf_iundd(_jit,__aeabi_dcmpun,r0,r1,r2)
 
 static jit_insn *
-soft_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
-	 void *i1, jit_fpr_t r1, jit_fpr_t r2)
+swf_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
+	void *i1, jit_fpr_t r1, jit_fpr_t r2)
 {
     jit_insn		*l;
     int			 d;
@@ -734,8 +734,8 @@ soft_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
 }
 
 static jit_insn *
-soft_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
-	 void *i1, jit_fpr_t r1, jit_fpr_t r2)
+swf_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
+	void *i1, jit_fpr_t r1, jit_fpr_t r2)
 {
     jit_insn		*l;
     int			 d;
@@ -767,25 +767,25 @@ soft_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
     return (l);
 }
 
-#define soft_bltr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmplt,ARM_CC_NE,i0,r0,r1)
-#define soft_bltr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmplt,ARM_CC_NE,i0,r0,r1)
-#define soft_bler_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmple,ARM_CC_NE,i0,r0,r1)
-#define soft_bler_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmple,ARM_CC_NE,i0,r0,r1)
-#define soft_beqr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpeq,ARM_CC_NE,i0,r0,r1)
-#define soft_beqr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpeq,ARM_CC_NE,i0,r0,r1)
-#define soft_bger_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpge,ARM_CC_NE,i0,r0,r1)
-#define soft_bger_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpge,ARM_CC_NE,i0,r0,r1)
-#define soft_bgtr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpgt,ARM_CC_NE,i0,r0,r1)
-#define soft_bgtr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpgt,ARM_CC_NE,i0,r0,r1)
-#define soft_bner_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpeq,ARM_CC_EQ,i0,r0,r1)
-#define soft_bner_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpeq,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunltr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpge,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunltr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpge,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunler_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpgt,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunler_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpgt,ARM_CC_EQ,i0,r0,r1)
+#define swf_bltr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmplt,ARM_CC_NE,i0,r0,r1)
+#define swf_bltr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmplt,ARM_CC_NE,i0,r0,r1)
+#define swf_bler_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmple,ARM_CC_NE,i0,r0,r1)
+#define swf_bler_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmple,ARM_CC_NE,i0,r0,r1)
+#define swf_beqr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpeq,ARM_CC_NE,i0,r0,r1)
+#define swf_beqr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpeq,ARM_CC_NE,i0,r0,r1)
+#define swf_bger_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpge,ARM_CC_NE,i0,r0,r1)
+#define swf_bger_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpge,ARM_CC_NE,i0,r0,r1)
+#define swf_bgtr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpgt,ARM_CC_NE,i0,r0,r1)
+#define swf_bgtr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpgt,ARM_CC_NE,i0,r0,r1)
+#define swf_bner_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpeq,ARM_CC_EQ,i0,r0,r1)
+#define swf_bner_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpeq,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunltr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpge,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunltr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpge,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunler_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpgt,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunler_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpgt,ARM_CC_EQ,i0,r0,r1)
 
 static jit_insn *
-soft_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
+swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			 d;
     jit_insn		*l;
@@ -839,7 +839,7 @@ soft_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 }
 
 static jit_insn *
-soft_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
+swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			 d;
     jit_insn		*l;
@@ -908,28 +908,28 @@ soft_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     return (l);
 }
 
-#define soft_buneqr_f(_jit,i0,r0,r1)	soft_bunff(_jit,1,i0,r0,r1)
-#define soft_buneqr_d(_jit,i0,r0,r1)	soft_bundd(_jit,1,i0,r0,r1)
-#define soft_bunger_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmplt,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunger_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmplt,ARM_CC_EQ,i0,r0,r1)
-#define soft_bungtr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmple,ARM_CC_EQ,i0,r0,r1)
-#define soft_bungtr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmple,ARM_CC_EQ,i0,r0,r1)
-#define soft_bltgtr_f(_jit,i0,r0,r1)	soft_bunff(_jit,0,i0,r0,r1)
-#define soft_bltgtr_d(_jit,i0,r0,r1)	soft_bundd(_jit,0,i0,r0,r1)
-#define soft_bordr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpun,ARM_CC_EQ,i0,r0,r1)
-#define soft_bordr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpun,ARM_CC_EQ,i0,r0,r1)
-#define soft_bunordr_f(_jit,i0,r0,r1)	soft_bff(_jit,__aeabi_fcmpun,ARM_CC_NE,i0,r0,r1)
-#define soft_bunordr_d(_jit,i0,r0,r1)	soft_bdd(_jit,__aeabi_dcmpun,ARM_CC_NE,i0,r0,r1)
+#define swf_buneqr_f(_jit,i0,r0,r1)	swf_bunff(_jit,1,i0,r0,r1)
+#define swf_buneqr_d(_jit,i0,r0,r1)	swf_bundd(_jit,1,i0,r0,r1)
+#define swf_bunger_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmplt,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunger_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmplt,ARM_CC_EQ,i0,r0,r1)
+#define swf_bungtr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmple,ARM_CC_EQ,i0,r0,r1)
+#define swf_bungtr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmple,ARM_CC_EQ,i0,r0,r1)
+#define swf_bltgtr_f(_jit,i0,r0,r1)	swf_bunff(_jit,0,i0,r0,r1)
+#define swf_bltgtr_d(_jit,i0,r0,r1)	swf_bundd(_jit,0,i0,r0,r1)
+#define swf_bordr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpun,ARM_CC_EQ,i0,r0,r1)
+#define swf_bordr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpun,ARM_CC_EQ,i0,r0,r1)
+#define swf_bunordr_f(_jit,i0,r0,r1)	swf_bff(_jit,__aeabi_fcmpun,ARM_CC_NE,i0,r0,r1)
+#define swf_bunordr_d(_jit,i0,r0,r1)	swf_bdd(_jit,__aeabi_dcmpun,ARM_CC_NE,i0,r0,r1)
 
 __jit_inline void
-soft_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+swf_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     jit_ldr_i(JIT_FTMP, r1);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
 __jit_inline void
-soft_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
+swf_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, r1, 0);
@@ -944,14 +944,14 @@ soft_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 }
 
 __jit_inline void
-soft_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
+swf_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     jit_ldi_i(JIT_FTMP, i0);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
 __jit_inline void
-soft_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
+swf_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
     if (jit_armv5e_p()) {
@@ -967,14 +967,14 @@ soft_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 }
 
 __jit_inline void
-soft_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+swf_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     _LDR(JIT_TMP, r1, r2);
     _STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
 }
 
 __jit_inline void
-soft_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
+swf_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (jit_armv5e_p()) {
 	_LDRD(JIT_TMP, r1, r2);
@@ -990,14 +990,14 @@ soft_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 }
 
 __jit_inline void
-soft_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
+swf_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     jit_ldxi_i(JIT_FTMP, r1, i0);
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
 __jit_inline void
-soft_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
+swf_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255)
@@ -1033,14 +1033,14 @@ soft_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 }
 
 __jit_inline void
-soft_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+swf_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     _STRI(JIT_FTMP, r0, 0);
 }
 
 __jit_inline void
-soft_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
+swf_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
@@ -1055,7 +1055,7 @@ soft_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
+swf_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
@@ -1063,7 +1063,7 @@ soft_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 }
 
 __jit_inline void
-soft_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
+swf_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
@@ -1073,14 +1073,14 @@ soft_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 }
 
 __jit_inline void
-soft_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
+swf_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     _LDRIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
     _STR(JIT_TMP, r0, r1);
 }
 
 __jit_inline void
-soft_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
+swf_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
@@ -1096,14 +1096,14 @@ soft_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 }
 
 __jit_inline void
-soft_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
+swf_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
     jit_stxi_i(i0, r0, JIT_FTMP);
 }
 
 __jit_inline void
-soft_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
+swf_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255) {
@@ -1132,7 +1132,7 @@ soft_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline void
-soft_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
+swf_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
     if (i0 < 4)
 	i0 <<= 2;
@@ -1141,7 +1141,7 @@ soft_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 }
 
 __jit_inline void
-soft_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
+swf_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
     if (i0 < 4)
 	i0 <<= 2;
@@ -1171,7 +1171,7 @@ soft_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 }
 
 __jit_inline void
-soft_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
+swf_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
     assert(ofs < 256);
@@ -1183,7 +1183,7 @@ soft_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 }
 
 __jit_inline void
-soft_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
+swf_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
     assert(ofs < 256);
@@ -1200,9 +1200,9 @@ soft_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     jit_stxi_i(0, JIT_SP, JIT_FTMP);
 }
 
-#define soft_retval_f(_jit, r0)		_STRIN(_R0, JIT_FP, (r0 << 3) + 8)
+#define swf_retval_f(_jit, r0)		_STRIN(_R0, JIT_FP, (r0 << 3) + 8)
 __jit_inline void
-soft_retval_d(jit_state_t _jit, jit_fpr_t r0)
+swf_retval_d(jit_state_t _jit, jit_fpr_t r0)
 {
     if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
@@ -1212,4 +1212,4 @@ soft_retval_d(jit_state_t _jit, jit_fpr_t r0)
     }
 }
 
-#endif /* __lightning_fp_soft_h */
+#endif /* __lightning_fp_swf_h */

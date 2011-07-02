@@ -641,7 +641,7 @@ vfp_buneqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline jit_insn *
 vfp_buneqr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_uneqr_d(_jit, JIT_FTMP, r0, r1);
+    vfp_uneqr_d(_jit, JIT_FTMP, r0, r1);
     return (vfp_bnz(_jit, i0, JIT_FTMP));
 }
 

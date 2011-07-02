@@ -305,7 +305,7 @@ encode_vfp_immediate(int code, unsigned lo, unsigned hi)
 	    /* (I64)
 	     *	aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffffgggggggghhhhhhhh
 	     */
-	    for (mask = 0xff; mask != 0xff00000000; mask <<= 8) {
+	    for (mask = 0xff; mask != 0xff000000; mask <<= 8) {
 		imm = lo & mask;
 		if (imm != mask && imm != 0)
 		    goto fail;
