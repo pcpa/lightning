@@ -75,17 +75,19 @@ typedef enum {
 #define ARM_CC_EQ	0x00000000	/* Z=1 */
 #define ARM_CC_NE	0x10000000	/* Z=0 */
 #define ARM_CC_HS	0x20000000	/* C=1 */
+#  define ARM_CC_CS	ARM_CC_HS
 #define ARM_CC_LO	0x30000000	/* C=0 */
+#  define ARM_CC_CC	ARM_CC_LO
 #define ARM_CC_MI	0x40000000	/* N=1 */
 #define ARM_CC_PL	0x50000000	/* N=0 */
 #define ARM_CC_VS	0x60000000	/* V=1 */
 #define ARM_CC_VC	0x70000000	/* V=0 */
 #define ARM_CC_HI	0x80000000	/* C=1 && Z=0 */
 #define ARM_CC_LS	0x90000000	/* C=0 || Z=1 */
-#define ARM_CC_GE	0xa0000000	/* (N=1 && V=1) || (N=0 && V=0) */
-#define ARM_CC_LT	0xb0000000	/* (N=1 && V=0) || (N=0 && V=1) */
-#define ARM_CC_GT	0xc0000000	/* Z=0 && ((N=1 && V=1) || (N=0 && V=1)) XXX */
-#define ARM_CC_LE	0xd0000000	/* Z=1 || (N=1 && V=0) || (N=1 && V=0) */
+#define ARM_CC_GE	0xa0000000	/* N=V */
+#define ARM_CC_LT	0xb0000000	/* (N!=V */
+#define ARM_CC_GT	0xc0000000	/* Z=0 && N=V */
+#define ARM_CC_LE	0xd0000000	/* Z=1 || N!=V */
 #define ARM_CC_AL	0xe0000000	/* always */
 #define ARM_CC_NV	0xf0000000	/* reserved */
 
@@ -198,6 +200,7 @@ typedef enum {
  * VFPv2 and VFPv3 (encoding T2/A2) instructions
  ***********************************************************************/
 #define ARM_V_E		0x00000080	/* ARM_VCMP exception if NaN arg(s) */
+#define ARM_V_Z		0x00010000	/* ARM_VCMP with zero */
 #define ARM_V_F64	0x00000100	/* Undefined in single precision only variant */
 #define ARM_VADD_F	0x0e300a00
 #define ARM_VSUB_F	0x0e300a40
@@ -205,12 +208,13 @@ typedef enum {
 #define ARM_VDIV_F	0x0e800a00
 #define ARM_VABS_F	0x0eb00ac0
 #define ARM_VNEG_F	0x0eb10a40
+#define ARM_VSQRT_F	0x0eb10ac0
 #define ARM_VMOV_F	0x0eb00a40
 #define ARM_VMOV_A_S	0x0e100b10	/* vmov rn, sn */
 #define ARM_VMOV_S_A	0x0e000a10	/* vmov sn, rn */
 #define ARM_VMOV_AA_D	0x0c500b10	/* vmov rn,rn, dn */
 #define ARM_VMOV_D_AA	0x0c400b10	/* vmov dn, rn,rn */
-#define ARM_VMCP	0x0eb40a40
+#define ARM_VCMP	0x0eb40a40
 #define ARM_VMRS	0x0ef10a10
 #define ARM_VMSR	0x0ee10a10
 #define ARM_VCVT_2I		0x00040000	/* to integer */
@@ -230,10 +234,10 @@ typedef enum {
 #define ARM_VCVT_F64_F32	ARM_VCVT_F|ARM_V_F64
 
 /* does not set bit 7, meaning to use rounding mode of FPSCR */
-#define ARM_VRND_S32_F32	ARM_VCVT|ARM_VCVT_2I|ARM_VCVT_2S
-#define ARM_VRND_U32_F32	ARM_VCVT|ARM_VCVT_2I
-#define ARM_VRND_S32_F64	ARM_VCVT|ARM_VCVT_2I|ARM_VCVT_2S|ARM_V_F64
-#define ARM_VRND_U32_F64	ARM_VCVT|ARM_VCVT_2I|ARM_V_F64
+#define ARM_VCVTR_S32_F32	ARM_VCVT|ARM_VCVT_2I|ARM_VCVT_2S
+#define ARM_VCVTR_U32_F32	ARM_VCVT|ARM_VCVT_2I
+#define ARM_VCVTR_S32_F64	ARM_VCVT|ARM_VCVT_2I|ARM_VCVT_2S|ARM_V_F64
+#define ARM_VCVTR_U32_F64	ARM_VCVT|ARM_VCVT_2I|ARM_V_F64
 
 /***********************************************************************
  * NEON instructions (encoding T1/A1) (condition must always be ARM_CC_NV)
@@ -464,6 +468,10 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VNEG_F32(r0,r1)		_CC_VNEG_F32(ARM_CC_AL,r0,r1)
 #define _CC_VNEG_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VNEG_F|ARM_V_F64,r0,r1)
 #define _VNEG_F64(r0,r1)		_CC_VNEG_F64(ARM_CC_AL,r0,r1)
+#define _CC_VSQRT_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VSQRT_F,r0,r1)
+#define _VSQRT_F32(r0,r1)		_CC_VSQRT_F32(ARM_CC_AL,r0,r1)
+#define _CC_VSQRT_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VSQRT_F|ARM_V_F64,r0,r1)
+#define _VSQRT_F64(r0,r1)		_CC_VSQRT_F64(ARM_CC_AL,r0,r1)
 #define _CC_VMOV_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VMOV_F,r0,r1)
 #define _VMOV_F32(r0,r1)		_CC_VMOV_F32(ARM_CC_AL,r0,r1)
 #define _CC_VMOV_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VMOV_F|ARM_V_F64,r0,r1)
@@ -484,6 +492,14 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VCMPE_F32(r0,r1)		_CC_VCMPE_F32(ARM_CC_AL,r0,r1)
 #define _CC_VCMPE_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_E|ARM_V_F64,r0,r1)
 #define _VCMPE_F64(r0,r1)		_CC_VCMPE_F64(ARM_CC_AL,r0,r1)
+#define _CC_VCMPZ_F32(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z,r0,0)
+#define _VCMPZ_F32(r0)			_CC_VCMPZ_F32(ARM_CC_AL,r0)
+#define _CC_VCMPZ_F64(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_F64,r0,0)
+#define _VCMPZ_F64(r0)			_CC_VCMPZ_F64(ARM_CC_AL,r0)
+#define _CC_VCMPEZ_F32(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_E,r0,0)
+#define _VCMPEZ_F32(r0)			_CC_VCMPEZ_F32(ARM_CC_AL,r0)
+#define _CC_VCMPEZ_F64(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_E|ARM_V_F64,r0,0)
+#define _VCMPEZ_F64(r0)			_CC_VCMPEZ_F64(ARM_CC_AL,r0)
 #define _CC_VMRS(cc,r0)			arm_cc_vorr_(cc,ARM_VMRS,r0,2)
 #define _VMRS(r0)			_CC_VMRS(ARM_CC_AL,r0)
 #define _CC_VMSR(cc,r0)			arm_cc_vorr_(cc,ARM_VMSR,r0,2)
@@ -509,14 +525,14 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _CC_VCVT_F64_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F64_F32,r0,r1)
 #define _VCVT_F64_F32(r0,r1)		_CC_VCVT_F64_F32(ARM_CC_AL,r0,r1)
 /* use rounding mode in fpscr (intended for floor, ceil, etc) */
-#define _CC_VRND_S32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VRND_S32_F32,r0,r1)
-#define _VRND_S32_F32(r0,r1)		_CC_VRND_S32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VRND_U32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VRND_U32_F32,r0,r1)
-#define _VRND_U32_F32(r0,r1)		_CC_VRND_U32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VRND_S32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VRND_S32_F64,r0,r1)
-#define _VRND_S32_F64(r0,r1)		_CC_VRND_S32_F64(ARM_CC_AL,r0,r1)
-#define _CC_VRND_U32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VRND_U32_F64,r0,r1)
-#define _VRND_U32_F64(r0,r1)		_CC_VRND_U32_F64(ARM_CC_AL,r0,r1)
+#define _CC_VCVTR_S32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_S32_F32,r0,r1)
+#define _VCVTR_S32_F32(r0,r1)		_CC_VCVTR_S32_F32(ARM_CC_AL,r0,r1)
+#define _CC_VCVTR_U32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_U32_F32,r0,r1)
+#define _VCVTR_U32_F32(r0,r1)		_CC_VCVTR_U32_F32(ARM_CC_AL,r0,r1)
+#define _CC_VCVTR_S32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_S32_F64,r0,r1)
+#define _VCVTR_S32_F64(r0,r1)		_CC_VCVTR_S32_F64(ARM_CC_AL,r0,r1)
+#define _CC_VCVTR_U32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_U32_F64,r0,r1)
+#define _VCVTR_U32_F64(r0,r1)		_CC_VCVTR_U32_F64(ARM_CC_AL,r0,r1)
 
 /***********************************************************************
  * NEON instructions (encoding T1/A1) (condition must always be ARM_CC_NV)

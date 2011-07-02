@@ -1,4 +1,5 @@
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/lightning/$(cpu)
+AM_LDFLAGS = -lm
 
 check_PROGRAMS = fibit incr printf printf2 rpn fib fibdelay	\
 	add bp testfp funcfp rpnfp modi ldxi divi movi ret	\
@@ -24,4 +25,3 @@ TESTS_ENVIRONMENT=$(srcdir)/run-test
 endif
 
 ldst_CFLAGS = -ffloat-store
-testfp_CFLAGS = -lm

@@ -154,11 +154,9 @@ sete_OBJECTS = sete.$(OBJEXT)
 sete_LDADD = $(LDADD)
 @DISASS_TRUE@sete_DEPENDENCIES = $(top_builddir)/opcode/libdisass.a
 testfp_SOURCES = testfp.c
-testfp_OBJECTS = testfp-testfp.$(OBJEXT)
+testfp_OBJECTS = testfp.$(OBJEXT)
 testfp_LDADD = $(LDADD)
 @DISASS_TRUE@testfp_DEPENDENCIES = $(top_builddir)/opcode/libdisass.a
-testfp_LINK = $(CCLD) $(testfp_CFLAGS) $(CFLAGS) $(AM_LDFLAGS) \
-	$(LDFLAGS) -o $@
 DEFAULT_INCLUDES = -I.@am__isrc@ -I$(top_builddir)
 depcomp = $(SHELL) $(top_srcdir)/build-aux/depcomp
 am__depfiles_maybe = depfiles
@@ -283,6 +281,7 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 AM_CPPFLAGS = -I$(top_builddir) -I$(top_srcdir) -I$(top_srcdir)/lightning/$(cpu)
+AM_LDFLAGS = -lm
 noinst_DATA = fibit.ok incr.ok printf.ok printf2.ok rpn.ok	\
 	fib.ok fibdelay.ok testfp.ok funcfp.ok rpnfp.ok add.ok	\
 	bp.ok modi.ok ldxi.ok divi.ok movi.ok ret.ok		\
@@ -292,7 +291,6 @@ EXTRA_DIST = $(noinst_DATA) run-test
 @DISASS_TRUE@LDADD = $(top_builddir)/opcode/libdisass.a
 @REGRESSION_TESTING_TRUE@TESTS_ENVIRONMENT = $(srcdir)/run-test
 ldst_CFLAGS = -ffloat-store
-testfp_CFLAGS = -lm
 all: all-am
 
 .SUFFIXES:
@@ -395,7 +393,7 @@ sete$(EXEEXT): $(sete_OBJECTS) $(sete_DEPENDENCIES)
 	$(LINK) $(sete_OBJECTS) $(sete_LDADD) $(LIBS)
 testfp$(EXEEXT): $(testfp_OBJECTS) $(testfp_DEPENDENCIES) 
 	@rm -f testfp$(EXEEXT)
-	$(testfp_LINK) $(testfp_OBJECTS) $(testfp_LDADD) $(LIBS)
+	$(LINK) $(testfp_OBJECTS) $(testfp_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -424,7 +422,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpn.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/rpnfp.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sete.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testfp-testfp.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/testfp.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<
@@ -453,20 +451,6 @@ ldst-ldst.obj: ldst.c
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	source='ldst.c' object='ldst-ldst.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(ldst_CFLAGS) $(CFLAGS) -c -o ldst-ldst.obj `if test -f 'ldst.c'; then $(CYGPATH_W) 'ldst.c'; else $(CYGPATH_W) '$(srcdir)/ldst.c'; fi`
-
-testfp-testfp.o: testfp.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(testfp_CFLAGS) $(CFLAGS) -MT testfp-testfp.o -MD -MP -MF $(DEPDIR)/testfp-testfp.Tpo -c -o testfp-testfp.o `test -f 'testfp.c' || echo '$(srcdir)/'`testfp.c
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/testfp-testfp.Tpo $(DEPDIR)/testfp-testfp.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testfp.c' object='testfp-testfp.o' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(testfp_CFLAGS) $(CFLAGS) -c -o testfp-testfp.o `test -f 'testfp.c' || echo '$(srcdir)/'`testfp.c
-
-testfp-testfp.obj: testfp.c
-@am__fastdepCC_TRUE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(testfp_CFLAGS) $(CFLAGS) -MT testfp-testfp.obj -MD -MP -MF $(DEPDIR)/testfp-testfp.Tpo -c -o testfp-testfp.obj `if test -f 'testfp.c'; then $(CYGPATH_W) 'testfp.c'; else $(CYGPATH_W) '$(srcdir)/testfp.c'; fi`
-@am__fastdepCC_TRUE@	$(am__mv) $(DEPDIR)/testfp-testfp.Tpo $(DEPDIR)/testfp-testfp.Po
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	source='testfp.c' object='testfp-testfp.obj' libtool=no @AMDEPBACKSLASH@
-@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
-@am__fastdepCC_FALSE@	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(testfp_CFLAGS) $(CFLAGS) -c -o testfp-testfp.obj `if test -f 'testfp.c'; then $(CYGPATH_W) 'testfp.c'; else $(CYGPATH_W) '$(srcdir)/testfp.c'; fi`
 
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \

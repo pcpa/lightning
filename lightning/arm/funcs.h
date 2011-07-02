@@ -92,7 +92,6 @@ jit_get_cpu(void)
     }
     fclose(fp);
 #endif
-    jit_cpu.softfp = 1;
 }
 
 #endif /* __lightning_funcs_h */

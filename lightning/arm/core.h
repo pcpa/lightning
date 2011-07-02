@@ -53,7 +53,6 @@ jit_v_order[JIT_V_NUM] = {
 #define jit_armv5_p()			(jit_cpu.version >= 5)
 #define jit_armv5e_p()			(jit_cpu.version >= 5 && jit_cpu.extend)
 #define jit_armv6_p()			(jit_cpu.version >= 6)
-#define jit_softfp_p()			(jit_cpu.softfp)
 
 extern int	__aeabi_idivmod(int, int);
 extern unsigned	__aeabi_uidivmod(unsigned, unsigned);
@@ -953,10 +952,6 @@ arm_bmxi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
     if (jit_thumb_p()) {
 	if ((i = encode_arm_immediate(i1)) != -1)
 	    _TSTI(r0, i);
-	else if ((i = encode_arm_immediate(~i1)) != -1) {
-	    cc = cc == ARM_CC_NE ? ARM_CC_EQ : ARM_CC_NE;
-	    _TSTI(r0, i);
-	}
 	else {
 	    jit_movi_i(JIT_TMP, i1);
 	    _TST(r0, JIT_TMP);
@@ -1370,11 +1365,11 @@ arm_prolog(jit_state_t _jit, int i0)
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
 
-    //if (jit_softfp_p())
+    if (jit_softfp_p())
 	/* 6 soft double registers */
-    _jitl.alloca_offset = 48;
-    //else
-	//_jitl.alloca_offset = 0;
+	_jitl.alloca_offset = 48;
+    else
+	_jitl.alloca_offset = 0;
 
     jit_movi_p(JIT_TMP, (void *)_jitl.alloca_offset);
     _SUB(JIT_SP, JIT_SP, JIT_TMP);

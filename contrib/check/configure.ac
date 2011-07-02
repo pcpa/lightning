@@ -107,6 +107,7 @@ case "$target_cpu" in
   sparc*)	cpu=sparc	;;
   powerpc)	cpu=ppc		;;
   mips*)	cpu=mips	;;
+  arm*)		cpu=arm		;;
   *)			        ;;
 esac
 AC_SUBST(cpu)

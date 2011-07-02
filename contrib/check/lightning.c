@@ -2507,30 +2507,49 @@ dot(void)
 	if (primary(skip_ws) != tok_symbol)
 	    error("expecting jit flag");
 	ch = !!get_int(skip_ws);
-#if defined(__i386__) || defined(__x86_64__)
 	if (strcmp(parser.string, "rnd_near") == 0)
-	    jit_flags.rnd_near = ch;
-	else if (strcmp(parser.string, "push_pop") == 0)
-	    jit_flags.push_pop = ch;
-	else
+#if defined(__i386__) || defined(__x86_64__)
+	    jit_flags.rnd_near = ch
 #endif
+	    ;
+	else if (strcmp(parser.string, "push_pop") == 0)
+#if defined(__i386__) || defined(__x86_64__)
+	    jit_flags.push_pop = ch
+#endif
+	    ;
+	else
 	    warn("ignoring \".flags %s %d\"", parser.string, ch);
     }
     else if (strcmp(parser.string, "cpu") == 0) {
 	if (primary(skip_ws) != tok_symbol)
 	    error("expecting cpu flag");
-	ch = !!get_int(skip_ws);
+	ch = get_int(skip_ws);
 	if (strcmp(parser.string, "sse2") == 0)
 #if defined(__i386__)
 	    /* only meaningful for i386 as there is no x87 path for x86_64
 	     * and should only use just after jit_prolog and not mix with
 	     * code that uses xmm registers */
-	    jit_cpu.sse2 = ch
+	    jit_cpu.sse2 = !!ch
 #endif
 	;
 	else if (strcmp(parser.string, "sse4_1") == 0)
 #if defined(__i386__) || defined(__x86_64__)
-	    jit_cpu.sse4_1 = ch
+	    jit_cpu.sse4_1 = !!ch
+#endif
+	;
+	else if (strcmp(parser.string, "version") == 0)
+#if defined(__arm__)
+	    jit_cpu.version = ch
+#endif
+	;
+	else if (strcmp(parser.string, "thumb") == 0)
+#if defined(__arm__)
+	    jit_cpu.thumb = ch
+#endif
+	;
+	else if (strcmp(parser.string, "vfp") == 0)
+#if defined(__arm__)
+	    jit_cpu.vfp = ch
 #endif
 	;
 	else
