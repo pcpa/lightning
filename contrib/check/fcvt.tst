@@ -16,6 +16,9 @@
 #if __mips__
 #  define nan_i			ix7f
 #  define nan_l			lx7f
+#elif __arm__
+#  define nan_i			0
+#  define nan_l			0
 #else
 #  define nan_i			ix80
 #  define nan_l			lx80

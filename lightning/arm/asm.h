@@ -59,7 +59,7 @@ typedef enum {
 #define JIT_TMP		_R8
 #define JIT_FTMP	_R9
 
-/* _VxxxQ means _Q0=_F0, _Q1=_F2 */
+/* _VxxxQ macros mean _Q0=_F0, _Q1=_F2, ... */
 typedef enum {
     _F0,	/* result */
     _F1,	/* scratch */
@@ -85,7 +85,7 @@ typedef enum {
 #define ARM_CC_HI	0x80000000	/* C=1 && Z=0 */
 #define ARM_CC_LS	0x90000000	/* C=0 || Z=1 */
 #define ARM_CC_GE	0xa0000000	/* N=V */
-#define ARM_CC_LT	0xb0000000	/* (N!=V */
+#define ARM_CC_LT	0xb0000000	/* N!=V */
 #define ARM_CC_GT	0xc0000000	/* Z=0 && N=V */
 #define ARM_CC_LE	0xd0000000	/* Z=1 || N!=V */
 #define ARM_CC_AL	0xe0000000	/* always */
@@ -162,10 +162,7 @@ typedef enum {
 #define ARM_M_B		0x01000000	/* before; after if not set */
 #define ARM_M_U		0x00200000	/* update Rn */
 
-
-#if 1	/* work in progress */
 #define ARM_V_Q		0x00000040
-
 #define FPSCR_N		0x80000000/* Negative condition code flag */
 #define FPSCR_Z		0x40000000/* Zero condition code flag */
 #define FPSCR_C		0x20000000/* Carry condition code flag */
@@ -174,10 +171,10 @@ typedef enum {
 #define FPSCR_AHP	0x04000000/* Alternative half-precision (unset is IEEE format) */
 #define FPSCR_DN	0x02000000/* Default NaN mode */
 #define FPSCR_FZ	0x01000000/* Flush to zero (unset is fully IEEE-754 compliant) */
-#define FPSCR_RMODE	0x00c00000
+#define FPSCR_RMASK	0x00c00000
 #  define FPSCR_RN	0x00000000	/* Round to Nearest */
 #  define FPSCR_RP	0x00400000	/* Round towards Plus Infinity */
-#  define FPSCR_NP	0x00800000	/* Round towards Minus Infinity */
+#  define FPSCR_RM	0x00800000	/* Round towards Minus Infinity */
 #  define FPSCR_RZ	0x00c00000	/* Round towards Zero */
 #define FPSCR_STRIDE	0x00300000
 #define FPSCR_RES1	0x00080000/* Reserved, UNK/SBZP */
@@ -279,7 +276,7 @@ typedef enum {
 
 #define ARM_VLDR	0x0d100a00
 #define ARM_VSTR	0x0d000a00
-#define ARM_VM		0x0d000a00
+#define ARM_VM		0x0c000a00
 
 /***********************************************************************
  * Advanced SIMD (encoding T2/A2) instructions
@@ -291,7 +288,6 @@ typedef enum {
 #define ARM_VMOV_D_A	0x0e000b10
 
 /*
- * FIXME untested
  * FIXME add (T2/A2) encoding for VFPv3 conditional VMOV with different
  * position of imm8 (split in imm8H and imm8L)
  */
@@ -305,7 +301,7 @@ encode_vfp_immediate(int code, unsigned lo, unsigned hi)
 	    /* (I64)
 	     *	aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffffgggggggghhhhhhhh
 	     */
-	    for (mask = 0xff; mask != 0xff000000; mask <<= 8) {
+	    for (mode = 0, mask = 0xff; mode < 4; mask <<= 8, mode++) {
 		imm = lo & mask;
 		if (imm != mask && imm != 0)
 		    goto fail;
@@ -350,7 +346,9 @@ encode_vfp_immediate(int code, unsigned lo, unsigned hi)
 	 *  00000000 abcdefgh 11111111 11111111 */
 	for (mode = 0, mask = 0xff; mode < 2;
 	     mask = (mask << 8) | 0xff, mode++) {
-	    if ((lo & mask) == mask && (imm = lo >> (8 + (mode << 8)))) {
+	    if ((lo & mask) == mask &&
+		!((lo & ~mask) >> 8) &&
+		(imm = lo >> (8 + (mode << 8)))) {
 		mode = 0xc00 | (mode << 8);
 		goto success;
 	    }
@@ -500,9 +498,9 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VCMPEZ_F32(r0)			_CC_VCMPEZ_F32(ARM_CC_AL,r0)
 #define _CC_VCMPEZ_F64(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_E|ARM_V_F64,r0,0)
 #define _VCMPEZ_F64(r0)			_CC_VCMPEZ_F64(ARM_CC_AL,r0)
-#define _CC_VMRS(cc,r0)			arm_cc_vorr_(cc,ARM_VMRS,r0,2)
+#define _CC_VMRS(cc,r0)			arm_cc_vorr_(cc,ARM_VMRS,r0,0)
 #define _VMRS(r0)			_CC_VMRS(ARM_CC_AL,r0)
-#define _CC_VMSR(cc,r0)			arm_cc_vorr_(cc,ARM_VMSR,r0,2)
+#define _CC_VMSR(cc,r0)			arm_cc_vorr_(cc,ARM_VMSR,r0,0)
 #define _VMSR(r0)			_CC_VMSR(ARM_CC_AL,r0)
 #define _CC_VCVT_S32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_S32_F32,r0,r1)
 #define _VCVT_S32_F32(r0,r1)		_CC_VCVT_S32_F32(ARM_CC_AL,r0,r1)
@@ -573,18 +571,24 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 /***********************************************************************
  * Advanced SIMD (encoding T2/A2) instructions
  ***********************************************************************/
-#define _CC_VMOV_A_D_S8(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8,r1,r0)
-#define _VMOV_A_D_S8(r0,r1)		_CC_VMOV_A_D_S8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_D_U8(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8|ARM_VMOV_ADV_U,r1,r0)
-#define _VMOV_A_D_U8(r0,r1)		_CC_VMOV_A_D_U8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_D_S16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16,r1,r0)
-#define _VMOV_A_D_S16(r0,r1)		_CC_VMOV_A_D_S16(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_D_U16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16|ARM_VMOV_ADV_U,r1,r0)
-#define _VMOV_A_D_U16(r0,r1)		_CC_VMOV_A_D_U16(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_D_A_I8(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_8,r0,r1)
-#define _VMOV_D_A_I8(r0,r1)		_CC_VMOV_D_A_I8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_D_A_I16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_16,r0,r1)
-#define _VMOV_D_A_I16(r0,r1)		_CC_VMOV_D_A_I16(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_S8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8,r0,r1)
+#define _VMOV_A_S8(r0,r1)		_CC_VMOV_A_S8(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_U8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8|ARM_VMOV_ADV_U,r0,r1)
+#define _VMOV_A_U8(r0,r1)		_CC_VMOV_A_U8(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_S16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16,r0,r1)
+#define _VMOV_A_S16(r0,r1)		_CC_VMOV_A_S16(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_U16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16|ARM_VMOV_ADV_U,r0,r1)
+#define _VMOV_A_U16(r0,r1)		_CC_VMOV_A_U16(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_S32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D,r0,r1)
+#define _VMOV_A_S32(r0,r1)		_CC_VMOV_A_S32(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_A_U32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_U,r0,r1)
+#define _VMOV_A_U32(r0,r1)		_CC_VMOV_A_U32(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_V_I8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_8,r1,r0)
+#define _VMOV_V_I8(r0,r1)		_CC_VMOV_V_I8(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_V_I16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_16,r1,r0)
+#define _VMOV_V_I16(r0,r1)		_CC_VMOV_V_I16(ARM_CC_AL,r0,r1)
+#define _CC_VMOV_V_I32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A,r1,r0)
+#define _VMOV_V_I32(r0,r1)		_CC_VMOV_V_I32(ARM_CC_AL,r0,r1)
 #define _VADD_I8(r0,r1,r2)		arm_vorrr(ARM_VADD_I,r0,r1,r2)
 #define _VADDQ_I8(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_Q,r0,r1,r2)
 #define _VADD_I16(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I16,r0,r1,r2)
@@ -735,7 +739,6 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VSTRN_F64(r0,r1,i0)		_CC_VSTRN_F64(ARM_CC_AL,r0,r1,i0)
 #define _CC_VSTR_F64(cc,r0,r1,i0)	arm_cc_vldst(cc,ARM_VSTR|ARM_V_F64|ARM_P,r0,r1,i0)
 #define _VSTR_F64(r0,r1,i0)		_CC_VSTR_F64(ARM_CC_AL,r0,r1,i0)
-#endif	/* work in progress */
 
 /* from binutils */
 #define rotate_left(v, n)	(v << n | v >> (32 - n))

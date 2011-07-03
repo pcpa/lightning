@@ -216,7 +216,8 @@ struct {
     _ui		version		: 4;
     _ui		extend		: 1;
     _ui		thumb		: 2;
-    _ui		vfp		: 4;
+    _ui		vfp		: 3;
+    _ui		neon		: 1;
 } jit_cpu;
 #else
 #  error GNU lightning does not support the current target

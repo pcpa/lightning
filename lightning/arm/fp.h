@@ -32,9 +32,13 @@
 #ifndef __lightning_fp_arm_h
 #define __lightning_fp_arm_h
 
+/* 16 or 32 double precision registers? (FIXME probably wrong) */
+#define jit_vfp_16d_p()			(jit_cpu.neon == 0)
+
 #define JIT_FPR_NUM			6
+
 static const jit_fpr_t
-jit_f_order[JIT_FPR_NUM] = {
+jit_f_order[6] = {
     _F0, _F1, _F2, _F3, _F4, _F5
 };
 #define JIT_FPR(n)			jit_f_order[n]
@@ -46,7 +50,7 @@ jit_f_order[JIT_FPR_NUM] = {
 __jit_inline void
 arm_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    if (jit_swfp_p())	swf_movr_f(_jit, r0, r1);
+    if (jit_swf_p())	swf_movr_f(_jit, r0, r1);
     else		vfp_movr_f(_jit, r0, r1);
 }
 

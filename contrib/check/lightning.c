@@ -2552,6 +2552,11 @@ dot(void)
 	    jit_cpu.vfp = ch
 #endif
 	;
+	else if (strcmp(parser.string, "neon") == 0)
+#if defined(__arm__)
+	    jit_cpu.neon = !!ch
+#endif
+	;
 	else
 	    warn("ignoring \".cpu %s %d\"", parser.string, ch);
     }

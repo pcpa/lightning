@@ -66,7 +66,7 @@ test_id:
 	bnei_i fail_test_id_i %r0 num				\
 	movi_d %f1 num						\
 	getarg_d %f0 $darg##num					\
-	float_cmp_branch_false(fail_test_id_d, r0, f0, f1)
+	double_cmp_branch_false(fail_test_id_d, r0, f0, f1)
 	check_arg_id(0)
 	check_arg_id(1)
 	check_arg_id(2)
@@ -131,7 +131,8 @@ fail_test_i:
 
 /*--------------------------------------------------------------------*/
 test_d:
-	prolog 10
+	prolog 0
+	prolog_d 10
 	arg_d $darg0
 	arg_d $darg1
 	arg_d $darg2
@@ -146,7 +147,7 @@ test_d:
 	movi_i %r2 num						\
 	movi_d %f1 num						\
 	getarg_d %f0 $darg##num					\
-	float_cmp_branch_false(fail_test_d, r0, f0, f1)
+	double_cmp_branch_false(fail_test_d, r0, f0, f1)
 	check_arg_d(0)
 	check_arg_d(1)
 	check_arg_d(2)

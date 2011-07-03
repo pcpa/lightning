@@ -64,11 +64,11 @@ jit_get_cpu(void)
     if (initialized)
 	return;
     initialized = 1;
-    if ((fp = fopen ("/proc/cpuinfo", "r")) == NULL)
+    if ((fp = fopen("/proc/cpuinfo", "r")) == NULL)
 	return;
 
-    while (fgets(buf, sizeof (buf), fp)) {
-	if (strncasecmp(buf, "CPU architecture:", 17) == 0) {
+    while (fgets(buf, sizeof(buf), fp)) {
+	if (strncmp(buf, "CPU architecture:", 17) == 0) {
 	    jit_cpu.version = strtol(buf + 17, &ptr, 10);
 	    while (*ptr) {
 		if (*ptr == 'T' || *ptr == 't') {
@@ -87,7 +87,18 @@ jit_get_cpu(void)
 		else
 		    ++ptr;
 	    }
-	    break;
+	}
+	else if (strncmp(buf, "Features\t:", 10) == 0) {
+	    if ((ptr = strstr(buf + 10, "vfpv")))
+		jit_cpu.vfp = strtol(ptr + 4, NULL, 0);
+	    if ((ptr = strstr(buf + 10, "neon")))
+		jit_cpu.neon = 1;
+	    if ((ptr = strstr(buf + 10, "thumb"))) {
+		if (ptr[5] && ptr[5] != ' ')
+		    jit_cpu.thumb = strtol(ptr + 5, NULL, 0);
+		else
+		    jit_cpu.thumb = 1;
+	    }
 	}
     }
     fclose(fp);

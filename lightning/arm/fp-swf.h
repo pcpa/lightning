@@ -36,6 +36,9 @@
 
 #include <math.h>
 
+/* match vfpv3 result */
+#define NAN_TO_INT_IS_ZERO			1
+
 extern float	__addsf3(float, float);
 extern double	__adddf3(double, double);
 extern float	__aeabi_fsub(float, float);
@@ -234,15 +237,18 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
+#if !NAN_TO_INT_IS_ZERO
     jit_insn		*is_nan;
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
+#endif
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+#if !NAN_TO_INT_IS_ZERO
     /* >> based on fragment of __aeabi_fcmpun */
     _LSLI(JIT_FTMP, _R0, 1);
     arm_cc_srrri(ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_FTMP,24);
@@ -257,6 +263,7 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     jit_patch(fast_not_nan);
     jit_patch(slow_not_nan);
     /* << based on fragment of __aeabi_fcmpun */
+#endif
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -274,7 +281,9 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     jit_movr_i(r0, _R0);
+#if !NAN_TO_INT_IS_ZERO
     jit_patch(is_nan);
+#endif
     _POP(l);
 }
 
@@ -283,9 +292,11 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 {
     int			 d;
     int			 l;
+#if !NAN_TO_INT_IS_ZERO
     jit_insn		*is_nan;
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
+#endif
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -297,6 +308,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
 	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
     }
+#if !NAN_TO_INT_IS_ZERO
     /* >> based on fragment of __aeabi_dcmpun */
     _LSLI(JIT_TMP, _R1, 1);
     arm_cc_srrri(ARM_CC_AL,ARM_MVN|ARM_S|ARM_ASR,JIT_TMP,0,JIT_TMP,21);
@@ -311,6 +323,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     jit_patch(fast_not_nan);
     jit_patch(slow_not_nan);
     /* << based on fragment of __aeabi_dcmpun */
+#endif
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -328,7 +341,9 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     jit_movr_i(r0, _R0);
+#if !NAN_TO_INT_IS_ZERO
     jit_patch(is_nan);
+#endif
     _POP(l);
 }
 
