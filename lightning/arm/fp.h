@@ -32,9 +32,6 @@
 #ifndef __lightning_fp_arm_h
 #define __lightning_fp_arm_h
 
-/* 16 or 32 double precision registers? (FIXME probably wrong) */
-#define jit_vfp_16d_p()			(jit_cpu.neon == 0)
-
 #define JIT_FPR_NUM			6
 
 static const jit_fpr_t
