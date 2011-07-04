@@ -113,8 +113,17 @@ typedef enum {
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
 #define ARM_EOR		0x00200000
-#define ARM_REV		0x06b00f30	/* ARMv6* */
-#define ARM_REV16	0x06b00fb0	/* ARMv6* */
+/* << ARMv6* */
+#define ARM_REV		0x06b00f30
+#define ARM_REV16	0x06b00fb0
+#define ARM_SXTB	0x06af0070
+#define ARM_UXTB	0x06ef0070
+#define ARM_SXTH	0x06bf0070
+#define ARM_UXTH	0x06ff0070
+#define ARM_XTR8	0x00000400	/* ?xt? rotate 8 bits */
+#define ARM_XTR16	0x00000800	/* ?xt? rotate 16 bits */
+#define ARM_XTR24	0x00000c00	/* ?xt? rotate 24 bits */
+/* >> ARMv6* */
 
 #define ARM_SHIFT	0x01a00000
 #define ARM_R		0x00000010	/* register shift */
@@ -840,9 +849,9 @@ _arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
     _jit_I(cc|o|(_u4(r0)<<16)|_u16(i0));
 }
 
-#define arm_cc_rev(cc,o,r0,r1)	_arm_cc_rev(_jit,cc,o,r0,r1)
+#define arm6_cc_orr(cc,o,r0,r1)	_arm6_cc_orr(_jit,cc,o,r0,r1)
 __jit_inline void
-_arm_cc_rev(jit_state_t _jit, int cc, int o, int r0, int r1)
+_arm6_cc_orr(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
@@ -956,10 +965,22 @@ _arm_cc_rev(jit_state_t _jit, int cc, int o, int r0, int r1)
 #define _EORI(r0,r1,i0)		_CC_EORI(ARM_CC_AL,r0,r1,i0)
 
 /* >> ARVM6* */
-#define _CC_REV(cc,r0,r1)	arm_cc_rev(cc,ARM_REV,r0,r1)
+#define _CC_REV(cc,r0,r1)	arm6_cc_orr(cc,ARM_REV,r0,r1)
 #define _REV(r0,r1)		_CC_REV(ARM_CC_AL,r0,r1)
-#define _CC_REV16(cc,r0,r1)	arm_cc_rev(cc,ARM_REV16,r0,r1)
+#define _CC_REV16(cc,r0,r1)	arm6_cc_orr(cc,ARM_REV16,r0,r1)
 #define _REV16(r0,r1)		_CC_REV16(ARM_CC_AL,r0,r1)
+#define _CC_SXTB_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_SXTB|i0,r0,r1)
+#define _SXTB_R(r0,r1,i0)	_CC_SXTB_R(ARM_CC_AL,r0,r1,i0)
+#define _SXTB(r0,r1)		_SXTB_R(r0,r1,0)
+#define _CC_UXTB_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_UXTB|i0,r0,r1)
+#define _UXTB_R(r0,r1,i0)	_CC_UXTB_R(ARM_CC_AL,r0,r1,i0)
+#define _UXTB(r0,r1)		_UXTB_R(r0,r1,0)
+#define _CC_SXTH_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_SXTH|i0,r0,r1)
+#define _SXTH_R(r0,r1,i0)	_CC_SXTH_R(ARM_CC_AL,r0,r1,i0)
+#define _SXTH(r0,r1)		_SXTH_R(r0,r1,0)
+#define _CC_UXTH_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_UXTH|i0,r0,r1)
+#define _UXTH_R(r0,r1,i0)	_CC_UXTH_R(ARM_CC_AL,r0,r1,i0)
+#define _UXTH(r0,r1)		_UXTH_R(r0,r1,0)
 /* << ARVM6* */
 
 #define _CC_SHIFT(cc,o,r0,r1,r2,i0) arm_cc_shift(cc,o,r0,r1,r2,i0)

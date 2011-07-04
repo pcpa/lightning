@@ -1302,32 +1302,47 @@ arm_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_extr_c_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _LSLI(r0, r1, 24);
-    _ASRI(r0, r0, 24);
+    if (jit_armv6_p())
+	_SXTB(r0, r1);
+    else {
+	_LSLI(r0, r1, 24);
+	_ASRI(r0, r0, 24);
+    }
 }
 
 #define jit_extr_c_ui(r0, r1)		arm_extr_c_ui(_jit, r0, r1)
 __jit_inline void
 arm_extr_c_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _ANDI(r0, r1, 0xff);
+    if (jit_armv6_p())
+	_UXTB(r0, r1);
+    else
+	_ANDI(r0, r1, 0xff);
 }
 
 #define jit_extr_s_i(r0, r1)		arm_extr_s_i(_jit, r0, r1)
 __jit_inline void
 arm_extr_s_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _LSLI(r0, r1, 16);
-    _ASRI(r0, r0, 16);
+    if (jit_armv6_p())
+	_SXTH(r0, r1);
+    else {
+	_LSLI(r0, r1, 16);
+	_ASRI(r0, r0, 16);
+    }
 }
 
 #define jit_extr_s_ui(r0, r1)		arm_extr_s_ui(_jit, r0, r1)
 __jit_inline void
 arm_extr_s_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    /* _ANDI(r0, r1, 0xffff) needs more instructions */
-    _LSLI(r0, r1, 16);
-    _LSRI(r0, r0, 16);
+    if (jit_armv6_p())
+	_UXTH(r0, r1);
+    else {
+	/* _ANDI(r0, r1, 0xffff) needs more instructions */
+	_LSLI(r0, r1, 16);
+	_LSRI(r0, r0, 16);
+    }
 }
 
 #define jit_allocai(i0)			arm_allocai(_jit, i0)
