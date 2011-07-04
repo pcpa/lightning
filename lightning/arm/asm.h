@@ -113,6 +113,8 @@ typedef enum {
 #define ARM_BIC		0x01c00000
 #define ARM_ORR		0x01800000
 #define ARM_EOR		0x00200000
+#define ARM_REV		0x06b00f30	/* ARMv6* */
+#define ARM_REV16	0x06b00fb0	/* ARMv6* */
 
 #define ARM_SHIFT	0x01a00000
 #define ARM_R		0x00000010	/* register shift */
@@ -838,6 +840,15 @@ _arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
     _jit_I(cc|o|(_u4(r0)<<16)|_u16(i0));
 }
 
+#define arm_cc_rev(cc,o,r0,r1)	_arm_cc_rev(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_rev(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+}
+
 #define _CC_MOV(cc,r0,r1)	arm_cc_orrr(cc,ARM_MOV,r0,0,r1)
 #define _MOV(r0,r1)		_CC_MOV(ARM_CC_AL,r0,r1)
 #define _CC_MOVI(cc,r0,i0)	arm_cc_orri(cc,ARM_MOV|ARM_I,r0,0,i0)
@@ -943,6 +954,13 @@ _arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
 #define _EOR_SI(r0,r1,r2,sh,im)	_CC_EOR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
 #define _CC_EORI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_EOR|ARM_I,r0,r1,i0)
 #define _EORI(r0,r1,i0)		_CC_EORI(ARM_CC_AL,r0,r1,i0)
+
+/* >> ARVM6* */
+#define _CC_REV(cc,r0,r1)	arm_cc_rev(cc,ARM_REV,r0,r1)
+#define _REV(r0,r1)		_CC_REV(ARM_CC_AL,r0,r1)
+#define _CC_REV16(cc,r0,r1)	arm_cc_rev(cc,ARM_REV16,r0,r1)
+#define _REV16(r0,r1)		_CC_REV16(ARM_CC_AL,r0,r1)
+/* << ARVM6* */
 
 #define _CC_SHIFT(cc,o,r0,r1,r2,i0) arm_cc_shift(cc,o,r0,r1,r2,i0)
 #define _CC_LSL(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_LSL|ARM_R,r0,r1,r2,0)

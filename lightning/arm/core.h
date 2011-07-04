@@ -1273,9 +1273,13 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _LSLI(JIT_TMP, r1, 24);
-    _LSRI(r0, r1, 8);
-    _ORR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
+    if (jit_armv6_p())
+	_REV16(r0, r1);
+    else {
+	_LSLI(JIT_TMP, r1, 24);
+	_LSRI(r0, r1, 8);
+	_ORR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
+    }
 }
 
 /* inline glibc htonl (without register clobber) */
@@ -1283,10 +1287,14 @@ arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _EOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
-    _LSRI(JIT_TMP, JIT_TMP, 8);
-    _BICI(JIT_TMP, JIT_TMP, encode_arm_immediate(0xff00));
-    _EOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
+    if (jit_armv6_p())
+	_REV(r0, r1);
+    else {
+	_EOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
+	_LSRI(JIT_TMP, JIT_TMP, 8);
+	_BICI(JIT_TMP, JIT_TMP, encode_arm_immediate(0xff00));
+	_EOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
+    }
 }
 #endif
 
