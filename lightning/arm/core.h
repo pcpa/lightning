@@ -510,7 +510,6 @@ arm_divmod(jit_state_t _jit, int div, int sign,
 __jit_inline void
 arm_divr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    //if (!jit_armv6_p())
     arm_divmod(_jit, 1, 1, r0, r1, r2);
 }
 
@@ -518,18 +517,14 @@ arm_divr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_divi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    //if (!jit_armv6_p())
-    {
-	jit_movi_i(JIT_TMP, i0);
-	arm_divmod(_jit, 1, 1, r0, r1, JIT_TMP);
-    }
+    jit_movi_i(JIT_TMP, i0);
+    arm_divmod(_jit, 1, 1, r0, r1, JIT_TMP);
 }
 
 #define jit_divr_ui(r0, r1, r2)		arm_divr_ui(_jit, r0, r1, r2)
 __jit_inline void
 arm_divr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    //if (!jit_armv6_p())
     arm_divmod(_jit, 1, 0, r0, r1, r2);
 }
 
@@ -537,18 +532,14 @@ arm_divr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_divi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned int i0)
 {
-    //if (!jit_armv6_p())
-    {
-	jit_movi_i(JIT_TMP, i0);
-	arm_divmod(_jit, 1, 0, r0, r1, JIT_TMP);
-    }
+    jit_movi_i(JIT_TMP, i0);
+    arm_divmod(_jit, 1, 0, r0, r1, JIT_TMP);
 }
 
 #define jit_modr_i(r0, r1, r2)		arm_modr_i(_jit, r0, r1, r2)
 __jit_inline void
 arm_modr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    //if (!jit_armv6_p())
     arm_divmod(_jit, 0, 1, r0, r1, r2);
 }
 
@@ -556,18 +547,14 @@ arm_modr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_modi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    //if (!jit_armv6_p())
-    {
-	jit_movi_i(JIT_TMP, i0);
-	arm_divmod(_jit, 0, 1, r0, r1, JIT_TMP);
-    }
+    jit_movi_i(JIT_TMP, i0);
+    arm_divmod(_jit, 0, 1, r0, r1, JIT_TMP);
 }
 
 #define jit_modr_ui(r0, r1, r2)		arm_modr_ui(_jit, r0, r1, r2)
 __jit_inline void
 arm_modr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    //if (!jit_armv6_p())
     arm_divmod(_jit, 0, 0, r0, r1, r2);
 }
 
@@ -575,11 +562,8 @@ arm_modr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 arm_modi_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    //if (!jit_armv6_p())
-    {
-	jit_movi_i(JIT_TMP, i0);
-	arm_divmod(_jit, 0, 0, r0, r1, JIT_TMP);
-    }
+    jit_movi_i(JIT_TMP, i0);
+    arm_divmod(_jit, 0, 0, r0, r1, JIT_TMP);
 }
 
 #define jit_andr_i(r0, r1, r2)		arm_andr_i(_jit, r0, r1, r2)
