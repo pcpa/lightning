@@ -382,7 +382,7 @@ __jit_inline void
 swf_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-    _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
+    _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
 }
 
@@ -390,7 +390,7 @@ __jit_inline void
 swf_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-    _XORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
+    _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
     if (r0 != r1) {
 	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
@@ -576,14 +576,14 @@ __jit_inline void
 swf_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_iff(_jit, __aeabi_fcmpeq, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 __jit_inline void
 swf_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_idd(_jit, __aeabi_dcmpeq, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 static void
@@ -695,28 +695,28 @@ __jit_inline void
 swf_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_iunff(_jit, __aeabi_fcmpeq, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 __jit_inline void
 swf_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_iundd(_jit, __aeabi_dcmpeq, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 __jit_inline void
 swf_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_iff(_jit, __aeabi_fcmpun, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 __jit_inline void
 swf_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     swf_idd(_jit, __aeabi_dcmpun, r0, r1, r2);
-    _XORI(r0, r0, 1);
+    _EORI(r0, r0, 1);
 }
 
 #define swf_unordr_f(_jit, r0, r1, r2)	swf_iunff(_jit,__aeabi_fcmpun,r0,r1,r2)

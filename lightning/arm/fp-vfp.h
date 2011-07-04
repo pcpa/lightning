@@ -192,9 +192,9 @@ vfp_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 	_ANDSI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
     _MOVI(JIT_FTMP, encode_arm_immediate(0x0fe00000));
     /* add -0.5 if negative */
-    _CC_ORI(ARM_CC_NE, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0xb0000000));
+    _CC_ORRI(ARM_CC_NE, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0xb0000000));
     /* add 0.5 if positive */
-    _CC_ORI(ARM_CC_EQ, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x30000000));
+    _CC_ORRI(ARM_CC_EQ, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x30000000));
     _MOVI(JIT_TMP, 0);
     _VMOV_D_AA(tmp, JIT_TMP, JIT_FTMP);
     _VADD_F64(tmp, r1, tmp);
@@ -213,7 +213,7 @@ vfp_ceilr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     vfp_get_tmp(r1, 32);
     _VMRS(JIT_TMP);
     _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F32(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -227,7 +227,7 @@ vfp_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     vfp_get_tmp(r1, 64);
     _VMRS(JIT_TMP);
     _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F64(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -241,7 +241,7 @@ vfp_floorr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     vfp_get_tmp(r1, 32);
     _VMRS(JIT_TMP);
     _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F32(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -255,7 +255,7 @@ vfp_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
     vfp_get_tmp(r1, 64);
     _VMRS(JIT_TMP);
     _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F64(tmp, r1);
     _VMOV_A_S32(r0, tmp);

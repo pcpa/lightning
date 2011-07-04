@@ -95,35 +95,35 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 	    /* prefer no inversion on tie */
 	    if (p3) {
 		_MOVI(r0, encode_arm_immediate(p3));
-		if (p2)	_ORI(r0, r0, encode_arm_immediate(p2));
-		if (p1)	_ORI(r0, r0, encode_arm_immediate(p1));
-		if (p0)	_ORI(r0, r0, p0);
+		if (p2)	_ORRI(r0, r0, encode_arm_immediate(p2));
+		if (p1)	_ORRI(r0, r0, encode_arm_immediate(p1));
+		if (p0)	_ORRI(r0, r0, p0);
 	    }
 	    else if (p2) {
 		_MOVI(r0, encode_arm_immediate(p2));
-		if (p1)	_ORI(r0, r0, encode_arm_immediate(p1));
-		if (p0)	_ORI(r0, r0, p0);
+		if (p1)	_ORRI(r0, r0, encode_arm_immediate(p1));
+		if (p0)	_ORRI(r0, r0, p0);
 	    }
 	    else {
 		_MOVI(r0, encode_arm_immediate(p1));
-		_ORI(r0, r0, p0);
+		_ORRI(r0, r0, p0);
 	    }
 	}
 	else {
 	    if (q3) {
 		_MVNI(r0, encode_arm_immediate(q3));
-		if (q2)	_XORI(r0, r0, encode_arm_immediate(q2));
-		if (q1)	_XORI(r0, r0, encode_arm_immediate(q1));
-		if (q0)	_XORI(r0, r0, q0);
+		if (q2)	_EORI(r0, r0, encode_arm_immediate(q2));
+		if (q1)	_EORI(r0, r0, encode_arm_immediate(q1));
+		if (q0)	_EORI(r0, r0, q0);
 	    }
 	    else if (q2) {
 		_MVNI(r0, encode_arm_immediate(q2));
-		if (q1)	_XORI(r0, r0, encode_arm_immediate(q1));
-		if (q0)	_XORI(r0, r0, q0);
+		if (q1)	_EORI(r0, r0, encode_arm_immediate(q1));
+		if (q0)	_EORI(r0, r0, q0);
 	    }
 	    else {
 		_MVNI(r0, encode_arm_immediate(q1));
-		_XORI(r0, r0, q0);
+		_EORI(r0, r0, q0);
 	    }
 	}
     }
@@ -139,9 +139,9 @@ arm_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
     q0 = im & 0x000000ff;	q1 = im & 0x0000ff00;
     q2 = im & 0x00ff0000;	q3 = im & 0xff000000;
     _MOVI(r0, encode_arm_immediate(q3));
-    _ORI(r0, r0, encode_arm_immediate(q2));
-    _ORI(r0, r0, encode_arm_immediate(q1));
-    _ORI(r0, r0, q0);
+    _ORRI(r0, r0, encode_arm_immediate(q2));
+    _ORRI(r0, r0, encode_arm_immediate(q1));
+    _ORRI(r0, r0, q0);
     return (l);
 }
 
@@ -594,7 +594,7 @@ arm_andi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_orr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _OR(r0, r1, r2);
+    _ORR(r0, r1, r2);
 }
 
 #define jit_ori_i(r0, r1, i0)		arm_ori_i(_jit, r0, r1, i0)
@@ -604,11 +604,11 @@ arm_ori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_ORI(r0, r1, i);
+	_ORRI(r0, r1, i);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_OR(r0, r1, reg);
+	_ORR(r0, r1, reg);
     }
 }
 
@@ -616,7 +616,7 @@ arm_ori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_xorr_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _XOR(r0, r1, r2);
+    _EOR(r0, r1, r2);
 }
 
 #define jit_xori_i(r0, r1, i0)		arm_xori_i(_jit, r0, r1, i0)
@@ -626,11 +626,11 @@ arm_xori_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if ((i = encode_arm_immediate(i0)) != -1)
-	_XORI(r0, r1, i);
+	_EORI(r0, r1, i);
     else {
 	reg = r0 != r1 ? r0 : JIT_TMP;
 	jit_movi_i(reg, i0);
-	_XOR(r0, r1, reg);
+	_EOR(r0, r1, reg);
     }
 }
 
@@ -1275,7 +1275,7 @@ arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
     _LSLI(JIT_TMP, r1, 24);
     _LSRI(r0, r1, 8);
-    _OR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
+    _ORR_SI(r0, r0, JIT_TMP, ARM_LSR, 16);
 }
 
 /* inline glibc htonl (without register clobber) */
@@ -1283,10 +1283,10 @@ arm_ntoh_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 __jit_inline void
 arm_ntoh_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1)
 {
-    _XOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
+    _EOR_SI(JIT_TMP, r1, r1, ARM_ROR, 16);
     _LSRI(JIT_TMP, JIT_TMP, 8);
     _BICI(JIT_TMP, JIT_TMP, encode_arm_immediate(0xff00));
-    _XOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
+    _EOR_SI(r0, JIT_TMP, r1, ARM_ROR, 8);
 }
 #endif
 
