@@ -278,151 +278,61 @@ vfp_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 #define vfp_divr_f(_jit, r0, r1, r2)	_VDIV_F32(r0, r1, r2)
 #define vfp_divr_d(_jit, r0, r1, r2)	_VDIV_F64(r0, r1, r2)
 
-__jit_inline void
-vfp_ltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp01_f(jit_state_t _jit, int c0, int c1,
+	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
     _VMRS(_R15);
-    _CC_MOVI(ARM_CC_PL, r0, 0);
-    _CC_MOVI(ARM_CC_MI, r0, 1);
+    _CC_MOVI(c0, r0, 0);
+    _CC_MOVI(c1, r0, 1);
 }
 
-__jit_inline void
-vfp_ltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp01_d(jit_state_t _jit, int c0, int c1,
+	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
     _VMRS(_R15);
-    _CC_MOVI(ARM_CC_PL, r0, 0);
-    _CC_MOVI(ARM_CC_MI, r0, 1);
+    _CC_MOVI(c0, r0, 0);
+    _CC_MOVI(c1, r0, 1);
 }
 
-__jit_inline void
-vfp_ler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_HI, r0, 0);
-    _CC_MOVI(ARM_CC_LS, r0, 1);
-}
+#define vfp_ltr_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_PL,ARM_CC_MI,r0,r1,r2)
+#define vfp_ltr_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_PL,ARM_CC_MI,r0,r1,r2)
+#define vfp_ler_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_HS,ARM_CC_LS,r0,r1,r2)
+#define vfp_ler_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_HS,ARM_CC_LS,r0,r1,r2)
+#define vfp_eqr_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_NE,ARM_CC_EQ,r0,r1,r2)
+#define vfp_eqr_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_NE,ARM_CC_EQ,r0,r1,r2)
+#define vfp_ger_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_LT,ARM_CC_GE,r0,r1,r2)
+#define vfp_ger_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_LT,ARM_CC_GE,r0,r1,r2)
+#define vfp_gtr_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_LE,ARM_CC_GT,r0,r1,r2)
+#define vfp_gtr_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_LE,ARM_CC_GT,r0,r1,r2)
+#define vfp_ner_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_EQ,ARM_CC_NE,r0,r1,r2)
+#define vfp_ner_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_EQ,ARM_CC_NE,r0,r1,r2)
 
-__jit_inline void
-vfp_ler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_HI, r0, 0);
-    _CC_MOVI(ARM_CC_LS, r0, 1);
-}
-
-__jit_inline void
-vfp_eqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_NE, r0, 0);
-    _CC_MOVI(ARM_CC_EQ, r0, 1);
-}
-
-__jit_inline void
-vfp_eqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_NE, r0, 0);
-    _CC_MOVI(ARM_CC_EQ, r0, 1);
-}
-
-__jit_inline void
-vfp_ger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_LT, r0, 0);
-    _CC_MOVI(ARM_CC_GE, r0, 1);
-}
-
-__jit_inline void
-vfp_ger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_LT, r0, 0);
-    _CC_MOVI(ARM_CC_GE, r0, 1);
-}
-
-__jit_inline void
-vfp_gtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_LE, r0, 0);
-    _CC_MOVI(ARM_CC_GT, r0, 1);
-}
-
-__jit_inline void
-vfp_gtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_LE, r0, 0);
-    _CC_MOVI(ARM_CC_GT, r0, 1);
-}
-
-__jit_inline void
-vfp_ner_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_EQ, r0, 0);
-    _CC_MOVI(ARM_CC_NE, r0, 1);
-}
-
-__jit_inline void
-vfp_ner_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_EQ, r0, 0);
-    _CC_MOVI(ARM_CC_NE, r0, 1);
-}
-
-__jit_inline void
-vfp_unltr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp_10_f(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
     _VMRS(_R15);
     _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_GE, r0, 0);
+    _CC_MOVI(cc, r0, 0);
 }
 
-__jit_inline void
-vfp_unltr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp_10_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     _VCMP_F64(r1, r2);
     _VMRS(_R15);
     _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_GE, r0, 0);
+    _CC_MOVI(cc, r0, 0);
 }
 
-__jit_inline void
-vfp_unler_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_GT, r0, 0);
-}
-
-__jit_inline void
-vfp_unler_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_GT, r0, 0);
-}
+#define vfp_unltr_f(_jit,r0,r1,r2)	_vcmp_10_f(_jit,ARM_CC_GE,r0,r1,r2)
+#define vfp_unltr_d(_jit,r0,r1,r2)	_vcmp_10_d(_jit,ARM_CC_GE,r0,r1,r2)
+#define vfp_unler_f(_jit,r0,r1,r2)	_vcmp_10_f(_jit,ARM_CC_GT,r0,r1,r2)
+#define vfp_unler_d(_jit,r0,r1,r2)	_vcmp_10_d(_jit,ARM_CC_GT,r0,r1,r2)
 
 __jit_inline void
 vfp_uneqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
@@ -444,41 +354,28 @@ vfp_uneqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
     _CC_MOVI(ARM_CC_VS, r0, 1);
 }
 
-__jit_inline void
-vfp_unger_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp_01_f(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
     _VMRS(_R15);
     _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_CS, r0, 1);
+    _CC_MOVI(cc, r0, 1);
 }
 
-__jit_inline void
-vfp_unger_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
+static void
+_vcmp_01_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
     _VMRS(_R15);
     _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_CS, r0, 1);
+    _CC_MOVI(cc, r0, 1);
 }
 
-__jit_inline void
-vfp_ungtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_HI, r0, 1);
-}
-
-__jit_inline void
-vfp_ungtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
-{
-    _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_HI, r0, 1);
-}
+#define vfp_unger_f(_jit,r0,r1,r2)	_vcmp_01_f(_jit,ARM_CC_CS,r0,r1,r2)
+#define vfp_unger_d(_jit,r0,r1,r2)	_vcmp_01_d(_jit,ARM_CC_CS,r0,r1,r2)
+#define vfp_ungtr_f(_jit,r0,r1,r2)	_vcmp_01_f(_jit,ARM_CC_HI,r0,r1,r2)
+#define vfp_ungtr_d(_jit,r0,r1,r2)	_vcmp_01_d(_jit,ARM_CC_HI,r0,r1,r2)
 
 __jit_inline void
 vfp_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
@@ -537,7 +434,7 @@ vfp_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 }
 
 __jit_inline jit_insn *
-vfp_bltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+_vbcmp_f(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     jit_insn	*l;
     long	 d;
@@ -546,12 +443,12 @@ vfp_bltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 2;
     assert(_s24P(d));
-    _CC_B(ARM_CC_MI, d & 0x00ffffff);
+    _CC_B(cc, d & 0x00ffffff);
     return (l);
 }
 
 __jit_inline jit_insn *
-vfp_bltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+_vbcmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     jit_insn	*l;
     long	 d;
@@ -560,152 +457,25 @@ vfp_bltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 2;
     assert(_s24P(d));
-    _CC_B(ARM_CC_MI, d & 0x00ffffff);
+    _CC_B(cc, d & 0x00ffffff);
     return (l);
 }
 
-__jit_inline jit_insn *
-vfp_bler_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_LS, d & 0x00ffffff);
-    return (l);
-}
+#define vfp_bltr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_MI,i0,r0,r1)
+#define vfp_bltr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_MI,i0,r0,r1)
+#define vfp_bler_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_LS,i0,r0,r1)
+#define vfp_bler_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_LS,i0,r0,r1)
+#define vfp_beqr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_EQ,i0,r0,r1)
+#define vfp_beqr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_EQ,i0,r0,r1)
+#define vfp_bger_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_GE,i0,r0,r1)
+#define vfp_bger_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_GE,i0,r0,r1)
+#define vfp_bgtr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_GT,i0,r0,r1)
+#define vfp_bgtr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_GT,i0,r0,r1)
+#define vfp_bner_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_NE,i0,r0,r1)
+#define vfp_bner_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_NE,i0,r0,r1)
 
 __jit_inline jit_insn *
-vfp_bler_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_LS, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_beqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_EQ, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_beqr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_EQ, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bger_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_GE, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bger_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_GE, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_GT, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bgtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_GT, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bner_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_NE, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bner_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_NE, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bunltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+_vbncmp_f(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     jit_insn	*i;
     jit_insn	*l;
@@ -713,7 +483,7 @@ vfp_bunltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     _VCMP_F32(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_GE, 0);
+    _CC_B(cc, 0);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 2;
     assert(_s24P(d));
@@ -723,7 +493,7 @@ vfp_bunltr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 }
 
 __jit_inline jit_insn *
-vfp_bunltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+_vbncmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
     jit_insn	*i;
     jit_insn	*l;
@@ -731,7 +501,7 @@ vfp_bunltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     _VCMP_F64(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_GE, 0);
+    _CC_B(cc, 0);
     l = _jit->x.pc;
     d = (((long)i0 - (long)l) >> 2) - 2;
     assert(_s24P(d));
@@ -740,41 +510,10 @@ vfp_bunltr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     return (l);
 }
 
-__jit_inline jit_insn *
-vfp_bunler_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*i;
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(ARM_CC_GT, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
-    jit_patch(i);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bunler_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*i;
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(ARM_CC_GT, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
-    jit_patch(i);
-    return (l);
-}
+#define vfp_bunltr_f(_jit,i0,r0,r1)	_vbncmp_f(_jit,ARM_CC_GE,i0,r0,r1)
+#define vfp_bunltr_d(_jit,i0,r0,r1)	_vbncmp_d(_jit,ARM_CC_GE,i0,r0,r1)
+#define vfp_bunler_f(_jit,i0,r0,r1)	_vbncmp_f(_jit,ARM_CC_GT,i0,r0,r1)
+#define vfp_bunler_d(_jit,i0,r0,r1)	_vbncmp_d(_jit,ARM_CC_GT,i0,r0,r1)
 
 __jit_inline jit_insn *
 vfp_buneqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
@@ -856,33 +595,8 @@ vfp_bunger_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     return (l);
 }
 
-__jit_inline jit_insn *
-vfp_bungtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_HI, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bungtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_HI, d & 0x00ffffff);
-    return (l);
-}
+#define vfp_bungtr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_HI,i0,r0,r1)
+#define vfp_bungtr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_HI,i0,r0,r1)
 
 __jit_inline jit_insn *
 vfp_bltgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
@@ -928,62 +642,10 @@ vfp_bltgtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
     return (l);
 }
 
-__jit_inline jit_insn *
-vfp_bordr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_VC, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bordr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_VC, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bunordr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_VS, d & 0x00ffffff);
-    return (l);
-}
-
-__jit_inline jit_insn *
-vfp_bunordr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
-{
-    jit_insn	*l;
-    long	 d;
-    _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_VS, d & 0x00ffffff);
-    return (l);
-}
-
+#define vfp_bordr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_VC,i0,r0,r1)
+#define vfp_bordr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_VC,i0,r0,r1)
+#define vfp_bunordr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_VS,i0,r0,r1)
+#define vfp_bunordr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_VS,i0,r0,r1)
 #define vfp_ldr_f(_jit, r0, r1)		_VLDR_F32(r0, r1, 0)
 #define vfp_ldr_d(_jit, r0, r1)		_VLDR_F64(r0, r1, 0)
 
@@ -1036,7 +698,7 @@ vfp_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	    _VLDRN_F32(r0, r1, i0);
 	else {
 	    jit_subi_i(JIT_FTMP, r1, i0);
-	    _VLDRN_F32(r0, JIT_FTMP, 0);
+	    _VLDR_F32(r0, JIT_FTMP, 0);
 	}
     }
 }
@@ -1062,7 +724,7 @@ vfp_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	    _VLDRN_F64(r0, r1, i0);
 	else {
 	    jit_subi_i(JIT_FTMP, r1, i0);
-	    _VLDRN_F64(r0, JIT_FTMP, 0);
+	    _VLDR_F64(r0, JIT_FTMP, 0);
 	}
     }
 }
@@ -1118,8 +780,8 @@ vfp_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	if (i0 < 256)
 	    _VSTRN_F32(r1, r0, i0);
 	else {
-	    jit_addi_i(JIT_FTMP, r1, i0);
-	    _VSTRN_F32(r0, JIT_FTMP, 0);
+	    jit_subi_i(JIT_FTMP, r1, i0);
+	    _VSTR_F32(r0, JIT_FTMP, 0);
 	}
     }
 }
@@ -1145,7 +807,7 @@ vfp_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	    _VSTRN_F64(r1, r0, i0);
 	else {
 	    jit_subi_i(JIT_FTMP, r1, i0);
-	    _VSTRN_F64(r0, JIT_FTMP, 0);
+	    _VSTR_F64(r0, JIT_FTMP, 0);
 	}
     }
 }
