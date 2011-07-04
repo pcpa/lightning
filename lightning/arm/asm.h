@@ -303,12 +303,12 @@ typedef enum {
  * position of imm8 (split in imm8H and imm8L)
  */
 static int
-encode_vfp_immediate(int code, unsigned lo, unsigned hi)
+encode_vfp_immediate(int mov, int inv, unsigned lo, unsigned hi)
 {
-    int		mode, imm, mask;
+    int		code, mode, imm, mask;
 
     if (hi != lo) {
-	if (code == ARM_VMOVI) {
+	if (mov && !inv) {
 	    /* (I64)
 	     *	aaaaaaaabbbbbbbbccccccccddddddddeeeeeeeeffffffffgggggggghhhhhhhh
 	     */
@@ -329,29 +329,29 @@ encode_vfp_immediate(int code, unsigned lo, unsigned hi)
 	}
 	goto fail;
     }
-    if (code == ARM_VMOVI || code == ARM_VMVNI) {
-	/*  (I32)
-	 *  00000000 00000000 00000000 abcdefgh
-	 *  00000000 00000000 abcdefgh 00000000
-	 *  00000000 abcdefgh 00000000 00000000
-	 *  abcdefgh 00000000 00000000 00000000 */
-	for (mode = 0, mask = 0xff; mode < 4; mask <<= 8, mode++) {
-	    if ((lo & mask) == lo) {
-		imm = lo >> (mode << 3);
-		mode <<= 9;
-		goto success;
-	    }
+    /*  (I32)
+     *  00000000 00000000 00000000 abcdefgh
+     *  00000000 00000000 abcdefgh 00000000
+     *  00000000 abcdefgh 00000000 00000000
+     *  abcdefgh 00000000 00000000 00000000 */
+    for (mode = 0, mask = 0xff; mode < 4; mask <<= 8, mode++) {
+	if ((lo & mask) == lo) {
+	    imm = lo >> (mode << 3);
+	    mode <<= 9;
+	    goto success;
 	}
-	/*  (I16)
-	 *  00000000 abcdefgh 00000000 abcdefgh
-	 *  abcdefgh 00000000 abcdefgh 00000000 */
-	for (mode = 0, mask = 0xff; mode < 2; mask <<= 8, mode++) {
-	    if ((lo & mask) && ((lo & (mask << 16)) >> 16) == (lo & mask)) {
-		imm = lo >> (mode << 3);
-		mode = 0x800 | (mode << 9);
-		goto success;
-	    }
+    }
+    /*  (I16)
+     *  00000000 abcdefgh 00000000 abcdefgh
+     *  abcdefgh 00000000 abcdefgh 00000000 */
+    for (mode = 0, mask = 0xff; mode < 2; mask <<= 8, mode++) {
+	if ((lo & mask) && ((lo & (mask << 16)) >> 16) == (lo & mask)) {
+	    imm = lo >> (mode << 3);
+	    mode = 0x800 | (mode << 9);
+	    goto success;
 	}
+    }
+    if (mov) {
 	/*  (I32)
 	 *  00000000 00000000 abcdefgh 11111111
 	 *  00000000 abcdefgh 11111111 11111111 */
@@ -364,7 +364,7 @@ encode_vfp_immediate(int code, unsigned lo, unsigned hi)
 		goto success;
 	    }
 	}
-	if (code == ARM_VMOVI) {
+	if (!inv) {
 	    /* (F32)
 	     *  aBbbbbbc defgh000 00000000 00000000
 	     *  from the ARM Architecture Reference Manual:
@@ -388,6 +388,30 @@ fail:
     return (-1);
 
 success:
+    code = inv ? ARM_VMVNI : ARM_VMOVI;
+    switch ((mode & 0xf00) >> 8) {
+	case 0x0:	case 0x2:	case 0x4:	case 0x6:
+	case 0x8:	case 0xa:
+	    if (inv)	mode |= 0x20;
+	    if (!mov)	mode |= 0x100;
+	    break;
+	case 0x1:	case 0x3:	case 0x5:	case 0x7:
+	    /* should actually not reach here */
+	    assert(!inv);
+	case 0x9:	case 0xb:
+	    assert(!mov);
+	    break;
+	case 0xc:	case 0xd:
+	    /* should actually not reach here */
+	    assert(inv);
+	case 0xe:
+	    assert(code & 0x20);
+	    assert(mov && !inv);
+	    break;
+	default:
+	    assert(!(mode & 0x20));
+	    break;
+    }
     imm = ((imm & 0x80) << 17) | ((imm & 0x70) << 12) | (imm & 0x0f);
     return (code | mode | imm);
 }
@@ -730,8 +754,6 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
  * of ARM_V{ORR,BIC,MOV,MVN}I */
 #define _VIMM(oi,r0)			arm_voir(oi,r0)
 #define _VIMMQ(oi,r0)			arm_voir(oi|ARM_V_Q,r0)
-#define _VMOVI(oi,r0)			_VIMM(oi,r0)
-#define _VMVNI(oi,r0)			_VIMM(oi,r0)
 
 /* index is multipled by four */
 #define _CC_VLDRN_F32(cc,r0,r1,i0)	arm_cc_vldst(cc,ARM_VLDR,r0,r1,i0)

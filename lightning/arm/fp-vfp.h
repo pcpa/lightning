@@ -71,10 +71,9 @@ vfp_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 	/* jit_ret() must follow! */
 	jit_movi_i(_R0, u.i);
     else {
-	if ((code = encode_vfp_immediate(ARM_VMOVI, u.i, u.i)) != -1)
-	    _VMOVI(code, r0);
-	else if ((code = encode_vfp_immediate(ARM_VMVNI, ~u.i, ~u.i)) != -1)
-	    _VMVNI(code, r0);
+	if ((code = encode_vfp_immediate(1, 0, u.i, u.i)) != -1 ||
+	    (code = encode_vfp_immediate(1, 1, ~u.i, ~u.i)) != -1)
+	    _VIMM(code, r0);
 	else {
 	    jit_movi_i(JIT_FTMP, u.i);
 	    _VMOV_S_A(r0, JIT_FTMP);
@@ -97,12 +96,9 @@ vfp_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 	jit_movi_i(_R1, u.i[1]);
     }
     else {
-	if ((code = encode_vfp_immediate(ARM_VMOVI,
-					 u.i[0], u.i[1])) != -1)
-	    _VMOVI(code, r0);
-	else if ((code = encode_vfp_immediate(ARM_VMVNI,
-					      ~u.i[0], ~u.i[1])) != -1)
-	    _VMVNI(code, r0);
+	if ((code = encode_vfp_immediate(1, 0, u.i[0], u.i[1])) != -1 ||
+	    (code = encode_vfp_immediate(1, 1, ~u.i[0], ~u.i[1])) != -1)
+	    _VIMM(code, r0);
 	else {
 	    jit_movi_i(JIT_TMP, u.i[0]);
 	    jit_movi_i(JIT_FTMP, u.i[1]);
