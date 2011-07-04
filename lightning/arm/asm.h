@@ -405,7 +405,7 @@ success:
 	    /* should actually not reach here */
 	    assert(inv);
 	case 0xe:
-	    assert(code & 0x20);
+	    assert(mode & 0x20);
 	    assert(mov && !inv);
 	    break;
 	default:
