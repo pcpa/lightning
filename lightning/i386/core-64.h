@@ -397,7 +397,7 @@ x86_subci_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 __jit_inline void
 x86_subcr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r2) {
+    if (r0 == r2 && r0 != r1) {
 	MOVQrr(r0, JIT_REXTMP);
 	MOVQrr(r1, r0);
 	SUBQrr(JIT_REXTMP, r0);
@@ -425,13 +425,13 @@ x86_subxi_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, unsigned long i0)
 __jit_inline void
 x86_subxr_ul(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    if (r0 == r2) {
+    if (r0 == r2 && r0 != r1) {
 	MOVQrr(r0, JIT_REXTMP);
 	MOVQrr(r1, r0);
 	SBBQrr(JIT_REXTMP, r0);
     }
     else {
-	MOVQrr(r1, r0);
+	jit_movr_l(r0, r1);
 	SBBQrr(r2, r0);
     }
 }
