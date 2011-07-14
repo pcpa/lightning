@@ -750,8 +750,7 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VMOVL_U16(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S16,r0,r1)
 #define _VMOVL_S32(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_VMOVL_S32,r0,r1)
 #define _VMOVL_U32(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S32,r0,r1)
-/* oi should be the result of en	code_vfp_immediate with code being one
- * of ARM_V{ORR,BIC,MOV,MVN}I */
+/* "oi" should be the result of encode_vfp_immediate */
 #define _VIMM(oi,r0)			arm_voir(oi,r0)
 #define _VIMMQ(oi,r0)			arm_voir(oi|ARM_V_Q,r0)
 
