@@ -398,6 +398,8 @@ mips_patch_arguments(jit_state_t _jit)
 	}
 	offset += size;
     }
+    if (offset < 16)
+	offset = 16;
     if (_jitl.stack_length < offset) {
 	_jitl.stack_length = offset;
 	mips_set_stack(_jit, (_jitl.alloca_offset +

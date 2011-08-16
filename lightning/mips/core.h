@@ -672,9 +672,12 @@ mips_ner_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 mips_nei_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 {
-    if (i0)
+    if (i0) {
 	jit_subi_i(r0, r1, i0);
-    _SLTU(r0, JIT_RZERO, r0);
+	_SLTU(r0, JIT_RZERO, r0);
+    }
+    else
+	_SLTU(r0, JIT_RZERO, r1);
 }
 
 #define jit_jmpr(i0)			mips_jmpr(_jit, i0)
