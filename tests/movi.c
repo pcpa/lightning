@@ -18,10 +18,11 @@
 
 typedef void * (* mover_t) (void);
 
+jit_insn *buffer;
+
 static mover_t
 generate_movi (const void *operand)
 {
-  char *buffer;
   mover_t result;
 
   buffer = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC,

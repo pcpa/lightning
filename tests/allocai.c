@@ -18,6 +18,8 @@
 
 typedef int (* int_return_int_t) (int);
 
+jit_insn *buffer;
+
 static int
 identity (int arg)
 {
@@ -29,7 +31,6 @@ static int_return_int_t
 generate_function_proxy (int_return_int_t func)
 {
   static const char failure_message[] = "numbers don't add up to zero\n";
-  char *buffer;
   int_return_int_t result;
   int arg, arg_offset, argneg_offset;
   jit_insn *branch;

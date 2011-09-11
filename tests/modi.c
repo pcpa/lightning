@@ -18,10 +18,11 @@
 
 typedef int (* mod_t) (int);
 
+jit_insn *buffer;
+
 mod_t
 generate_modi (int operand)
 {
-  char *buffer;
   mod_t result;
   int arg;
 

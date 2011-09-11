@@ -18,12 +18,13 @@
 
 typedef char (* loader_t) (int);
 
+jit_insn *buffer;
+
 /* Check `ldxi' with a big operand (OPERAND is assumed to be ``big'', e.g.,
    more than one octet-long on PowerPC).  */
 static loader_t
 generate_ldxi_big_operand (const void *operand)
 {
-  char *buffer;
   loader_t result;
   int arg;
 

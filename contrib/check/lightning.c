@@ -25,7 +25,7 @@
 #include <setjmp.h>
 #include <stdarg.h>
 #include <string.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #if DISASSEMBLER
 #  include <dis-asm.h>
@@ -37,6 +37,19 @@
 
 #if defined(__linux__) && (defined(__i386__) || defined(__x86_64__))
 #  include <fpu_control.h>
+#endif
+
+#ifndef __WORDSIZE
+#  define __WORDSIZE		WORDSIZE
+#endif
+#ifndef __BYTE_ORDER
+#  define __BYTE_ORDER		BYTE_ORDER
+#endif
+#ifndef __LITTLE_ENDIAN
+#  define __LITTLE_ENDIAN	LITTLE_ENDIAN
+#endif
+#ifndef __BIG_ENDIAN
+#  define __BIG_ENDIAN		BIG_ENDIAN
 #endif
 
 #if defined(__GNUC__)

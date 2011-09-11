@@ -18,10 +18,11 @@
 
 typedef int (* divider_t) (int);
 
+jit_insn *buffer;
+
 static divider_t
 generate_divider (int operand, unsigned int *size)
 {
-  char *buffer;
   divider_t result;
   int arg;
 
@@ -43,7 +44,7 @@ generate_divider (int operand, unsigned int *size)
   jit_ret ();
   jit_flush_code (buffer, jit_get_ip ().ptr);
 
-  *size = (char *)jit_get_ip ().ptr - buffer;
+  *size = (jit_insn *)jit_get_ip ().ptr - buffer;
 
   return result;
 }

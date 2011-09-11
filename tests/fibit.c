@@ -43,7 +43,7 @@ typedef int (*pifi)(int);	/* Pointer to Int Function of Int */
 
 int main()
 {
-  pifi      nfibs = (pifi) (jit_set_ip(codeBuffer).iptr);
+  pifi      nfibs;
   int	    in;				/* offset of the argument */
   jit_insn  *ref;			/* to patch the forward reference */
   jit_insn  *loop;			/* start of the loop */

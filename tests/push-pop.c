@@ -18,6 +18,8 @@
 #include <sys/mman.h>
 #include "lightning.h"
 
+jit_insn *buffer;
+
 typedef int (* stakumilo_t) (int);
 
 static void
@@ -30,7 +32,6 @@ static stakumilo_t
 generate_push_pop (void)
 {
   static const char msg[] = "we got %i\n";
-  char *buffer;
   stakumilo_t result;
   int arg;
   int retval;
@@ -55,6 +56,8 @@ generate_push_pop (void)
   jit_movi_i (JIT_R2, -1);
   jit_pushr_i (JIT_R0);
   jit_pushr_i (JIT_R2);
+  /* most likely need stack aligned at 16 bytes, dummy push to force align */
+  jit_pushr_i (JIT_R2);
 
   jit_movr_i (JIT_R0, JIT_R1);
   jit_movi_p (JIT_R1, msg);
@@ -65,6 +68,8 @@ generate_push_pop (void)
   jit_pusharg_p (JIT_R1);
   (void)jit_finish (display_message);
 
+  /* dummy pop for the sake of calling function with 16 byte aligned stack */
+  jit_popr_i (JIT_R2);
   /* Restore the dummy registers.  */
   jit_popr_i (JIT_R2);
   jit_popr_i (JIT_R0);

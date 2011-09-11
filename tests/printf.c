@@ -37,7 +37,7 @@
 #include <sys/mman.h>
 #include "lightning.h"
 
-char *codeBuffer;
+jit_insn *codeBuffer;
 
 typedef void (*pvfi)(int);	/* Pointer to Void Function of Int */
 

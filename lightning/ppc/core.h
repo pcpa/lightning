@@ -120,15 +120,26 @@
 #define _jit_blr_encoding	((19 << 26) | (20 << 21) | (00 << 16) | (00 << 11) | (16 << 1))
 #define _jit_is_ucbranch(a)     (((*(a) & (63<<26)) == _jit_b_encoding))
 
-#define jit_patch_at(jump_pc, value) (				\
-	((*(jump_pc - 1) & ~1) == _jit_blr_encoding)		\
-	  ? jit_patch_movei(((jump_pc) - 4), ((jump_pc) - 3), (value))	\
-	  : ( _jit_is_ucbranch((jump_pc) - 1)                   \
-             ? jit_patch_ucbranch((jump_pc) - 1, (value))       \
-             : jit_patch_branch((jump_pc) - 1, (value))))
+#define jit_patch_at(i0, i1)		ppc_patch_at(_jit, i0, i1)
+__jit_inline void
+ppc_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
+{
+    _ui		*i0 = (_ui *)jump, *i1 = (_ui *)label;
+    if ((*(i0 - 1) & ~1) == _jit_blr_encoding)
+	jit_patch_movei(i0 - 4, i0 - 3, i1);
+    else if (_jit_is_ucbranch(i0 - 1))
+	jit_patch_ucbranch(i0 - 1, i1);
+    else
+	jit_patch_branch(i0 - 1, i1);
+}
 
-#define jit_patch_movi(movi_pc, val)					\
-	jit_patch_movei((movi_pc) - 2, (movi_pc) - 1, (val))
+#define jit_patch_movi(i0, i1)		ppc_patch_movi(_jit, i0, i1)
+__jit_inline void
+ppc_patch_movi(jit_state_t _jit, jit_insn *addr, void *value)
+{
+    _ui	*i0 = (_ui *)addr, *i1 = (_ui *)value;
+    jit_patch_movei(i0 - 2, i0 - 1, i1);
+}
 
 #define	jit_arg_c()			(_jitl.nextarg_geti--)
 #define	jit_arg_i()			(_jitl.nextarg_geti--)
@@ -146,10 +157,10 @@
 
 #define jit_addi_i(d, rs, is)		jit_chk_ims((is), ADDICrri((d), (rs), (is)), ADDrrr((d), (rs), JIT_AUX))
 #define jit_addr_i(d, s1, s2)				  ADDrrr((d), (s1), (s2))
-#define jit_addci_i(d, rs, is)		jit_chk_ims((is), ADDICrri((d), (rs), (is)), ADDCrrr((d), (rs), JIT_AUX))
-#define jit_addcr_i(d, s1, s2)				  ADDCrrr((d), (s1), (s2))
-#define jit_addxi_i(d, rs, is)		(MOVEIri(JIT_AUX, (is)), ADDErrr((d), (rs), JIT_AUX))
-#define jit_addxr_i(d, s1, s2)				         ADDErrr((d), (s1), (s2))
+#define jit_addci_ui(d, rs, is)		jit_chk_ims((is), ADDICrri((d), (rs), (is)), ADDCrrr((d), (rs), JIT_AUX))
+#define jit_addcr_ui(d, s1, s2)				  ADDCrrr((d), (s1), (s2))
+#define jit_addxi_ui(d, rs, is)		(MOVEIri(JIT_AUX, (is)), ADDErrr((d), (rs), JIT_AUX))
+#define jit_addxr_ui(d, s1, s2)				         ADDErrr((d), (s1), (s2))
 #define jit_andi_i(d, rs, is)		jit_chk_imu((is), ANDI_rri((d), (rs), (is)), ANDrrr((d), (rs), JIT_AUX))
 #define jit_andr_i(d, s1, s2)				  ANDrrr((d), (s1), (s2))
 #define jit_bmsi_i(label, rs, is)	(jit_chk_imu((is), ANDI_rri(JIT_AUX, (rs), (is)), AND_rrr(JIT_AUX, (rs), JIT_AUX)), BNEi((label)), _jit->x.pc)
@@ -180,10 +191,10 @@
 #define jit_bosubi_i(label, rs, is)	(MOVEIri(JIT_AUX, (is)), SUBCOrrr((rs), (rs), JIT_AUX), MCRXRi(0), BGTi((label)), _jit->x.pc)
 #define jit_boaddr_i(label, s1, s2)	(		         ADDOrrr((s1), (s1), (s2)), 	   MCRXRi(0), BGTi((label)), _jit->x.pc)
 #define jit_bosubr_i(label, s1, s2)	(		  	 SUBCOrrr((s1), (s1), (s2)), 	   MCRXRi(0), BGTi((label)), _jit->x.pc)
-#define jit_boaddi_ui(label, rs, is)	(jit_chk_ims ((is), ADDICri((rs), (rs), is), ADDCrr((rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc) /* EQ = bit 2 of XER = CA */
-#define jit_bosubi_ui(label, rs, is)	(jit_chk_ims ((is), SUBICri((rs), (rs), is), SUBCrr((rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc)
-#define jit_boaddr_ui(label, s1, s2)	(		  			     ADDCrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
-#define jit_bosubr_ui(label, s1, s2)	(		  			     SUBCrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
+#define jit_boaddi_ui(label, rs, is)	(jit_chk_ims ((is), ADDICrri((rs), (rs), is), ADDCrrr((rs), (rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc) /* EQ = bit 2 of XER = CA */
+#define jit_bosubi_ui(label, rs, is)	(jit_chk_ims ((is), SUBICrri((rs), (rs), is), SUBCrrr((rs), (rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc)
+#define jit_boaddr_ui(label, s1, s2)	(		  			      ADDCrrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
+#define jit_bosubr_ui(label, s1, s2)	(		  			      SUBCrrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
 #define jit_calli(label)	        ((void)jit_movi_p(JIT_AUX, (label)), MTCTRr(JIT_AUX), BCTRL(), _jitl.nextarg_puti = _jitl.nextarg_putf = _jitl.nextarg_putd = 0, _jit->x.pc)
 #define jit_callr(reg)			(MTCTRr(reg), BCTRL())
 #define jit_divi_i(d, rs, is)		jit_big_ims((is), DIVWrrr ((d), (rs), JIT_AUX))
@@ -254,9 +265,84 @@
 #define jit_prepare_i(numi)		(_jitl.nextarg_puti = numi)
 #define jit_prepare_f(numf)		(_jitl.nextarg_putf = numf)
 #define jit_prepare_d(numd)		(_jitl.nextarg_putd = numd)
-#define jit_prolog(n)			_jit_prolog(_jit, (n))
+
+#define jit_prolog(n)			ppc_prolog(_jit, (n))
+/* Emit a prolog for a function.
+  
+   The +32 in frame_size computation is to accound for the parameter area of
+   a function frame. 
+
+   On PPC the frame must have space to host the arguments of any callee.
+   However, as it currently stands, the argument to jit_trampoline (n) is
+   the number of arguments of the caller we generate. Therefore, the
+   callee can overwrite a part of the stack (saved register area) when it
+   flushes its own parameter on the stack. The addition of a constant 
+   offset = 32 is enough to hold eight 4 bytes arguments.  This is less
+   than perfect but is a reasonable work around for now. 
+   Better solution must be investigated.  */
+__jit_inline void
+ppc_prolog(jit_state_t _jit, int n)
+{
+  int frame_size;
+  int i;
+  int first_saved_reg = JIT_AUX - n;
+  int num_saved_regs = 32 - first_saved_reg;
+
+  _jitl.nextarg_geti = JIT_AUX - 1;
+  _jitl.nextarg_getd = 1;
+  _jitl.nbArgs = n;
+
+  MFLRr(0);
+
+#ifdef __APPLE__
+  STWrm(0, 8, 1);			/* stw   r0, 8(r1)	   */
+#else
+  STWrm(0, 4, 1);			/* stw   r0, 4(r1)	   */
+#endif
+
+  /* 0..55 -> frame data
+     56..frame_size -> saved registers
+
+     The STMW instruction is patched by jit_allocai, thus leaving
+     the space for the allocai above the 56 bytes.  jit_allocai is
+     also able to reuse the slack space needed to keep the stack
+     quadword-aligned.  */
+
+  _jitl.frame_size = 24 + 32 + num_saved_regs * 4;	/* r27..r31 + args */
+
+  /* The stack must be quad-word aligned.  */
+  frame_size = (_jitl.frame_size + 15) & ~15;
+  _jitl.slack = frame_size - _jitl.frame_size;
+  _jitl.stwu = _jit->x.ui_pc;
+  STWUrm(1, -frame_size, 1);		/* stwu  r1, -x(r1)	   */
+
+  STMWrm(first_saved_reg, 24 + 32, 1);		/* stmw  rI, ofs(r1)	   */
+  for (i = 0; i < n; i++)
+    MRrr(JIT_AUX-1-i, 3+i);		/* save parameters below r24	   */
+}
+
 #define jit_pusharg_i(rs)		(--_jitl.nextarg_puti, MRrr((3 + _jitl.nextarg_putd * 2 + _jitl.nextarg_putf + _jitl.nextarg_puti), (rs)))
-#define jit_ret()			_jit_epilog(_jit)
+
+#define jit_ret()			ppc_ret(_jit)
+__jit_inline void
+ppc_ret(jit_state_t _jit)
+{
+  int n = _jitl.nbArgs;
+  int first_saved_reg = JIT_AUX - n;
+  int frame_size = (_jitl.frame_size + 15) & ~15;
+
+#ifdef __APPLE__
+  LWZrm(0, frame_size + 8, 1);		/* lwz   r0, x+8(r1)  (ret.addr.)  */
+#else
+  LWZrm(0, frame_size + 4, 1);		/* lwz   r0, x+4(r1)  (ret.addr.)  */
+#endif
+  MTLRr(0);				/* mtspr LR, r0			   */
+
+  LMWrm(first_saved_reg, 24 + 32, 1);	/* lmw   rI, ofs(r1)		   */
+  ADDIrri(1, 1, frame_size);		/* addi  r1, r1, x		   */
+  BLR();				/* blr				   */
+}
+
 #define jit_retval_i(rd)		MRrr((rd), 3)
 #define jit_rsbi_i(d, rs, is)		jit_chk_ims((is), SUBFICrri((d), (rs), (is)), SUBFCrrr((d), (rs), JIT_AUX))
 #define jit_rshi_i(d, rs, is)					     SRAWIrri((d), (rs), (is))
@@ -269,10 +355,12 @@
 #define jit_stxr_c(d1, d2, rs)				  STBrx((rs), (d1), (d2))
 #define jit_stxr_i(d1, d2, rs)				  STWrx((rs), (d1), (d2))
 #define jit_stxr_s(d1, d2, rs)				  STHrx((rs), (d1), (d2))
+#define jit_subi_i(d, rs, is)		jit_big_ims((is), SUBrrr((d), (rs), JIT_AUX))
 #define jit_subr_i(d, s1, s2)				  SUBrrr((d), (s1), (s2))
-#define jit_subcr_i(d, s1, s2)				  SUBCrrr((d), (s1), (s2))
-#define jit_subxi_i(d, rs, is)		jit_big_ims((is), SUBErrr((d), (rs), JIT_AUX))
-#define jit_subxr_i(d, s1, s2)				  SUBErrr((d), (s1), (s2))
+#define jit_subci_ui(d, rs, is)		jit_big_ims((is), SUBCrrr((d), (rs), JIT_AUX))
+#define jit_subcr_ui(d, s1, s2)				  SUBCrrr((d), (s1), (s2))
+#define jit_subxi_ui(d, rs, is)		jit_big_ims((is), SUBErrr((d), (rs), JIT_AUX))
+#define jit_subxr_ui(d, s1, s2)				  SUBErrr((d), (s1), (s2))
 #define jit_xori_i(d, rs, is)		jit_chk_imu((is), XORIrri((d), (rs), (is)), XORrrr((d), (rs), JIT_AUX))
 #define jit_xorr_i(d, s1, s2)				  XORrrr((d), (s1), (s2))
 

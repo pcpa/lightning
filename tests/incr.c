@@ -37,7 +37,7 @@
 #include <sys/mman.h>
 #include "lightning.h"
 
-char *codeBuffer;
+jit_insn *codeBuffer;
 
 typedef int (*pifi)(int);	/* Pointer to Int Function of Int */
 

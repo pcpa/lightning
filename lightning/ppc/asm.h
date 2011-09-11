@@ -80,9 +80,9 @@
 
 /* primitive instruction forms [1, Section A.4] */
 
-#define _FB(  OP,         BD,AA,LK )    (_jit_I_noinc((_u6(OP)<<26)|                                            _d26(BD)|     (_u1(AA)<<1)|_u1(LK)), _jit->x.pc++, 0)
+#define _FB(  OP,         BD,AA,LK )    (_jit_I_noinc((_u6(OP)<<26)|                                            _d26(BD)|     (_u1(AA)<<1)|_u1(LK)), _jit->x.ui_pc++, 0)
 #define _FBA( OP,         BD,AA,LK )	_jit_I((_u6(OP)<<26)|                                           (_u26(BD)&~3)| (_u1(AA)<<1)|_u1(LK))
-#define _BB(   OP,BO,BI,   BD,AA,LK )   (_jit_I_noinc((_u6(OP)<<26)|(_u5(BO)<<21)|(_u5(BI)<<16)|                _d16(BD)|     (_u1(AA)<<1)|_u1(LK)), _jit->x.pc++, 0)
+#define _BB(   OP,BO,BI,   BD,AA,LK )   (_jit_I_noinc((_u6(OP)<<26)|(_u5(BO)<<21)|(_u5(BI)<<16)|                _d16(BD)|     (_u1(AA)<<1)|_u1(LK)), _jit->x.ui_pc++, 0)
 #define _D(   OP,RD,RA,         DD )  	_jit_I((_u6(OP)<<26)|(_u5(RD)<<21)|(_u5(RA)<<16)|                _s16(DD)                          )
 #define _Du(  OP,RD,RA,         DD )  	_jit_I((_u6(OP)<<26)|(_u5(RD)<<21)|(_u5(RA)<<16)|                _u16(DD)                          )
 #define _Ds(  OP,RD,RA,         DD )  	_jit_I((_u6(OP)<<26)|(_u5(RD)<<21)|(_u5(RA)<<16)|                _su16(DD)                         )
@@ -355,7 +355,7 @@
  * This has an incestuous knowledge of JIT_AUX */
 #define BC_EXT(A, C, D)  (_siP(16, _jit_UL(D)-_jit_UL(_jit->x.pc)) \
   ? BCiii((A), (C), (D)) \
-  : (BCiii((A)^9, (C), _jit->x.pc+5), \
+  : (BCiii((A)^9, (C), _jit->x.ui_pc+5), \
      LISri(JIT_AUX,_HI(D)), \
      ORIrri(JIT_AUX,JIT_AUX,_LO(D)), \
      MTLRr(JIT_AUX), BLR() ))

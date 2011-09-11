@@ -18,6 +18,8 @@
 
 typedef int (* int_return_int_t) (int);
 
+jit_insn *buffer;
+
 static int
 identity (int arg)
 {
@@ -27,7 +29,6 @@ identity (int arg)
 static int_return_int_t
 generate_function_proxy (int_return_int_t func)
 {
-  char *buffer;
   int_return_int_t result;
   int arg;
 

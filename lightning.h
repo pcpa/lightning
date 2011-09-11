@@ -148,7 +148,7 @@ struct jit_local_state {
    int		 nextarg_getd;	/* The FP args are picked up from FPR1 -> FPR10 */
    int		 nbArgs;	/* Number of arguments for the prolog */
    int		 frame_size, slack;
-   jit_insn	*stwu;
+   _ui		*stwu;
 };
 #elif defined(__sparc__)
 struct jit_local_state {

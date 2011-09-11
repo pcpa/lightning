@@ -42,11 +42,12 @@
 typedef int (*pifi)(int);
    /* Pointer to Int Function of Int */
 
+jit_insn *codeBuffer;
+
 void test(void);
 
 int main(void)
 {
-  jit_insn *codeBuffer;
   pifi incr = (pifi) (jit_set_ip(codeBuffer).iptr);
   int in;
 

@@ -562,7 +562,9 @@ typedef union jit_code {
 #  define jit_modr_l(d, s1, s2)		jit_modr_i((d), (s1), (s2))
 #  define jit_muli_l(d, rs, is)		jit_muli_i((d), (rs), (is))	
 #  define jit_mulr_l(d, s1, s2)		jit_mulr_i((d), (s1), (s2))
-#  define jit_negr_l(d, s1)		jit_negr_i((d), (s1))
+#  ifndef jit_negr_l
+#    define jit_negr_l(d, s1)		jit_negr_i((d), (s1))
+#  endif
 #  define jit_ori_l(d, rs, is)		jit_ori_i((d), (rs), (is))	
 #  define jit_orr_l(d, s1, s2)		jit_orr_i((d), (s1), (s2))
 #  define jit_rshi_l(d, rs, is)		jit_rshi_i((d), (rs), (is))	
