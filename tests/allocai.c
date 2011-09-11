@@ -30,21 +30,14 @@ generate_function_proxy (int_return_int_t func)
 {
   static const char failure_message[] = "numbers don't add up to zero\n";
   char *buffer;
-  int retval;
-
   int_return_int_t result;
   int arg, arg_offset, argneg_offset;
   jit_insn *branch;
 
-  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
-  if (retval != 0) {
-    perror("posix_memalign");
-    exit(0);
-  }
-  retval = mprotect(buffer, getpagesize(),
-                    PROT_READ | PROT_WRITE | PROT_EXEC);
-  if (retval != 0) {
-    perror("mprotect");
+  buffer = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC,
+		MAP_PRIVATE | MAP_ANON, -1, 0);
+  if (buffer == MAP_FAILED) {
+    perror("mmap");
     exit(0);
   }
 

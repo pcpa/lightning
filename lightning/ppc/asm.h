@@ -59,8 +59,6 @@
  *		ori	rD, rD, expression@lo	; load 32-bit constant
  */
 
-typedef unsigned int jit_insn;
-
 #ifndef LIGHTNING_DEBUG
 #define _cr0	0
 #define _cr1	1

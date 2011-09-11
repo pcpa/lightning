@@ -26,17 +26,11 @@ generate_ldxi_big_operand (const void *operand)
   char *buffer;
   loader_t result;
   int arg;
-  int retval;
 
-  retval = posix_memalign((void**)&buffer, getpagesize(), getpagesize());
-  if (retval != 0) {
-    perror("posix_memalign");
-    exit(0);
-  }
-  retval = mprotect(buffer, getpagesize(),
-                    PROT_READ | PROT_WRITE | PROT_EXEC);
-  if (retval != 0) {
-    perror("mprotect");
+  buffer = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC,
+		MAP_PRIVATE | MAP_ANON, -1, 0);
+  if (buffer == MAP_FAILED) {
+    perror("mmap");
     exit(0);
   }
 

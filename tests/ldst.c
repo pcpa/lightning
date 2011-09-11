@@ -7,7 +7,7 @@
 #include <lightning.h>
 #include <signal.h>
 #include <setjmp.h>
-#include <sys/types.h>
+#include <sys/mman.h>
 
 #define sign_extend		1
 #define int_ld_st		1
@@ -972,17 +972,14 @@ main(int argc, char *argv[])
     char	*r[6] = { "V0", "V1", "V2", "R0", "R1", "R2" };
     char	*f[6] = { "F0", "F1", "F2", "F3", "F4", "F5" };
     int		 V0, V1, R0, R1, FPR;
-    int		 retval, pagesize;
+    int		 pagesize;
 
     progname = argv[0];
 
     pagesize = getpagesize();
     code_size = (32768 + pagesize - 1) & -pagesize;
-    retval = posix_memalign((void**)&code, pagesize, code_size);
-    if (retval != 0) {
-	perror("posix_memalign");
-	exit(0);
-    }
+    code = mmap(NULL, code_size, PROT_READ | PROT_WRITE | PROT_EXEC,
+		MAP_PRIVATE | MAP_ANON, -1, 0);
 
     act.sa_sigaction = segv_handler;
     sigfillset(&act.sa_mask);

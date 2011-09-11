@@ -35,6 +35,7 @@
 #define __lightning_funcs_h
 
 #include <string.h>
+#include "core.h"
 
 #if !defined(__GNUC__) && !defined(__GNUG__)
 #error Go get GNU C, I do not know how to flush the cache
@@ -88,10 +89,8 @@ jit_flush_code(void *start, void *end)
 }
 #endif /* __GNUC__ || __GNUG__ */
 
-#define _jit (*jit)
-
 static void
-_jit_epilog(jit_state *jit)
+_jit_epilog(jit_state_t _jit)
 {
   int n = _jitl.nbArgs;
   int first_saved_reg = JIT_AUX - n;
@@ -123,7 +122,7 @@ _jit_epilog(jit_state *jit)
    than perfect but is a reasonable work around for now. 
    Better solution must be investigated.  */
 static void
-_jit_prolog(jit_state *jit, int n)
+_jit_prolog(jit_state_t _jit, int n)
 {
   int frame_size;
   int i;

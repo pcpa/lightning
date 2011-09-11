@@ -37,7 +37,7 @@
 #define __lightning_h
 
 #include <assert.h>
-#include <sys/types.h>
+#include <stdint.h>
 
 #if defined(__cplusplus)
 extern "C" {

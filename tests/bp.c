@@ -48,17 +48,11 @@ int main()
   jit_insn  *ref;			/* to patch the forward reference */
   jit_insn  *mref;                     /* ref of move to backpatch */
   jit_insn  *tp;                       /* location to patch */
-  int retval;
 
-  retval = posix_memalign((void**)&codeBuffer, getpagesize(), getpagesize());
-  if (retval != 0) {
-    perror("posix_memalign");
-    exit(0);
-  }
-  retval = mprotect(codeBuffer, getpagesize(),
-                    PROT_READ | PROT_WRITE | PROT_EXEC);
-  if (retval != 0) {
-    perror("mprotect");
+  codeBuffer = mmap(NULL, getpagesize(), PROT_READ | PROT_WRITE | PROT_EXEC,
+                    MAP_PRIVATE | MAP_ANON, -1, 0);
+  if (codeBuffer == MAP_FAILED) {
+    perror("mmap");
     exit(0);
   }
 
