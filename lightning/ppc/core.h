@@ -35,6 +35,10 @@
 #ifndef __lightning_core_h
 #define __lightning_core_h
 
+#define jit_can_sign_extend_short_p(im)					\
+    (((im) >= 0 && (im) <=  0x7fff) ||					\
+     ((im) <  0 && (im) >= -0x8000))
+
 /* Patch a `stwu' instruction (with immediate operand) so that it decreases
    r1 by AMOUNT.  AMOUNT should already be rounded so that %sp remains quadword
    aligned.  */
@@ -133,6 +137,7 @@ ppc_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
 	jit_patch_branch(i0 - 1, i1);
 }
 
+#define jit_patch_calli(i0, i1)		ppc_patch_movi(_jit, i0, i1)
 #define jit_patch_movi(i0, i1)		ppc_patch_movi(_jit, i0, i1)
 __jit_inline void
 ppc_patch_movi(jit_state_t _jit, jit_insn *addr, void *value)
@@ -192,7 +197,22 @@ ppc_patch_movi(jit_state_t _jit, jit_insn *addr, void *value)
 #define jit_boaddr_i(label, s1, s2)	(		         ADDOrrr((s1), (s1), (s2)), 	   MCRXRi(0), BGTi((label)), _jit->x.pc)
 #define jit_bosubr_i(label, s1, s2)	(		  	 SUBCOrrr((s1), (s1), (s2)), 	   MCRXRi(0), BGTi((label)), _jit->x.pc)
 #define jit_boaddi_ui(label, rs, is)	(jit_chk_ims ((is), ADDICrri((rs), (rs), is), ADDCrrr((rs), (rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc) /* EQ = bit 2 of XER = CA */
-#define jit_bosubi_ui(label, rs, is)	(jit_chk_ims ((is), SUBICrri((rs), (rs), is), SUBCrrr((rs), (rs), JIT_AUX)),       MCRXRi(0), BEQi((label)), _jit->x.pc)
+
+#define jit_bosubi_ui(i0, r0, i1)	ppc_bosubi_ui(_jit, i0, r0, i1)
+__jit_inline jit_insn *
+ppc_bosubi_ui(jit_state_t _jit, jit_insn *i0, int r0, int i1)
+{
+    if (jit_can_sign_extend_short_p(-i1))
+	ADDICrri(r0, r0, -i1);
+    else {
+	MOVEIri(JIT_AUX, i0);
+	SUBCrrr(r0, r0, JIT_AUX);
+    }
+    MCRXRi(0);
+    BEQi(i0);
+    return (_jit->x.pc);
+}
+
 #define jit_boaddr_ui(label, s1, s2)	(		  			      ADDCrrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
 #define jit_bosubr_ui(label, s1, s2)	(		  			      SUBCrrr((s1), (s1), (s2)), 	   MCRXRi(0), BEQi((label)), _jit->x.pc)
 #define jit_calli(label)	        ((void)jit_movi_p(JIT_AUX, (label)), MTCTRr(JIT_AUX), BCTRL(), _jitl.nextarg_puti = _jitl.nextarg_putf = _jitl.nextarg_putd = 0, _jit->x.pc)
@@ -201,7 +221,21 @@ ppc_patch_movi(jit_state_t _jit, jit_insn *addr, void *value)
 #define jit_divi_ui(d, rs, is)	jit_big_imu((is), DIVWUrrr((d), (rs), JIT_AUX))
 #define jit_divr_i(d, s1, s2)		DIVWrrr ((d), (s1), (s2))
 #define jit_divr_ui(d, s1, s2)	DIVWUrrr((d), (s1), (s2))
-#define jit_eqi_i(d, rs, is)		(jit_chk_ims((is), SUBIrri(JIT_AUX, (rs), (is)), SUBrrr(JIT_AUX, (rs), JIT_AUX)), SUBFICrri((d), JIT_AUX, 0), ADDErrr((d), (d), JIT_AUX))
+
+#define jit_eqi_i(r0, r1, i0)		ppc_eqi_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_eqi_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(-i0))
+	ADDIrri(JIT_AUX, r1, -i0);
+    else {
+	MOVEIri(JIT_AUX, i0);
+	SUBrrr(JIT_AUX, r1, JIT_AUX);
+    }
+    SUBFICrri(r0, JIT_AUX, 0);
+    ADDErrr(r0, r0, JIT_AUX);
+}
+
 #define jit_eqr_i(d, s1, s2)		(SUBrrr(JIT_AUX, (s1), (s2)), SUBFICrri((d), JIT_AUX, 0), ADDErrr((d), (d), JIT_AUX))
 #define jit_extr_c_i(d, rs)		EXTSBrr((d), (rs))
 #define jit_extr_s_i(d, rs)		EXTSHrr((d), (rs))
@@ -251,7 +285,21 @@ ppc_patch_movi(jit_state_t _jit, jit_insn *addr, void *value)
 #define jit_muli_ui(d, rs, is)		jit_chk_imu15((is), MULLIrri((d), (rs), (is)), MULLWrrr((d), (rs), JIT_AUX))
 #define jit_mulr_i(d, s1, s2)				    MULLWrrr((d), (s1), (s2))
 #define jit_mulr_ui(d, s1, s2)				    MULLWrrr((d), (s1), (s2))
-#define jit_nei_i(d, rs, is)		(jit_chk_ims((is), SUBIrri(JIT_AUX, (rs), (is)), SUBrrr(JIT_AUX, (rs), JIT_AUX)), ADDICrri((d), JIT_AUX, -1), SUBFErrr((d), (d), JIT_AUX))
+
+#define jit_nei_i(r0, r1, i0)		ppc_nei_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_nei_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(-i0))
+	ADDIrri(JIT_AUX, r1, -i0);
+    else {
+	MOVEIri(JIT_AUX, i0);
+	SUBrrr(JIT_AUX, r1, JIT_AUX);
+    }
+    ADDICrri(r0, JIT_AUX, -1);
+    SUBFErrr(r0, r0, JIT_AUX);
+}
+
 #define jit_ner_i(d, s1, s2)		(SUBrrr(JIT_AUX, (s1), (s2)), ADDICrri((d), JIT_AUX, -1), SUBFErrr((d), (d), JIT_AUX))
 #define jit_nop()			NOP()
 #define jit_ori_i(d, rs, is)		jit_chk_imu((is), ORIrri((d), (rs), (is)), ORrrr((d), (rs), JIT_AUX))
@@ -346,7 +394,17 @@ ppc_ret(jit_state_t _jit)
 #define jit_retval_i(rd)		MRrr((rd), 3)
 #define jit_rsbi_i(d, rs, is)		jit_chk_ims((is), SUBFICrri((d), (rs), (is)), SUBFCrrr((d), (rs), JIT_AUX))
 #define jit_rshi_i(d, rs, is)					     SRAWIrri((d), (rs), (is))
-#define jit_rshi_ui(d, rs, is)					     SRWIrri ((d), (rs), (is))
+
+#define jit_rshi_ui(r0, r1, i0)		ppc_rshi_ui(_jit, r0, r1, i0)
+__jit_inline void
+ppc_rshi_ui(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (i0)
+	SRWIrri(r0, r1, i0);
+    else
+	jit_movr_i(r0, r1);
+}
+
 #define jit_rshr_i(d, s1, s2)		(ANDI_rri(JIT_AUX, (s2), 31), SRAWrrr ((d), (s1), JIT_AUX))
 #define jit_rshr_ui(d, s1, s2)		(ANDI_rri(JIT_AUX, (s2), 31), SRWrrr  ((d), (s1), JIT_AUX))
 #define jit_stxi_c(id, rd, rs)		jit_chk_ims((id), STBrm((rs), (id), (rd)), STBrx((rs), (rd), JIT_AUX))

@@ -31,7 +31,7 @@
 #  include <dis-asm.h>
 #endif
 
-#if DYNAMIC
+#if DYNAMIC_
 #  include <dlfcn.h>
 #endif
 
@@ -221,7 +221,7 @@ typedef enum {
     label_kind_data,
     label_kind_code,
     label_kind_code_forward,
-#if DYNAMIC
+#if DYNAMIC_
     label_kind_dynamic,
 #endif
 } label_kind_t;
@@ -647,7 +647,7 @@ static void dot(void);
 static token_t number(int ch);
 static int escape(int ch);
 static token_t string(void);
-#if DYNAMIC
+#if DYNAMIC_
 static token_t dynamic(void);
 #endif
 static token_t character(void);
@@ -1709,7 +1709,7 @@ movi_p(void)
 		    error("expecting pointer");
 	    }
 	    break;
-#if DYNAMIC
+#if DYNAMIC_
 	case '@':
 	    dynamic();
 	    value = parser.value.p;
@@ -2219,7 +2219,7 @@ get_pointer(skip_t skip)
 		    /* as expression arguments */
 		    error("forward references not implemented");
 		    break;
-#if DYNAMIC
+#if DYNAMIC_
 		case label_kind_dynamic:
 		    break;
 #endif
@@ -2242,7 +2242,7 @@ get_label(skip_t skip)
     int		 ch = skipws();
 
     switch (ch) {
-#if DYNAMIC
+#if DYNAMIC_
 	case '@':
 	    (void)dynamic();
 	    break;
@@ -2759,7 +2759,7 @@ character(void)
     return (tok_char);
 }
 
-#if DYNAMIC
+#if DYNAMIC_
 static token_t
 dynamic(void)
 {
@@ -2768,7 +2768,7 @@ dynamic(void)
     char	*string;
     (void)identifier('@');
     if ((label = get_label_by_name(parser.string)) == NULL) {
-	value = dlsym(NULL, parser.string + 1);
+	value = dlsym(RTLD_DEFAULT, parser.string + 1);
 	if ((string = dlerror()))
 	    error("%s", string);
 	label = new_label(label_kind_dynamic, parser.string, value);
@@ -2908,7 +2908,7 @@ expression_prim(void)
 	    token = number(ch);
 	    parser.expr = token == tok_int ? expr_int : expr_float;
 	    break;
-#if DYNAMIC
+#if DYNAMIC_
 	case '@':
 	    (void)dynamic();
 	    parser.expr = expr_pointer;
@@ -3954,7 +3954,7 @@ primary(skip_t skip)
 	    return (string());
 	case '\'':
 	    return (character());
-#if DYNAMIC
+#if DYNAMIC_
 	case '@':
 	    return (dynamic());
 #endif
@@ -4349,7 +4349,7 @@ main(int argc, char *argv[])
 #if !DISASSEMBLER
 	warn("disassembler not enabled");
 #endif
-#if !DYNAMIC
+#if !DYNAMIC_
 	warn("dynamic symbols not enabled");
 #endif
 #if !PREPROCESSOR
@@ -4393,7 +4393,7 @@ main(int argc, char *argv[])
 	}
     }
 #if PREPROCESSOR
-    opt_short = snprintf(cmdline, sizeof(cmdline), "cpp %s", argv[opt_index]);
+    opt_short = snprintf(cmdline, sizeof(cmdline), "gcc -E -x c %s", argv[opt_index]);
     for (++opt_index; opt_index < argc; opt_index++) {
 	if (argv[opt_index][0] == '-')
 	    opt_short += snprintf(cmdline + opt_short,

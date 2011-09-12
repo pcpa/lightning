@@ -313,10 +313,10 @@
 #define MOVEIri(R,I)			(_siP(16,I) ? LIri(R,I) :	\
 					MOVEIri2(R, _HI(I), _LO(I)) )
 
-#define SUBIrri(RD,RA,IM)		ADDIrri(RD,RA,-_LO((IM)))	/* [1, Section F.2.1] */
-#define SUBISrri(RD,RA,IM)		ADDISrri(RD,RA,-_LO((IM)))
-#define SUBICrri(RD,RA,IM)		ADDICrri(RD,RA,-_LO((IM)))
-#define SUBIC_rri(RD,RA,IM)		ADDIC_rri(RD,RA,-_LO((IM)))
+#define SUBIrri(RD,RA,IM)		ADDIrri(RD,RA,_LO(-(IM)))	/* [1, Section F.2.1] */
+#define SUBISrri(RD,RA,IM)		ADDISrri(RD,RA,_LO(-(IM)))
+#define SUBICrri(RD,RA,IM)		ADDICrri(RD,RA,_LO(-(IM)))
+#define SUBIC_rri(RD,RA,IM)		ADDIC_rri(RD,RA,_LO(-(IM)))
 
 #define SUBrrr(RD,RA,RB)		SUBFrrr(RD,RB,RA)	/* [1, Section F.2.2] */
 #define SUBOrrr(RD,RA,RB)		SUBFOrrr(RD,RB,RA)
@@ -634,6 +634,9 @@
 #define FCMPOrrr(CR,RA,RB)       _X(63,_u3((CR)<<2),RA,RB,32,0)
 #define FCMPUrrr(CR,RA,RB)       _X(63,_u3((CR)<<2),RA,RB,0,0)
 #define MTFSFIri(CR,IMM)          _X(63,_u5((CR)<<2),0,_u5((IMM)<<1),134,0)
+
+/* ppc64 */
+#define FCFIDrr(RD,RS)		_X(63,RD,0,RS,846,0)
 
 /*** References:
  *

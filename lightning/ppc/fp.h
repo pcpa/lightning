@@ -76,9 +76,9 @@
    } while(0) 
 
 
-#define jit_abs_d(rd,rs)       FABSrr((rd),(rs))
-#define jit_negr_d(rd,rs)      FNEGrr((rd),(rs))
-#define jit_sqrt_d(rd,rs)      FSQRTDrr((rd),(rs))
+#define jit_absr_d(rd,rs)		FABSrr((rd),(rs))
+#define jit_negr_d(rd,rs)		FNEGrr((rd),(rs))
+#define jit_sqrtr_d(rd,rs)		FSQRTDrr((rd),(rs))
 
 
 #define jit_ldxi_f(reg0, rs, is)    (_siP(16,(is)) ? LFSrri((reg0),(rs),(is)) : (MOVEIri(JIT_AUX,(is)),LFSxrrr((reg0),(rs),JIT_AUX))) 
@@ -208,5 +208,15 @@
                                   MOVEIri(JIT_AUX,-4), \
                                   STFIWXrrr(7,JIT_SP,JIT_AUX),   \
                                   LWZrm((rd),-4,JIT_SP))
+
+/* FIXME 64 bit instruction, should work on recent processors,
+ * explicitly documented as not working in 32 bit mode, but
+ * works on test Darwin PPC host..., otherwise, need to inline
+ * or call some integer to float function */
+#define jit_extr_i_d(rd,rs)	(jit_stxi_i(-4, JIT_SP, (rs)),		\
+				 jit_rshi_i(JIT_AUX, (rs), 31),		\
+				 jit_stxi_i(-8, JIT_SP, JIT_AUX),	\
+				 jit_ldxi_d((rd), JIT_SP, -8),		\
+				 FCFIDrr((rd), (rd)))
 
 #endif /* __lightning_asm_h */

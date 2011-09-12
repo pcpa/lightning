@@ -58,31 +58,51 @@
 #define jit_mulr_f(rd,s1,s2)		jit_mulr_d(rd,s1,s2)
 #define jit_divr_f(rd,s1,s2)		jit_divr_d(rd,s1,s2)
 #define jit_movr_f(rd,rs)		jit_movr_d(rd,rs)
-#define jit_abs_f(rd,rs)		jit_abs_d(rd,rs)
+#endif
+
+#if !defined(jit_absr_f)
+#define jit_absr_f(rd,rs)		jit_absr_d(rd,rs)
 #define jit_negr_f(rd,rs)		jit_negr_d(rd,rs)
-#define jit_sqrt_f(rd,rs)		jit_sqrt_d(rd,rs)
-#define jit_extr_i_f(rd, rs)		jit_extr_i_d(rd, rs)
-#if defined(jit_rintr_d_i)
+#define jit_sqrtr_f(rd,rs)		jit_sqrtr_d(rd,rs)
+#endif
+
+#if !defined(jit_extr_i_f)
+#  define jit_extr_i_f(rd, rs)		jit_extr_i_d(rd, rs)
+#endif
+
+#if !defined(jit_rintr_d_i)
+#  define jit_rintr_d_i(rd, rs)		jit_truncr_d_i(rd, rs)
+#endif
+
+#if !defined(jit_rintr_f_i)
 #  define jit_rintr_f_i(rd, rs)		jit_rintr_d_i(rd, rs)
 #endif
-#define jit_roundr_f_i(rd, rs)		jit_roundr_d_i(rd, rs)
-#define jit_floorr_f_i(rd, rs)		jit_floorr_d_i(rd, rs)
-#define jit_ceilr_f_i(rd, rs)		jit_ceilr_d_i(rd, rs)
-#define jit_truncr_f_i(rd, rs)		jit_truncr_d_i(rd, rs)
-#define jit_ltr_f(d, s1, s2)		jit_ltr_d(d, s1, s2)
-#define jit_ler_f(d, s1, s2)		jit_ler_d(d, s1, s2)
-#define jit_eqr_f(d, s1, s2)		jit_eqr_d(d, s1, s2)
-#define jit_ner_f(d, s1, s2)		jit_ner_d(d, s1, s2)
-#define jit_ger_f(d, s1, s2)		jit_ger_d(d, s1, s2)
-#define jit_gtr_f(d, s1, s2)		jit_gtr_d(d, s1, s2)
-#define jit_unltr_f(d, s1, s2)		jit_unltr_d(d, s1, s2)
-#define jit_unler_f(d, s1, s2)		jit_unler_d(d, s1, s2)
-#define jit_uneqr_f(d, s1, s2)		jit_uneqr_d(d, s1, s2)
-#define jit_ltgtr_f(d, s1, s2)		jit_ltgtr_d(d, s1, s2)
-#define jit_unger_f(d, s1, s2)		jit_unger_d(d, s1, s2)
-#define jit_ungtr_f(d, s1, s2)		jit_ungtr_d(d, s1, s2)
-#define jit_ordr_f(d, s1, s2)		jit_ordr_d(d, s1, s2)
-#define jit_unordr_f(d, s1, s2)		jit_unordr_d(d, s1, s2)
+
+#if !defined(jit_roundr_f_i)
+#  define jit_roundr_f_i(rd, rs)	jit_roundr_d_i(rd, rs)
+#  define jit_floorr_f_i(rd, rs)	jit_floorr_d_i(rd, rs)
+#  define jit_ceilr_f_i(rd, rs)		jit_ceilr_d_i(rd, rs)
+#  define jit_truncr_f_i(rd, rs)	jit_truncr_d_i(rd, rs)
+#endif
+
+#if !defined(jit_eqr_f)
+#define jit_eqr_f(rd, s0, s1)		jit_eqr_d(rd, s0, s1)
+#define jit_ner_f(rd, s0, s1)		jit_ner_d(rd, s0, s1)
+#define jit_gtr_f(rd, s0, s1)		jit_gtr_d(rd, s0, s1)
+#define jit_ger_f(rd, s0, s1)		jit_ger_d(rd, s0, s1)
+#define jit_ltr_f(rd, s0, s1)		jit_ltr_d(rd, s0, s1)
+#define jit_ler_f(rd, s0, s1)		jit_ler_d(rd, s0, s1)
+#define jit_uneqr_f(rd, s0, s1)		jit_uneqr_d(rd, s0, s1)
+#define jit_ltgtr_f(rd, s0, s1)		jit_ltgtr_d(rd, s0, s1)
+#define jit_ungtr_f(rd, s0, s1)		jit_ungtr_d(rd, s0, s1)
+#define jit_unger_f(rd, s0, s1)		jit_unger_d(rd, s0, s1)
+#define jit_unltr_f(rd, s0, s1)		jit_unltr_d(rd, s0, s1)
+#define jit_unler_f(rd, s0, s1)		jit_unler_d(rd, s0, s1)
+#define jit_ordr_f(rd, s0, s1)		jit_ordr_d(rd, s0, s1)
+#define jit_unordr_f(rd, s0, s1)	jit_unordr_d(rd, s0, s1)
+#endif
+
+#if !defined(jit_retval_f)
 #define jit_retval_f(rs)		jit_retval_d(rs)
 #endif
 

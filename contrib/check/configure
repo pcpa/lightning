@@ -11449,7 +11449,7 @@ fi
 
 if test "x$DYNAMIC" != "xno"; then
     LIGHTNING_LIBS="$LIGHTNING_LIBS -ldl"
-    LIGHTNING_CFLAGS="$LIGHTNING_CFLAGS -DDYNAMIC=1"
+    LIGHTNING_CFLAGS="$LIGHTNING_CFLAGS -DDYNAMIC_=1"
 fi
 
 # Check whether --enable-preprocessor was given.
