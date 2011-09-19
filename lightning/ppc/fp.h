@@ -103,22 +103,28 @@
 	MFCRr((d)),				\
 	EXTRWIrrii((d), (d), 1, (rcbit)))
 
-#define jit_fpboolr_neg(d, s1, s2,rcbit) (	\
+#define jit_fpboolr_eqv(d, s1, s2,rcbit) (	\
 	FCMPOrrr(_cr0,(s1),(s2)),		\
+	CREQViii((rcbit), (rcbit), _un),	\
 	MFCRr((d)),				\
-	EXTRWIrrii((d), (d), 1, (rcbit)),	\
-	XORIrri((d), (d), 1))
+	EXTRWIrrii((d), (d), 1, (rcbit)))
+
+#define jit_fpboolr_not(d, s1, s2,rcbit) (	\
+	FCMPOrrr(_cr0,(s1),(s2)),		\
+	CRNOTii((rcbit), (rcbit)),		\
+	MFCRr((d)),				\
+	EXTRWIrrii((d), (d), 1, (rcbit)))
 
 #define jit_fpboolur(d, s1, s2, rcbit) (	\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
 	MFCRr((d)),				\
 	EXTRWIrrii((d), (d), 1, (rcbit)))
 
-#define jit_fpboolur_neg(d, s1, s2,rcbit) (	\
+#define jit_fpboolur_not(d, s1, s2,rcbit) (	\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
+	CRNOTii((rcbit), (rcbit)),		\
 	MFCRr((d)),				\
-	EXTRWIrrii((d), (d), 1, (rcbit)),	\
-	XORIrri((d), (d), 1))
+	EXTRWIrrii((d), (d), 1, (rcbit)))
 
 #define jit_fpboolur_or(d, s1, s2, bit1, bit2) (\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
@@ -126,17 +132,17 @@
 	MFCRr((d)),				\
 	EXTRWIrrii((d), (d), 1, (bit1)))
 
-#define jit_gtr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_gt)   
-#define jit_ger_d(d, s1, s2)      jit_fpboolr_neg((d),(s1),(s2),_lt)   
-#define jit_ltr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_lt)         
-#define jit_ler_d(d, s1, s2)      jit_fpboolr_neg((d),(s1),(s2),_gt)         
-#define jit_eqr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_eq)         
-#define jit_ner_d(d, s1, s2)      jit_fpboolr_neg((d),(s1),(s2),_eq)
+#define jit_gtr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_gt)
+#define jit_ger_d(d, s1, s2)      jit_fpboolr_eqv((d),(s1),(s2),_lt)
+#define jit_ltr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_lt)
+#define jit_ler_d(d, s1, s2)      jit_fpboolr_eqv((d),(s1),(s2),_gt)
+#define jit_eqr_d(d, s1, s2)      jit_fpboolr ((d),(s1),(s2),_eq)
+#define jit_ner_d(d, s1, s2)      jit_fpboolr_not((d),(s1),(s2),_eq)
 #define jit_unordr_d(d, s1, s2)   jit_fpboolur ((d),(s1),(s2),_un)
-#define jit_ordr_d(d, s1, s2)     jit_fpboolur_neg((d),(s1),(s2),_un)
-#define jit_unler_d(d, s1, s2)    jit_fpboolur_neg ((d), (s1), (s2), _gt)
+#define jit_ordr_d(d, s1, s2)     jit_fpboolur_not((d),(s1),(s2),_un)
+#define jit_unler_d(d, s1, s2)    jit_fpboolur_not ((d), (s1), (s2), _gt)
 #define jit_unltr_d(d, s1, s2)    jit_fpboolur_or ((d), (s1), (s2), _un, _lt)
-#define jit_unger_d(d, s1, s2)    jit_fpboolur_neg ((d), (s1), (s2), _lt)
+#define jit_unger_d(d, s1, s2)    jit_fpboolur_not ((d), (s1), (s2), _lt)
 #define jit_ungtr_d(d, s1, s2)    jit_fpboolur_or ((d), (s1), (s2), _un, _gt)
 #define jit_ltgtr_d(d, s1, s2)    jit_fpboolur_or ((d), (s1), (s2), _gt, _lt)
 #define jit_uneqr_d(d, s1, s2)    jit_fpboolur_or ((d), (s1), (s2), _un, _eq)
@@ -146,7 +152,13 @@
 	BTii ((rcbit), (d)),			\
 	_jit->x.pc)
 
-#define jit_fpbr_neg(d, s1, s2,rcbit) (	\
+#define jit_fpbr_eqv(d, s1, s2,rcbit) (	\
+	FCMPOrrr(_cr0,(s1),(s2)),		\
+	CREQViii((rcbit), (rcbit), _un),	\
+	BTii ((rcbit), (d)),			\
+	_jit->x.pc)
+
+#define jit_fpbr_not(d, s1, s2,rcbit) (	\
 	FCMPOrrr(_cr0,(s1),(s2)),		\
 	BFii ((rcbit), (d)),			\
 	_jit->x.pc)
@@ -156,7 +168,7 @@
 	BTii ((rcbit), (d)),			\
 	_jit->x.pc)
 
-#define jit_fpbur_neg(d, s1, s2,rcbit) (	\
+#define jit_fpbur_not(d, s1, s2,rcbit) (	\
 	FCMPUrrr(_cr0,(s1),(s2)),		\
 	BFii ((rcbit), (d)),			\
 	_jit->x.pc)
@@ -167,17 +179,17 @@
 	BTii ((bit1), (d)),			\
 	_jit->x.pc)
 
-#define jit_bgtr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_gt)   
-#define jit_bger_d(d, s1, s2)      jit_fpbr_neg((d),(s1),(s2),_lt)   
-#define jit_bltr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_lt)         
-#define jit_bler_d(d, s1, s2)      jit_fpbr_neg((d),(s1),(s2),_gt)         
-#define jit_beqr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_eq)         
-#define jit_bner_d(d, s1, s2)      jit_fpbr_neg((d),(s1),(s2),_eq)
+#define jit_bgtr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_gt)
+#define jit_bger_d(d, s1, s2)      jit_fpbr_eqv((d),(s1),(s2),_lt)
+#define jit_bltr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_lt)
+#define jit_bler_d(d, s1, s2)      jit_fpbr_eqv((d),(s1),(s2),_gt)
+#define jit_beqr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_eq)
+#define jit_bner_d(d, s1, s2)      jit_fpbr_not((d),(s1),(s2),_eq)
 #define jit_bunordr_d(d, s1, s2)   jit_fpbur ((d),(s1),(s2),_un)
-#define jit_bordr_d(d, s1, s2)     jit_fpbur_neg((d),(s1),(s2),_un)
-#define jit_bunler_d(d, s1, s2)    jit_fpbur_neg ((d), (s1), (s2), _gt)
+#define jit_bordr_d(d, s1, s2)     jit_fpbur_not((d),(s1),(s2),_un)
+#define jit_bunler_d(d, s1, s2)    jit_fpbur_nnot ((d), (s1), (s2), _gt)
 #define jit_bunltr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _lt)
-#define jit_bunger_d(d, s1, s2)    jit_fpbur_neg ((d), (s1), (s2), _lt)
+#define jit_bunger_d(d, s1, s2)    jit_fpbur_nnot ((d), (s1), (s2), _lt)
 #define jit_bungtr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _gt)
 #define jit_bltgtr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _gt, _lt)
 #define jit_buneqr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _eq)
