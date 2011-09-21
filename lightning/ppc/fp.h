@@ -216,6 +216,138 @@ ppc_unordr_d(jit_state_t _jit, int r0, int r1, int r2)
     EXTRWIrrii(r0, r0, 1, _un);
 }
 
+#define jit_bltr_d(i0, r0, r1)		ppc_bltr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bltr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    BLTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bler_d(i0, r0, r1)		ppc_bler_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bler_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    CREQViii(_gt, _gt, _un);
+    BGTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_beqr_d(i0, r0, r1)		ppc_beqr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_beqr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    BEQi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bger_d(i0, r0, r1)		ppc_bger_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bger_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    CREQViii(_lt, _lt, _un);
+    BLTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bgtr_d(i0, r0, r1)		ppc_bgtr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bgtr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    BGTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bner_d(i0, r0, r1)		ppc_bner_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bner_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPOrrr(_cr0, r0, r1);
+    BNEi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunltr_d(i0, r0, r1)	ppc_bunltr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bunltr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    CRORiii(_lt, _lt, _un);
+    BLTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunler_d(i0, r0, r1)	ppc_bunler_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bunler_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    BLEi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_buneqr_d(i0, r0, r1)	ppc_buneqr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_buneqr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    CRORiii(_eq, _eq, _un);
+    BEQi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunger_d(i0, r0, r1)	ppc_bunger_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bunger_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    BGEi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bungtr_d(i0, r0, r1)	ppc_bungtr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bungtr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    CRORiii(_gt, _gt, _un);
+    BGTi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bltgtr_d(i0, r0, r1)	ppc_bltgtr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bltgtr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    CRORiii(_eq, _lt, _gt);
+    BEQi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bordr_d(i0, r0, r1)		ppc_bordr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bordr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    BNUi(i0);
+    return (_jit->x.pc);
+}
+
+#define jit_bunordr_d(i0, r0, r1)	ppc_bunordr_d(_jit, i0, r0, r1)
+__jit_inline jit_insn *
+ppc_bunordr_d(jit_state_t _jit, jit_insn *i0, int r0, int r1)
+{
+    FCMPUrrr(_cr0, r0, r1);
+    BUNi(i0);
+    return (_jit->x.pc);
+}
+
 #define jit_ldr_f(r0, r1)		LFSxrrr(r0, 0, r1)
 #define jit_ldi_f(r0, i0)		ppc_ldi_f(_jit, r0, i0)
 __jit_inline void
@@ -423,53 +555,6 @@ ppc_stxi_d(jit_state_t _jit, int i0, int r0, int r1)
 	jit_stxr_d(JIT_AUX, r0, r1);
     }
 }
-
-#define jit_fpbr(d, s1, s2, rcbit) (		\
-	FCMPOrrr(_cr0,(s1),(s2)),		\
-	BTii ((rcbit), (d)),			\
-	_jit->x.pc)
-
-#define jit_fpbr_eqv(d, s1, s2,rcbit) (	\
-	FCMPOrrr(_cr0,(s1),(s2)),		\
-	CREQViii((rcbit), (rcbit), _un),	\
-	BTii ((rcbit), (d)),			\
-	_jit->x.pc)
-
-#define jit_fpbr_not(d, s1, s2,rcbit) (	\
-	FCMPOrrr(_cr0,(s1),(s2)),		\
-	BFii ((rcbit), (d)),			\
-	_jit->x.pc)
-
-#define jit_fpbur(d, s1, s2, rcbit) (		\
-	FCMPUrrr(_cr0,(s1),(s2)),		\
-	BTii ((rcbit), (d)),			\
-	_jit->x.pc)
-
-#define jit_fpbur_not(d, s1, s2,rcbit) (	\
-	FCMPUrrr(_cr0,(s1),(s2)),		\
-	BFii ((rcbit), (d)),			\
-	_jit->x.pc)
-
-#define jit_fpbur_or(d, s1, s2, bit1, bit2) (	\
-	FCMPUrrr(_cr0,(s1),(s2)),		\
-	CRORiii((bit1), (bit1), (bit2)),	\
-	BTii ((bit1), (d)),			\
-	_jit->x.pc)
-
-#define jit_bgtr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_gt)
-#define jit_bger_d(d, s1, s2)      jit_fpbr_eqv((d),(s1),(s2),_lt)
-#define jit_bltr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_lt)
-#define jit_bler_d(d, s1, s2)      jit_fpbr_eqv((d),(s1),(s2),_gt)
-#define jit_beqr_d(d, s1, s2)      jit_fpbr ((d),(s1),(s2),_eq)
-#define jit_bner_d(d, s1, s2)      jit_fpbr_not((d),(s1),(s2),_eq)
-#define jit_bunordr_d(d, s1, s2)   jit_fpbur ((d),(s1),(s2),_un)
-#define jit_bordr_d(d, s1, s2)     jit_fpbur_not((d),(s1),(s2),_un)
-#define jit_bunler_d(d, s1, s2)    jit_fpbur_not ((d), (s1), (s2), _gt)
-#define jit_bunltr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _lt)
-#define jit_bunger_d(d, s1, s2)    jit_fpbur_not ((d), (s1), (s2), _lt)
-#define jit_bungtr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _gt)
-#define jit_bltgtr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _gt, _lt)
-#define jit_buneqr_d(d, s1, s2)    jit_fpbur_or ((d), (s1), (s2), _un, _eq)
 
 #define jit_pusharg_d(rs)	     (_jitl.nextarg_putd--,jit_movr_d((_jitl.nextarg_putf+_jitl.nextarg_putd+1), (rs)))
 #define jit_pusharg_f(rs)	     (_jitl.nextarg_putf--,jit_movr_f((_jitl.nextarg_putf+_jitl.nextarg_putd+1), (rs)))
