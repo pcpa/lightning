@@ -87,6 +87,8 @@ ppc_movi_p(jit_state_t _jit, int r0, void *i0)
 
 #define jit_notr_i(r0, r1)		NOTrr(r0, r1)
 #define jit_negr_i(r0, r1)		NEGrr(r0, r1)
+#define jit_extr_c_i(r0, r1)		EXTSBrr(r0, r1)
+#define jit_extr_s_i(d, rs)		EXTSHrr((d), (rs))
 
 /* If possible, use the `small' instruction (rd, rs, imm)
  * else load imm into r26 and use the `big' instruction (rd, rs, r26)
@@ -103,16 +105,6 @@ ppc_movi_p(jit_state_t _jit, int r0, void *i0)
 #define jit_s_brar(s1, s2, jmp)			(		  CMPWrr(s1, s2), 		           jmp, _jit->x.pc)
 #define jit_u_brai(rs, is, jmp)			(jit_chk_imu (is, CMPLWIri(rs, is), CMPLWrr(rs, JIT_AUX)), jmp, _jit->x.pc)
 #define jit_u_brar(s1, s2, jmp)			(		  CMPLWrr(s1, s2), 		           jmp, _jit->x.pc)
-
-/* Helper macros for boolean tests. */
-#define jit_sbooli(d, rs, is, jmp)		(jit_chk_ims (is, CMPWIri (rs, is), CMPWrr(rs, JIT_AUX)),  MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)))
-#define jit_sboolr(d, s1, s2, jmp)		(		  CMPWrr  (s1, s2), 		           MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)))
-#define jit_sbooli2(d, rs, is, jmp)		(jit_chk_ims (is, CMPWIri (rs, is), CMPWrr(rs, JIT_AUX)),  MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)), XORIrri((d), (d), 1))
-#define jit_sboolr2(d, s1, s2, jmp)		(		  CMPWrr  (s1, s2), 		           MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)), XORIrri((d), (d), 1))
-#define jit_ubooli(d, rs, is, jmp)		(jit_chk_imu (is, CMPLWIri(rs, is), CMPLWrr(rs, JIT_AUX)), MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)))
-#define jit_uboolr(d, s1, s2, jmp)		(		  CMPLWrr (s1, s2), 		           MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)))
-#define jit_ubooli2(d, rs, is, jmp)		(jit_chk_imu (is, CMPLWIri(rs, is), CMPLWrr(rs, JIT_AUX)), MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)), XORIrri((d), (d), 1))
-#define jit_uboolr2(d, s1, s2, jmp)		(		  CMPLWrr (s1, s2), 		           MFCRr((d)), EXTRWIrrii((d), (d), 1, (jmp)), XORIrri((d), (d), 1))
 
 /* modulus with big immediate                    with small immediate
  * movei r24, imm                                movei r24, imm
@@ -308,6 +300,11 @@ ppc_divi_ui(jit_state_t _jit, int r0, int r1, int i0)
     DIVWUrrr(r0, r1, JIT_AUX);
 }
 
+#define jit_modi_i(d, rs, is)		jit_chk_ims  ((is), _jit_mod_small(jit_divr_i , (d), (rs), (is)), _jit_mod_big(jit_divr_i , (d), (rs)))
+#define jit_modi_ui(d, rs, is)		jit_chk_imu15((is), _jit_mod_small(jit_divr_ui, (d), (rs), (is)), _jit_mod_big(jit_divr_ui, (d), (rs)))
+#define jit_modr_i(d, s1, s2)		(DIVWrrr(JIT_AUX, (s1), (s2)), MULLWrrr(JIT_AUX, JIT_AUX, (s2)), SUBrrr((d), (s1), JIT_AUX))
+#define jit_modr_ui(d, s1, s2)		(DIVWUrrr(JIT_AUX, (s1), (s2)), MULLWrrr(JIT_AUX, JIT_AUX, (s2)), SUBrrr((d), (s1), JIT_AUX))
+
 #define jit_andr_i(r0, r1, r2)		ANDrrr(r0, r1, r2)
 #define jit_andi_i(r0, r1, i0)		ppc_andi_i(_jit, r0, r1, i0)
 __jit_inline void
@@ -366,6 +363,250 @@ ppc_rshi_ui(jit_state_t _jit, int r0, int r1, int i0)
 	SRWIrri(r0, r1, i0);
     else
 	jit_movr_i(r0, r1);
+}
+
+#define jit_ltr_i(r0, r1, r2)		ppc_ltr_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ltr_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_lti_i(r0, r1, i0)		ppc_lti_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_lti_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_ltr_ui(r0, r1, r2)		ppc_ltr_ui(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ltr_ui(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPLWrr(r1, r2);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_lti_ui(r0, r1, i0)		ppc_lti_ui(_jit, r0, r1, i0)
+__jit_inline void
+ppc_lti_ui(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPLWrr(r1, JIT_AUX);
+    }
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_ler_i(r0, r1, r2)		ppc_ler_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ler_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    CRNOTii(_gt, _gt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_lei_i(r0, r1, i0)		ppc_lei_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_lei_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    CRNOTii(_gt, _gt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_ler_ui(r0, r1, r2)		ppc_ler_ui(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ler_ui(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPLWrr(r1, r2);
+    CRNOTii(_gt, _gt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_lei_ui(r0, r1, i0)		ppc_lei_ui(_jit, r0, r1, i0)
+__jit_inline void
+ppc_lei_ui(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPLWrr(r1, JIT_AUX);
+    }
+    CRNOTii(_gt, _gt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_eqr_i(r0, r1, r2)		ppc_eqr_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_eqr_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _eq);
+}
+
+#define jit_eqi_i(r0, r1, i0)		ppc_eqi_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_eqi_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _eq);
+}
+
+#define jit_ger_i(r0, r1, r2)		ppc_ger_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ger_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    CRNOTii(_lt, _lt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_gei_i(r0, r1, i0)		ppc_gei_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_gei_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    CRNOTii(_lt, _lt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_ger_ui(r0, r1, r2)		ppc_ger_ui(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ger_ui(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPLWrr(r1, r2);
+    CRNOTii(_lt, _lt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_gei_ui(r0, r1, i0)		ppc_gei_ui(_jit, r0, r1, i0)
+__jit_inline void
+ppc_gei_ui(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPLWrr(r1, JIT_AUX);
+    }
+    CRNOTii(_lt, _lt);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _lt);
+}
+
+#define jit_gtr_i(r0, r1, r2)		ppc_gtr_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_gtr_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_gti_i(r0, r1, i0)		ppc_gti_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_gti_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_gtr_ui(r0, r1, r2)		ppc_gtr_ui(_jit, r0, r1, r2)
+__jit_inline void
+ppc_gtr_ui(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPLWrr(r1, r2);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_gti_ui(r0, r1, i0)		ppc_gti_ui(_jit, r0, r1, i0)
+__jit_inline void
+ppc_gti_ui(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPLWrr(r1, JIT_AUX);
+    }
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _gt);
+}
+
+#define jit_ner_i(r0, r1, r2)		ppc_ner_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ner_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    CMPWrr(r1, r2);
+    CRNOTii(_eq, _eq);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _eq);
+}
+
+#define jit_nei_i(r0, r1, i0)		ppc_nei_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_nei_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (jit_can_sign_extend_short_p(i0))
+	CMPWIri(r1, i0);
+    else if (jit_can_zero_extend_short_p(i0))
+	CMPLWIri(r1, i0);
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	CMPWrr(r1, JIT_AUX);
+    }
+    CRNOTii(_eq, _eq);
+    MFCRr(r0);
+    EXTRWIrrii(r0, r0, 1, _eq);
 }
 
 #define jit_bmsi_i(label, rs, is)	(jit_chk_imu((is), ANDI_rri(JIT_AUX, (rs), (is)), AND_rrr(JIT_AUX, (rs), JIT_AUX)), BNEi((label)), _jit->x.pc)
@@ -473,72 +714,405 @@ ppc_bosubi_ui(jit_state_t _jit, jit_insn *i0, int r0, int i1)
 
 #define jit_calli(label)	        ((void)jit_movi_p(JIT_AUX, (label)), MTCTRr(JIT_AUX), BCTRL(), _jitl.nextarg_puti = _jitl.nextarg_putf = _jitl.nextarg_putd = 0, _jit->x.pc)
 #define jit_callr(reg)			(MTCTRr(reg), BCTRL())
-
-#define jit_eqi_i(r0, r1, i0)		ppc_eqi_i(_jit, r0, r1, i0)
-__jit_inline void
-ppc_eqi_i(jit_state_t _jit, int r0, int r1, int i0)
-{
-    if (jit_can_sign_extend_short_p(-i0))
-	ADDIrri(JIT_AUX, r1, -i0);
-    else {
-	MOVEIri(JIT_AUX, i0);
-	SUBrrr(JIT_AUX, r1, JIT_AUX);
-    }
-    SUBFICrri(r0, JIT_AUX, 0);
-    ADDErrr(r0, r0, JIT_AUX);
-}
-
-#define jit_eqr_i(d, s1, s2)		(SUBrrr(JIT_AUX, (s1), (s2)), SUBFICrri((d), JIT_AUX, 0), ADDErrr((d), (d), JIT_AUX))
-#define jit_extr_c_i(d, rs)		EXTSBrr((d), (rs))
-#define jit_extr_s_i(d, rs)		EXTSHrr((d), (rs))
-#define jit_gei_i(d, rs, is)		jit_sbooli2((d), (rs), (is), _lt)
-#define jit_gei_ui(d, rs, is)		jit_ubooli2((d), (rs), (is), _lt)
-#define jit_ger_i(d, s1, s2)		jit_sboolr2((d), (s1), (s2), _lt)
-#define jit_ger_ui(d, s1, s2)		jit_uboolr2((d), (s1), (s2), _lt)
-#define jit_gti_i(d, rs, is)		jit_sbooli ((d), (rs), (is), _gt)
-#define jit_gti_ui(d, rs, is)		jit_ubooli ((d), (rs), (is), _gt)
-#define jit_gtr_i(d, s1, s2)		jit_sboolr ((d), (s1), (s2), _gt)
-#define jit_gtr_ui(d, s1, s2)		jit_uboolr ((d), (s1), (s2), _gt)
 #define jit_jmpi(label)			(B_EXT((label)), _jit->x.pc)
 #define jit_jmpr(reg)			(MTLRr(reg), BLR())
-#define jit_ldxi_c(d, rs, is)		(jit_ldxi_uc((d), (rs), (is)), jit_extr_c_i((d), (d)))
-#define jit_ldxr_c(d, s1, s2)		(jit_ldxr_uc((d), (s1), (s2)), jit_extr_c_i((d), (d)))
-#define jit_ldxi_i(d, rs, is)		jit_chk_ims((is), LWZrm((d), (is), (rs)), LWZrx((d), JIT_AUX, (rs)))
-#define jit_ldxi_s(d, rs, is)		jit_chk_ims((is), LHArm((d), (is), (rs)), LHArx((d), JIT_AUX, (rs)))
-#define jit_ldxi_uc(d, rs, is)		jit_chk_ims((is), LBZrm((d), (is), (rs)), LBZrx((d), JIT_AUX, (rs)))
-#define jit_ldxi_us(d, rs, is)		jit_chk_ims((is), LHZrm((d), (is), (rs)), LHZrx((d), JIT_AUX, (rs)))
-#define jit_ldxr_i(d, s1, s2)				  LWZrx((d), (s1), (s2))
-#define jit_ldxr_s(d, s1, s2)				  LHArx((d), (s1), (s2))
-#define jit_ldxr_uc(d, s1, s2)				  LBZrx((d), (s1), (s2))
-#define jit_ldxr_us(d, s1, s2)				  LHZrx((d), (s1), (s2))
-#define jit_lei_i(d, rs, is)		jit_sbooli2((d), (rs), (is), _gt )
-#define jit_lei_ui(d, rs, is)		jit_ubooli2((d), (rs), (is), _gt )
-#define jit_ler_i(d, s1, s2)		jit_sboolr2((d), (s1), (s2), _gt )
-#define jit_ler_ui(d, s1, s2)		jit_uboolr2((d), (s1), (s2), _gt )
-#define jit_lti_i(d, rs, is)		jit_sbooli ((d), (rs), (is), _lt )
-#define jit_lti_ui(d, rs, is)		jit_ubooli ((d), (rs), (is), _lt )
-#define jit_ltr_i(d, s1, s2)		jit_sboolr ((d), (s1), (s2), _lt )
-#define jit_ltr_ui(d, s1, s2)		jit_uboolr ((d), (s1), (s2), _lt )
-#define jit_modi_i(d, rs, is)		jit_chk_ims  ((is), _jit_mod_small(jit_divr_i , (d), (rs), (is)), _jit_mod_big(jit_divr_i , (d), (rs)))
-#define jit_modi_ui(d, rs, is)		jit_chk_imu15((is), _jit_mod_small(jit_divr_ui, (d), (rs), (is)), _jit_mod_big(jit_divr_ui, (d), (rs)))
-#define jit_modr_i(d, s1, s2)		(DIVWrrr(JIT_AUX, (s1), (s2)), MULLWrrr(JIT_AUX, JIT_AUX, (s2)), SUBrrr((d), (s1), JIT_AUX))
-#define jit_modr_ui(d, s1, s2)		(DIVWUrrr(JIT_AUX, (s1), (s2)), MULLWrrr(JIT_AUX, JIT_AUX, (s2)), SUBrrr((d), (s1), JIT_AUX))
 
-#define jit_nei_i(r0, r1, i0)		ppc_nei_i(_jit, r0, r1, i0)
+#define jit_ldr_uc(r0, r1)		LBZrx(r0, 0, r1)
+#define jit_ldi_uc(r0, i0)		ppc_ldi_uc(_jit, r0, i0)
 __jit_inline void
-ppc_nei_i(jit_state_t _jit, int r0, int r1, int i0)
+ppc_ldi_uc(jit_state_t _jit, int r0, void *i0)
 {
-    if (jit_can_sign_extend_short_p(-i0))
-	ADDIrri(JIT_AUX, r1, -i0);
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	LBZrm(r0, i0, 0);
     else {
-	MOVEIri(JIT_AUX, i0);
-	SUBrrr(JIT_AUX, r1, JIT_AUX);
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	LBZrm(r0, lo, JIT_AUX);
     }
-    ADDICrri(r0, JIT_AUX, -1);
-    SUBFErrr(r0, r0, JIT_AUX);
 }
 
-#define jit_ner_i(d, s1, s2)		(SUBrrr(JIT_AUX, (s1), (s2)), ADDICrri((d), JIT_AUX, -1), SUBFErrr((d), (d), JIT_AUX))
+#define jit_ldxr_uc(r0, r1, r2)		ppc_ldxr_uc(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ldxr_uc(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r1 == 0) {
+	if (r2 != 0)
+	    LBZrx(r0, r2, r1);
+	else {
+	    jit_movr_i(JIT_AUX, r1);
+	    LBZrx(r0, JIT_AUX, r2);
+	}
+    }
+    else
+	LBZrx(r0, r1, r2);
+}
+
+#define jit_ldxi_uc(r0, r1, i0)		ppc_ldxi_uc(_jit, r0, r1, i0)
+__jit_inline void
+ppc_ldxi_uc(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (i0 == 0)
+	jit_ldr_uc(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r1 == 0) {
+	    jit_movr_i(JIT_AUX, r1);
+	    LBZrm(r0, i0, JIT_AUX);
+	}
+	else
+	    LBZrm(r0, i0, r1);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_ldxr_uc(r0, r1, JIT_AUX);
+    }
+}
+
+#define jit_ldr_c(r0, r1)		ppc_ldr_c(_jit, r0, r1)
+__jit_inline void
+ppc_ldr_c(jit_state_t _jit, int r0, int r1)
+{
+    jit_ldr_uc(r0, r1);
+    jit_extr_c_i(r0, r0);
+}
+
+#define jit_ldi_c(r0, i0)		ppc_ldi_c(_jit, r0, i0)
+__jit_inline void
+ppc_ldi_c(jit_state_t _jit, int r0, void *i0)
+{
+    jit_ldi_uc(r0, i0);
+    jit_extr_c_i(r0, r0);
+}
+
+#define jit_ldxr_c(r0, r1, r2)		ppc_ldxr_c(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ldxr_c(jit_state_t _jit, int r0, int r1, int r2)
+{
+    jit_ldxr_uc(r0, r1, r2);
+    jit_extr_c_i(r0, r0);
+}
+
+#define jit_ldxi_c(r0, r1, i0)		ppc_ldxi_c(_jit, r0, r1, i0)
+__jit_inline void
+ppc_ldxi_c(jit_state_t _jit, int r0, int r1, int i0)
+{
+    jit_ldxi_uc(r0, r1, i0);
+    jit_extr_c_i(r0, r0);
+}
+
+#define jit_ldr_s(r0, r1)		LHArx(r0, 0, r1)
+#define jit_ldi_s(r0, i0)		ppc_ldi_s(_jit, r0, i0)
+__jit_inline void
+ppc_ldi_s(jit_state_t _jit, int r0, void *i0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	LHArm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	LHArm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_ldxr_s(r0, r1, r2)		ppc_ldxr_s(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ldxr_s(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r1 == 0) {
+	if (r2 != 0)
+	    LHArx(r0, r2, r1);
+	else {
+	    jit_movr_i(JIT_AUX, r1);
+	    LHArx(r0, JIT_AUX, r2);
+	}
+    }
+    else
+	LHArx(r0, r1, r2);
+}
+
+#define jit_ldxi_s(r0, r1, i0)		ppc_ldxi_s(_jit, r0, r1, i0)
+__jit_inline void
+ppc_ldxi_s(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (i0 == 0)
+	jit_ldr_s(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r1 == 0) {
+	    jit_movr_i(JIT_AUX, r1);
+	    LHArm(r0, i0, JIT_AUX);
+	}
+	else
+	    LHArm(r0, i0, r1);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_ldxr_s(r0, r1, JIT_AUX);
+    }
+}
+
+#define jit_ldr_us(r0, r1)		LHZrx(r0, 0, r1)
+#define jit_ldi_us(r0, i0)		ppc_ldi_us(_jit, r0, i0)
+__jit_inline void
+ppc_ldi_us(jit_state_t _jit, int r0, void *i0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	LHZrm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	LHZrm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_ldxr_us(r0, r1, r2)		ppc_ldxr_us(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ldxr_us(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r1 == 0) {
+	if (r2 != 0)
+	    LHZrx(r0, r2, r1);
+	else {
+	    jit_movr_i(JIT_AUX, r1);
+	    LHZrx(r0, JIT_AUX, r2);
+	}
+    }
+    else
+	LHZrx(r0, r1, r2);
+}
+
+#define jit_ldxi_us(r0, r1, i0)		ppc_ldxi_us(_jit, r0, r1, i0)
+__jit_inline void
+ppc_ldxi_us(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (i0 == 0)
+	jit_ldr_us(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r1 == 0) {
+	    jit_movr_i(JIT_AUX, r1);
+	    LHZrm(r0, i0, JIT_AUX);
+	}
+	else
+	    LHZrm(r0, i0, r1);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_ldxr_us(r0, r1, JIT_AUX);
+    }
+}
+
+#define jit_ldr_i(r0, r1)		LWZrx(r0, 0, r1)
+#define jit_ldi_i(r0, i0)		ppc_ldi_i(_jit, r0, i0)
+__jit_inline void
+ppc_ldi_i(jit_state_t _jit, int r0, void *i0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	LWZrm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	LWZrm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_ldxr_i(r0, r1, r2)		ppc_ldxr_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_ldxr_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r1 == 0) {
+	if (r2 != r1)
+	    LWZrx(r0, r2, r1);
+	else {
+	    jit_movr_i(JIT_AUX, r1);
+	    LWZrx(r0, JIT_AUX, r2);
+	}
+    }
+    else
+	LWZrx(r0, r1, r2);
+}
+
+#define jit_ldxi_i(r0, r1, i0)		ppc_ldxi_i(_jit, r0, r1, i0)
+__jit_inline void
+ppc_ldxi_i(jit_state_t _jit, int r0, int r1, int i0)
+{
+    if (i0 == 0)
+	jit_ldr_i(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r1 == 0) {
+	    jit_movr_i(JIT_AUX, r1);
+	    LWZrm(r0, i0, JIT_AUX);
+	}
+	else
+	    LWZrm(r0, i0, r1);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_ldxr_i(r0, r1, JIT_AUX);
+    }
+}
+
+#define jit_str_c(r0, r1)		STBrx(r1, 0, r0)
+#define jit_sti_c(i0, r0)		ppc_sti_c(_jit, i0, r0)
+__jit_inline void
+ppc_sti_c(jit_state_t _jit, void *i0, int r0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	STBrm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	STBrm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_stxr_c(r0, r1, r2)		ppc_stxr_c(_jit, r0, r1, r2)
+__jit_inline void
+ppc_stxr_c(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r0 == 0) {
+	if (r1 != 0)
+	    STBrx(r2, r1, r0);
+	else {
+	    jit_movr_i(JIT_AUX, r0);
+	    STBrx(r2, 0, JIT_AUX);
+	}
+    }
+    else
+	STBrx(r2, r0, r1);
+}
+
+#define jit_stxi_c(i0, r0, r1)		ppc_stxi_c(_jit, i0, r0, r1)
+__jit_inline void
+ppc_stxi_c(jit_state_t _jit, int i0, int r0, int r1)
+{
+    if (i0 == 0)
+	jit_str_c(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r0 == 0) {
+	    jit_movr_i(JIT_AUX, r0);
+	    STBrm(r1, i0, JIT_AUX);
+	}
+	else
+	    STBrm(r1, i0, r0);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_stxr_c(JIT_AUX, r0, r1);
+    }
+}
+
+#define jit_str_s(r0, r1)		STHrx(r1, 0, r0)
+#define jit_sti_s(i0, r0)		ppc_sti_s(_jit, i0, r0)
+__jit_inline void
+ppc_sti_s(jit_state_t _jit, void *i0, int r0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	STHrm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	STHrm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_stxr_s(r0, r1, r2)		ppc_stxr_s(_jit, r0, r1, r2)
+__jit_inline void
+ppc_stxr_s(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r0 == 0) {
+	if (r1 != 0)
+	    STHrx(r2, r1, r0);
+	else {
+	    jit_movr_i(JIT_AUX, r0);
+	    STHrx(r2, 0, JIT_AUX);
+	}
+    }
+    else
+	STHrx(r2, r0, r1);
+}
+
+#define jit_stxi_s(i0, r0, r1)		ppc_stxi_s(_jit, i0, r0, r1)
+__jit_inline void
+ppc_stxi_s(jit_state_t _jit, int i0, int r0, int r1)
+{
+    if (i0 == 0)
+	jit_str_s(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r0 == 0) {
+	    jit_movr_i(JIT_AUX, r0);
+	    STHrm(r1, i0, JIT_AUX);
+	}
+	else
+	    STHrm(r1, i0, r0);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_stxr_s(JIT_AUX, r0, r1);
+    }
+}
+
+#define jit_str_i(r0, r1)		STWrx(r1, 0, r0)
+#define jit_sti_i(i0, r0)		ppc_sti_i(_jit, i0, r0)
+__jit_inline void
+ppc_sti_i(jit_state_t _jit, void *i0, int r0)
+{
+    int		lo, hi;
+    if (jit_can_sign_extend_short_p((long)i0))
+	STWrm(r0, i0, 0);
+    else {
+	hi = ((_ui)i0 >> 16) + ((_us)((_ui)i0) >> 15);
+	lo = (_us)((_ui)i0 - (hi << 16));
+	LISri(JIT_AUX, hi);
+	STWrm(r0, lo, JIT_AUX);
+    }
+}
+
+#define jit_stxr_i(r0, r1, r2)		ppc_stxr_i(_jit, r0, r1, r2)
+__jit_inline void
+ppc_stxr_i(jit_state_t _jit, int r0, int r1, int r2)
+{
+    if (r0 == 0) {
+	if (r1 != 0)
+	    STWrx(r2, r1, r0);
+	else {
+	    jit_movr_i(JIT_AUX, r0);
+	    STWrx(r2, 0, JIT_AUX);
+	}
+    }
+    else
+	STWrx(r2, r0, r1);
+}
+
+#define jit_stxi_i(i0, r0, r1)		ppc_stxi_i(_jit, i0, r0, r1)
+__jit_inline void
+ppc_stxi_i(jit_state_t _jit, int i0, int r0, int r1)
+{
+    if (i0 == 0)
+	jit_str_i(r0, r1);
+    else if (jit_can_sign_extend_short_p(i0)) {
+	if (r0 == 0) {
+	    jit_movr_i(JIT_AUX, r0);
+	    STWrm(r1, i0, JIT_AUX);
+	}
+	else
+	    STWrm(r1, i0, r0);
+    }
+    else {
+	jit_movi_i(JIT_AUX, i0);
+	jit_stxr_i(JIT_AUX, r0, r1);
+    }
+}
+
 #define jit_nop()			NOP()
 
 #ifdef JIT_NEED_PUSH_POP
@@ -629,40 +1203,5 @@ ppc_ret(jit_state_t _jit)
 
 #define jit_retval_i(rd)		MRrr((rd), 3)
 #define jit_rsbi_i(d, rs, is)		jit_chk_ims((is), SUBFICrri((d), (rs), (is)), SUBFCrrr((d), (rs), JIT_AUX))
-#define jit_stxi_c(id, rd, rs)		jit_chk_ims((id), STBrm((rs), (id), (rd)), STBrx((rs), (rd), JIT_AUX))
-#define jit_stxi_i(id, rd, rs)		jit_chk_ims((id), STWrm((rs), (id), (rd)), STWrx((rs), (rd), JIT_AUX))
-#define jit_stxi_s(id, rd, rs)		jit_chk_ims((id), STHrm((rs), (id), (rd)), STHrx((rs), (rd), JIT_AUX))
-#define jit_stxr_c(d1, d2, rs)				  STBrx((rs), (d1), (d2))
-#define jit_stxr_i(d1, d2, rs)				  STWrx((rs), (d1), (d2))
-#define jit_stxr_s(d1, d2, rs)				  STHrx((rs), (d1), (d2))
-
-/* Cannot use JIT_RZERO because having 0 in a register field on the PowerPC
- * does not mean `a register whose value is 0', but rather `no register at
- * all' */
-
-#define jit_ldr_c(rd, rs)		jit_ldxr_c((rd), 0, (rs))	      
-#define jit_str_c(rd, rs)		jit_stxr_c(0, (rd), (rs))	      
-#define jit_ldr_s(rd, rs)		jit_ldxr_s((rd), 0, (rs))	      
-#define jit_str_s(rd, rs)		jit_stxr_s(0, (rd), (rs))	      
-#define jit_ldr_i(rd, rs)		jit_ldxr_i((rd), 0, (rs))	      
-#define jit_str_i(rd, rs)		jit_stxr_i(0, (rd), (rs))	      
-#define jit_ldr_uc(rd, rs)		jit_ldxr_uc((rd), 0, (rs))	      
-#define jit_ldr_us(rd, rs)		jit_ldxr_us((rd), 0, (rs))	      
-
-/* e.g.
- *	0x01234567	_HA << 16 = 0x01230000	_LA = 0x00004567 _HA << 16 + LA = 0x01234567
- * 	0x89abcdef	_HA << 16 = 0x89ac0000  _LA = 0xffffcdef _HA << 16 + LA = 0x89abcdef
- */
-#define _HA(addr)			((_jit_UL(addr) >> 16) + (_jit_US(_jit_UL(addr)) >> 15))
-#define _LA(addr)			(_jit_UL(addr) - (_HA(addr) << 16))
-
-#define jit_ldi_c(rd, is)		(LISri(JIT_AUX, _HA(is)), jit_ldxi_c((rd), JIT_AUX, _LA(is)))
-#define jit_sti_c(id, rs)		(LISri(JIT_AUX, _HA(id)), jit_stxi_c(_LA(id), JIT_AUX, (rs)))
-#define jit_ldi_s(rd, is)		(LISri(JIT_AUX, _HA(is)), jit_ldxi_s((rd), JIT_AUX, _LA(is)))
-#define jit_sti_s(id, rs)		(LISri(JIT_AUX, _HA(id)), jit_stxi_s(_LA(id), JIT_AUX, (rs)))
-#define jit_ldi_i(rd, is)		(LISri(JIT_AUX, _HA(is)), jit_ldxi_i((rd), JIT_AUX, _LA(is)))
-#define jit_sti_i(id, rs)		(LISri(JIT_AUX, _HA(id)), jit_stxi_i(_LA(id), JIT_AUX, (rs)))
-#define jit_ldi_uc(rd, is)		(LISri(JIT_AUX, _HA(is)), jit_ldxi_uc((rd), JIT_AUX, _LA(is)))
-#define jit_ldi_us(rd, is)		(LISri(JIT_AUX, _HA(is)), jit_ldxi_us((rd), JIT_AUX, _LA(is)))
 
 #endif /* __lightning_core_h */

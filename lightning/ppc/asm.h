@@ -175,19 +175,19 @@
 
 #define ISYNC()				_X	(19, 00, 00, 00, 150, 0)
 
-#define LBZrm(RD,ID,RA)			_D	(34, RD, RA, ID)
-#define LBZUrm(RD,ID,RA)		_D	(35, RD, RA, ID)
+#define LBZrm(RD,ID,RA)			_Ds	(34, RD, RA, ID)
+#define LBZUrm(RD,ID,RA)		_Ds	(35, RD, RA, ID)
 #define LBZUXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 119, 0)
 #define LBZXrrr(RD,RA,RB)		_X	(31, RD, RA, RB,  87, 0)
 
-#define LHArm(RD,ID,RA)			_D	(42, RD, RA, ID)
-#define LHAUrm(RD,ID,RA)		_D	(43, RD, RA, ID)
+#define LHArm(RD,ID,RA)			_Ds	(42, RD, RA, ID)
+#define LHAUrm(RD,ID,RA)		_Ds	(43, RD, RA, ID)
 #define LHAUXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 375, 0)
 #define LHAXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 343, 0)
 #define LHBRXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 790, 0)
 
-#define LHZrm(RD,ID,RA)			_D	(40, RD, RA, ID)
-#define LHZUrm(RD,ID,RA)		_D	(41, RD, RA, ID)
+#define LHZrm(RD,ID,RA)			_Ds	(40, RD, RA, ID)
+#define LHZUrm(RD,ID,RA)		_Ds	(41, RD, RA, ID)
 #define LHZUXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 311, 0)
 #define LHZXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 279, 0)
 
@@ -195,8 +195,8 @@
 
 #define LWBRXrrr(RD,RA,RB)		_X	(31, RD, RA, RB, 534, 0)
 
-#define LWZrm(RD, DISP, RA)		_D	(32, RD, RA, DISP)
-#define LWZUrm(RD, DISP, RA)		_D	(33, RD, RA, DISP)
+#define LWZrm(RD, DISP, RA)		_Ds	(32, RD, RA, DISP)
+#define LWZUrm(RD, DISP, RA)		_Ds	(33, RD, RA, DISP)
 #define LWZUXrrr(RD, RA, RB)		_X	(31, RD, RA, RB,  56, 0)
 #define LWZXrrr(RD, RA, RB)		_X	(31, RD, RA, RB,  23, 0)
 
@@ -259,24 +259,24 @@
 #define SRWrrr(RA,RS,RB)		_X	(31, RS, RA, RB, 536, 0)
 #define SRW_rrr(RA,RS,RB)		_X	(31, RS, RA, RB, 536, 1)
 
-#define STBrm(RS,ID,RA)			_D	(38, RS, RA, ID)
-#define STBUrm(RS,ID,RA)		_D	(39, RS, RA, ID)
+#define STBrm(RS,ID,RA)			_Ds	(38, RS, RA, ID)
+#define STBUrm(RS,ID,RA)		_Ds	(39, RS, RA, ID)
 #define STBUXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 247, 0)
 #define STBXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 215, 0)
 
-#define STHrm(RS,ID,RA)			_D	(44, RS, RA, ID)
-#define STHUrm(RS,ID,RA)		_D	(45, RS, RA, ID)
+#define STHrm(RS,ID,RA)			_Ds	(44, RS, RA, ID)
+#define STHUrm(RS,ID,RA)		_Ds	(45, RS, RA, ID)
 #define STHBRXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 918, 0)
 #define STHUXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 439, 0)
 #define STHXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 407, 0)
 
 #define STMWrm(RS,ID,RA)		_D	(47, RS, RA, ID)
 
-#define STWrm(RS,ID,RA)			_D	(36, RS, RA, ID)
+#define STWrm(RS,ID,RA)			_Ds	(36, RS, RA, ID)
 #define STWBRXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 662, 0)
 #define STWCXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 150, 0)
 #define STWCX_rrr(RS,RA,RB)		_X	(31, RS, RA, RB, 150, 1)
-#define STWUrm(RS,ID,RA)		_D	(37, RS, RA, ID)
+#define STWUrm(RS,ID,RA)		_Ds	(37, RS, RA, ID)
 #define STWUXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 183, 0)
 #define STWXrrr(RS,RA,RB)		_X	(31, RS, RA, RB, 151, 0)
 
@@ -595,23 +595,23 @@
 
 #define _A(OP,RD,RA,RB,RC,XO,RCx)    _jit_I((_u6(OP)<<26)|(_u5(RD)<<21)|(_u5(RA)<<16)|( _u5(RB)<<11)|_u5(RC)<<6|(_u5(XO)<<1)|_u1(RCx))
 
-#define LFDrri(RD,RA,imm)       _D(50,RD,RA,imm)
-#define LFDUrri(RD,RA,imm)      _D(51,RD,RA,imm)
+#define LFDrri(RD,RA,imm)       _Ds(50,RD,RA,imm)
+#define LFDUrri(RD,RA,imm)      _Ds(51,RD,RA,imm)
 #define LFDUxrrr(RD,RA,RB)      _X(31,RD,RA,RB,631,0)
 #define LFDxrrr(RD,RA,RB)       _X(31,RD,RA,RB,599,0)
 
-#define LFSrri(RD,RA,imm)       _D(48,RD,RA,imm)
-#define LFSUrri(RD,RA,imm)      _D(49,RD,RA,imm)
+#define LFSrri(RD,RA,imm)       _Ds(48,RD,RA,imm)
+#define LFSUrri(RD,RA,imm)      _Ds(49,RD,RA,imm)
 #define LFSUxrrr(RD,RA,RB)      _X(31,RD,RA,RB,567,0)
 #define LFSxrrr(RD,RA,RB)       _X(31,RD,RA,RB,535,0)
 
-#define STFDrri(RS,RA,imm)      _D(54,RS,RA,imm)
-#define STFDUrri(RS,RA,imm)     _D(55,RS,RA,imm)
+#define STFDrri(RS,RA,imm)      _Ds(54,RS,RA,imm)
+#define STFDUrri(RS,RA,imm)     _Ds(55,RS,RA,imm)
 #define STFDUxrrr(RS,RA,RB)     _X(31,RS,RA,RB,759,0)
 #define STFDxrrr(RS,RA,RB)      _X(31,RS,RA,RB,727,0)
 
-#define STFSrri(RS,RA,imm)      _D(52,RS,RA,imm)
-#define STFSUrri(RS,RA,imm)     _D(53,RS,RA,imm)
+#define STFSrri(RS,RA,imm)      _Ds(52,RS,RA,imm)
+#define STFSUrri(RS,RA,imm)     _Ds(53,RS,RA,imm)
 #define STFSUxrrr(RS,RA,RB)     _X(31,RS,RA,RB,695,0)
 #define STFSxrrr(RS,RA,RB)      _X(31,RS,RA,RB,663,0)
 #define STFIWXrrr(RS,RA,RB)     _X(31,RS,RA,RB,983,0)
