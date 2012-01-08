@@ -200,6 +200,7 @@ struct jit_local_state {
     int		 framesize;
     int		 nextarg_get;
     int		 nextarg_put;
+    int		 nextarg_getf;
     int		 alloca_offset;
     int		 stack_length;
     int		 stack_offset;
@@ -218,6 +219,7 @@ struct {
     _ui		thumb		: 2;
     _ui		vfp		: 3;
     _ui		neon		: 1;
+    _ui		abi		: 2;
 } jit_cpu;
 #else
 #  error GNU lightning does not support the current target

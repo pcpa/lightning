@@ -35,10 +35,15 @@
 #define JIT_FPR_NUM			6
 
 static const jit_fpr_t
-jit_f_order[6] = {
-    _F0, _F1, _F2, _F3, _F4, _F5
+jit_soft_order[6] = {
+    _D0, _D1, _D2, _D3, _D4, _D5
 };
-#define JIT_FPR(n)			jit_f_order[n]
+static const jit_fpr_t
+jit_hard_order[6] = {
+    _D8, _D9, _D10, _D11, _D12, _D13
+};
+#define JIT_FPR(n)							\
+    (jit_hardfp_p() ? jit_hard_order[n] : jit_soft_order[n])
 
 #include "fp-swf.h"
 #include "fp-vfp.h"
@@ -997,11 +1002,19 @@ arm_prepare_d(jit_state_t _jit, int i0)
 __jit_inline int
 arm_arg_f(jit_state_t _jit)
 {
-    int		ofs = _jitl.nextarg_get++;
-    if (ofs > 3) {
-	ofs = _jitl.framesize;
-	_jitl.framesize += sizeof(int);
+    int		ofs;
+    if (jit_hardfp_p()) {
+	ofs = _jitl.nextarg_getf++;
+	if (ofs < 16)
+	    return (ofs);
     }
+    else {
+	ofs = _jitl.nextarg_get++;
+	if (ofs < 4)
+	    return (ofs);
+    }
+    ofs = _jitl.framesize;
+    _jitl.framesize += sizeof(int);
     return (ofs);
 }
 
@@ -1010,16 +1023,26 @@ __jit_inline int
 arm_arg_d(jit_state_t _jit)
 {
     int		ofs;
-    if (_jitl.nextarg_get & 1)
-	++_jitl.nextarg_get;
-    ofs = _jitl.nextarg_get;
-    if (ofs > 3) {
-	if (_jitl.framesize & 7)
-	    _jitl.framesize += 4;
-	ofs = _jitl.framesize;
-	_jitl.framesize += sizeof(double);
+    if (jit_hardfp_p()) {
+	if (_jitl.nextarg_getf & 1)
+	    ++_jitl.nextarg_getf;
+	ofs = _jitl.nextarg_getf;
+	_jitl.nextarg_getf += 2;
+	if (ofs < 16)
+	    return (ofs);
     }
-    _jitl.nextarg_get += 2;
+    else {
+	if (_jitl.nextarg_get & 1)
+	    ++_jitl.nextarg_get;
+	ofs = _jitl.nextarg_get;
+	_jitl.nextarg_get += 2;
+	if (ofs < 4)
+	    return (ofs);
+    }
+    if (_jitl.framesize & 7)
+	_jitl.framesize += 4;
+    ofs = _jitl.framesize;
+    _jitl.framesize += sizeof(double);
     return (ofs);
 }
 

@@ -39,6 +39,8 @@
 /* match vfpv3 result */
 #define NAN_TO_INT_IS_ZERO			1
 
+#define swf_off(rn)				((rn) << 2)
+
 extern float	__addsf3(float, float);
 extern double	__adddf3(double, double);
 extern float	__aeabi_fsub(float, float);
@@ -72,10 +74,10 @@ swf_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     if (r0 != r1) {
 	if (r0 == JIT_FPRET)
 	    /* jit_ret() must follow! */
-	    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+	    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
 	else {
-	    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
+	    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 	}
     }
 }
@@ -87,23 +89,23 @@ swf_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 	if (jit_armv5e_p()) {
 	    if (r0 == JIT_FPRET)
 		/* jit_ret() must follow! */
-		_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+		_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
 	    else {
-		_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-		_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+		_LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
+		_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
 	    }
 	}
 	else {
 	    if (r0 == JIT_FPRET) {
 		/* jit_ret() must follow! */
-		_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-		_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+		_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+		_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
 	    }
 	    else {
-		_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-		_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
-		_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-		_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+		_LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
+		_LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
+		_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+		_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
 	    }
 	}
     }
@@ -122,7 +124,7 @@ swf_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 	jit_movi_i(_R0, u.i);
     else {
 	jit_movi_i(JIT_FTMP, u.i);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     }
 }
 
@@ -141,9 +143,9 @@ swf_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     }
     else {
 	jit_movi_i(JIT_FTMP, u.i[0]);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 	jit_movi_i(JIT_FTMP, u.i[1]);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
@@ -161,7 +163,7 @@ swf_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)__aeabi_i2f);
 	_BLX(JIT_FTMP);
     }
-    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _STRIN(_R0, JIT_FP, swf_off(r0) + 8);
     _POP(0xf);
 }
 
@@ -180,10 +182,10 @@ swf_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	_BLX(JIT_FTMP);
     }
     if (jit_armv5e_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+	_STRIN(_R0, JIT_FP, swf_off(r0) + 8);
+	_STRIN(_R1, JIT_FP, swf_off(r0) + 4);
     }
     _POP(0xf);
 }
@@ -194,10 +196,10 @@ swf_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     int			d;
     _PUSH(0xf);
     if (jit_armv5e_p())
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
     }
     d = (((int)__aeabi_d2f - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -206,7 +208,7 @@ swf_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)__aeabi_d2f);
 	_BLX(JIT_FTMP);
     }
-    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _STRIN(_R0, JIT_FP, swf_off(r0) + 8);
     _POP(0xf);
 }
 
@@ -215,7 +217,7 @@ swf_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)__aeabi_f2d - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -224,10 +226,10 @@ swf_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     if (jit_armv5e_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+	_STRIN(_R0, JIT_FP, swf_off(r0) + 8);
+	_STRIN(_R1, JIT_FP, swf_off(r0) + 4);
     }
     _POP(0xf);
 }
@@ -247,7 +249,7 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
 #if !NAN_TO_INT_IS_ZERO
     /* >> based on fragment of __aeabi_fcmpun */
     _LSLI(JIT_FTMP, _R0, 1);
@@ -303,10 +305,10 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     if (jit_armv5e_p())
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
     }
 #if !NAN_TO_INT_IS_ZERO
     /* >> based on fragment of __aeabi_dcmpun */
@@ -361,40 +363,40 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _BICI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
 swf_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
     _BICI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     if (r0 != r1) {
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     }
 }
 
 __jit_inline void
 swf_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
 swf_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
     _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     if (r0 != r1) {
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     }
 }
 
@@ -403,7 +405,7 @@ swf_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
     _PUSH(0xf);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -411,7 +413,7 @@ swf_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
     }
-    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _STRIN(_R0, JIT_FP, swf_off(r0) + 8);
     _POP(0xf);
 }
 
@@ -421,10 +423,10 @@ swf_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
     int			d;
     _PUSH(0xf);
     if (jit_armv5e_p())
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -434,10 +436,10 @@ swf_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
 	_BLX(JIT_FTMP);
     }
     if (jit_armv5e_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+	_STRIN(_R0, JIT_FP, swf_off(r0) + 8);
+	_STRIN(_R1, JIT_FP, swf_off(r0) + 4);
     }
     _POP(0xf);
 }
@@ -451,8 +453,8 @@ swf_fff(jit_state_t _jit, float (*i0)(float, float),
 {
     int			d;
     _PUSH(0xf);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -460,7 +462,7 @@ swf_fff(jit_state_t _jit, float (*i0)(float, float),
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
     }
-    _STRIN(_R0, JIT_FP, (r0 << 3) + 8);
+    _STRIN(_R0, JIT_FP, swf_off(r0) + 8);
     _POP(0xf);
 }
 
@@ -471,14 +473,14 @@ swf_ddd(jit_state_t _jit, double (*i0)(double, double),
     int			d;
     _PUSH(0xf);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -488,10 +490,10 @@ swf_ddd(jit_state_t _jit, double (*i0)(double, double),
 	_BLX(JIT_FTMP);
     }
     if (jit_armv5e_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+	_STRIN(_R0, JIT_FP, swf_off(r0) + 8);
+	_STRIN(_R1, JIT_FP, swf_off(r0) + 4);
     }
     _POP(0xf);
 }
@@ -516,8 +518,8 @@ swf_iff(jit_state_t _jit, int (*i0)(float, float),
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -541,14 +543,14 @@ swf_idd(jit_state_t _jit, int (*i0)(double, double),
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -598,8 +600,8 @@ swf_iunff(jit_state_t _jit, int (*i0)(float, float),
 	/* bogus extra push to align at 8 bytes */
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)__aeabi_fcmpun - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -611,8 +613,8 @@ swf_iunff(jit_state_t _jit, int (*i0)(float, float),
     _CC_MOVI(ARM_CC_NE, r0, 1);
     i = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -638,14 +640,14 @@ swf_iundd(jit_state_t _jit, int (*i0)(double, double),
 	l = (l & ~(1 << r0)) | 0x10;
     _PUSH(l);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     d = (((int)__aeabi_dcmpun - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -659,14 +661,14 @@ swf_iundd(jit_state_t _jit, int (*i0)(double, double),
     i = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -730,8 +732,8 @@ swf_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
     int			 d;
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
 	_BL(d & 0x00ffffff);
@@ -757,14 +759,14 @@ swf_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -809,8 +811,8 @@ swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     int			 i0;
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     i0 = (int)__aeabi_fcmpun;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -823,8 +825,8 @@ swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     /* if unordered */
     j0 = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
-    _LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-    _LDRIN(_R1, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+    _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     i0 = (int)__aeabi_fcmpeq;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
@@ -864,14 +866,14 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     i0 = (int)__aeabi_dcmpun;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
@@ -886,14 +888,14 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     j0 = _jit->x.pc;
     _CC_B(ARM_CC_NE, 0);
     if (jit_armv5e_p()) {
-	_LDRDIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRDIN(_R2, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRDIN(_R2, JIT_FP, swf_off(r2) + 8);
     }
     else {
-	_LDRIN(_R0, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(_R1, JIT_FP, (r1 << 3) + 4);
-	_LDRIN(_R2, JIT_FP, (r2 << 3) + 8);
-	_LDRIN(_R3, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(_R1, JIT_FP, swf_off(r1) + 4);
+	_LDRIN(_R2, JIT_FP, swf_off(r2) + 8);
+	_LDRIN(_R3, JIT_FP, swf_off(r2) + 4);
     }
     i0 = (int)__aeabi_dcmpeq;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
@@ -940,7 +942,7 @@ __jit_inline void
 swf_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     jit_ldr_i(JIT_FTMP, r1);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
@@ -948,13 +950,13 @@ swf_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, r1, 0);
-	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     }
     else {
 	_LDRI(JIT_TMP, r1, 0);
 	_LDRI(JIT_FTMP, r1, 4);
-	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
@@ -962,7 +964,7 @@ __jit_inline void
 swf_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
     jit_ldi_i(JIT_FTMP, i0);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
@@ -971,13 +973,13 @@ swf_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
     jit_movi_i(JIT_TMP, (int)i0);
     if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, JIT_TMP, 0);
-	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     }
     else {
 	_LDRI(JIT_FTMP, JIT_TMP, 4);
 	_LDRI(JIT_TMP, JIT_TMP, 0);
-	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
@@ -985,7 +987,7 @@ __jit_inline void
 swf_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     _LDR(JIT_TMP, r1, r2);
-    _STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
@@ -993,14 +995,14 @@ swf_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     if (jit_armv5e_p()) {
 	_LDRD(JIT_TMP, r1, r2);
-	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     }
     else {
 	jit_addr_i(JIT_TMP, r1, r2);
 	_LDRI(JIT_FTMP, JIT_TMP, 4);
 	_LDRI(JIT_TMP, JIT_TMP, 0);
-	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
@@ -1008,7 +1010,7 @@ __jit_inline void
 swf_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
     jit_ldxi_i(JIT_FTMP, r1, i0);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
@@ -1023,7 +1025,7 @@ swf_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	    jit_addi_i(JIT_FTMP, r1, i0);
 	    _LDRDI(JIT_TMP, JIT_FTMP, 0);
 	}
-	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     }
     else {
 	if (i0 >= -255 && i0 + 4 <= 255) {
@@ -1042,15 +1044,15 @@ swf_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 	    _LDRI(JIT_TMP, JIT_FTMP, 0);
 	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
-	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
 __jit_inline void
 swf_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _STRI(JIT_FTMP, r0, 0);
 }
 
@@ -1058,12 +1060,12 @@ __jit_inline void
 swf_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     if (jit_armv5e_p()) {
-	_LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	_LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	_STRDI(JIT_TMP, r0, 0);
     }
     else {
-	_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
-	_LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 4);
+	_LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
 	_STRI(JIT_TMP, r0, 0);
 	_STRI(JIT_FTMP, r0, 4);
     }
@@ -1073,7 +1075,7 @@ __jit_inline void
 swf_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     _STRI(JIT_FTMP, JIT_TMP, 0);
 }
 
@@ -1081,16 +1083,16 @@ __jit_inline void
 swf_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
     jit_movi_i(JIT_TMP, (int)i0);
-    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     _STRI(JIT_FTMP, JIT_TMP, 0);
-    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     _STRI(JIT_FTMP, JIT_TMP, 4);
 }
 
 __jit_inline void
 swf_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
-    _LDRIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
+    _LDRIN(JIT_TMP, JIT_FP, swf_off(r2) + 8);
     _STR(JIT_TMP, r0, r1);
 }
 
@@ -1098,14 +1100,14 @@ __jit_inline void
 swf_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
     if (jit_armv5e_p()) {
-	_LDRDIN(JIT_TMP, JIT_FP, (r2 << 3) + 8);
+	_LDRDIN(JIT_TMP, JIT_FP, swf_off(r2) + 8);
 	_STRD(JIT_TMP, r0, r1);
     }
     else {
 	jit_addr_i(JIT_TMP, r0, r1);
-	_LDRIN(JIT_FTMP, JIT_FP, (r2 << 3) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r2) + 8);
 	_STRI(JIT_FTMP, JIT_TMP, 0);
-	_LDRIN(JIT_FTMP, JIT_FP, (r2 << 3) + 4);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r2) + 4);
 	_STRI(JIT_FTMP, JIT_TMP, 4);
     }
 }
@@ -1113,7 +1115,7 @@ swf_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 __jit_inline void
 swf_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
-    _LDRIN(JIT_FTMP, JIT_FP, (r1 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     jit_stxi_i(i0, r0, JIT_FTMP);
 }
 
@@ -1122,26 +1124,26 @@ swf_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
     if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255) {
-	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	    _LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	    _STRDI(JIT_TMP, r0, i0);
 	}
 	else if (i0 < 0 && i0 >= -255) {
-	    _LDRDIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	    _LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	    _STRDIN(JIT_TMP, r0, -i0);
 	}
 	else {
 	    jit_addi_i(JIT_FTMP, r0, i0);
-	    _LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	    _LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	    _STRI(JIT_TMP, JIT_FTMP, 0);
-	    _LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 4);
+	    _LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 4);
 	    _STRI(JIT_TMP, JIT_FTMP, 4);
 	}
     }
     else {
 	jit_addi_i(JIT_FTMP, r0, i0);
-	_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 8);
+	_LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	_STRI(JIT_TMP, JIT_FTMP, 0);
-	_LDRIN(JIT_TMP, JIT_FP, (r1 << 3) + 4);
+	_LDRIN(JIT_TMP, JIT_FP, swf_off(r1) + 4);
 	_STRI(JIT_TMP, JIT_FTMP, 4);
     }
 }
@@ -1152,7 +1154,7 @@ swf_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
     if (i0 < 4)
 	i0 <<= 2;
     jit_ldxi_i(JIT_FTMP, JIT_FP, i0);
-    _STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
 
 __jit_inline void
@@ -1168,7 +1170,7 @@ swf_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	    _LDRI(JIT_TMP, JIT_FTMP, 0);
 	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
-	_STRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     }
     else {
 	if (i0 + 4 < 255) {
@@ -1180,8 +1182,8 @@ swf_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 	    _LDRI(JIT_TMP, JIT_FTMP, 0);
 	    _LDRI(JIT_FTMP, JIT_FTMP, 4);
 	}
-	_STRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_STRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
 }
 
@@ -1191,10 +1193,10 @@ swf_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
     int		ofs = _jitl.nextarg_put++;
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(float);
-    _LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 8);
+    _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
-    jit_stxi_i(0, JIT_SP, JIT_FTMP);
+    _STRI(JIT_FTMP, JIT_SP, 0);
 }
 
 __jit_inline void
@@ -1204,26 +1206,30 @@ swf_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(double);
     if (jit_armv5e_p())
-	_LDRDIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
+	_LDRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
     else {
-	_LDRIN(JIT_TMP, JIT_FP, (r0 << 3) + 8);
-	_LDRIN(JIT_FTMP, JIT_FP, (r0 << 3) + 4);
+	_LDRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
+	_LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
     }
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
-    jit_stxi_i(0, JIT_SP, JIT_TMP);
-    jit_stxi_i(0, JIT_SP, JIT_FTMP);
+    if (jit_armv5e_p())
+	_STRDI(JIT_TMP, JIT_SP, 0);
+    else {
+	_STRI(JIT_TMP, JIT_SP, 0);
+	_STRI(JIT_FTMP, JIT_SP, 0);
+    }
 }
 
-#define swf_retval_f(_jit, r0)		_STRIN(_R0, JIT_FP, (r0 << 3) + 8)
+#define swf_retval_f(_jit, r0)		_STRIN(_R0, JIT_FP, swf_off(r0) + 8)
 __jit_inline void
 swf_retval_d(jit_state_t _jit, jit_fpr_t r0)
 {
     if (jit_armv5e_p())
-	_STRDIN(_R0, JIT_FP, (r0 << 3) + 8);
+	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
-	_STRIN(_R0, JIT_FP, (r0 << 3) + 8);
-	_STRIN(_R1, JIT_FP, (r0 << 3) + 4);
+	_STRIN(_R0, JIT_FP, swf_off(r0) + 8);
+	_STRIN(_R1, JIT_FP, swf_off(r0) + 4);
     }
 }
 

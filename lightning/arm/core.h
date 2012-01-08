@@ -54,6 +54,7 @@ jit_v_order[JIT_V_NUM] = {
 #define jit_armv5e_p()			(jit_cpu.version >= 5 && jit_cpu.extend)
 #define jit_armv6_p()			(jit_cpu.version >= 6)
 #define jit_swf_p()			(jit_cpu.vfp == 0)
+#define jit_hardfp_p()			jit_cpu.abi
 
 extern int	__aeabi_idivmod(int, int);
 extern unsigned	__aeabi_uidivmod(unsigned, unsigned);
@@ -1361,7 +1362,7 @@ arm_prolog(jit_state_t _jit, int i0)
 	  (1<<JIT_FP)|(1<<JIT_LR));
     _MOV(JIT_FP, JIT_SP);
 
-    _jitl.nextarg_get = 0;
+    _jitl.nextarg_get = _jitl.nextarg_getf = 0;
     _jitl.framesize = JIT_FRAMESIZE;
 
     /* patch alloca and stack adjustment */
@@ -1496,46 +1497,119 @@ arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
 static void
 arm_patch_arguments(jit_state_t _jit)
 {
+    int		 reg;
+    int		 ioff;
+    int		 foff;
     int		*insn;
     int		 size;
     int		 index;
     int		 offset;
 
+    ioff = foff = 0;
     for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
-	if (_jitl.types[index >> 5] & (1 << (index & 31))) {
-	    if (offset & 7)
-		offset += sizeof(int);
+	if (_jitl.types[index >> 5] & (1 << (index & 31)))
 	    size = sizeof(double);
-	}
 	else
 	    size = sizeof(int);
 	insn = _jitl.arguments[index];
-	if (offset < 16) {
-	    /* str rX, sp, #M => str rX, fp, #N */
-	    insn[0] = (insn[0] & 0xfff0f000) | (JIT_FP<<16) | offset;
-	    if (size == 8)
-		insn[1] = (insn[1] & 0xfff0f000) | (JIT_FP<<16) | (offset + 4);
-	}
-	else {
-	    /* str rX, sp, #M => str rX, sp, #N */
-	    insn[0] = (insn[0] & 0xfffff000) | (offset - 16);
-	    if (size == 8)
-		insn[1] = (insn[1] & 0xfffff000) | (offset - 12);
+	switch (insn[0] & 0xfff00ff0) {
+	    case ARM_CC_AL|ARM_VSTR|ARM_P:
+		if (jit_hardfp_p()) {
+		    if (foff < 16) {
+			reg = (insn[0] >> 12) & 0xf;
+			insn[0] = ARM_CC_AL|ARM_VMOV_F |
+				  ((foff >> 1) << 12) | reg;
+			if (foff & 1)
+			    insn[0] |= ARM_V_D;
+			++foff;
+			continue;
+		    }
+		}
+		else {
+		    if (ioff < 4) {
+			insn[0] = (insn[0] & 0xfff0ff00) |
+				  (JIT_FP << 16) | ioff;
+			++ioff;
+			continue;
+		    }
+		}
+		insn[0] = (insn[0] & 0xffffff00) | (offset >> 2);
+		break;
+	    case ARM_CC_AL|ARM_VSTR|ARM_V_F64|ARM_P:
+		if (jit_hardfp_p()) {
+		    if (foff & 1)
+			++foff;
+		    if (foff < 16) {
+			reg = (insn[0] >> 12) & 0xf;
+			insn[0] = ARM_CC_AL|ARM_VMOV_F|ARM_V_F64 |
+				  ((foff >> 1) << 12) | reg;
+			foff += 2;
+			continue;
+		    }
+		}
+		else {
+		    if (ioff & 1)
+			++ioff;
+		    if (ioff < 4) {
+			insn[0] = (insn[0] & 0xfff0ff00) |
+				  (JIT_FP << 16) | ioff;
+			ioff += 2;
+			continue;
+		    }
+		}
+		if (offset & 7)
+		    offset += sizeof(int);
+		insn[0] = (insn[0] & 0xffffff00) | (offset >> 2);
+		break;
+	    case ARM_CC_AL|ARM_STRI|ARM_P:
+		if (size == 8 && (ioff & 1))
+		    ++ioff;
+		if (ioff < 4) {
+		    insn[0] = (insn[0] & 0xfff0f000) |
+			      (JIT_FP << 16) | (ioff << 2);
+		    ++ioff;
+		    if (size == 8) {
+			insn[1] = (insn[1] & 0xfff0f000) |
+				  (JIT_FP << 16) | (ioff << 2);
+			++ioff;
+		    }
+		    continue;
+		}
+		if (size == 8 && (offset & 7))
+		    offset += sizeof(int);
+		if (size == 8) {
+		    insn[0] = (insn[0] & 0xfffff000) | offset;
+		    insn[1] = (insn[1] & 0xfffff000) | (offset + 4);
+		}
+		else
+		    insn[0] = (insn[0] & 0xfffff000) | offset;
+		break;
+	    case ARM_CC_AL|ARM_STRDI|ARM_P:
+		if (ioff & 1)
+		    ++ioff;
+		if (ioff < 4) {
+		    insn[0] = (insn[0] & 0xfff0f0f0) |
+			      (JIT_FP << 16) | (ioff << 2);
+		    ioff += 2;
+		    continue;
+		}
+		if (offset & 7)
+		    offset += sizeof(int);
+		insn[0] = (insn[0] & 0xfffff0f0) |
+			  ((offset & 0xf0) << 4) | (offset & 0x0f);
+		break;
+	    default:
+		abort();
 	}
 	offset += size;
     }
-    if (offset > 16) {
-	_jitl.reglist = 0xf;
-	offset -= 16;
-	if (_jitl.stack_length < offset) {
-	    _jitl.stack_length = offset;
-	    jit_patch_movi(_jitl.stack, (void *)
-			   ((_jitl.alloca_offset +
-			     _jitl.stack_length + 7) & -8));
-	}
+    _jitl.reglist = ((1 << ioff) - 1) & 0xf;
+    if (_jitl.stack_length < offset) {
+	_jitl.stack_length = offset;
+	jit_patch_movi(_jitl.stack, (void *)
+		       ((_jitl.alloca_offset +
+			 _jitl.stack_length + 7) & -8));
     }
-    else
-	_jitl.reglist = (1 << (offset >> 2)) - 1;
 }
 
 #define jit_finishr(rs)			arm_finishr(_jit, rs)

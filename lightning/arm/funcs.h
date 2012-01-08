@@ -103,6 +103,13 @@ jit_get_cpu(void)
     }
     fclose(fp);
 #endif
+#if defined(__ARM_PCS_VFP)
+    if (!jit_cpu.vfp)
+	jit_cpu.vfp = 3;
+    if (!jit_cpu.version)
+	jit_cpu.version = 7;
+    jit_cpu.abi = 1;
+#endif
 }
 
 #endif /* __lightning_funcs_h */

@@ -272,7 +272,6 @@ fail_i:
 	finish @printf
 
 
-
 /*
  * Test2:
  *	store in a string the value:
@@ -374,6 +373,13 @@ fail_d:
 		movi_p %r0 derr
 		pusharg_p %r0
 	finish @printf
+	/* FIXME call exit here because stack may have been smashed
+	 * on armv7 hardfp abi, due to currently not supporting
+	 * varargs functions */
+        prepare 1
+                movi_i %r0 0
+                pusharg_i %r0
+        finish @exit
 
 
 /*

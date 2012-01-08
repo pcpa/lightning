@@ -38,9 +38,13 @@ __jit_inline void
 vfp_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
-	if (r0 == JIT_FPRET)
+	if (r0 == JIT_FPRET) {
 	    /* jit_ret() must follow! */
-	    _VMOV_A_S(_R0, r1);
+	    if (!jit_hardfp_p())
+		_VMOV_A_S(_R0, r1);
+	    else
+		_VMOV_F32(_D0, r1);
+	}
 	else
 	    _VMOV_F32(r0, r1);
     }
@@ -50,9 +54,13 @@ __jit_inline void
 vfp_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     if (r0 != r1) {
-	if (r0 == JIT_FPRET)
+	if (r0 == JIT_FPRET) {
 	    /* jit_ret() must follow! */
-	    _VMOV_AA_D(_R0, _R1, r1);
+	    if (!jit_hardfp_p())
+		_VMOV_AA_D(_R0, _R1, r1);
+	    else
+		_VMOV_F64(_D0, r1);
+	}
 	else
 	    _VMOV_F64(r0, r1);
     }
@@ -67,12 +75,14 @@ vfp_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
     } u;
     int		code;
     u.f = i0;
-    if (r0 == JIT_FPRET)
+    if (!jit_hardfp_p() && r0 == JIT_FPRET)
 	/* jit_ret() must follow! */
 	jit_movi_i(_R0, u.i);
     else {
-	if ((code = encode_vfp_immediate(1, 0, u.i, u.i)) != -1 ||
-	    (code = encode_vfp_immediate(1, 1, ~u.i, ~u.i)) != -1)
+	if (r0 == JIT_FPRET)
+	    r0 = _D0;
+	if ((code = encode_vfp_double(1, 0, u.i, u.i)) != -1 ||
+	    (code = encode_vfp_double(1, 1, ~u.i, ~u.i)) != -1)
 	    _VIMM(code, r0);
 	else {
 	    jit_movi_i(JIT_FTMP, u.i);
@@ -90,14 +100,16 @@ vfp_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     } u;
     int		code;
     u.d = i0;
-    if (r0 == JIT_FPRET) {
+    if (!jit_hardfp_p() && r0 == JIT_FPRET) {
 	/* jit_ret() must follow! */
 	jit_movi_i(_R0, u.i[0]);
 	jit_movi_i(_R1, u.i[1]);
     }
     else {
-	if ((code = encode_vfp_immediate(1, 0, u.i[0], u.i[1])) != -1 ||
-	    (code = encode_vfp_immediate(1, 1, ~u.i[0], ~u.i[1])) != -1)
+	if (r0 == JIT_FPRET)
+	    r0 = _D0;
+	if ((code = encode_vfp_double(1, 0, u.i[0], u.i[1])) != -1 ||
+	    (code = encode_vfp_double(1, 1, ~u.i[0], ~u.i[1])) != -1)
 	    _VIMM(code, r0);
 	else {
 	    jit_movi_i(JIT_TMP, u.i[0]);
@@ -129,11 +141,11 @@ vfp_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 #define vfp_get_tmp(r, n)						\
     jit_fpr_t		 tmp;						\
     if (0) {								\
-	tmp = r == _F0 ? _F1 : _F0;					\
+	tmp = r == _D0 ? _D1 : _D0;					\
 	_VPUSH_F##n(tmp, 2);						\
     }									\
     else								\
-	tmp = _F7
+	tmp = _D15
 #define vfp_unget_tmp(n)						\
     if (0)								\
 	_VPOP_F##n(tmp, 2)
@@ -776,8 +788,8 @@ vfp_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	if (i0 < 256)
 	    _VSTRN_F32(r1, r0, i0);
 	else {
-	    jit_subi_i(JIT_FTMP, r1, i0);
-	    _VSTR_F32(r0, JIT_FTMP, 0);
+	    jit_subi_i(JIT_FTMP, r0, i0);
+	    _VSTR_F32(r1, JIT_FTMP, 0);
 	}
     }
 }
@@ -802,8 +814,8 @@ vfp_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 	if (i0 < 256)
 	    _VSTRN_F64(r1, r0, i0);
 	else {
-	    jit_subi_i(JIT_FTMP, r1, i0);
-	    _VSTR_F64(r0, JIT_FTMP, 0);
+	    jit_subi_i(JIT_FTMP, r0, i0);
+	    _VSTR_F64(r1, JIT_FTMP, 0);
 	}
     }
 }
@@ -811,27 +823,47 @@ vfp_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 vfp_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
-    if (i0 < 4)
+    if (jit_hardfp_p()) {
+	if (i0 < 16) {
+	    if (r0 != (jit_fpr_t)i0)
+		_VMOV_F32(r0, (jit_fpr_t)i0);
+	    return;
+	}
+    }
+    else if (i0 < 4) {
+	/* registers are already saved on stack and argument registers
+	 * may have been clobbered */
 #if 0
 	_VMOV_S_A(r0, i0);
 #else
 	vfp_ldxi_f(_jit, r0, JIT_FP, i0 << 2);
 #endif
-    else
-	vfp_ldxi_f(_jit, r0, JIT_FP, i0);
+	return;
+    }
+    vfp_ldxi_f(_jit, r0, JIT_FP, i0);
 }
 
 __jit_inline void
 vfp_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
-    if (i0 < 4)
+    if (jit_hardfp_p()) {
+	if (i0 < 16) {
+	    if (r0 != (jit_fpr_t)i0)
+		_VMOV_F64(r0, (jit_fpr_t)i0);
+	    return;
+	}
+    }
+    else if (i0 < 4) {
+	/* registers are already saved on stack and argument registers
+	 * may have been clobbered */
 #if 0
 	_VMOV_D_AA(r0, i0, i0 + 1);
 #else
 	vfp_ldxi_d(_jit, r0, JIT_FP, i0 << 2);
 #endif
-    else
-	vfp_ldxi_d(_jit, r0, JIT_FP, i0);
+	return;
+    }
+    vfp_ldxi_d(_jit, r0, JIT_FP, i0);
 }
 
 __jit_inline void
@@ -840,10 +872,9 @@ vfp_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
     int		ofs = _jitl.nextarg_put++;
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(float);
-    _VMOV_A_S(JIT_FTMP, r0);
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
-    jit_stxi_i(0, JIT_SP, JIT_FTMP);
+    _VSTR_F32(r0, JIT_SP, 0);
 }
 
 __jit_inline void
@@ -852,15 +883,32 @@ vfp_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     int		ofs = _jitl.nextarg_put++;
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(double);
-    _VMOV_AA_D(JIT_TMP, JIT_FTMP, r0);
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
-    jit_stxi_i(0, JIT_SP, JIT_TMP);
-    jit_stxi_i(0, JIT_SP, JIT_FTMP);
+    _VSTR_F64(r0, JIT_SP, 0);
 }
 
-#define vfp_retval_f(_jit, r0)		_VMOV_S_A(r0, _R0)
-#define vfp_retval_d(_jit, r0)		_VMOV_D_AA(r0, _R0, _R1)
+__jit_inline void
+vfp_retval_f(jit_state_t _jit, jit_fpr_t r0)
+{
+    if (jit_hardfp_p()) {
+	if (r0 != _D0)
+	    _VMOV_F32(r0, _D0);
+    }
+    else
+	_VMOV_S_A(r0, _R0);
+}
+
+__jit_inline void
+vfp_retval_d(jit_state_t _jit, jit_fpr_t r0)
+{
+    if (jit_hardfp_p()) {
+	if (r0 != _D0)
+	    _VMOV_F64(r0, _D0);
+    }
+    else
+	_VMOV_D_AA(r0, _R0, _R1);
+}
 
 #undef vfp_unget_tmp
 #undef vfp_get_tmp

@@ -59,16 +59,40 @@ typedef enum {
 #define JIT_TMP		_R8
 #define JIT_FTMP	_R9
 
-/* _VxxxQ macros mean _Q0=_F0, _Q1=_F2, ... */
+/* _VxxxQ macros mean _Q0=_D0, _Q1=_D2, ... */
 typedef enum {
-    _F0,	/* result */
-    _F1,	/* scratch */
-    _F2,	/* scratch */
-    _F3,	/* scratch */
-    _F4,	/* variable */
-    _F5,	/* variable */
-    _F6,	/* variable */
-    _F7,	/* variable */
+    _S0, _D0 = _S0, _Q0 = _D0,
+    _S1,
+    _S2, _D1 = _S2,
+    _S3,
+    _S4, _D2 = _S4, _Q1 = _D2,
+    _S5,
+    _S6, _D3 = _S6,
+    _S7,
+    _S8, _D4 = _S8, _Q2 = _D4,
+    _S9,
+    _S10, _D5 = _S10,
+    _S11,
+    _S12, _D6 = _S12, _Q3 = _D6,
+    _S13,
+    _S14, _D7 = _S14,
+    _S15,
+    _S16, _D8 = _S16, _Q4 = _D8,
+    _S17,
+    _S18, _D9 = _S18,
+    _S19,
+    _S20, _D10 = _S20, _Q5 = _D10,
+    _S21,
+    _S22, _D11 = _S22,
+    _S23,
+    _S24, _D12 = _S24, _Q6 = _D12,
+    _S25,
+    _S26, _D13 = _S26,
+    _S27,
+    _S28, _D14 = _S28, _Q7 = _D14,
+    _S29,
+    _S30, _D15 = _S30,
+    _S31,
     JIT_FPRET,	/* for abstraction of returning a float/double result */
 } jit_fpr_t;
 
@@ -173,7 +197,6 @@ typedef enum {
 #define ARM_M_B		0x01000000	/* before; after if not set */
 #define ARM_M_U		0x00200000	/* update Rn */
 
-#define ARM_V_Q		0x00000040
 #define FPSCR_N		0x80000000/* Negative condition code flag */
 #define FPSCR_Z		0x40000000/* Zero condition code flag */
 #define FPSCR_C		0x20000000/* Carry condition code flag */
@@ -218,7 +241,7 @@ typedef enum {
 #define ARM_VNEG_F	0x0eb10a40
 #define ARM_VSQRT_F	0x0eb10ac0
 #define ARM_VMOV_F	0x0eb00a40
-#define ARM_VMOV_A_S	0x0e100b10	/* vmov rn, sn */
+#define ARM_VMOV_A_S	0x0e100a10	/* vmov rn, sn */
 #define ARM_VMOV_S_A	0x0e000a10	/* vmov sn, rn */
 #define ARM_VMOV_AA_D	0x0c500b10	/* vmov rn,rn, dn */
 #define ARM_VMOV_D_AA	0x0c400b10	/* vmov dn, rn,rn */
@@ -250,13 +273,18 @@ typedef enum {
 /***********************************************************************
  * NEON instructions (encoding T1/A1) (condition must always be ARM_CC_NV)
  ***********************************************************************/
+#define ARM_V_D		0x00400000
+#define ARM_V_N		0x00000080
+#define ARM_V_Q		0x00000040
+#define ARM_V_M		0x00000020
 #define ARM_V_U		0x01000000
 #define ARM_V_I16	0x00100000
 #define ARM_V_I32	0x00200000
 #define ARM_V_I64	0x00300000
 #define ARM_V_S16	0x00040000
 #define ARM_V_S32	0x00080000
-#define ARM_VADD_I	0x02800800
+
+#define ARM_VADD_I	0x02000800
 #define ARM_VQADD_I	0x02000010	/* sets flag on overflow/carry */
 #define ARM_VADDL_I	0x02800000	/* q=d+d */
 #define ARM_VADDW_I	0x02800100	/* q=q+d */
@@ -282,6 +310,7 @@ typedef enum {
 #define ARM_VMOVL_S32	0x00200000
 #define ARM_VMOVL_I	0x02800a10
 
+#define ARM_VMVSI	0x0eb00a00
 #define ARM_VMOVI	0x02800010
 #define ARM_VMVNI	0x02800030
 
@@ -298,12 +327,30 @@ typedef enum {
 #define ARM_VMOV_A_D	0x0e100b10
 #define ARM_VMOV_D_A	0x0e000b10
 
-/*
- * FIXME add (T2/A2) encoding for VFPv3 conditional VMOV with different
- * position of imm8 (split in imm8H and imm8L)
- */
 static int
-encode_vfp_immediate(int mov, int inv, unsigned lo, unsigned hi)
+encode_vfp_single(int size, int lo, int hi)
+{
+    /* cpd2 ... */
+    int		code;
+    assert(size == 32 || size == 64);
+    if (size == 32)
+	assert(lo == hi);
+    if (((hi & 0x3e000000) == 0x3e000000 || (hi & 0x3e000000) == 0) &&
+	((size == 32 && !(lo & 0x0007ffff)) ||
+	 (size == 64 && !(hi & 0x0000ffff) && lo == 0))) {
+	code = ARM_VMVSI;
+	if (size == 64)		code |= 1 << 8;
+	if (  hi & 0x80000000)	code |= 1 << 19;
+	if (!(hi & 0x40000000))	code |= 1 << 18;
+	code |= (hi & 0x30000000) >> 12;
+	code |= (hi & 0x0f000000) >> 24;
+	return (code);
+    }
+    return (-1);
+}
+
+static int
+encode_vfp_double(int mov, int inv, unsigned lo, unsigned hi)
 {
     int		code, mode, imm, mask;
 
@@ -416,11 +463,34 @@ success:
     return (code | mode | imm);
 }
 
-#define arm_voir(oi,r0)		_arm_voir(_jit,oi,r0)
+#define arm_vosi(oi,r0)		_arm_cc_vosi(_jit,ARM_CC_NV,oi,r0)
+#define arm_cc_vosi(cc,oi,r0)	_arm_cc_vosi(_jit,cc,oi,r0)
 __jit_inline void
-_arm_voir(jit_state_t _jit, int oi, int r0)
+_arm_cc_vosi(jit_state_t _jit, int cc, int oi, int r0)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(oi  & 0x0000f000));
+    if (oi & (1 << 8))	assert(!(r0 & 1));
+    if (r0 & 1)		oi |= ARM_V_D;
+    r0 >>= 1;
+    _jit_I(cc|oi|(_u4(r0)<<12));
+}
+
+#define arm_vodi(oi,r0)		_arm_vodi(_jit,oi,r0)
+__jit_inline void
+_arm_vodi(jit_state_t _jit, int oi, int r0)
 {
     assert(!(oi  & 0x0000f000));
+    assert(!(r0 & 1));	r0 >>= 1;
+    _jit_I(ARM_CC_NV|oi|(_u4(r0)<<12));
+}
+
+#define arm_voqi(oi,r0)		_arm_voqi(_jit,oi,r0)
+__jit_inline void
+_arm_voqi(jit_state_t _jit, int oi, int r0)
+{
+    assert(!(oi  & 0x0000f000));
+    assert(!(r0 & 3));	r0 >>= 1;
     _jit_I(ARM_CC_NV|oi|(_u4(r0)<<12));
 }
 
@@ -434,6 +504,54 @@ _arm_cc_vo_rr(jit_state_t _jit, int cc, int o, int r0, int r1)
     _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
 }
 
+#define arm_vo_ss(o,r0,r1)	 _arm_cc_vo_ss(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vo_ss(cc,o,r0,r1) _arm_cc_vo_ss(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vo_ss(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    if (r0 & 1)	o |= ARM_V_D;	r0 >>= 1;
+    if (r1 & 1)	o |= ARM_V_M;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+}
+
+#define arm_vo_dd(o,r0,r1)	 _arm_cc_vo_dd(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vo_dd(cc,o,r0,r1) _arm_cc_vo_dd(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vo_dd(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    assert(!(r0 & 1) && !(r1 & 1));
+    r0 >>= 1;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+}
+
+#define arm_vo_qd(o,r0,r1)	 _arm_cc_vo_qd(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vo_qd(cc,o,r0,r1) _arm_cc_vo_qd(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vo_qd(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    assert(!(r0 & 3) && !(r1 & 1));
+    r0 >>= 1;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+}
+
+#define arm_vo_qq(o,r0,r1)	 _arm_cc_vo_qq(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vo_qq(cc,o,r0,r1) _arm_cc_vo_qq(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vo_qq(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    assert(!(r0 & 3) && !(r1 & 3));
+    r0 >>= 1;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+}
+
 #define arm_vorr_(o,r0,r1)	 _arm_cc_vorr_(_jit,ARM_CC_NV,o,r0,r1)
 #define arm_cc_vorr_(cc,o,r0,r1) _arm_cc_vorr_(_jit,cc,o,r0,r1)
 __jit_inline void
@@ -441,6 +559,40 @@ _arm_cc_vorr_(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+}
+
+#define arm_vors_(o,r0,r1)	 _arm_cc_vors_(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vors_(cc,o,r0,r1) _arm_cc_vors_(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vors_(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    if (r1 & 1)	o |= ARM_V_N;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+}
+
+#define arm_vorv_(o,r0,r1)	 _arm_cc_vorv_(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vorv_(cc,o,r0,r1) _arm_cc_vorv_(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vorv_(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    if (r1 & 1)	cc |= ARM_V_M;	r1 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+}
+
+#define arm_vori_(o,r0,r1)	 _arm_cc_vori_(_jit,ARM_CC_NV,o,r0,r1)
+#define arm_cc_vori_(cc,o,r0,r1) _arm_cc_vori_(_jit,cc,o,r0,r1)
+__jit_inline void
+_arm_cc_vori_(jit_state_t _jit, int cc, int o, int r0, int r1)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf000f00f));
+    /* use same bit pattern, to set opc1... */
+    if (r1 & 1)	o |= ARM_V_I32;	r1 >>= 1;
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
 }
 
@@ -454,6 +606,79 @@ _arm_cc_vorrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
 }
 
+#define arm_vorrd(o,r0,r1,r2)	    _arm_cc_vorrd(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_vorrd(cc,o,r0,r1,r2) _arm_cc_vorrd(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_vorrd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    assert(!(r2 & 1));
+    r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
+#define arm_vosss(o,r0,r1,r2)	    _arm_cc_vosss(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_vosss(cc,o,r0,r1,r2) _arm_cc_vosss(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_vosss(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    if (r0 & 1)	o |= ARM_V_D;	r0 >>= 1;
+    if (r1 & 1)	o |= ARM_V_N;	r1 >>= 1;
+    if (r2 & 1)	o |= ARM_V_M;	r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
+#define arm_voddd(o,r0,r1,r2)	    _arm_cc_voddd(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_voddd(cc,o,r0,r1,r2) _arm_cc_voddd(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_voddd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    assert(!(r0 & 1) && !(r1 & 1) && !(r2 & 1));
+    r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
+#define arm_voqdd(o,r0,r1,r2)	    _arm_cc_voqdd(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_voqdd(cc,o,r0,r1,r2) _arm_cc_voqdd(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_voqdd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    assert(!(r0 & 3) && !(r1 & 1) && !(r2 & 1));
+    r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
+#define arm_voqqd(o,r0,r1,r2)	    _arm_cc_voqqd(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_voqqd(cc,o,r0,r1,r2) _arm_cc_voqqd(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_voqqd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    assert(!(r0 & 3) && !(r1 & 3) && !(r2 & 1));
+    r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
+#define arm_voqqq(o,r0,r1,r2)	    _arm_cc_voqqq(_jit,ARM_CC_NV,o,r0,r1,r2)
+#define arm_cc_voqqq(cc,o,r0,r1,r2) _arm_cc_voqqq(_jit,cc,o,r0,r1,r2)
+__jit_inline void
+_arm_cc_voqqq(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    assert(!(r0 & 3) && !(r1 & 3) && !(r2 & 3));
+    r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
+    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+}
+
 #define arm_cc_vldst(cc,o,r0,r1,i0) _arm_cc_vldst(_jit,cc,o,r0,r1,i0)
 __jit_inline void
 _arm_cc_vldst(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
@@ -461,138 +686,146 @@ _arm_cc_vldst(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
     /* i0 << 2 is byte offset */
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff0ff));
+    if (r0 & 1) {
+	assert(!(o & ARM_V_F64));
+	o |= ARM_V_D;
+    }
+    r0 >>= 1;
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u8(i0));
 }
 
-#define arm_cc_vorrl(cc,o,r0,r1,i0) _arm_cc_vorrl(_jit,cc,o,r0,r1,i0)
+#define arm_cc_vorsl(cc,o,r0,r1,i0) _arm_cc_vorsl(_jit,cc,o,r0,r1,i0)
 __jit_inline void
-_arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
+_arm_cc_vorsl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff0ff));
+    /* save i0 double precision registers */
+    if (o & ARM_V_F64)		i0 <<= 1;
     assert(i0 && !(i0 & 1) && r1 + i0 <= 32);
+    /* if (r1 & 1) cc & ARM_V_F64 must be false */
+    if (r1 & 1)	o |= ARM_V_D;	r1 >>= 1;
     _jit_I(cc|o|(_u4(r0)<<16)|(_u4(r1)<<12)|_u8(i0));
 }
 
 /***********************************************************************
  * VFPv2 and VFPv3 (encoding T2/A2) instructions
  ***********************************************************************/
-#define _CC_VADD_F32(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VADD_F,r0,r1,r2)
+#define _CC_VADD_F32(cc,r0,r1,r2)	arm_cc_vosss(cc,ARM_VADD_F,r0,r1,r2)
 #define _VADD_F32(r0,r1,r2)		_CC_VADD_F32(ARM_CC_AL,r0,r1,r2)
-#define _CC_VADD_F64(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VADD_F|ARM_V_F64,r0,r1,r2)
+#define _CC_VADD_F64(cc,r0,r1,r2)	arm_cc_voddd(cc,ARM_VADD_F|ARM_V_F64,r0,r1,r2)
 #define _VADD_F64(r0,r1,r2)		_CC_VADD_F64(ARM_CC_AL,r0,r1,r2)
-#define _CC_VSUB_F32(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VSUB_F,r0,r1,r2)
+#define _CC_VSUB_F32(cc,r0,r1,r2)	arm_cc_vosss(cc,ARM_VSUB_F,r0,r1,r2)
 #define _VSUB_F32(r0,r1,r2)		_CC_VSUB_F32(ARM_CC_AL,r0,r1,r2)
-#define _CC_VSUB_F64(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VSUB_F|ARM_V_F64,r0,r1,r2)
+#define _CC_VSUB_F64(cc,r0,r1,r2)	arm_cc_voddd(cc,ARM_VSUB_F|ARM_V_F64,r0,r1,r2)
 #define _VSUB_F64(r0,r1,r2)		_CC_VSUB_F64(ARM_CC_AL,r0,r1,r2)
-#define _CC_VMUL_F32(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VMUL_F,r0,r1,r2)
+#define _CC_VMUL_F32(cc,r0,r1,r2)	arm_cc_vosss(cc,ARM_VMUL_F,r0,r1,r2)
 #define _VMUL_F32(r0,r1,r2)		_CC_VMUL_F32(ARM_CC_AL,r0,r1,r2)
-#define _CC_VMUL_F64(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VMUL_F|ARM_V_F64,r0,r1,r2)
+#define _CC_VMUL_F64(cc,r0,r1,r2)	arm_cc_voddd(cc,ARM_VMUL_F|ARM_V_F64,r0,r1,r2)
 #define _VMUL_F64(r0,r1,r2)		_CC_VMUL_F64(ARM_CC_AL,r0,r1,r2)
-#define _CC_VDIV_F32(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VDIV_F,r0,r1,r2)
+#define _CC_VDIV_F32(cc,r0,r1,r2)	arm_cc_vosss(cc,ARM_VDIV_F,r0,r1,r2)
 #define _VDIV_F32(r0,r1,r2)		_CC_VDIV_F32(ARM_CC_AL,r0,r1,r2)
-#define _CC_VDIV_F64(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VDIV_F|ARM_V_F64,r0,r1,r2)
+#define _CC_VDIV_F64(cc,r0,r1,r2)	arm_cc_voddd(cc,ARM_VDIV_F|ARM_V_F64,r0,r1,r2)
 #define _VDIV_F64(r0,r1,r2)		_CC_VDIV_F64(ARM_CC_AL,r0,r1,r2)
-#define _CC_VABS_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VABS_F,r0,r1)
+#define _CC_VABS_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VABS_F,r0,r1)
 #define _VABS_F32(r0,r1)		_CC_VABS_F32(ARM_CC_AL,r0,r1)
-#define _CC_VABS_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VABS_F|ARM_V_F64,r0,r1)
+#define _CC_VABS_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VABS_F|ARM_V_F64,r0,r1)
 #define _VABS_F64(r0,r1)		_CC_VABS_F64(ARM_CC_AL,r0,r1)
-#define _CC_VNEG_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VNEG_F,r0,r1)
+#define _CC_VNEG_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VNEG_F,r0,r1)
 #define _VNEG_F32(r0,r1)		_CC_VNEG_F32(ARM_CC_AL,r0,r1)
-#define _CC_VNEG_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VNEG_F|ARM_V_F64,r0,r1)
+#define _CC_VNEG_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VNEG_F|ARM_V_F64,r0,r1)
 #define _VNEG_F64(r0,r1)		_CC_VNEG_F64(ARM_CC_AL,r0,r1)
-#define _CC_VSQRT_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VSQRT_F,r0,r1)
+#define _CC_VSQRT_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VSQRT_F,r0,r1)
 #define _VSQRT_F32(r0,r1)		_CC_VSQRT_F32(ARM_CC_AL,r0,r1)
-#define _CC_VSQRT_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VSQRT_F|ARM_V_F64,r0,r1)
+#define _CC_VSQRT_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VSQRT_F|ARM_V_F64,r0,r1)
 #define _VSQRT_F64(r0,r1)		_CC_VSQRT_F64(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VMOV_F,r0,r1)
+#define _CC_VMOV_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VMOV_F,r0,r1)
 #define _VMOV_F32(r0,r1)		_CC_VMOV_F32(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VMOV_F|ARM_V_F64,r0,r1)
+#define _CC_VMOV_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VMOV_F|ARM_V_F64,r0,r1)
 #define _VMOV_F64(r0,r1)		_CC_VMOV_F64(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_AA_D(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VMOV_AA_D,r0,r1,r2)
+#define _CC_VMOV_AA_D(cc,r0,r1,r2)	arm_cc_vorrd(cc,ARM_VMOV_AA_D,r0,r1,r2)
 #define _VMOV_AA_D(r0,r1,r2)		_CC_VMOV_AA_D(ARM_CC_AL,r0,r1,r2)
-#define _CC_VMOV_D_AA(cc,r0,r1,r2)	arm_cc_vorrr(cc,ARM_VMOV_D_AA,r1,r2,r0)
+#define _CC_VMOV_D_AA(cc,r0,r1,r2)	arm_cc_vorrd(cc,ARM_VMOV_D_AA,r1,r2,r0)
 #define _VMOV_D_AA(r0,r1,r2)		_CC_VMOV_D_AA(ARM_CC_AL,r0,r1,r2)
-#define _CC_VMOV_A_S(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_A_S,r0,r1)
+#define _CC_VMOV_A_S(cc,r0,r1)		arm_cc_vors_(cc,ARM_VMOV_A_S,r0,r1)
 #define _VMOV_A_S(r0,r1)		_CC_VMOV_A_S(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_S_A(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_S_A,r1,r0)
+#define _CC_VMOV_S_A(cc,r0,r1)		arm_cc_vors_(cc,ARM_VMOV_S_A,r1,r0)
 #define _VMOV_S_A(r0,r1)		_CC_VMOV_S_A(ARM_CC_AL,r0,r1)
-#define _CC_VCMP_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VCMP,r0,r1)
+#define _CC_VCMP_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VCMP,r0,r1)
 #define _VCMP_F32(r0,r1)		_CC_VCMP_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCMP_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_F64,r0,r1)
+#define _CC_VCMP_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VCMP|ARM_V_F64,r0,r1)
 #define _VCMP_F64(r0,r1)		_CC_VCMP_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCMPE_F32(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_E,r0,r1)
+#define _CC_VCMPE_F32(cc,r0,r1)		arm_cc_vo_ss(cc,ARM_VCMP|ARM_V_E,r0,r1)
 #define _VCMPE_F32(r0,r1)		_CC_VCMPE_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCMPE_F64(cc,r0,r1)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_E|ARM_V_F64,r0,r1)
+#define _CC_VCMPE_F64(cc,r0,r1)		arm_cc_vo_dd(cc,ARM_VCMP|ARM_V_E|ARM_V_F64,r0,r1)
 #define _VCMPE_F64(r0,r1)		_CC_VCMPE_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCMPZ_F32(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z,r0,0)
+#define _CC_VCMPZ_F32(cc,r0)		arm_cc_vo_ss(cc,ARM_VCMP|ARM_V_Z,r0,0)
 #define _VCMPZ_F32(r0)			_CC_VCMPZ_F32(ARM_CC_AL,r0)
-#define _CC_VCMPZ_F64(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_F64,r0,0)
+#define _CC_VCMPZ_F64(cc,r0)		arm_cc_vo_dd(cc,ARM_VCMP|ARM_V_Z|ARM_V_F64,r0,0)
 #define _VCMPZ_F64(r0)			_CC_VCMPZ_F64(ARM_CC_AL,r0)
-#define _CC_VCMPEZ_F32(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_E,r0,0)
+#define _CC_VCMPEZ_F32(cc,r0)		arm_cc_vo_ss(cc,ARM_VCMP|ARM_V_Z|ARM_V_E,r0,0)
 #define _VCMPEZ_F32(r0)			_CC_VCMPEZ_F32(ARM_CC_AL,r0)
-#define _CC_VCMPEZ_F64(cc,r0)		arm_cc_vo_rr(cc,ARM_VCMP|ARM_V_Z|ARM_V_E|ARM_V_F64,r0,0)
+#define _CC_VCMPEZ_F64(cc,r0)		arm_cc_vo_dd(cc,ARM_VCMP|ARM_V_Z|ARM_V_E|ARM_V_F64,r0,0)
 #define _VCMPEZ_F64(r0)			_CC_VCMPEZ_F64(ARM_CC_AL,r0)
 #define _CC_VMRS(cc,r0)			arm_cc_vorr_(cc,ARM_VMRS,r0,0)
 #define _VMRS(r0)			_CC_VMRS(ARM_CC_AL,r0)
 #define _CC_VMSR(cc,r0)			arm_cc_vorr_(cc,ARM_VMSR,r0,0)
 #define _VMSR(r0)			_CC_VMSR(ARM_CC_AL,r0)
-#define _CC_VCVT_S32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_S32_F32,r0,r1)
+#define _CC_VCVT_S32_F32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_S32_F32,r0,r1)
 #define _VCVT_S32_F32(r0,r1)		_CC_VCVT_S32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_U32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_U32_F32,r0,r1)
+#define _CC_VCVT_U32_F32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_U32_F32,r0,r1)
 #define _VCVT_U32_F32(r0,r1)		_CC_VCVT_U32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_S32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_S32_F64,r0,r1)
+#define _CC_VCVT_S32_F64(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_S32_F64,r0,r1)
 #define _VCVT_S32_F64(r0,r1)		_CC_VCVT_S32_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_U32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_U32_F64,r0,r1)
+#define _CC_VCVT_U32_F64(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_U32_F64,r0,r1)
 #define _VCVT_U32_F64(r0,r1)		_CC_VCVT_U32_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F32_S32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F32_S32,r0,r1)
+#define _CC_VCVT_F32_S32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F32_S32,r0,r1)
 #define _VCVT_F32_S32(r0,r1)		_CC_VCVT_F32_S32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F32_U32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F32_U32,r0,r1)
+#define _CC_VCVT_F32_U32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F32_U32,r0,r1)
 #define _VCVT_F32_U32(r0,r1)		_CC_VCVT_F32_U32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F64_S32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F64_S32,r0,r1)
+#define _CC_VCVT_F64_S32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F64_S32,r0,r1)
 #define _VCVT_F64_S32(r0,r1)		_CC_VCVT_F64_S32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F64_U32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F64_U32,r0,r1)
+#define _CC_VCVT_F64_U32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F64_U32,r0,r1)
 #define _VCVT_F64_U32(r0,r1)		_CC_VCVT_F64_U32(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F32_F64,r0,r1)
+#define _CC_VCVT_F32_F64(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F32_F64,r0,r1)
 #define _VCVT_F32_F64(r0,r1)		_CC_VCVT_F32_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCVT_F64_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVT_F64_F32,r0,r1)
+#define _CC_VCVT_F64_F32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVT_F64_F32,r0,r1)
 #define _VCVT_F64_F32(r0,r1)		_CC_VCVT_F64_F32(ARM_CC_AL,r0,r1)
 /* use rounding mode in fpscr (intended for floor, ceil, etc) */
-#define _CC_VCVTR_S32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_S32_F32,r0,r1)
+#define _CC_VCVTR_S32_F32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVTR_S32_F32,r0,r1)
 #define _VCVTR_S32_F32(r0,r1)		_CC_VCVTR_S32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCVTR_U32_F32(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_U32_F32,r0,r1)
+#define _CC_VCVTR_U32_F32(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVTR_U32_F32,r0,r1)
 #define _VCVTR_U32_F32(r0,r1)		_CC_VCVTR_U32_F32(ARM_CC_AL,r0,r1)
-#define _CC_VCVTR_S32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_S32_F64,r0,r1)
+#define _CC_VCVTR_S32_F64(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVTR_S32_F64,r0,r1)
 #define _VCVTR_S32_F64(r0,r1)		_CC_VCVTR_S32_F64(ARM_CC_AL,r0,r1)
-#define _CC_VCVTR_U32_F64(cc,r0,r1)	arm_cc_vo_rr(cc,ARM_VCVTR_U32_F64,r0,r1)
+#define _CC_VCVTR_U32_F64(cc,r0,r1)	arm_cc_vo_ss(cc,ARM_VCVTR_U32_F64,r0,r1)
 #define _VCVTR_U32_F64(r0,r1)		_CC_VCVTR_U32_F64(ARM_CC_AL,r0,r1)
-
 /***********************************************************************
  * NEON instructions (encoding T1/A1) (condition must always be ARM_CC_NV)
  ***********************************************************************/
-#define _CC_VLDMIA_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_L|ARM_M_I,r0,r1,i0)
+#define _CC_VLDMIA_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_I,r0,r1,i0)
 #define _VLDMIA_F32(r0,r1,i0)		_CC_VLDMIA_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VLDMIA_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_V_F64,r0,r1,i0)
+#define _CC_VLDMIA_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_V_F64,r0,r1,i0)
 #define _VLDMIA_F64(r0,r1,i0)		_CC_VLDMIA_F64(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMIA_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_I,r0,r1,i0)
+#define _CC_VSTMIA_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_I,r0,r1,i0)
 #define _VSTMIA_F32(r0,r1,i0)		_CC_VSTMIA_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMIA_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_I|ARM_V_F64,r0,r1,i0)
+#define _CC_VSTMIA_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_I|ARM_V_F64,r0,r1,i0)
 #define _VSTMIA_F64(r0,r1,i0)		_CC_VSTMIA_F64(ARM_CC_AL,r0,r1,i0)
-#define _CC_VLDMIA_U_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_M_U,r0,r1,i0)
+#define _CC_VLDMIA_U_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_M_U,r0,r1,i0)
 #define _VLDMIA_U_F32(r0,r1,i0)		_CC_VLDMIA_U_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VLDMIA_U_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_M_U|ARM_V_F64,r0,r1,i0)
+#define _CC_VLDMIA_U_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_I|ARM_M_U|ARM_V_F64,r0,r1,i0)
 #define _VLDMIA_U_F64(r0,r1,i0)		_CC_VLDMIA_U_F64(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMIA_U_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_I|ARM_M_U,r0,r1,i0)
+#define _CC_VSTMIA_U_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_I|ARM_M_U,r0,r1,i0)
 #define _VSTMIA_U_F32(r0,r1,i0)		_CC_VSTMIA_U_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMIA_U_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_I|ARM_M_U|ARM_V_F64,r0,r1,i0)
+#define _CC_VSTMIA_U_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_I|ARM_M_U|ARM_V_F64,r0,r1,i0)
 #define _VSTMIA_U_F64(r0,r1,i0)		_CC_VSTMIA_U_F64(ARM_CC_AL,r0,r1,i0)
-#define _CC_VLDMDB_U_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_B|ARM_M_U,r0,r1,i0)
+#define _CC_VLDMDB_U_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_B|ARM_M_U,r0,r1,i0)
 #define _VLDMDB_U_F32(r0,r1,i0)		_CC_VLDMDB_U_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VLDMDB_U_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_B|ARM_M_U|ARM_V_F64,r0,r1,i0)
+#define _CC_VLDMDB_U_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_L|ARM_M_B|ARM_M_U|ARM_V_F64,r0,r1,i0)
 #define _VLDMDB_U_F64(r0,r1,i0)		_CC_VLDMDB_U_F64(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMDB_U_F32(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_B|ARM_M_U,r0,r1,i0)
+#define _CC_VSTMDB_U_F32(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_B|ARM_M_U,r0,r1,i0)
 #define _VSTMDB_U_F32(r0,r1,i0)		_CC_VSTMDB_U_F32(ARM_CC_AL,r0,r1,i0)
-#define _CC_VSTMDB_U_F64(cc,r0,r1,i0)	arm_cc_vorrl(cc,ARM_VM|ARM_M_B|ARM_M_U|ARM_V_F64,r0,r1,i0)
+#define _CC_VSTMDB_U_F64(cc,r0,r1,i0)	arm_cc_vorsl(cc,ARM_VM|ARM_M_B|ARM_M_U|ARM_V_F64,r0,r1,i0)
 #define _VSTMDB_U_F64(r0,r1,i0)		_CC_VSTMDB_U_F64(ARM_CC_AL,r0,r1,i0)
 #define _CC_VPUSH_F32(cc,r0,i0)		_CC_VSTMDB_U_F32(cc,JIT_SP,r0,i0)
 #define _VPUSH_F32(r0,i0)		_CC_VPUSH_F32(ARM_CC_AL,r0,i0)
@@ -602,158 +835,157 @@ _arm_cc_vorrl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VPOP_F32(r0,i0)		_CC_VPOP_F32(ARM_CC_AL,r0,i0)
 #define _CC_VPOP_F64(cc,r0,i0)		_CC_VLDMIA_U_F64(cc,JIT_SP,r0,i0)
 #define _VPOP_F64(r0,i0)		_CC_VPOP_F64(ARM_CC_AL,r0,i0)
-
 /***********************************************************************
  * Advanced SIMD (encoding T2/A2) instructions
  ***********************************************************************/
-#define _CC_VMOV_A_S8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8,r0,r1)
+#define _CC_VMOV_A_S8(cc,r0,r1)		arm_cc_vorv_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8,r0,r1)
 #define _VMOV_A_S8(r0,r1)		_CC_VMOV_A_S8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_U8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8|ARM_VMOV_ADV_U,r0,r1)
+#define _CC_VMOV_A_U8(cc,r0,r1)		arm_cc_vorv_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_8|ARM_VMOV_ADV_U,r0,r1)
 #define _VMOV_A_U8(r0,r1)		_CC_VMOV_A_U8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_S16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16,r0,r1)
+#define _CC_VMOV_A_S16(cc,r0,r1)	arm_cc_vorv_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16,r0,r1)
 #define _VMOV_A_S16(r0,r1)		_CC_VMOV_A_S16(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_U16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16|ARM_VMOV_ADV_U,r0,r1)
+#define _CC_VMOV_A_U16(cc,r0,r1)	arm_cc_vorv_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_16|ARM_VMOV_ADV_U,r0,r1)
 #define _VMOV_A_U16(r0,r1)		_CC_VMOV_A_U16(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_S32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D,r0,r1)
+#define _CC_VMOV_A_S32(cc,r0,r1)	arm_cc_vori_(cc,ARM_VMOV_A_D,r0,r1)
 #define _VMOV_A_S32(r0,r1)		_CC_VMOV_A_S32(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_A_U32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_U,r0,r1)
+#define _CC_VMOV_A_U32(cc,r0,r1)	arm_cc_vori_(cc,ARM_VMOV_A_D|ARM_VMOV_ADV_U,r0,r1)
 #define _VMOV_A_U32(r0,r1)		_CC_VMOV_A_U32(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_V_I8(cc,r0,r1)		arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_8,r1,r0)
+#define _CC_VMOV_V_I8(cc,r0,r1)		arm_cc_vorv_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_8,r1,r0)
 #define _VMOV_V_I8(r0,r1)		_CC_VMOV_V_I8(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_V_I16(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_16,r1,r0)
+#define _CC_VMOV_V_I16(cc,r0,r1)	arm_cc_vorv_(cc,ARM_VMOV_D_A|ARM_VMOV_ADV_16,r1,r0)
 #define _VMOV_V_I16(r0,r1)		_CC_VMOV_V_I16(ARM_CC_AL,r0,r1)
-#define _CC_VMOV_V_I32(cc,r0,r1)	arm_cc_vorr_(cc,ARM_VMOV_D_A,r1,r0)
+#define _CC_VMOV_V_I32(cc,r0,r1)	arm_cc_vori_(cc,ARM_VMOV_D_A,r1,r0)
 #define _VMOV_V_I32(r0,r1)		_CC_VMOV_V_I32(ARM_CC_AL,r0,r1)
-#define _VADD_I8(r0,r1,r2)		arm_vorrr(ARM_VADD_I,r0,r1,r2)
-#define _VADDQ_I8(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_Q,r0,r1,r2)
-#define _VADD_I16(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I16,r0,r1,r2)
-#define _VADDQ_I16(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
-#define _VADD_I32(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I32,r0,r1,r2)
-#define _VADDQ_I32(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
-#define _VADD_I64(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I64,r0,r1,r2)
-#define _VADDQ_I64(r0,r1,r2)		arm_vorrr(ARM_VADD_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
-#define _VQADD_S8(r0,r1,r2)		arm_vorrr(ARM_VQADD_I,r0,r1,r2)
-#define _VQADDQ_S8(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_Q,r0,r1,r2)
-#define _VQADD_U8(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_U,r0,r1,r2)
-#define _VQADDQ_U8(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQADD_S16(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I16,r0,r1,r2)
-#define _VQADDQ_S16(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
-#define _VQADD_U16(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VQADDQ_U16(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I16|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQADD_S32(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I32,r0,r1,r2)
-#define _VQADDQ_S32(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
-#define _VQADD_U32(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VQADDQ_U32(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I32|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQADD_S64(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I64,r0,r1,r2)
-#define _VQADDQ_S64(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
-#define _VQADD_U64(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I64|ARM_V_U,r0,r1,r2)
-#define _VQADDQ_U64(r0,r1,r2)		arm_vorrr(ARM_VQADD_I|ARM_V_I64|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VADDL_S8(r0,r1,r2)		arm_vorrr(ARM_VADDL_I,r0,r1,r2)
-#define _VADDL_U8(r0,r1,r2)		arm_vorrr(ARM_VADDL_I|ARM_V_U,r0,r1,r2)
-#define _VADDL_S16(r0,r1,r2)		arm_vorrr(ARM_VADDL_I|ARM_V_I16,r0,r1,r2)
-#define _VADDL_U16(r0,r1,r2)		arm_vorrr(ARM_VADDL_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VADDL_S32(r0,r1,r2)		arm_vorrr(ARM_VADDL_I|ARM_V_I32,r0,r1,r2)
-#define _VADDL_U32(r0,r1,r2)		arm_vorrr(ARM_VADDL_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VADDW_S8(r0,r1,r2)		arm_vorrr(ARM_VADDW_I,r0,r1,r2)
-#define _VADDW_U8(r0,r1,r2)		arm_vorrr(ARM_VADDW_I|ARM_V_U,r0,r1,r2)
-#define _VADDW_S16(r0,r1,r2)		arm_vorrr(ARM_VADDW_I|ARM_V_I16,r0,r1,r2)
-#define _VADDW_U16(r0,r1,r2)		arm_vorrr(ARM_VADDW_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VADDW_S32(r0,r1,r2)		arm_vorrr(ARM_VADDW_I|ARM_V_I32,r0,r1,r2)
-#define _VADDW_U32(r0,r1,r2)		arm_vorrr(ARM_VADDW_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VSUB_I8(r0,r1,r2)		arm_vorrr(ARM_VSUB_I,r0,r1,r2)
-#define _VSUBQ_I8(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_Q,r0,r1,r2)
-#define _VSUB_I16(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I16,r0,r1,r2)
-#define _VSUBQ_I16(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
-#define _VSUB_I32(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I32,r0,r1,r2)
-#define _VSUBQ_I32(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
-#define _VSUB_I64(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I64,r0,r1,r2)
-#define _VSUBQ_I64(r0,r1,r2)		arm_vorrr(ARM_VSUB_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_S8(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I,r0,r1,r2)
-#define _VQSUBQ_S8(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_U8(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_U,r0,r1,r2)
-#define _VQSUBQ_U8(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_S16(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I16,r0,r1,r2)
-#define _VQSUBQ_S16(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_U16(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VQSUBQ_U16(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I16|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_S32(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I32,r0,r1,r2)
-#define _VQSUBQ_S32(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_U32(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VQSUBQ_U32(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I32|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_S64(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I64,r0,r1,r2)
-#define _VQSUBQ_S64(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
-#define _VQSUB_U64(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I64|ARM_V_U,r0,r1,r2)
-#define _VQSUBQ_U64(r0,r1,r2)		arm_vorrr(ARM_VQSUB_I|ARM_V_I64|ARM_V_U|ARM_V_Q,r0,r1,r2)
-#define _VSUBL_S8(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I,r0,r1,r2)
-#define _VSUBL_U8(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I|ARM_V_U,r0,r1,r2)
-#define _VSUBL_S16(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I|ARM_V_I16,r0,r1,r2)
-#define _VSUBL_U16(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VSUBL_S32(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I|ARM_V_I32,r0,r1,r2)
-#define _VSUBL_U32(r0,r1,r2)		arm_vorrr(ARM_VSUBL_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VSUBW_S8(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I,r0,r1,r2)
-#define _VSUBW_U8(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I|ARM_V_U,r0,r1,r2)
-#define _VSUBW_S16(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I|ARM_V_I16,r0,r1,r2)
-#define _VSUBW_U16(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
-#define _VSUBW_S32(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I|ARM_V_I32,r0,r1,r2)
-#define _VSUBW_U32(r0,r1,r2)		arm_vorrr(ARM_VSUBW_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
-#define _VMUL_I8(r0,r1,r2)		arm_vorrr(ARM_VMUL_I,r0,r1,r2)
-#define _VMULQ_I8(r0,r1,r2)		arm_vorrr(ARM_VMUL_I|ARM_V_Q,r0,r1,r2)
-#define _VMUL_I16(r0,r1,r2)		arm_vorrr(ARM_VMUL_I|ARM_V_I16,r0,r1,r2)
-#define _VMULQ_I16(r0,r1,r2)		arm_vorrr(ARM_VMUL_I|ARM_V_Q|ARM_V_I16,r0,r1,r2)
-#define _VMUL_I32(r0,r1,r2)		arm_vorrr(ARM_VMUL_I|ARM_V_I32,r0,r1,r2)
-#define _VMULQ_I32(r0,r1,r2)		arm_vorrr(ARM_VMUL_I|ARM_V_Q|ARM_V_I32,r0,r1,r2)
-#define _VMULL_S8(r0,r1,r2)		arm_vorrr(ARM_VMULL_I,r0,r1,r2)
-#define _VMULL_U8(r0,r1,r2)		arm_vorrr(ARM_VMULL_I|ARM_V_U,r0,r1,r2)
-#define _VMULL_S16(r0,r1,r2)		arm_vorrr(ARM_VMULL_I|ARM_V_I16,r0,r1,r2)
-#define _VMULL_U16(r0,r1,r2)		arm_vorrr(ARM_VMULL_I|ARM_V_U|ARM_V_I16,r0,r1,r2)
-#define _VMULL_S32(r0,r1,r2)		arm_vorrr(ARM_VMULL_I|ARM_V_I32,r0,r1,r2)
-#define _VMULL_U32(r0,r1,r2)		arm_vorrr(ARM_VMULL_I|ARM_V_U|ARM_V_I32,r0,r1,r2)
-#define _VABS_S8(r0,r1)			arm_vo_rr(ARM_VABS_I,r0,r1)
-#define _VABSQ_S8(r0,r1)		arm_vo_rr(ARM_VABS_I|ARM_V_Q,r0,r1)
-#define _VABS_S16(r0,r1)		arm_vo_rr(ARM_VABS_I|ARM_V_S16,r0,r1)
-#define _VABSQ_S16(r0,r1)		arm_vo_rr(ARM_VABS_I|ARM_V_S16|ARM_V_Q,r0,r1)
-#define _VABS_S32(r0,r1)		arm_vo_rr(ARM_VABS_I|ARM_V_S32,r0,r1)
-#define _VABSQ_S32(r0,r1)		arm_vo_rr(ARM_VABS_I|ARM_V_S32|ARM_V_Q,r0,r1)
-#define _VQABS_S8(r0,r1)		arm_vo_rr(ARM_VQABS_I,r0,r1)
-#define _VQABSQ_S8(r0,r1)		arm_vo_rr(ARM_VQABS_I|ARM_V_Q,r0,r1)
-#define _VQABS_S16(r0,r1)		arm_vo_rr(ARM_VQABS_I|ARM_V_S16,r0,r1)
-#define _VQABSQ_S16(r0,r1)		arm_vo_rr(ARM_VQABS_I|ARM_V_S16|ARM_V_Q,r0,r1)
-#define _VQABS_S32(r0,r1)		arm_vo_rr(ARM_VQABS_I|ARM_V_S32,r0,r1)
-#define _VQABSQ_S32(r0,r1)		arm_vo_rr(ARM_VQABS_I|ARM_V_S32|ARM_V_Q,r0,r1)
-#define _VNEG_S8(r0,r1)			arm_vo_rr(ARM_VNEG_I,r0,r1)
-#define _VNEGQ_S8(r0,r1)		arm_vo_rr(ARM_VNEG_I|ARM_V_Q,r0,r1)
-#define _VNEG_S16(r0,r1)		arm_vo_rr(ARM_VNEG_I|ARM_V_S16,r0,r1)
-#define _VNEGQ_S16(r0,r1)		arm_vo_rr(ARM_VNEG_I|ARM_V_S16|ARM_V_Q,r0,r1)
-#define _VNEG_S32(r0,r1)		arm_vo_rr(ARM_VNEG_I|ARM_V_S32,r0,r1)
-#define _VNEGQ_S32(r0,r1)		arm_vo_rr(ARM_VNEG_I|ARM_V_S32|ARM_V_Q,r0,r1)
-#define _VQNEG_S8(r0,r1)		arm_vo_rr(ARM_VQNEG_I,r0,r1)
-#define _VQNEGQ_S8(r0,r1)		arm_vo_rr(ARM_VQNEG_I|ARM_V_Q,r0,r1)
-#define _VQNEG_S16(r0,r1)		arm_vo_rr(ARM_VQNEG_I|ARM_V_S16,r0,r1)
-#define _VQNEGQ_S16(r0,r1)		arm_vo_rr(ARM_VQNEG_I|ARM_V_S16|ARM_V_Q,r0,r1)
-#define _VQNEG_S32(r0,r1)		arm_vo_rr(ARM_VQNEG_I|ARM_V_S32,r0,r1)
-#define _VQNEGQ_S32(r0,r1)		arm_vo_rr(ARM_VQNEG_I|ARM_V_S32|ARM_V_Q,r0,r1)
-#define _VAND(r0,r1,r2)			arm_vorrr(ARM_VAND,r0,r1,r2)
-#define _VANDQ(r0,r1,r2)		arm_vorrr(ARM_VAND|ARM_V_Q,r0,r1,r2)
-#define _VBIC(r0,r1,r2)			arm_vorrr(ARM_VBIC,r0,r1,r2)
-#define _VBICQ(r0,r1,r2)		arm_vorrr(ARM_VBIC|ARM_V_Q,r0,r1,r2)
-#define _VORR(r0,r1,r2)			arm_vorrr(ARM_VORR,r0,r1,r2)
-#define _VORRQ(r0,r1,r2)		arm_vorrr(ARM_VORR|ARM_V_Q,r0,r1,r2)
-#define _VORN(r0,r1,r2)			arm_vorrr(ARM_VORN,r0,r1,r2)
-#define _VORNQ(r0,r1,r2)		arm_vorrr(ARM_VORN|ARM_V_Q,r0,r1,r2)
-#define _VEOR(r0,r1,r2)			arm_vorrr(ARM_VEOR,r0,r1,r2)
-#define _VEORQ(r0,r1,r2)		arm_vorrr(ARM_VEOR|ARM_V_Q,r0,r1,r2)
+#define _VADD_I8(r0,r1,r2)		arm_voddd(ARM_VADD_I,r0,r1,r2)
+#define _VADDQ_I8(r0,r1,r2)		arm_voqqq(ARM_VADD_I|ARM_V_Q,r0,r1,r2)
+#define _VADD_I16(r0,r1,r2)		arm_voddd(ARM_VADD_I|ARM_V_I16,r0,r1,r2)
+#define _VADDQ_I16(r0,r1,r2)		arm_voqqq(ARM_VADD_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
+#define _VADD_I32(r0,r1,r2)		arm_voddd(ARM_VADD_I|ARM_V_I32,r0,r1,r2)
+#define _VADDQ_I32(r0,r1,r2)		arm_voqqq(ARM_VADD_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
+#define _VADD_I64(r0,r1,r2)		arm_voddd(ARM_VADD_I|ARM_V_I64,r0,r1,r2)
+#define _VADDQ_I64(r0,r1,r2)		arm_voqqq(ARM_VADD_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
+#define _VQADD_S8(r0,r1,r2)		arm_voddd(ARM_VQADD_I,r0,r1,r2)
+#define _VQADDQ_S8(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_Q,r0,r1,r2)
+#define _VQADD_U8(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_U,r0,r1,r2)
+#define _VQADDQ_U8(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQADD_S16(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I16,r0,r1,r2)
+#define _VQADDQ_S16(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
+#define _VQADD_U16(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VQADDQ_U16(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I16|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQADD_S32(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I32,r0,r1,r2)
+#define _VQADDQ_S32(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
+#define _VQADD_U32(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VQADDQ_U32(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I32|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQADD_S64(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I64,r0,r1,r2)
+#define _VQADDQ_S64(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
+#define _VQADD_U64(r0,r1,r2)		arm_voddd(ARM_VQADD_I|ARM_V_I64|ARM_V_U,r0,r1,r2)
+#define _VQADDQ_U64(r0,r1,r2)		arm_voqqq(ARM_VQADD_I|ARM_V_I64|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VADDL_S8(r0,r1,r2)		arm_voqdd(ARM_VADDL_I,r0,r1,r2)
+#define _VADDL_U8(r0,r1,r2)		arm_voqdd(ARM_VADDL_I|ARM_V_U,r0,r1,r2)
+#define _VADDL_S16(r0,r1,r2)		arm_voqdd(ARM_VADDL_I|ARM_V_I16,r0,r1,r2)
+#define _VADDL_U16(r0,r1,r2)		arm_voqdd(ARM_VADDL_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VADDL_S32(r0,r1,r2)		arm_voqdd(ARM_VADDL_I|ARM_V_I32,r0,r1,r2)
+#define _VADDL_U32(r0,r1,r2)		arm_voqdd(ARM_VADDL_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VADDW_S8(r0,r1,r2)		arm_voqqd(ARM_VADDW_I,r0,r1,r2)
+#define _VADDW_U8(r0,r1,r2)		arm_voqqd(ARM_VADDW_I|ARM_V_U,r0,r1,r2)
+#define _VADDW_S16(r0,r1,r2)		arm_voqqd(ARM_VADDW_I|ARM_V_I16,r0,r1,r2)
+#define _VADDW_U16(r0,r1,r2)		arm_voqqd(ARM_VADDW_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VADDW_S32(r0,r1,r2)		arm_voqqd(ARM_VADDW_I|ARM_V_I32,r0,r1,r2)
+#define _VADDW_U32(r0,r1,r2)		arm_voqqd(ARM_VADDW_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VSUB_I8(r0,r1,r2)		arm_voddd(ARM_VSUB_I,r0,r1,r2)
+#define _VSUBQ_I8(r0,r1,r2)		arm_voqqq(ARM_VSUB_I|ARM_V_Q,r0,r1,r2)
+#define _VSUB_I16(r0,r1,r2)		arm_voddd(ARM_VSUB_I|ARM_V_I16,r0,r1,r2)
+#define _VSUBQ_I16(r0,r1,r2)		arm_voqqq(ARM_VSUB_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
+#define _VSUB_I32(r0,r1,r2)		arm_voddd(ARM_VSUB_I|ARM_V_I32,r0,r1,r2)
+#define _VSUBQ_I32(r0,r1,r2)		arm_voqqq(ARM_VSUB_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
+#define _VSUB_I64(r0,r1,r2)		arm_voddd(ARM_VSUB_I|ARM_V_I64,r0,r1,r2)
+#define _VSUBQ_I64(r0,r1,r2)		arm_voqqq(ARM_VSUB_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_S8(r0,r1,r2)		arm_voddd(ARM_VQSUB_I,r0,r1,r2)
+#define _VQSUBQ_S8(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_U8(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_U,r0,r1,r2)
+#define _VQSUBQ_U8(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_S16(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I16,r0,r1,r2)
+#define _VQSUBQ_S16(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I16|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_U16(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VQSUBQ_U16(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I16|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_S32(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I32,r0,r1,r2)
+#define _VQSUBQ_S32(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I32|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_U32(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VQSUBQ_U32(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I32|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_S64(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I64,r0,r1,r2)
+#define _VQSUBQ_S64(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I64|ARM_V_Q,r0,r1,r2)
+#define _VQSUB_U64(r0,r1,r2)		arm_voddd(ARM_VQSUB_I|ARM_V_I64|ARM_V_U,r0,r1,r2)
+#define _VQSUBQ_U64(r0,r1,r2)		arm_voqqq(ARM_VQSUB_I|ARM_V_I64|ARM_V_U|ARM_V_Q,r0,r1,r2)
+#define _VSUBL_S8(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I,r0,r1,r2)
+#define _VSUBL_U8(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I|ARM_V_U,r0,r1,r2)
+#define _VSUBL_S16(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I|ARM_V_I16,r0,r1,r2)
+#define _VSUBL_U16(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VSUBL_S32(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I|ARM_V_I32,r0,r1,r2)
+#define _VSUBL_U32(r0,r1,r2)		arm_voqdd(ARM_VSUBL_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VSUBW_S8(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I,r0,r1,r2)
+#define _VSUBW_U8(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I|ARM_V_U,r0,r1,r2)
+#define _VSUBW_S16(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I|ARM_V_I16,r0,r1,r2)
+#define _VSUBW_U16(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I|ARM_V_I16|ARM_V_U,r0,r1,r2)
+#define _VSUBW_S32(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I|ARM_V_I32,r0,r1,r2)
+#define _VSUBW_U32(r0,r1,r2)		arm_voqqd(ARM_VSUBW_I|ARM_V_I32|ARM_V_U,r0,r1,r2)
+#define _VMUL_I8(r0,r1,r2)		arm_voddd(ARM_VMUL_I,r0,r1,r2)
+#define _VMULQ_I8(r0,r1,r2)		arm_voqqq(ARM_VMUL_I|ARM_V_Q,r0,r1,r2)
+#define _VMUL_I16(r0,r1,r2)		arm_voddd(ARM_VMUL_I|ARM_V_I16,r0,r1,r2)
+#define _VMULQ_I16(r0,r1,r2)		arm_voqqq(ARM_VMUL_I|ARM_V_Q|ARM_V_I16,r0,r1,r2)
+#define _VMUL_I32(r0,r1,r2)		arm_voddd(ARM_VMUL_I|ARM_V_I32,r0,r1,r2)
+#define _VMULQ_I32(r0,r1,r2)		arm_voqqq(ARM_VMUL_I|ARM_V_Q|ARM_V_I32,r0,r1,r2)
+#define _VMULL_S8(r0,r1,r2)		arm_voqdd(ARM_VMULL_I,r0,r1,r2)
+#define _VMULL_U8(r0,r1,r2)		arm_voqdd(ARM_VMULL_I|ARM_V_U,r0,r1,r2)
+#define _VMULL_S16(r0,r1,r2)		arm_voqdd(ARM_VMULL_I|ARM_V_I16,r0,r1,r2)
+#define _VMULL_U16(r0,r1,r2)		arm_voqdd(ARM_VMULL_I|ARM_V_U|ARM_V_I16,r0,r1,r2)
+#define _VMULL_S32(r0,r1,r2)		arm_voqdd(ARM_VMULL_I|ARM_V_I32,r0,r1,r2)
+#define _VMULL_U32(r0,r1,r2)		arm_voqdd(ARM_VMULL_I|ARM_V_U|ARM_V_I32,r0,r1,r2)
+#define _VABS_S8(r0,r1)			arm_vo_dd(ARM_VABS_I,r0,r1)
+#define _VABSQ_S8(r0,r1)		arm_vo_qq(ARM_VABS_I|ARM_V_Q,r0,r1)
+#define _VABS_S16(r0,r1)		arm_vo_dd(ARM_VABS_I|ARM_V_S16,r0,r1)
+#define _VABSQ_S16(r0,r1)		arm_vo_qq(ARM_VABS_I|ARM_V_S16|ARM_V_Q,r0,r1)
+#define _VABS_S32(r0,r1)		arm_vo_dd(ARM_VABS_I|ARM_V_S32,r0,r1)
+#define _VABSQ_S32(r0,r1)		arm_vo_qq(ARM_VABS_I|ARM_V_S32|ARM_V_Q,r0,r1)
+#define _VQABS_S8(r0,r1)		arm_vo_dd(ARM_VQABS_I,r0,r1)
+#define _VQABSQ_S8(r0,r1)		arm_vo_qq(ARM_VQABS_I|ARM_V_Q,r0,r1)
+#define _VQABS_S16(r0,r1)		arm_vo_dd(ARM_VQABS_I|ARM_V_S16,r0,r1)
+#define _VQABSQ_S16(r0,r1)		arm_vo_qq(ARM_VQABS_I|ARM_V_S16|ARM_V_Q,r0,r1)
+#define _VQABS_S32(r0,r1)		arm_vo_dd(ARM_VQABS_I|ARM_V_S32,r0,r1)
+#define _VQABSQ_S32(r0,r1)		arm_vo_qq(ARM_VQABS_I|ARM_V_S32|ARM_V_Q,r0,r1)
+#define _VNEG_S8(r0,r1)			arm_vo_dd(ARM_VNEG_I,r0,r1)
+#define _VNEGQ_S8(r0,r1)		arm_vo_qq(ARM_VNEG_I|ARM_V_Q,r0,r1)
+#define _VNEG_S16(r0,r1)		arm_vo_dd(ARM_VNEG_I|ARM_V_S16,r0,r1)
+#define _VNEGQ_S16(r0,r1)		arm_vo_qq(ARM_VNEG_I|ARM_V_S16|ARM_V_Q,r0,r1)
+#define _VNEG_S32(r0,r1)		arm_vo_dd(ARM_VNEG_I|ARM_V_S32,r0,r1)
+#define _VNEGQ_S32(r0,r1)		arm_vo_qq(ARM_VNEG_I|ARM_V_S32|ARM_V_Q,r0,r1)
+#define _VQNEG_S8(r0,r1)		arm_vo_dd(ARM_VQNEG_I,r0,r1)
+#define _VQNEGQ_S8(r0,r1)		arm_vo_qq(ARM_VQNEG_I|ARM_V_Q,r0,r1)
+#define _VQNEG_S16(r0,r1)		arm_vo_dd(ARM_VQNEG_I|ARM_V_S16,r0,r1)
+#define _VQNEGQ_S16(r0,r1)		arm_vo_qq(ARM_VQNEG_I|ARM_V_S16|ARM_V_Q,r0,r1)
+#define _VQNEG_S32(r0,r1)		arm_vo_dd(ARM_VQNEG_I|ARM_V_S32,r0,r1)
+#define _VQNEGQ_S32(r0,r1)		arm_vo_qq(ARM_VQNEG_I|ARM_V_S32|ARM_V_Q,r0,r1)
+#define _VAND(r0,r1,r2)			arm_voddd(ARM_VAND,r0,r1,r2)
+#define _VANDQ(r0,r1,r2)		arm_voqqq(ARM_VAND|ARM_V_Q,r0,r1,r2)
+#define _VBIC(r0,r1,r2)			arm_voddd(ARM_VBIC,r0,r1,r2)
+#define _VBICQ(r0,r1,r2)		arm_voqqq(ARM_VBIC|ARM_V_Q,r0,r1,r2)
+#define _VORR(r0,r1,r2)			arm_voddd(ARM_VORR,r0,r1,r2)
+#define _VORRQ(r0,r1,r2)		arm_voqqq(ARM_VORR|ARM_V_Q,r0,r1,r2)
+#define _VORN(r0,r1,r2)			arm_voddd(ARM_VORN,r0,r1,r2)
+#define _VORNQ(r0,r1,r2)		arm_voqqq(ARM_VORN|ARM_V_Q,r0,r1,r2)
+#define _VEOR(r0,r1,r2)			arm_voddd(ARM_VEOR,r0,r1,r2)
+#define _VEORQ(r0,r1,r2)		arm_voqqq(ARM_VEOR|ARM_V_Q,r0,r1,r2)
 #define _VMOV(r0,r1)			_VORR(r0,r1,r1)
 #define _VMOVQ(r0,r1)			_VORRQ(r0,r1,r1)
-#define _VMOVL_S8(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_VMOVL_S8,r0,r1)
-#define _VMOVL_U8(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S8,r0,r1)
-#define _VMOVL_S16(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_VMOVL_S16,r0,r1)
-#define _VMOVL_U16(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S16,r0,r1)
-#define _VMOVL_S32(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_VMOVL_S32,r0,r1)
-#define _VMOVL_U32(r0,r1)		arm_vo_rr(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S32,r0,r1)
-/* "oi" should be the result of encode_vfp_immediate */
-#define _VIMM(oi,r0)			arm_voir(oi,r0)
-#define _VIMMQ(oi,r0)			arm_voir(oi|ARM_V_Q,r0)
-
+#define _VMOVL_S8(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_VMOVL_S8,r0,r1)
+#define _VMOVL_U8(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S8,r0,r1)
+#define _VMOVL_S16(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_VMOVL_S16,r0,r1)
+#define _VMOVL_U16(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S16,r0,r1)
+#define _VMOVL_S32(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_VMOVL_S32,r0,r1)
+#define _VMOVL_U32(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S32,r0,r1)
+/* "oi" should be the result of encode_vfp_{single,double} */
+#define _VIMMS(oi,r0)			arm_vosi(oi,r0)
+#define _VIMM(oi,r0)			arm_vodi(oi,r0)
+#define _VIMMQ(oi,r0)			arm_voqi(oi|ARM_V_Q,r0)
 /* index is multipled by four */
 #define _CC_VLDRN_F32(cc,r0,r1,i0)	arm_cc_vldst(cc,ARM_VLDR,r0,r1,i0)
 #define _VLDRN_F32(r0,r1,i0)		_CC_VLDRN_F32(ARM_CC_AL,r0,r1,i0)
