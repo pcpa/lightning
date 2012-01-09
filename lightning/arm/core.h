@@ -1355,15 +1355,26 @@ arm_allocai(jit_state_t _jit, int i0)
 __jit_inline void
 arm_prolog(jit_state_t _jit, int i0)
 {
-    _PUSH(/* arguments (should keep state and only save "i0" registers) */
-	  (1<<_R0)|(1<<_R1)|(1<<_R2)|(1<<_R3)|
-	  (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
-	  /* previous fp and return address */
-	  (1<<JIT_FP)|(1<<JIT_LR));
+    if (jit_hardfp_p()) {
+	_PUSH((1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
+	      /* previous fp and return address */
+	      (1<<JIT_FP)|(1<<JIT_LR));
+	_VPUSH_F64(_D8, 8);
+	_PUSH(/* arguments (should keep state and only save "i0" registers) */
+	      (1<<_R0)|(1<<_R1)|(1<<_R2)|(1<<_R3));
+    }
+    else
+	_PUSH(/* arguments (should keep state and only save "i0" registers) */
+	      (1<<_R0)|(1<<_R1)|(1<<_R2)|(1<<_R3)|
+	      (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
+	      /* previous fp and return address */
+	      (1<<JIT_FP)|(1<<JIT_LR));
     _MOV(JIT_FP, JIT_SP);
 
     _jitl.nextarg_get = _jitl.nextarg_getf = 0;
     _jitl.framesize = JIT_FRAMESIZE;
+    if (jit_hardfp_p())
+	_jitl.framesize += 64;
 
     /* patch alloca and stack adjustment */
     _jitl.stack = (int *)_jit->x.pc;
@@ -1646,6 +1657,8 @@ arm_ret(jit_state_t _jit)
 {
     /* do not restore arguments */
     _ADDI(JIT_SP, JIT_FP, 16);
+    if (jit_hardfp_p())
+	_VPOP_F64(_D8, 8);
     _POP(/* callee save */
 	 (1<<_R4)|(1<<_R5)|(1<<_R6)|(1<<_R7)|(1<<_R8)|(1<<_R9)|
 	 /* previous fp and return address */
