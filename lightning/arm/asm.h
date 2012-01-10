@@ -494,16 +494,6 @@ _arm_voqi(jit_state_t _jit, int oi, int r0)
     _jit_I(ARM_CC_NV|oi|(_u4(r0)<<12));
 }
 
-#define arm_vo_rr(o,r0,r1)	 _arm_cc_vo_rr(_jit,ARM_CC_NV,o,r0,r1)
-#define arm_cc_vo_rr(cc,o,r0,r1) _arm_cc_vo_rr(_jit,cc,o,r0,r1)
-__jit_inline void
-_arm_cc_vo_rr(jit_state_t _jit, int cc, int o, int r0, int r1)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0xf000f00f));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
-}
-
 #define arm_vo_ss(o,r0,r1)	 _arm_cc_vo_ss(_jit,ARM_CC_NV,o,r0,r1)
 #define arm_cc_vo_ss(cc,o,r0,r1) _arm_cc_vo_ss(_jit,cc,o,r0,r1)
 __jit_inline void
@@ -594,16 +584,6 @@ _arm_cc_vori_(jit_state_t _jit, int cc, int o, int r0, int r1)
     /* use same bit pattern, to set opc1... */
     if (r1 & 1)	o |= ARM_V_I32;	r1 >>= 1;
     _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
-}
-
-#define arm_vorrr(o,r0,r1,r2)	    _arm_cc_vorrr(_jit,ARM_CC_NV,o,r0,r1,r2)
-#define arm_cc_vorrr(cc,o,r0,r1,r2) _arm_cc_vorrr(_jit,cc,o,r0,r1,r2)
-__jit_inline void
-_arm_cc_vorrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0xf00ff00f));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
 }
 
 #define arm_vorrd(o,r0,r1,r2)	    _arm_cc_vorrd(_jit,ARM_CC_NV,o,r0,r1,r2)
