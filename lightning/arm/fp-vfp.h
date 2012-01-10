@@ -81,7 +81,12 @@ vfp_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
     else {
 	if (r0 == JIT_FPRET)
 	    r0 = _D0;
-	if ((code = encode_vfp_double(1, 0, u.i, u.i)) != -1 ||
+#if 0
+	if ((code = encode_vfp_single(32, u.i, u.i)) != -1)
+	    _VIMMS(code, r0);
+	else
+#endif
+	    if ((code = encode_vfp_double(1, 0, u.i, u.i)) != -1 ||
 	    (code = encode_vfp_double(1, 1, ~u.i, ~u.i)) != -1)
 	    _VIMM(code, r0);
 	else {
@@ -108,7 +113,12 @@ vfp_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     else {
 	if (r0 == JIT_FPRET)
 	    r0 = _D0;
-	if ((code = encode_vfp_double(1, 0, u.i[0], u.i[1])) != -1 ||
+#if 0
+	if ((code = encode_vfp_single(64, u.i[0], u.i[1])) != -1)
+	    _VIMMS(code, r0);
+	else
+#endif
+	    if ((code = encode_vfp_double(1, 0, u.i[0], u.i[1])) != -1 ||
 	    (code = encode_vfp_double(1, 1, ~u.i[0], ~u.i[1])) != -1)
 	    _VIMM(code, r0);
 	else {

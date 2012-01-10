@@ -327,6 +327,7 @@ typedef enum {
 #define ARM_VMOV_A_D	0x0e100b10
 #define ARM_VMOV_D_A	0x0e000b10
 
+#if 0
 static int
 encode_vfp_single(int size, int lo, int hi)
 {
@@ -348,6 +349,7 @@ encode_vfp_single(int size, int lo, int hi)
     }
     return (-1);
 }
+#endif
 
 static int
 encode_vfp_double(int mov, int inv, unsigned lo, unsigned hi)
@@ -463,6 +465,7 @@ success:
     return (code | mode | imm);
 }
 
+#if 0
 #define arm_vosi(oi,r0)		_arm_cc_vosi(_jit,ARM_CC_NV,oi,r0)
 #define arm_cc_vosi(cc,oi,r0)	_arm_cc_vosi(_jit,cc,oi,r0)
 __jit_inline void
@@ -475,6 +478,7 @@ _arm_cc_vosi(jit_state_t _jit, int cc, int oi, int r0)
     r0 >>= 1;
     _jit_I(cc|oi|(_u4(r0)<<12));
 }
+#endif
 
 #define arm_vodi(oi,r0)		_arm_vodi(_jit,oi,r0)
 __jit_inline void
