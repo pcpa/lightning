@@ -1118,6 +1118,12 @@ static void disassemble(void *code, int length)
 	info.mach = bfd_mach_i386_i386;
 #    endif
 #  endif
+#  if defined(__arm__)
+	/* FIXME add mapping for prolog switching to arm and possible jump
+	 * before first prolog also in arm mode */
+	if (jit_cpu.thumb)
+	    info.disassembler_options = "force-thumb";
+#  endif
 	info.print_address_func = print_address;
     }
     info.buffer = (bfd_byte *)code;
@@ -4054,6 +4060,7 @@ execute(int argc, char *argv[])
 	    case patch_kind_call:
 		jit_patch_calli((jit_insn *)patch->value,
 				(jit_insn *)label->value);
+		break;
 #endif
 	}
 	free(patch);

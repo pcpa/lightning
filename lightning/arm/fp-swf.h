@@ -158,7 +158,7 @@ swf_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	jit_movr_i(_R0, r1);
     d = (((int)__aeabi_i2f - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_i2f);
 	_BLX(JIT_FTMP);
@@ -176,7 +176,7 @@ swf_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 	jit_movr_i(_R0, r1);
     d = (((int)__aeabi_i2d - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_i2d);
 	_BLX(JIT_FTMP);
@@ -203,7 +203,7 @@ swf_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     }
     d = (((int)__aeabi_d2f - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_d2f);
 	_BLX(JIT_FTMP);
@@ -220,7 +220,7 @@ swf_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)__aeabi_f2d - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_f2d);
 	_BLX(JIT_FTMP);
@@ -269,7 +269,7 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	    _BL(d & 0x00ffffff);
+	    _BLI(d & 0x00ffffff);
 	else {
 	    jit_movi_i(JIT_FTMP, (int)i0);
 	    _BLX(JIT_FTMP);
@@ -277,7 +277,7 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     }
     d = (((int)__aeabi_f2iz - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_f2iz);
 	_BLX(JIT_FTMP);
@@ -329,7 +329,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     if (i0) {
 	d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
 	if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	    _BL(d & 0x00ffffff);
+	    _BLI(d & 0x00ffffff);
 	else {
 	    jit_movi_i(JIT_FTMP, (int)i0);
 	    _BLX(JIT_FTMP);
@@ -337,7 +337,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     }
     d = (((int)__aeabi_d2iz - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_d2iz);
 	_BLX(JIT_FTMP);
@@ -408,7 +408,7 @@ swf_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -430,7 +430,7 @@ swf_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -457,7 +457,7 @@ swf_fff(jit_state_t _jit, float (*i0)(float, float),
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -484,7 +484,7 @@ swf_ddd(jit_state_t _jit, double (*i0)(double, double),
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -522,7 +522,7 @@ swf_iff(jit_state_t _jit, int (*i0)(float, float),
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -554,7 +554,7 @@ swf_idd(jit_state_t _jit, int (*i0)(double, double),
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -604,7 +604,7 @@ swf_iunff(jit_state_t _jit, int (*i0)(float, float),
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)__aeabi_fcmpun - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_fcmpun);
 	_BLX(JIT_FTMP);
@@ -617,7 +617,7 @@ swf_iunff(jit_state_t _jit, int (*i0)(float, float),
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -651,7 +651,7 @@ swf_iundd(jit_state_t _jit, int (*i0)(double, double),
     }
     d = (((int)__aeabi_dcmpun - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)__aeabi_dcmpun);
 	_BLX(JIT_FTMP);
@@ -672,7 +672,7 @@ swf_iundd(jit_state_t _jit, int (*i0)(double, double),
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -736,7 +736,7 @@ swf_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -770,7 +770,7 @@ swf_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
     }
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, (int)i0);
 	_BLX(JIT_FTMP);
@@ -816,7 +816,7 @@ swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     i0 = (int)__aeabi_fcmpun;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, i0);
 	_BLX(JIT_FTMP);
@@ -830,7 +830,7 @@ swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     i0 = (int)__aeabi_fcmpeq;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, i0);
 	_BLX(JIT_FTMP);
@@ -878,7 +878,7 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     i0 = (int)__aeabi_dcmpun;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, i0);
 	_BLX(JIT_FTMP);
@@ -900,7 +900,7 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     i0 = (int)__aeabi_dcmpeq;
     d = ((i0 - (int)_jit->x.pc) >> 2) - 2;
     if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
+	_BLI(d & 0x00ffffff);
     else {
 	jit_movi_i(JIT_FTMP, i0);
 	_BLX(JIT_FTMP);

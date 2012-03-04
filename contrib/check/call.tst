@@ -33,8 +33,6 @@ fmtx:
 .c	"%ld != %ld\n"
 
 .code	$(1024 * 1024)
-
-	prolog 0
 	jmpi main
 
 /* just to make macros expansions easier... */
@@ -146,6 +144,7 @@ F##_fn_##F:			\
 	DEFUNF( d, f)
 
 main:
+	prolog 0
 #define FUNCALLII(N, R, A, ARG, RET, I)		\
 	prepare 1				\
 		movi_##I %v0 ARG		\

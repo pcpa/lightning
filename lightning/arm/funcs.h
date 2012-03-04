@@ -73,12 +73,7 @@ jit_get_cpu(void)
 	    while (*ptr) {
 		if (*ptr == 'T' || *ptr == 't') {
 		    ++ptr;
-		    if (*ptr == '2') {
-			jit_cpu.thumb = 2;
-			++ptr;
-		    }
-		    else
-			jit_cpu.thumb = 1;
+		    jit_cpu.thumb = 1;
 		}
 		else if (*ptr == 'E' || *ptr == 'e') {
 		    jit_cpu.extend = 1;
@@ -93,12 +88,8 @@ jit_get_cpu(void)
 		jit_cpu.vfp = strtol(ptr + 4, NULL, 0);
 	    if ((ptr = strstr(buf + 10, "neon")))
 		jit_cpu.neon = 1;
-	    if ((ptr = strstr(buf + 10, "thumb"))) {
-		if (ptr[5] && ptr[5] != ' ')
-		    jit_cpu.thumb = strtol(ptr + 5, NULL, 0);
-		else
-		    jit_cpu.thumb = 1;
-	    }
+	    if ((ptr = strstr(buf + 10, "thumb")))
+		jit_cpu.thumb = 1;
 	}
     }
     fclose(fp);

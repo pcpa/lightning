@@ -3,7 +3,7 @@ format:
 .c "%d + 1 = %d\n"
 .$($num = 5)
 
-.code	128
+.code	256
 	jmpi main
 
 incr:

@@ -126,6 +126,7 @@ static int jit_fail(const char *, const char*, int, const char *) JIT_UNUSED;
 #define _s0P(I)		((I)==0)
 #define _s8P(I)		_siP(8,I)
 #define _s16P(I)	_siP(16,I)
+#define _s20P(I)	_siP(20,I)
 #define _s24P(I)	_siP(24,I)
 #define _s32P(I)	_siP(32,I)
 #define _u8P(I)		_uiP(8,I)

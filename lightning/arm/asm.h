@@ -96,6 +96,23 @@ typedef enum {
     JIT_FPRET,	/* for abstraction of returning a float/double result */
 } jit_fpr_t;
 
+#define jit_thumb_p()			jit_cpu.thumb
+#define jit_armv6_p()			(jit_cpu.version >= 6)
+typedef union _jit_thumb_t {
+    int		i;
+    short	s[2];
+} jit_thumb_t;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#  define _jit_WW(i, j)			do { _jit_W(j); _jit_W(i); } while (0)
+#  define code2thumb(t0, t1, c0, c1)	do { t1 = c0; t0 = c1; } while (0)
+#  define thumb2code(t0, t1, c0, c1)	do { c0 = t1; c1 = t0; } while (0)
+#else
+#  define _jit_WW(i, j)			do { _jit_W(i); _jit_W(j); } while (0)
+#  define code2thumb(t0, t1, c0, c1)	do { t0 = c0; t1 = c1; } while (0)
+#  define thumb2code(t0, t1, c0, c1)	do { c0 = t0; c1 = t1; } while (0)
+#endif
+
 #define ARM_CC_EQ	0x00000000	/* Z=1 */
 #define ARM_CC_NE	0x10000000	/* Z=0 */
 #define ARM_CC_HS	0x20000000	/* C=1 */
@@ -116,79 +133,204 @@ typedef enum {
 #define ARM_CC_NV	0xf0000000	/* reserved */
 
 #define ARM_MOV		0x01a00000
+#define THUMB_MOV	    0x4600
+#define ARM_MOVWI	0x03000000
+#define THUMB_MOVI	    0x2000
+#define THUMB2_MOVI	0xf0400000
+#define THUMB2_MOVWI	0xf2400000
+#define ARM_MOVTI	0x03400000
+#define THUMB2_MOVTI	0xf2c00000
 #define ARM_MVN		0x01e00000
+#define THUMB_MVN	    0x43c0
+#define THUMB2_MVNI	0xf0600000
+#define ARM_MRC		0x0e100010
+#define ARM_MRRC	0x0c500000
+#define ARM_MRS		0x010f0000
+#define ARM_MSRI	0x03200000
+#define ARM_MSR		0x0120f000
 
 #define ARM_I		0x02000000	/* immediate */
 #define ARM_S		0x00100000	/* set flags */
 #define ARM_ADD		0x00800000
+#define THUMB_ADD	    0x1800
+#define THUMB_ADDX	    0x4400
+#define THUMB2_ADD	0xeb000000
+#define THUMB_ADDI3	    0x1c00
+#define THUMB_ADDI8	    0x3000
+#define THUMB2_ADDI	0xf1000000
+#define THUMB2_ADDWI	0xf2000000
 #define ARM_ADC		0x00a00000
+#define THUMB2_ADC	0xeb400000
+#define THUMB2_ADCI	0xf1400000
 #define ARM_SUB		0x00400000
+#define THUMB_SUB	    0x1a00
+#define THUMB2_SUB	0xeba00000
+#define THUMB_SUBI3	    0x1e00
+#define THUMB_SUBI8	    0x3800
+#define THUMB2_SUBI	0xf1a00000
+#define THUMB2_SUBWI	0xf2000000
 #define ARM_SBC		0x00c00000
+#define THUMB2_SBC	0xeb600000
+#define THUMB2_SBCI	0xf1600000
 #define ARM_RSB		0x00600000
-#define ARM_RSC		0x00e00000	/* ARMV7M */
+#define THUMB2_RSB	0xebc00000
+#define THUMB_RSBI	    0x4240
+#define THUMB2_RSBI	0xf1c00000
 #define ARM_MUL		0x00000090
-#define ARM_MLA		0x00200090
-#define ARM_UMULL	0x00800090
-#define ARM_UMLAL	0x00a00090
+#define THUMB_MUL	    0x4340
+#define THUMB2_MUL	0xfb00f000
 #define ARM_SMULL	0x00c00090
-#define ARM_SMLAL	0x00e00090
+#define THUMB2_SMULL	0xfb800000
+#define ARM_UMULL	0x00800090
+#define THUMB2_UMULL	0xfba00000
+#define THUMB2_SDIV	0xfb90f0f0
+#define THUMB2_UDIV	0xfbb0f0f0
 
 #define ARM_AND		0x00000000
+#define THUMB_AND	    0x4000
+#define THUMB2_AND	0xea000000
+#define THUMB2_ANDI	0xf0000000
 #define ARM_BIC		0x01c00000
+#define THUMB2_BIC	0xea200000
+#define THUMB2_BICI	0xf0200000
 #define ARM_ORR		0x01800000
+#define THUMB_ORR	    0x4300
+#define THUMB2_ORR	0xea400000
+#define THUMB2_ORRI	0xf0400000
 #define ARM_EOR		0x00200000
-/* << ARMv6* */
-#define ARM_REV		0x06b00f30
-#define ARM_REV16	0x06b00fb0
+#define THUMB_EOR	    0x4040
+#define THUMB2_EOR	0xea800000
+#define THUMB2_EORI	0xf0800000
+#define ARM_REV		0x06bf0f30
+#define THUMB_REV	    0xba00
+#define THUMB2_REV	0xfa90f080
+#define ARM_REV16	0x06bf0fb0
+#define THUMB_REV16	    0xba40
+#define THUMB2_REV16	0xfa90f090
 #define ARM_SXTB	0x06af0070
+#define THUMB_SXTB	    0xb240
+#define THUMB2_SXTB	0xfa4f0080
 #define ARM_UXTB	0x06ef0070
+#define THUMB_UXTB	    0xb2c0
+#define THUMB2_UXTB	0xfa5f0080
 #define ARM_SXTH	0x06bf0070
+#define THUMB_SXTH	    0xb200
+#define THUMB2_SXTH	0xfa0f0080
 #define ARM_UXTH	0x06ff0070
+#define THUMB_UXTH	    0xb280
+#define THUMB2_UXTH	0xfa1f0080
 #define ARM_XTR8	0x00000400	/* ?xt? rotate 8 bits */
 #define ARM_XTR16	0x00000800	/* ?xt? rotate 16 bits */
 #define ARM_XTR24	0x00000c00	/* ?xt? rotate 24 bits */
-/* >> ARMv6* */
 
 #define ARM_SHIFT	0x01a00000
 #define ARM_R		0x00000010	/* register shift */
 #define ARM_LSL		0x00000000
+#define THUMB_LSL	    0x4080
+#define THUMB2_LSL	0xfa00f000
+#define THUMB_LSLI	    0x0000
+#define THUMB2_LSLI	0xea4f0000
 #define ARM_LSR		0x00000020
+#define THUMB_LSR	    0x40c0
+#define THUMB2_LSR	0xfa20f000
+#define THUMB_LSRI	    0x0800
+#define THUMB2_LSRI	0xea4f0010
 #define ARM_ASR		0x00000040
+#define THUMB_ASR	    0x4100
+#define THUMB2_ASR	0xfa40f000
+#define THUMB_ASRI	    0x1000
+#define THUMB2_ASRI	0xea4f0020
 #define ARM_ROR		0x00000060
+#define ARM_PKH		0x06800010	/* v6T2,v7 */
 
 #define ARM_CMP		0x01500000
+#define THUMB_CMP	    0x4280
+#define THUMB_CMPX	    0x4500
+#define THUMB2_CMP	0xebb00000
+#define THUMB_CMPI	    0x2800
+#define THUMB2_CMPI	0xf1b00f00
 #define ARM_CMN		0x01700000
-#define ARM_TST		0x01100000	/* THUMB */
-#define ARM_TEQ		0x01300000	/* ARMV6T2 */
+#define THUMB_CMN	    0x42c0
+#define THUMB2_CMN	0xeb100000
+#define THUMB2_CMNI	0xf1100000
+#define ARM_TST		0x01100000
+#define THUMB_TST	    0x4200
+#define THUMB2_TST	0xea100000
+#define THUMB2_TSTI	0xf0100000
+#define ARM_TEQ		0x01300000
 
 /* branch */
 #define ARM_BX		0x012fff10
 #define ARM_BLX		0x012fff30
+#define THUMB_BLX	    0x4780
+#define ARM_BLXI	0xfa000000
+#define THUMB2_BLXI	0xf000c000
 #define ARM_B		0x0a000000
-#define ARM_BL		0x0b000000
+#define THUMB_CC_B	    0xd000
+#define THUMB_B		    0xe000
+#define THUMB2_CC_B	0xf0008000
+#define THUMB2_B	0xf0009000
+#define ARM_BLI		0x0b000000
+#define THUMB2_BLI	0xf000d000
 
 /* ldr/str */
 #define ARM_P		0x00800000	/* positive offset */
+#define THUMB2_P	0x00000400
+#define THUMB2_U	0x00000200
+#define THUMB2_W	0x00000100
 #define ARM_LDRSB	0x011000d0
+#define THUMB_LDRSB	    0x5600
+#define THUMB2_LDRSB	0xf9100000
 #define ARM_LDRSBI	0x015000d0
+#define THUMB2_LDRSBI	0xf9100c00
 #define ARM_LDRB	0x07500000
+#define THUMB_LDRB	    0x5c00
+#define THUMB2_LDRB	0xf8100000
 #define ARM_LDRBI	0x05500000
+#define THUMB_LDRBI	    0x7800
+#define THUMB2_LDRBI	0xf8100c00
 #define ARM_LDRSH	0x011000f0
+#define THUMB_LDRSH	    0x5e00
+#define THUMB2_LDRSH	0xf9300000
 #define ARM_LDRSHI	0x015000f0
+#define THUMB2_LDRSHI	0xf9300c00
 #define ARM_LDRH	0x011000b0
+#define THUMB_LDRH	    0x5a00
+#define THUMB2_LDRH	0xf8300000
 #define ARM_LDRHI	0x015000b0
+#define THUMB_LDRHI	    0x8800
+#define THUMB2_LDRHI	0xf8300c00
 #define ARM_LDR		0x07100000
+#define THUMB_LDR	    0x5800
+#define THUMB2_LDR	0xf8500000
 #define ARM_LDRI	0x05100000
+#define THUMB_LDRI	    0x6800
+#define THUMB_LDRISP	    0x9800
+#define THUMB2_LDRI	0xf8500c00
 #define ARM_LDRD	0x010000d0
 #define ARM_LDRDI	0x014000d0
 #define ARM_STRB	0x07400000
+#define THUMB_STRB	    0x5400
+#define THUMB2_STRB	0xf8000000
 #define ARM_STRBI	0x05400000
+#define THUMB_STRBI	    0x7000
+#define THUMB2_STRBI	0xf8000c00
 #define ARM_STRH	0x010000b0
+#define THUMB_STRH	    0x5200
+#define THUMB2_STRH	0xf8200000
 #define ARM_STRHI	0x014000b0
+#define THUMB_STRHI	    0x8000
+#define THUMB2_STRHI	0xf8200c00
 #define ARM_STR		0x07000000
+#define THUMB_STR	    0x5000
+#define THUMB2_STR	0xf8400000
 #define ARM_STRI	0x05000000
+#define THUMB_STRI	    0x6000
+#define THUMB_STRISP	    0x9000
+#define THUMB2_STRI	0xf8400c00
 #define ARM_STRD	0x010000f0
 #define ARM_STRDI	0x014000f0
+#define THUMB2_STRDI	0xe8400000
 
 /* ldm/stm */
 #define ARM_M		0x08000000
@@ -196,6 +338,29 @@ typedef enum {
 #define ARM_M_I		0x00800000	/* inc; dec if not set */
 #define ARM_M_B		0x01000000	/* before; after if not set */
 #define ARM_M_U		0x00200000	/* update Rn */
+#define THUMB2_LDM_W	0x00200000
+#define THUMB2_LDM_P	0x00008000
+#define THUMB2_LDM_M	0x00004000
+#define THUMB_LDMIA	    0xc800
+#define THUMB2_LDMIA	0xe8900000
+#define THUMB2_LDMDB	0xe9100000
+#define THUMB_PUSH	    0xb400
+#define THUMB2_PUSH	0xe92d0000
+#define THUMB_POP	    0xbc00
+#define THUMB2_POP	0xe8bd0000
+
+/* misc */
+#define ARM_CLZ		0x016f0f10
+#define ARM_PLD		0xf750f000
+#define ARM_PLDW	0xf710f000
+#define ARM_PLDI	0xf510f000
+#define ARM_PLDWI	0xf510f000
+#define ARM_PLDLI	0xf55ff000
+#define ARM_PLD_U	0x00800000
+#define ARM_PLII	0xf4d0f000
+#define ARM_PLINI	0xf450f000
+#define ARM_PLI		0xf6d0f000
+#define ARM_PLIN	0xf650f000
 
 #define FPSCR_N		0x80000000/* Negative condition code flag */
 #define FPSCR_Z		0x40000000/* Zero condition code flag */
@@ -327,30 +492,6 @@ typedef enum {
 #define ARM_VMOV_A_D	0x0e100b10
 #define ARM_VMOV_D_A	0x0e000b10
 
-#if 0
-static int
-encode_vfp_single(int size, int lo, int hi)
-{
-    /* cpd2 ... */
-    int		code;
-    assert(size == 32 || size == 64);
-    if (size == 32)
-	assert(lo == hi);
-    if (((hi & 0x3e000000) == 0x3e000000 || (hi & 0x3e000000) == 0) &&
-	((size == 32 && !(lo & 0x0007ffff)) ||
-	 (size == 64 && !(hi & 0x0000ffff) && lo == 0))) {
-	code = ARM_VMVSI;
-	if (size == 64)		code |= 1 << 8;
-	if (  hi & 0x80000000)	code |= 1 << 19;
-	if (!(hi & 0x40000000))	code |= 1 << 18;
-	code |= (hi & 0x30000000) >> 12;
-	code |= (hi & 0x0f000000) >> 24;
-	return (code);
-    }
-    return (-1);
-}
-#endif
-
 static int
 encode_vfp_double(int mov, int inv, unsigned lo, unsigned hi)
 {
@@ -462,40 +603,44 @@ success:
 	    break;
     }
     imm = ((imm & 0x80) << 17) | ((imm & 0x70) << 12) | (imm & 0x0f);
-    return (code | mode | imm);
+    code |= mode | imm;
+    if (jit_thumb_p()) {
+	if (code & 0x1000000)
+	    code |= 0xff000000;
+	else
+	    code |= 0xef000000;
+    }
+    else
+	code |= ARM_CC_NV;
+    return (code);
 }
-
-#if 0
-#define arm_vosi(oi,r0)		_arm_cc_vosi(_jit,ARM_CC_NV,oi,r0)
-#define arm_cc_vosi(cc,oi,r0)	_arm_cc_vosi(_jit,cc,oi,r0)
-__jit_inline void
-_arm_cc_vosi(jit_state_t _jit, int cc, int oi, int r0)
-{
-    assert(!(cc & 0x0fffffff));
-    assert(!(oi  & 0x0000f000));
-    if (oi & (1 << 8))	assert(!(r0 & 1));
-    if (r0 & 1)		oi |= ARM_V_D;
-    r0 >>= 1;
-    _jit_I(cc|oi|(_u4(r0)<<12));
-}
-#endif
 
 #define arm_vodi(oi,r0)		_arm_vodi(_jit,oi,r0)
 __jit_inline void
 _arm_vodi(jit_state_t _jit, int oi, int r0)
 {
+    jit_thumb_t	thumb;
     assert(!(oi  & 0x0000f000));
     assert(!(r0 & 1));	r0 >>= 1;
-    _jit_I(ARM_CC_NV|oi|(_u4(r0)<<12));
+    thumb.i = oi|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_voqi(oi,r0)		_arm_voqi(_jit,oi,r0)
 __jit_inline void
 _arm_voqi(jit_state_t _jit, int oi, int r0)
 {
+    jit_thumb_t	thumb;
     assert(!(oi  & 0x0000f000));
     assert(!(r0 & 3));	r0 >>= 1;
-    _jit_I(ARM_CC_NV|oi|(_u4(r0)<<12));
+    thumb.i = oi|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vo_ss(o,r0,r1)	 _arm_cc_vo_ss(_jit,ARM_CC_NV,o,r0,r1)
@@ -503,11 +648,16 @@ _arm_voqi(jit_state_t _jit, int oi, int r0)
 __jit_inline void
 _arm_cc_vo_ss(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     if (r0 & 1)	o |= ARM_V_D;	r0 >>= 1;
     if (r1 & 1)	o |= ARM_V_M;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+    thumb.i = cc|o|(_u4(r0)<<12)|_u4(r1);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vo_dd(o,r0,r1)	 _arm_cc_vo_dd(_jit,ARM_CC_NV,o,r0,r1)
@@ -515,11 +665,16 @@ _arm_cc_vo_ss(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vo_dd(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     assert(!(r0 & 1) && !(r1 & 1));
     r0 >>= 1;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+    thumb.i = cc|o|(_u4(r0)<<12)|_u4(r1);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vo_qd(o,r0,r1)	 _arm_cc_vo_qd(_jit,ARM_CC_NV,o,r0,r1)
@@ -527,11 +682,16 @@ _arm_cc_vo_dd(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vo_qd(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     assert(!(r0 & 3) && !(r1 & 1));
     r0 >>= 1;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+    thumb.i = cc|o|(_u4(r0)<<12)|_u4(r1);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vo_qq(o,r0,r1)	 _arm_cc_vo_qq(_jit,ARM_CC_NV,o,r0,r1)
@@ -539,11 +699,16 @@ _arm_cc_vo_qd(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vo_qq(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     assert(!(r0 & 3) && !(r1 & 3));
     r0 >>= 1;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+    thumb.i = cc|o|(_u4(r0)<<12)|_u4(r1);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vorr_(o,r0,r1)	 _arm_cc_vorr_(_jit,ARM_CC_NV,o,r0,r1)
@@ -551,9 +716,14 @@ _arm_cc_vo_qq(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vorr_(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vors_(o,r0,r1)	 _arm_cc_vors_(_jit,ARM_CC_NV,o,r0,r1)
@@ -561,10 +731,15 @@ _arm_cc_vorr_(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vors_(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     if (r1 & 1)	o |= ARM_V_N;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vorv_(o,r0,r1)	 _arm_cc_vorv_(_jit,ARM_CC_NV,o,r0,r1)
@@ -572,10 +747,15 @@ _arm_cc_vors_(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vorv_(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     if (r1 & 1)	cc |= ARM_V_M;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vori_(o,r0,r1)	 _arm_cc_vori_(_jit,ARM_CC_NV,o,r0,r1)
@@ -583,11 +763,16 @@ _arm_cc_vorv_(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vori_(jit_state_t _jit, int cc, int o, int r0, int r1)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
     /* use same bit pattern, to set opc1... */
     if (r1 & 1)	o |= ARM_V_I32;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vorrd(o,r0,r1,r2)	    _arm_cc_vorrd(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -595,11 +780,16 @@ _arm_cc_vori_(jit_state_t _jit, int cc, int o, int r0, int r1)
 __jit_inline void
 _arm_cc_vorrd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     assert(!(r2 & 1));
     r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_vosss(o,r0,r1,r2)	    _arm_cc_vosss(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -607,12 +797,17 @@ _arm_cc_vorrd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 __jit_inline void
 _arm_cc_vosss(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     if (r0 & 1)	o |= ARM_V_D;	r0 >>= 1;
     if (r1 & 1)	o |= ARM_V_N;	r1 >>= 1;
     if (r2 & 1)	o |= ARM_V_M;	r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_voddd(o,r0,r1,r2)	    _arm_cc_voddd(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -620,11 +815,16 @@ _arm_cc_vosss(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 __jit_inline void
 _arm_cc_voddd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     assert(!(r0 & 1) && !(r1 & 1) && !(r2 & 1));
     r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_voqdd(o,r0,r1,r2)	    _arm_cc_voqdd(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -632,11 +832,16 @@ _arm_cc_voddd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 __jit_inline void
 _arm_cc_voqdd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     assert(!(r0 & 3) && !(r1 & 1) && !(r2 & 1));
     r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_voqqd(o,r0,r1,r2)	    _arm_cc_voqqd(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -644,11 +849,16 @@ _arm_cc_voqdd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 __jit_inline void
 _arm_cc_voqqd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     assert(!(r0 & 3) && !(r1 & 3) && !(r2 & 1));
     r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_voqqq(o,r0,r1,r2)	    _arm_cc_voqqq(_jit,ARM_CC_NV,o,r0,r1,r2)
@@ -656,17 +866,23 @@ _arm_cc_voqqd(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 __jit_inline void
 _arm_cc_voqqq(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff00f));
     assert(!(r0 & 3) && !(r1 & 3) && !(r2 & 3));
     r0 >>= 1;	r1 >>= 1;	r2 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_cc_vldst(cc,o,r0,r1,i0) _arm_cc_vldst(_jit,cc,o,r0,r1,i0)
 __jit_inline void
 _arm_cc_vldst(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
+    jit_thumb_t	thumb;
     /* i0 << 2 is byte offset */
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff0ff));
@@ -675,13 +891,18 @@ _arm_cc_vldst(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 	o |= ARM_V_D;
     }
     r0 >>= 1;
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u8(i0));
+    thumb.i = cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u8(i0);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 #define arm_cc_vorsl(cc,o,r0,r1,i0) _arm_cc_vorsl(_jit,cc,o,r0,r1,i0)
 __jit_inline void
 _arm_cc_vorsl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 {
+    jit_thumb_t	thumb;
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00ff0ff));
     /* save i0 double precision registers */
@@ -689,7 +910,11 @@ _arm_cc_vorsl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
     assert(i0 && !(i0 & 1) && r1 + i0 <= 32);
     /* if (r1 & 1) cc & ARM_V_F64 must be false */
     if (r1 & 1)	o |= ARM_V_D;	r1 >>= 1;
-    _jit_I(cc|o|(_u4(r0)<<16)|(_u4(r1)<<12)|_u8(i0));
+    thumb.i = cc|o|(_u4(r0)<<16)|(_u4(r1)<<12)|_u8(i0);
+    if (jit_thumb_p())
+	_jit_WW(thumb.s[0], thumb.s[1]);
+    else
+	_jit_I(thumb.i);
 }
 
 /***********************************************************************
@@ -966,8 +1191,7 @@ _arm_cc_vorsl(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
 #define _VMOVL_U16(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S16,r0,r1)
 #define _VMOVL_S32(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_VMOVL_S32,r0,r1)
 #define _VMOVL_U32(r0,r1)		arm_vo_qd(ARM_VMOVL_I|ARM_V_U|ARM_VMOVL_S32,r0,r1)
-/* "oi" should be the result of encode_vfp_{single,double} */
-#define _VIMMS(oi,r0)			arm_vosi(oi,r0)
+/* "oi" should be the result of encode_vfp_double */
 #define _VIMM(oi,r0)			arm_vodi(oi,r0)
 #define _VIMMQ(oi,r0)			arm_voqi(oi|ARM_V_Q,r0)
 /* index is multipled by four */
@@ -1002,42 +1226,52 @@ encode_arm_immediate(unsigned int v)
     return (-1);
 }
 
-#define arm_cc_orrr(cc,o,r0,r1,r2)  _arm_cc_orrr(_jit,cc,o,r0,r1,r2)
+#define corrr(cc,o,rn,rd,rm)		_corrr(_jit,cc,o,rn,rd,rm)
 __jit_inline void
-_arm_cc_orrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2)
+_corrr(jit_state_t _jit, int cc, int o, int rn, int rd, int rm)
 {
     assert(!(cc & 0x0fffffff));
-    assert(!(o  & 0xf00fff0f));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u4(r2));
+    assert(!(o & 0xf00fff0f));
+    _jit_I(cc|o|(_u4(rn)<<16)|(_u4(rd)<<12)|_u4(rm));
 }
 
-#define arm_cc_orri(cc,o,r0,r1,i0)  _arm_cc_orri(_jit,cc,o,r0,r1,i0)
+#define corri(cc,o,rn,rd,im)		_corri(_jit,cc,o,rn,rd,im)
 __jit_inline void
-_arm_cc_orri(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
+_corri(jit_state_t _jit, int cc, int o, int rn, int rd, int im)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00fffff));
-    assert(!(i0 & 0xfffff000));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|_u12(i0));
+    assert(!(im & 0xfffff000));
+    _jit_I(cc|o|(_u4(rn)<<16)|(_u4(rd)<<12)|_u12(im));
 }
 
-#define arm_cc_orri8(cc,o,r0,r1,i0) _arm_cc_orri8(_jit,cc,o,r0,r1,i0)
+#define coriw(cc,o,rd,im)			_coriw(_jit,cc,o,rd,im)
 __jit_inline void
-_arm_cc_orri8(jit_state_t _jit, int cc, int o, int r0, int r1, int i0)
+_coriw(jit_state_t _jit, int cc, int o, int rd, int im)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00fffff));
+    assert(!(im & 0xffff0000));
+    _jit_I(cc|o|((im&0xf000)<<4)|(_u4(rd)<<12)|(im&0xfff));
+}
+
+#define corri8(cc,o,rn,rt,im)	_corri8(_jit,cc,o,rn,rt,im)
+__jit_inline void
+_corri8(jit_state_t _jit, int cc, int o, int rn, int rt, int im)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00fff0f));
-    assert(!(i0 & 0xffffff00));
-    _jit_I(cc|o|(_u4(r1)<<16)|(_u4(r0)<<12)|((i0&0xf0)<<4)|(i0&0x0f));
+    assert(!(im & 0xffffff00));
+    _jit_I(cc|o|(_u4(rn)<<16)|(_u4(rt)<<12)|((im&0xf0)<<4)|(im&0x0f));
 }
 
-#define arm_cc_orrrr(cc,o,r0,r1,r2,r3) _arm_cc_orrrr(_jit,cc,o,r0,r1,r2,r3)
+#define corrrr(cc,o,rh,rl,rm,rn) _corrrr(_jit,cc,o,rh,rl,rm,rn)
 __jit_inline void
-_arm_cc_orrrr(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int r3)
+_corrrr(jit_state_t _jit, int cc, int o, int rh, int rl, int rm, int rn)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00fff0f));
-    _jit_I(cc|o|(_u4(r0)<<16)|(_u4(r1)<<12)|(_u4(r2)<<8)|_u4(r3));
+    _jit_I(cc|o|(_u4(rh)<<16)|(_u4(rl)<<12)|(_u4(rm)<<8)|_u4(rn));
 }
 
 #define arm_cc_srrri(cc,o,r0,r1,r2,i0) _arm_cc_srrri(_jit,cc,o,r0,r1,r2,i0)
@@ -1049,347 +1283,852 @@ _arm_cc_srrri(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
     _jit_I(cc|o|(_u4(r0)<<12)|(_u4(r1)<<16)|(i0<<7)|_u4(r2));
 }
 
-#define arm_cc_shift(cc,o,r0,r1,r2,i0) _arm_cc_shift(_jit,cc,o,r0,r1,r2,i0)
+#define cshift(cc,o,rd,rm,rn,im)	_cshift(_jit,cc,o,rd,rm,rn,im)
 __jit_inline void
-_arm_cc_shift(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
+_cshift(jit_state_t _jit, int cc, int o, int rd, int rm, int rn, int im)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xffe0ff8f));
-    assert(((_u4(r2)<<8)&(i0<<7)) == 0);
-    _jit_I(cc|ARM_SHIFT|o|(_u4(r0)<<12)|(_u4(r2)<<8)|(i0<<7)|_u4(r1));
+    assert(((_u4(rm)<<8)&(im<<7)) == 0);
+    _jit_I(cc|ARM_SHIFT|o|(_u4(rd)<<12)|(_u4(rm)<<8)|(im<<7)|_u4(rn));
 }
 
-#define arm_cc_b(cc,o,i0)	_arm_cc_b(_jit,cc,o,i0)
+#define cb(cc,o,im)			_cb(_jit,cc,o,im)
 __jit_inline void
-_arm_cc_b(jit_state_t _jit, int cc, int o, int i0)
+_cb(jit_state_t _jit, int cc, int o, int im)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf0ffffff));
-    _jit_I(cc|o|_u24(i0));
+    _jit_I(cc|o|_u24(im));
 }
 
-#define arm_cc_bx(cc,o,r0)	_arm_cc_bx(_jit,cc,o,r0)
+#define cbx(cc,o,rm)			_cbx(_jit,cc,o,rm)
 __jit_inline void
-_arm_cc_bx(jit_state_t _jit, int cc, int o, int r0)
+_cbx(jit_state_t _jit, int cc, int o, int rm)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000000f));
-    _jit_I(cc|o|_u4(r0));
+    _jit_I(cc|o|_u4(rm));
 }
 
-#define arm_cc_orl(cc,o,r0,i0)	_arm_cc_orl(_jit,cc,o,r0,i0)
+#define corl(cc,o,r0,i0)		_corl(_jit,cc,o,r0,i0)
 __jit_inline void
-_arm_cc_orl(jit_state_t _jit, int cc, int o, int r0, int i0)
+_corl(jit_state_t _jit, int cc, int o, int r0, int i0)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf00fffff));
     _jit_I(cc|o|(_u4(r0)<<16)|_u16(i0));
 }
 
-#define arm6_cc_orr(cc,o,r0,r1)	_arm6_cc_orr(_jit,cc,o,r0,r1)
+#define c6orr(cc,o,rd,rm)		_c6orr(_jit,cc,o,rd,rm)
 __jit_inline void
-_arm6_cc_orr(jit_state_t _jit, int cc, int o, int r0, int r1)
+_c6orr(jit_state_t _jit, int cc, int o, int rd, int rm)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000f00f));
-    _jit_I(cc|o|(_u4(r0)<<12)|_u4(r1));
+    _jit_I(cc|o|(_u4(rd)<<12)|_u4(rm));
 }
 
-#define _CC_MOV(cc,r0,r1)	arm_cc_orrr(cc,ARM_MOV,r0,0,r1)
-#define _MOV(r0,r1)		_CC_MOV(ARM_CC_AL,r0,r1)
-#define _CC_MOVI(cc,r0,i0)	arm_cc_orri(cc,ARM_MOV|ARM_I,r0,0,i0)
-#define _MOVI(r0,i0)		_CC_MOVI(ARM_CC_AL,r0,i0)
-#define _CC_MVN(cc,r0,r1)	arm_cc_orrr(cc,ARM_MVN,r0,0,r1)
-#define _MVN(r0, r1)		_CC_MVN(ARM_CC_AL,r0,r1)
-#define _CC_MVNI(cc,r0,i0)	arm_cc_orri(cc,ARM_MVN|ARM_I,r0,0,i0)
-#define _MVNI(r0,i0)		_CC_MVNI(ARM_CC_AL,r0,i0)
-#define _CC_NOT(cc,r0,r1)	_CC_MVN(cc,r0,r1)
-#define _NOT(r0, r1)		_MVN(r0, r1)
+#define arm_cc_pkh(cc,o,rn,rd,rm,im)	_arm_cc_pkh(_jit,cc,o,rn,rd,rm,im)
+__jit_inline void
+_arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(!(o  & 0xf00ff00f));
+    _jit_I(cc|o|(_u4(rn)<<16)|(_u4(rd)<<12)|(_u5(im)<<7)|_u4(rm));
+}
+
+
+#define _CC_MOV(cc,rd,rm)	corrr(cc,ARM_MOV,0,rd,rm)
+#define _MOV(rd,rm)		_CC_MOV(ARM_CC_AL,rd,rm)
+#define T1_MOV(rd,rm)		_jit_W(THUMB_MOV|((_u4(rd)&8)<<4)|(_u4(rm)<<3)|(rd&7))
+#define T2_MOV(rd,rm)		T2_ORR(rd,_R15,rm)
+#define _CC_MOVI(cc,rd,im)	corri(cc,ARM_MOV|ARM_I,0,rd,im)
+#define _MOVI(rd,im)		_CC_MOVI(ARM_CC_AL,rd,im)
+#define _CC_MOVWI(cc,rd,im)	coriw(cc,ARM_MOVWI,rd,im)
+#define _MOVWI(rd,im)		_CC_MOVWI(ARM_CC_AL,rd,im)
+#define T1_MOVI(rd,im)		_jit_W(THUMB_MOVI|(_u3(rd)<<8)|_u8(im))
+#define T2_MOVI(rd,im)		torri(THUMB2_MOVI,_R15,rd,im)
+#define T2_MOVWI(rd,im)		toriw(THUMB2_MOVWI,rd,im)
+#define _CC_MOVTI(cc,rd,im)	coriw(cc,ARM_MOVTI,rd,im)
+#define _MOVTI(rd,im)		_CC_MOVTI(ARM_CC_AL,rd,im)
+#define T2_MOVTI(rd,im)		toriw(THUMB2_MOVTI,rd,im)
+#define _CC_MVN(cc,rd,rm)	corrr(cc,ARM_MVN,0,rd,rm)
+#define _MVN(rd,rm)		_CC_MVN(ARM_CC_AL,rd,rm)
+#define T1_MVN(rd,rm)		_jit_W(THUMB_MVN|(_u3(rm)<<3)|_u3(rd))
+#define T2_MVN(rd,rm)		T2_ORR(rd,_R15,rm)
+#define _CC_MVNI(cc,rd,im)	corri(cc,ARM_MVN|ARM_I,0,rd,im)
+#define _MVNI(rd,im)		_CC_MVNI(ARM_CC_AL,rd,im)
+#define T2_MVNI(rd,im)		torri(THUMB2_MVNI,_R15,rd,im)
+#define _CC_NOT(cc,rd,rm)	_CC_MVN(cc,rd,rm)
+#define _NOT(rd,rm)		_CC_NOT(ARM_CC_AL,rd,rm)
+#define T1_NOT(rd,rm)		T1_MVN(rd,rm)
+#define T2_NOT(rd,rm)		T2_MVN(rd,rm)
 #define _NOP()			_MOV(_R0, _R0)
+#define T1_NOP()		_jit_W(0xbf00)
 
-#define _CC_ADD(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_ADD,r0,r1,r2)
-#define _ADD(r0,r1,r2)		_CC_ADD(ARM_CC_AL,r0,r1,r2)
-#define _CC_ADDI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_ADD|ARM_I,r0,r1,i0)
-#define _ADDI(r0,r1,i0)		_CC_ADDI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ADDS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_ADD|ARM_S,r0,r1,r2)
-#define _ADDS(r0,r1,r2)		_CC_ADDS(ARM_CC_AL,r0,r1,r2)
-#define _CC_ADDSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_ADD|ARM_S|ARM_I,r0,r1,i0)
-#define _ADDSI(r0,r1,i0)	_CC_ADDSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ADC(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_ADC,r0,r1,r2)
-#define _ADC(r0,r1,r2)		_CC_ADC(ARM_CC_AL,r0,r1,r2)
-#define _CC_ADCI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_ADC|ARM_I,r0,r1,i0)
-#define _ADCI(r0,r1,i0)		_CC_ADCI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ADCS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_ADC|ARM_S,r0,r1,r2)
-#define _ADCS(r0,r1,r2)		_CC_ADCS(ARM_CC_AL,r0,r1,r2)
-#define _CC_ADCSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_ADC|ARM_S|ARM_I,r0,r1,i0)
-#define _ADCSI(r0,r1,i0)	_CC_ADCSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_SUB(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_SUB,r0,r1,r2)
-#define _SUB(r0,r1,r2)		_CC_SUB(ARM_CC_AL,r0,r1,r2)
-#define _CC_SUBI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_SUB|ARM_I,r0,r1,i0)
-#define _SUBI(r0,r1,i0)		_CC_SUBI(ARM_CC_AL,r0,r1,i0)
-#define _CC_SUBS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_SUB|ARM_S,r0,r1,r2)
-#define _SUBS(r0,r1,r2)		_CC_SUBS(ARM_CC_AL,r0,r1,r2)
-#define _CC_SUBSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_SUB|ARM_S|ARM_I,r0,r1,i0)
-#define _SUBSI(r0,r1,i0)	_CC_SUBSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_SBC(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_SBC,r0,r1,r2)
-#define _SBC(r0,r1,r2)		_CC_SBC(ARM_CC_AL,r0,r1,r2)
-#define _CC_SBCI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_SBC|ARM_I,r0,r1,i0)
-#define _SBCI(r0,r1,i0)		_CC_SBCI(ARM_CC_AL,r0,r1,i0)
-#define _CC_SBCS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_SBC|ARM_S,r0,r1,r2)
-#define _SBCS(r0,r1,r2)		_CC_SBCS(ARM_CC_AL,r0,r1,r2)
-#define _CC_SBCSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_SBC|ARM_S|ARM_I,r0,r1,i0)
-#define _SBCSI(r0,r1,i0)	_CC_SBCSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_RSB(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_RSB,r0,r1,r2)
-#define _RSB(r0,r1,r2)		_CC_RSB(ARM_CC_AL,r0,r1,r2)
-#define _CC_RSBI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_RSB|ARM_I,r0,r1,i0)
-#define _RSBI(r0,r1,i0)		_CC_RSBI(ARM_CC_AL,r0,r1,i0)
+#define _CC_ADD(cc,rd,rn,rm)	corrr(cc,ARM_ADD,rn,rd,rm)
+#define _ADD(rd,rn,rm)		_CC_ADD(ARM_CC_AL,rd,rn,rm)
+#define T1_ADD(rd,rn,rm)	_jit_W(THUMB_ADD|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rd))
+#define T1_ADDX(rdn,rm)		_jit_W(THUMB_ADDX|((_u4(rdn)&8)<<4)|(_u4(rm)<<3)|(rdn&7))
+#define T2_ADD(rd,rn,rm)	torrr(THUMB2_ADD,rn,rd,rm)
+#define _CC_ADDI(cc,rd,rn,im)	corri(cc,ARM_ADD|ARM_I,rn,rd,im)
+#define _ADDI(rd,rn,im)		_CC_ADDI(ARM_CC_AL,rd,rn,im)
+#define T1_ADDI3(rd,rn,im)	_jit_W(THUMB_ADDI3|(_u3(im)<<6)|(_u3(rn)<<3)|_u3(rd))
+#define T1_ADDI8(rdn,im)	_jit_W(THUMB_ADDI8|(_u3(rdn)<<8)|_u8(im))
+#define T2_ADDI(rd,rn,im)	torri(THUMB2_ADDI,rn,rd,im)
+#define T2_ADDWI(rd,rn,im)	torri(THUMB2_ADDWI,rn,rd,im)
+#define _CC_ADDS(cc,rd,rn,rm)	corrr(cc,ARM_ADD|ARM_S,rn,rd,rm)
+#define _ADDS(rd,rn,rm)		_CC_ADDS(ARM_CC_AL,rd,rn,rm)
+#define T2_ADDS(rd,rn,rm)	torrr(THUMB2_ADD|ARM_S,rn,rd,rm)
+#define _ADDSI(rd,rn,im)	corri(ARM_CC_AL,ARM_ADD|ARM_S|ARM_I,rn,rd,im)
+#define T2_ADDSI(rd,rn,im)	torri(THUMB2_ADDI|ARM_S,rn,rd,im)
+#define _CC_ADC(cc,rd,rn,rm)	corrr(cc,ARM_ADC,rn,rd,rm)
+#define _ADC(rd,rn,rm)		_CC_ADC(ARM_CC_AL,rd,rn,rm)
+#define T2_ADC(rd,rn,rm)	torrr(THUMB2_ADC,rn,rd,rm)
+#define _CC_ADCI(cc,rd,rn,im)	corri(cc,ARM_ADC|ARM_I,rn,rd,im)
+#define _ADCI(rd,rn,im)		_CC_ADCI(ARM_CC_AL,rd,rn,im)
+#define T2_ADCI(rd,rn,im)	torri(THUMB2_ADCI,rn,rd,im)
+#define _CC_ADCS(cc,rd,rn,rm)	corrr(cc,ARM_ADC|ARM_S,rn,rd,rm)
+#define _ADCS(rd,rn,rm)		_CC_ADCS(ARM_CC_AL,rd,rn,rm)
+#define T2_ADCS(rd,rn,rm)	torrr(THUMB2_ADC|ARM_S,rn,rd,rm)
+#define _CC_ADCSI(cc,rd,rn,im)	corri(cc,ARM_ADC|ARM_S|ARM_I,rn,rd,im)
+#define _ADCSI(rd,rn,im)	_CC_ADCSI(ARM_CC_AL,rd,rn,im)
+#define T2_ADCSI(rd,rn,im)	torri(THUMB2_ADCI|ARM_S,rn,rd,im)
+#define _CC_SUB(cc,rd,rn,rm)	corrr(cc,ARM_SUB,rn,rd,rm)
+#define _SUB(rd,rn,rm)		_CC_SUB(ARM_CC_AL,rd,rn,rm)
+#define T1_SUB(rd,rn,rm)	_jit_W(THUMB_SUB|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rd))
+#define T2_SUB(rd,rn,rm)	torrr(THUMB2_SUB,rn,rd,rm)
+#define _CC_SUBI(cc,rd,rn,im)	corri(cc,ARM_SUB|ARM_I,rn,rd,im)
+#define _SUBI(rd,rn,im)		_CC_SUBI(ARM_CC_AL,rd,rn,im)
+#define T1_SUBI3(rd,rn,im)	_jit_W(THUMB_SUBI3|(_u3(im)<<6)|(_u3(rn)<<3)|_u3(rd))
+#define T1_SUBI8(rdn,im)	_jit_W(THUMB_SUBI8|(_u3(rdn)<<8)|_u8(im))
+#define T2_SUBI(rd,rn,im)	torri(THUMB2_SUBI,rn,rd,im)
+#define T2_SUBWI(rd,rn,im)	torri(THUMB2_SUBWI,rn,rd,im)
+#define _CC_SUBS(cc,rd,rn,rm)	corrr(cc,ARM_SUB|ARM_S,rn,rd,rm)
+#define _SUBS(rd,rn,rm)		_CC_SUBS(ARM_CC_AL,rd,rn,rm)
+#define T2_SUBS(rd,rn,rm)	torrr(THUMB2_SUB|ARM_S,rn,rd,rm)
+#define _CC_SUBSI(cc,rd,rn,im)	corri(cc,ARM_SUB|ARM_S|ARM_I,rn,rd,im)
+#define _SUBSI(rd,rn,im)	_CC_SUBSI(ARM_CC_AL,rd,rn,im)
+#define T2_SUBSI(rd,rn,im)	torri(THUMB2_SUBI|ARM_S,rn,rd,im)
+#define _CC_SBC(cc,rd,rn,rm)	corrr(cc,ARM_SBC,rn,rd,rm)
+#define _SBC(rd,rn,rm)		_CC_SBC(ARM_CC_AL,rd,rn,rm)
+#define T2_SBC(rd,rn,rm)	torrr(THUMB2_SBC,rn,rd,rm)
+#define _CC_SBCI(cc,rd,rn,im)	corri(cc,ARM_SBC|ARM_I,rn,rd,im)
+#define _SBCI(rd,rn,im)		_CC_SBCI(ARM_CC_AL,rd,rn,im)
+#define T2_SBCI(rd,rn,im)	torri(THUMB2_SBCI,rn,rd,im)
+#define _CC_SBCS(cc,rd,rn,rm)	corrr(cc,ARM_SBC|ARM_S,rn,rd,rm)
+#define _SBCS(rd,rn,rm)		_CC_SBCS(ARM_CC_AL,rd,rn,rm)
+#define T2_SBCS(rd,rn,rm)	torrr(THUMB2_SBC|ARM_S,rn,rd,rm)
+#define _CC_SBCSI(cc,rd,rn,im)	corri(cc,ARM_SBC|ARM_S|ARM_I,rn,rd,im)
+#define _SBCSI(rd,rn,im)	_CC_SBCSI(ARM_CC_AL,rd,rn,im)
+#define T2_SBCSI(rd,rn,im)	torri(THUMB2_SBCI|ARM_S,rn,rd,im)
+#define _CC_RSB(cc,rd,rn,rm)	corrr(cc,ARM_RSB,rn,rd,rm)
+#define _RSB(rd,rn,rm)		_CC_RSB(ARM_CC_AL,rd,rn,rm)
+#define T2_RSB(rd,rn,rm)	torrr(THUMB2_RSB,rn,rd,rm)
+#define _CC_RSBI(cc,rd,rn,im)	corri(cc,ARM_RSB|ARM_I,rn,rd,im)
+#define _RSBI(rd,rn,im)		_CC_RSBI(ARM_CC_AL,rd,rn,im)
+#define T1_RSBI(rd,rn)		_jit_W(THUMB_RSBI|(_u3(rn)<<3)|_u3(rd))
+#define T2_RSBI(rd,rn,im)	torri(THUMB2_RSBI,rn,rd,im)
 
-/* >> ARMV7M */
-#define _CC_RSC(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_RSC,r0,r1,r2)
-#define _RSC(r0,r1,r2)		_CC_RSC(ARM_CC_AL,r0,r1,r2)
-#define _CC_RSCI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_RSC|ARM_I,r0,r1,i0)
-#define _RSCI(r0,r1,i0)		_CC_RSCI(ARM_CC_AL,r0,r1,i0)
-/* << ARMV7M */
+#define _CC_MUL(cc,rl,rn,rm)	corrrr(cc,ARM_MUL,rl,0,rm,rn)
+#define _MUL(rl,rn,rm)		_CC_MUL(ARM_CC_AL,rl,rn,rm)
+#define T1_MUL(rdm,rn)		_jit_W(THUMB_MUL|(_u3(rn)<<3)|_u3(rdm))
+#define T2_MUL(rd,rn,rm)	torrr(THUMB2_MUL,rn,rd,rm)
+#define _CC_SMULL(cc,rl,rh,rn,rm)	corrrr(cc,ARM_SMULL,rh,rl,rm,rn)
+#define _SMULL(rl,rh,rn,rm)	_CC_SMULL(ARM_CC_AL,rl,rh,rn,rm)
+#define T2_SMULL(rl,rh,rn,rm)	torrrr(THUMB2_SMULL,rn,rl,rh,rm)
+#define _CC_UMULL(cc,rl,rh,rn,rm)	corrrr(cc,ARM_UMULL,rh,rl,rm,rn)
+#define _UMULL(rl,rh,rn,rm)	_CC_UMULL(ARM_CC_AL,rl,rh,rn,rm)
+#define T2_UMULL(rl,rh,rn,rm)	torrrr(THUMB2_UMULL,rn,rl,rh,rm)
+#define T2_SDIV(rd,rn,rm)	torrr(THUMB2_SDIV,rn,rd,rm)
+#define T2_UDIV(rd,rn,rm)	torrr(THUMB2_UDIV,rn,rd,rm)
 
-#define _CC_MUL(cc,r0,r1,r2)	  arm_cc_orrrr(cc,ARM_MUL,r0,0,r2,r1)
-#define _MUL(r0,r1,r2)		  _CC_MUL(ARM_CC_AL,r0,r1,r2)
-#define _CC_MLA(cc,r0,r1,r2,r3)	  arm_cc_orrrr(cc,ARM_MLA,r0,r3,r2,r1)
-#define _MLA(r0,r1,r2,r3)	  _CC_MLA(ARM_CC_AL,r0,r1,r2,r3)
-#define _CC_UMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(cc,ARM_UMULL,r1,r0,r3,r2)
-#define _UMULL(r0,r1,r2,r3)	  _CC_UMULL(ARM_CC_AL,r0,r1,r2,r3)
-#define _CC_UMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(cc,ARM_UMLAL,r1,r0,r3,r2)
-#define _UMLAL(r0,r1,r2,r3)	  _CC_UMLAL(ARM_CC_AL,r0,r1,r2,r3)
-#define _CC_SMULL(cc,r0,r1,r2,r3) arm_cc_orrrr(cc,ARM_SMULL,r1,r0,r3,r2)
-#define _SMULL(r0,r1,r2,r3)	  _CC_SMULL(ARM_CC_AL,r0,r1,r2,r3)
-#define _CC_SMLAL(cc,r0,r1,r2,r3) arm_cc_orrrr(cc,ARM_SMLAL,r1,r0,r3,r2)
-#define _SMLAL(r0,r1,r2,r3)	  _CC_SMLAL(ARM_CC_AL,r0,r1,r2,r3)
-
-#define _CC_AND(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_AND,r0,r1,r2)
-#define _AND(r0,r1,r2)		_CC_AND(ARM_CC_AL,r0,r1,r2)
-#define _CC_AND_SI(cc,r0,r1,r2,sh,im)					\
-    arm_cc_srrri(cc,ARM_AND|sh,r0,r1,r2,im)
-#define _AND_SI(r0,r1,r2,sh,im)	_CC_AND_SI(ARM_CC_AL,r0,r1,r2,sh,im)
-#define _CC_ANDI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_AND|ARM_I,r0,r1,i0)
-#define _ANDI(r0,r1,i0)		_CC_ANDI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ANDS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_AND|ARM_S,r0,r1,r2)
-#define _ANDS(r0,r1,r2)		_CC_ANDS(ARM_CC_AL,r0,r1,r2)
-#define _CC_ANDSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_AND|ARM_S|ARM_I,r0,r1,i0)
-#define _ANDSI(r0,r1,i0)	_CC_ANDSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_BIC(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_BIC,r0,r1,r2)
-#define _BIC(r0,r1,r2)		_CC_BIC(ARM_CC_AL,r0,r1,r2)
-#define _CC_BIC_SI(cc,r0,r1,r2,sh,im)					\
-    arm_cc_srrri(cc,ARM_BIC|sh,r0,r1,r2,im)
-#define _BIC_SI(r0,r1,r2,sh,im)	_CC_BIC_SI(ARM_CC_AL,r0,r1,r2,sh,im)
-#define _CC_BICI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_BIC|ARM_I,r0,r1,i0)
-#define _BICI(r0,r1,i0)		_CC_BICI(ARM_CC_AL,r0,r1,i0)
-#define _CC_BICS(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_BIC|ARM_S,r0,r1,r2)
-#define _BICS(r0,r1,r2)		_CC_BICS(ARM_CC_AL,r0,r1,r2)
-#define _CC_BICSI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_BIC|ARM_S|ARM_I,r0,r1,i0)
-#define _BICSI(r0,r1,i0)	_CC_BICSI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ORR(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_ORR,r0,r1,r2)
-#define _ORR(r0,r1,r2)		_CC_ORR(ARM_CC_AL,r0,r1,r2)
+#define _CC_AND(cc,rd,rn,rm)	corrr(cc,ARM_AND,rn,rd,rm)
+#define _AND(rd,rn,rm)		_CC_AND(ARM_CC_AL,rd,rn,rm)
+#define T1_AND(rdn,rm)		_jit_W(THUMB_AND|(_u3(rm)<<3)|_u3(rdn))
+#define T2_AND(rd,rn,rm)	torrr(THUMB2_AND,rn,rd,rm)
+#define _CC_ANDI(cc,rd,rn,im)	corri(cc,ARM_AND|ARM_I,rn,rd,im)
+#define _ANDI(rd,rn,im)		_CC_ANDI(ARM_CC_AL,rd,rn,im)
+#define T2_ANDI(rd,rn,im)	torri(THUMB2_ANDI,rn,rd,im)
+#define _CC_ANDS(cc,rd,rn,rm)	corrr(cc,ARM_AND|ARM_S,rn,rd,rm)
+#define _ANDS(rd,rn,rm)		_CC_ANDS(ARM_CC_AL,rd,rn,rm)
+#define T2_ANDS(rd,rn,rm)	torrr(THUMB2_AND|ARM_S,rn,rd,rm)
+#define _CC_ANDSI(cc,rd,rn,im)	corri(cc,ARM_AND|ARM_S|ARM_I,rn,rd,im)
+#define _ANDSI(rd,rn,im)	_CC_ANDSI(ARM_CC_AL,rd,rn,im)
+#define T2_ANDSI(rd,rn,im)	torri(ARM_CC_AL,THUMB2_ANDI|ARM_S,rn,rd,im)
+#define _CC_BIC(cc,rd,rn,rm)	corrr(cc,ARM_BIC,rn,rd,rm)
+#define _BIC(rd,rn,rm)		_CC_BIC(ARM_CC_AL,rd,rn,rm)
+#define T2_BIC(rd,rn,rm)	torrr(THUMB2_BIC,rn,rd,rm)
+#define _CC_BICI(cc,rd,rn,im)	corri(cc,ARM_BIC|ARM_I,rn,rd,im)
+#define _BICI(rd,rn,im)		_CC_BICI(ARM_CC_AL,rd,rn,im)
+#define T2_BICI(rd,rn,im)	torri(THUMB2_BICI,rn,rd,im)
+#define _CC_BICS(cc,rd,rn,rm)	corrr(cc,ARM_BIC|ARM_S,rn,rd,rm)
+#define _BICS(rd,rn,rm)		_CC_BICS(ARM_CC_AL,rd,rn,rm)
+#define T2_BICS(rd,rn,rm)	torrr(THUMB2_BIC|ARM_S,rn,rd,rm)
+#define _CC_BICSI(cc,rd,rn,im)	corri(cc,ARM_BIC|ARM_S|ARM_I,rn,rd,im)
+#define _BICSI(rd,rn,im)	_CC_BICSI(ARM_CC_AL,rd,rn,im)
+#define T2_BICSI(rd,rn,im)	torri(ARM_CC_AL,THUMB2_BICI|ARM_S,rn,rd,im)
+#define _CC_ORR(cc,rd,rn,rm)	corrr(cc,ARM_ORR,rn,rd,rm)
+#define _ORR(rd,rn,rm)		_CC_ORR(ARM_CC_AL,rd,rn,rm)
+#define T1_ORR(rdn,rm)		_jit_W(THUMB_ORR|(_u3(rm)<<3)|_u3(rdn))
+#define T2_ORR(rd,rn,rm)	torrr(THUMB2_ORR,rn,rd,rm)
 #define _CC_ORR_SI(cc,r0,r1,r2,sh,im)					\
     arm_cc_srrri(cc,ARM_ORR|sh,r0,r1,r2,im)
 #define _ORR_SI(r0,r1,r2,sh,im)	_CC_ORR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
-#define _CC_ORRI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_ORR|ARM_I,r0,r1,i0)
-#define _ORRI(r0,r1,i0)		_CC_ORRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_EOR(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_EOR,r0,r1,r2)
-#define _EOR(r0,r1,r2)		_CC_EOR(ARM_CC_AL,r0,r1,r2)
+#define _CC_ORRI(cc,rd,rn,im)	corri(cc,ARM_ORR|ARM_I,rn,rd,im)
+#define _ORRI(rd,rn,im)		_CC_ORRI(ARM_CC_AL,rd,rn,im)
+#define T2_ORRI(rd,rn,im)	torri(THUMB2_ORRI,rn,rd,im)
+#define _CC_EOR(cc,rd,rn,rm)	corrr(cc,ARM_EOR,rn,rd,rm)
+#define _EOR(rd,rn,rm)		_CC_EOR(ARM_CC_AL,rd,rn,rm)
+#define T1_EOR(rdn,rm)		_jit_W(THUMB_EOR|(_u3(rm)<<3)|_u3(rdn))
+#define T2_EOR(rd,rn,rm)	torrr(THUMB2_EOR,rn,rd,rm)
 #define _CC_EOR_SI(cc,r0,r1,r2,sh,im)					\
     arm_cc_srrri(cc,ARM_EOR|sh,r0,r1,r2,im)
 #define _EOR_SI(r0,r1,r2,sh,im)	_CC_EOR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
-#define _CC_EORI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_EOR|ARM_I,r0,r1,i0)
-#define _EORI(r0,r1,i0)		_CC_EORI(ARM_CC_AL,r0,r1,i0)
+#define _CC_EORI(cc,rd,rn,im)	corri(cc,ARM_EOR|ARM_I,rn,rd,im)
+#define _EORI(rd,rn,im)		_CC_EORI(ARM_CC_AL,rd,rn,im)
+#define T2_EORI(rd,rn,im)	torri(THUMB2_EORI,rn,rd,im)
 
-/* >> ARVM6* */
-#define _CC_REV(cc,r0,r1)	arm6_cc_orr(cc,ARM_REV,r0,r1)
-#define _REV(r0,r1)		_CC_REV(ARM_CC_AL,r0,r1)
-#define _CC_REV16(cc,r0,r1)	arm6_cc_orr(cc,ARM_REV16,r0,r1)
-#define _REV16(r0,r1)		_CC_REV16(ARM_CC_AL,r0,r1)
-#define _CC_SXTB_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_SXTB|i0,r0,r1)
-#define _SXTB_R(r0,r1,i0)	_CC_SXTB_R(ARM_CC_AL,r0,r1,i0)
-#define _SXTB(r0,r1)		_SXTB_R(r0,r1,0)
-#define _CC_UXTB_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_UXTB|i0,r0,r1)
-#define _UXTB_R(r0,r1,i0)	_CC_UXTB_R(ARM_CC_AL,r0,r1,i0)
-#define _UXTB(r0,r1)		_UXTB_R(r0,r1,0)
-#define _CC_SXTH_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_SXTH|i0,r0,r1)
-#define _SXTH_R(r0,r1,i0)	_CC_SXTH_R(ARM_CC_AL,r0,r1,i0)
-#define _SXTH(r0,r1)		_SXTH_R(r0,r1,0)
-#define _CC_UXTH_R(cc,r0,r1,i0)	arm6_cc_orr(cc,ARM_UXTH|i0,r0,r1)
-#define _UXTH_R(r0,r1,i0)	_CC_UXTH_R(ARM_CC_AL,r0,r1,i0)
-#define _UXTH(r0,r1)		_UXTH_R(r0,r1,0)
-/* << ARVM6* */
+#define _CC_REV(cc,rd,rm)	c6orr(cc,ARM_REV,rd,rm)
+#define _REV(rd,rm)		_CC_REV(ARM_CC_AL,rd,rm)
+#define T1_REV(rd,rm)		_jit_W(THUMB_REV|(_u3(rm)<<3)|_u3(rd))
+#define T2_REV(rd,rm)		torrr(THUMB2_REV,rm,rd,rm)
+#define _CC_REV16(cc,rd,rm)	c6orr(cc,ARM_REV16,rd,rm)
+#define _REV16(rd,rm)		_CC_REV16(ARM_CC_AL,rd,rm)
+#define T1_REV16(rd,rm)		_jit_W(THUMB_REV16|(_u3(rm)<<3)|_u3(rd))
+#define T2_REV16(rd,rm)		torrr(THUMB2_REV16,rm,rd,rm)
+#define _CC_SXTB(cc,rd,rm)	c6orr(cc,ARM_SXTB,rd,rm)
+#define _SXTB(rd,rm)		_CC_SXTB(ARM_CC_AL,rd,rm)
+#define T1_SXTB(rd,rm)		_jit_W(THUMB_SXTB|(_u3(rm)<<3)|_u3(rd))
+#define T2_SXTB(rd,rm)		torrr(THUMB2_SXTB,_R15,rd,rm)
+#define _CC_UXTB(cc,rd,rm)	c6orr(cc,ARM_UXTB,rd,rm)
+#define _UXTB(rd,rm)		_CC_UXTB(ARM_CC_AL,rd,rm)
+#define T1_UXTB(rd,rm)		_jit_W(THUMB_UXTB|(_u3(rm)<<3)|_u3(rd))
+#define T2_UXTB(rd,rm)		torrr(THUMB2_UXTB,_R15,rd,rm)
+#define _CC_SXTH(cc,rd,rm)	c6orr(cc,ARM_SXTH,rd,rm)
+#define _SXTH(rd,rm)		_CC_SXTH(ARM_CC_AL,rd,rm)
+#define T1_SXTH(rd,rm)		_jit_W(THUMB_SXTH|(_u3(rm)<<3)|_u3(rd))
+#define T2_SXTH(rd,rm)		torrr(THUMB2_SXTH,_R15,rd,rm)
+#define _CC_UXTH(cc,rd,rm)	c6orr(cc,ARM_UXTH,rd,rm)
+#define _UXTH(rd,rm)		_CC_UXTH(ARM_CC_AL,rd,rm)
+#define T1_UXTH(rd,rm)		_jit_W(THUMB_UXTH|(_u3(rm)<<3)|_u3(rd))
+#define T2_UXTH(rd,rm)		torrr(THUMB2_UXTH,_R15,rd,rm)
 
-#define _CC_SHIFT(cc,o,r0,r1,r2,i0) arm_cc_shift(cc,o,r0,r1,r2,i0)
-#define _CC_LSL(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_LSL|ARM_R,r0,r1,r2,0)
-#define _LSL(r0,r1,r2)		_CC_LSL(ARM_CC_AL,r0,r1,r2)
-#define _CC_LSLI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_LSL,r0,r1,0,i0)
-#define _LSLI(r0,r1,i0)		_CC_LSLI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LSR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_LSR|ARM_R,r0,r1,r2,0)
-#define _LSR(r0,r1,r2)		_CC_LSR(ARM_CC_AL,r0,r1,r2)
-#define _CC_LSRI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_LSR,r0,r1,0,i0)
-#define _LSRI(r0,r1,i0)		_CC_LSRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ASR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_ASR|ARM_R,r0,r1,r2,0)
-#define _ASR(r0,r1,r2)		_CC_ASR(ARM_CC_AL,r0,r1,r2)
-#define _CC_ASRI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_ASR,r0,r1,0,i0)
-#define _ASRI(r0,r1,i0)		_CC_ASRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_ROR(cc,r0,r1,r2)	_CC_SHIFT(cc,ARM_ROR|ARM_R,r0,r1,r2,0)
-#define _ROR(r0,r1,r2)		_CC_ROR(ARM_CC_AL,r0,r1,r2)
-#define _CC_RORI(cc,r0,r1,i0)	_CC_SHIFT(cc,ARM_ROR,r0,r1,0,i0)
-#define _RORI(r0,r1,i0)		_CC_RORI(ARM_CC_AL,r0,r1,i0)
+#define _CC_SHIFT(cc,o,rd,rm,rn,im) cshift(cc,o,rd,rm,rn,im)
+#define _CC_LSL(cc,rd,rn,rm)	_CC_SHIFT(cc,ARM_LSL|ARM_R,rd,rm,rn,0)
+#define _LSL(rd,rn,rm)		_CC_LSL(ARM_CC_AL,rd,rn,rm)
+#define T1_LSL(rdn,rm)		_jit_W(THUMB_LSL|(_u3(rm)<<3)|_u3(rdn))
+#define T2_LSL(rd,rn,rm)	torrr(THUMB2_LSL,rn,rd,rm)
+#define _CC_LSLI(cc,rd,rn,im)	_CC_SHIFT(cc,ARM_LSL,rd,0,rn,im)
+#define _LSLI(rd,rn,im)		_CC_LSLI(ARM_CC_AL,rd,rn,im)
+#define T1_LSLI(rd,rm,im)	_jit_W(THUMB_LSLI|(_u5(im)<<6)|(_u3(rm)<<3)|_u3(rd))
+#define T2_LSLI(rd,rm,im)	tshift(THUMB2_LSLI,rd,rm,im)
+#define _CC_LSR(cc,rd,rn,rm)	_CC_SHIFT(cc,ARM_LSR|ARM_R,rd,rm,rn,0)
+#define _LSR(rd,rn,rm)		_CC_LSR(ARM_CC_AL,rd,rn,rm)
+#define T1_LSR(rdn,rm)		_jit_W(THUMB_LSR|(_u3(rm)<<3)|_u3(rdn))
+#define T2_LSR(rd,rn,rm)	torrr(THUMB2_LSR,rn,rd,rm)
+#define _CC_LSRI(cc,rd,rn,im)	_CC_SHIFT(cc,ARM_LSR,rd,0,rn,im)
+#define _LSRI(rd,rn,im)		_CC_LSRI(ARM_CC_AL,rd,rn,im)
+#define T1_LSRI(rd,rm,im)	_jit_W(THUMB_LSRI|(_u5(im)<<6)|(_u3(rm)<<3)|_u3(rd))
+#define T2_LSRI(rd,rm,im)	tshift(THUMB2_LSRI,rd,rm,im)
+#define _CC_ASR(cc,rd,rn,rm)	_CC_SHIFT(cc,ARM_ASR|ARM_R,rd,rm,rn,0)
+#define _ASR(rd,rn,rm)		_CC_ASR(ARM_CC_AL,rd,rn,rm)
+#define T1_ASR(rdn,rm)		_jit_W(THUMB_ASR|(_u3(rm)<<3)|_u3(rdn))
+#define T2_ASR(rd,rn,rm)	torrr(THUMB2_ASR,rn,rd,rm)
+#define _CC_ASRI(cc,rd,rn,im)	_CC_SHIFT(cc,ARM_ASR,rd,0,rn,im)
+#define _ASRI(rd,rn,im)		_CC_ASRI(ARM_CC_AL,rd,rn,im)
+#define T1_ASRI(rd,rm,im)	_jit_W(THUMB_ASRI|(_u5(im)<<6)|(_u3(rm)<<3)|_u3(rd))
+#define T2_ASRI(rd,rm,im)	tshift(THUMB2_ASRI,rd,rm,im)
 
-#define _CC_CMP(cc,r0,r1)	arm_cc_orrr(cc,ARM_CMP,0,r0,r1)
-#define _CMP(r0,r1)		_CC_CMP(ARM_CC_AL,r0,r1)
-#define _CC_CMPI(cc,r0,i0)	arm_cc_orri(cc,ARM_CMP|ARM_I,0,r0,i0)
-#define _CMPI(r0,i0)		_CC_CMPI(ARM_CC_AL,r0,i0)
-#define _CC_CMN(cc,r0,r1)	arm_cc_orrr(cc,ARM_CMN,0,r0,r1)
-#define _CMN(r0,r1)		_CC_CMN(ARM_CC_AL,r0,r1)
-#define _CC_CMNI(cc,r0,i0)	arm_cc_orri(cc,ARM_CMN|ARM_I,0,r0,i0)
-#define _CMNI(r0,i0)		_CC_CMNI(ARM_CC_AL,r0,i0)
+#define _CC_CMP(cc,rn,rm)	corrr(cc,ARM_CMP,rn,0,rm)
+#define _CMP(rn,rm)		_CC_CMP(ARM_CC_AL,rn,rm)
+#define T1_CMP(rn,rm)		_jit_W(THUMB_CMP|(_u3(rm)<<3)|_u3(rn))
+#define T1_CMPX(rn,rm)		_jit_W(THUMB_CMPX|((_u4(rn)&8)<<4)|(_u4(rm)<<3)|(rn&7))
+#define T2_CMP(rn,rm)		torrr(THUMB2_CMP,rn,_R15,rm)
+#define _CC_CMPI(cc,rn,im)	corri(cc,ARM_CMP|ARM_I,rn,0,im)
+#define _CMPI(rn,im)		_CC_CMPI(ARM_CC_AL,rn,im)
+#define T1_CMPI(rn,im)		_jit_W(THUMB_CMPI|(_u3(rn)<<8)|_u8(im))
+#define T2_CMPI(rn,im)		torri(THUMB2_CMPI,rn,_R15,im)
+#define _CC_CMN(cc,rn,rm)	corrr(cc,ARM_CMN,rn,0,rm)
+#define _CMN(rn,rm)		_CC_CMN(ARM_CC_AL,rn,rm)
+#define T1_CMN(rn,rm)		_jit_W(THUMB_CMN|(_u3(rm)<<3)|_u3(rm))
+#define T2_CMN(rn,rm)		torrr(THUMB2_CMN,rn,_R15,rm)
+#define _CC_CMNI(cc,rn,im)	corri(cc,ARM_CMN|ARM_I,rn,_R15,im)
+#define _CMNI(rn,im)		_CC_CMNI(ARM_CC_AL,rn,im)
+#define T2_CMNI(rn,im)		torri(THUMB2_CMNI,rn,_R15,im)
+#define _CC_TST(cc,rn,rm)	corrr(cc,ARM_TST,rn,r0,rm)
+#define _TST(rn,rm)		_CC_TST(ARM_CC_AL,rn,rm)
+#define T1_TST(rn,rm)		_jit_W(THUMB_TST|(_u3(rm)<<3)|_u3(rn))
+#define T2_TST(rn,rm)		torrr(THUMB2_TST,rn,_R15,rm)
+#define _CC_TSTI(cc,rn,im)	corri(cc,ARM_TST|ARM_I,rn,0,im)
+#define _TSTI(rn,im)		_CC_TSTI(ARM_CC_AL,rn,im)
+#define T2_TSTI(rn,im)		torri(THUMB2_TSTI,rn,_R15,im)
+#define _CC_TEQ(cc,rn,rm)	corrr(cc,ARM_TEQ,rn,0,rm)
+#define _TEQ(rn,rm)		_CC_TEQ(ARM_CC_AL,rn,rm)
+#define _CC_TEQI(cc,rm,im)	corri(cc,ARM_TEQ|ARM_I,rn,0,im)
+#define _TEQI(rn,im)		_CC_TEQI(ARM_CC_AL,rn,im)
 
-/* >> THUMB */
-#define _CC_TST(cc,r0,r1)	arm_cc_orrr(cc,ARM_TST,0,r0,r1)
-#define _TST(r0,r1)		_CC_TST(ARM_CC_AL,r0,r1)
-#define _CC_TSTI(cc,r0,i0)	arm_cc_orri(cc,ARM_TST|ARM_I,0,r0,i0)
-#define _TSTI(r0,i0)		_CC_TSTI(ARM_CC_AL,r0,i0)
-/* << THUMB */
+#define _CC_BX(cc,rm)		cbx(cc,ARM_BX,rm)
+#define _BX(rm)			_CC_BX(ARM_CC_AL,rm)
+#define T1_BX(rm)		_jit_W(0x4700|(_u4(rm)<<3))
+#define _CC_BLX(cc,rm)		cbx(cc,ARM_BLX,rm)
+#define _BLX(rm)		_CC_BLX(ARM_CC_AL,rm)
+#define T1_BLX(rm)		_jit_W(THUMB_BLX|(_u4(rm)<<3))
+#define _BLXI(im)		blxi(im)
+#define T2_BLXI(im)		tb(THUMB2_BLXI,im)
+#define _CC_B(cc,im)		cb(cc,ARM_B,im)
+#define _B(im)			_CC_B(ARM_CC_AL,im)
+#define T1_CC_B(cc,im)		tc8(cc,im)
+#define T1_B(im)		t11(im)
+#define T2_CC_B(cc,im)		tcb(cc,im)
+#define T2_B(im)		tb(THUMB2_B,im)
+#define _CC_BLI(cc,im)		cb(cc,ARM_BLI,im)
+#define _BLI(im)		_CC_BLI(ARM_CC_AL,im)
+#define T2_BLI(im)		tb(THUMB2_BLI,im)
 
-/* >> ARVM6T2 */
-#define _CC_TEQ(cc,r0,r1)	arm_cc_orrr(cc,ARM_TEQ,0,r0,r1)
-#define _TEQ(r0,r1)		_CC_TEQ(ARM_CC_AL,r0,r1)
-#define _CC_TEQI(cc,r0,i0)	arm_cc_orri(cc,ARM_TEQ|ARM_I,0,r0,i0)
-#define _TEQI(r0,i0)		_CC_TEQI(ARM_CC_AL,r0,i0)
-/* << ARVM6T2 */
+#define _CC_LDRSB(cc,rt,rn,rm)	corrr(cc,ARM_LDRSB|ARM_P,rn,rt,rm)
+#define _LDRSB(rt,rn,rm)	_CC_LDRSB(ARM_CC_AL,rt,rn,rm)
+#define T1_LDRSB(rt,rn,rm)	_jit_W(THUMB_LDRSB|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRSB(rt,rn,rm)	torrr(THUMB2_LDRSB,rn,rt,rm)
+#define _CC_LDRSBN(cc,rt,rn,rm)	corrr(cc,ARM_LDRSB,rn,rt,rm)
+#define _LDRSBN(rt,rn,rm)	_CC_LDRSBN(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRSBI(cc,rt,rn,im)	corri8(cc,ARM_LDRSBI|ARM_P,rn,rt,im)
+#define _LDRSBI(rt,rn,im)	_CC_LDRSBI(ARM_CC_AL,rt,rn,im)
+#define T2_LDRSBI(rt,rn,im)	torri8(THUMB2_LDRSBI|THUMB2_U,rn,rt,im)
+#define _CC_LDRSBIN(cc,rt,rn,im)	corri8(cc,ARM_LDRSBI,rn,rt,im)
+#define _LDRSBIN(rt,rn,im)	_CC_LDRSBIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRSBIN(rt,rn,im)	torri8(THUMB2_LDRSBI,rn,rt,im)
+#define _CC_LDRB(cc,rt,rn,rm)	corrr(cc,ARM_LDRB|ARM_P,rn,rt,rm)
+#define _LDRB(rt,rn,rm)		_CC_LDRB(ARM_CC_AL,rt,rn,rm)
+#define T1_LDRB(rt,rn,rm)	_jit_W(THUMB_LDRB|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRB(rt,rn,rm)	torrr(THUMB2_LDRB,rn,rt,rm)
+#define _CC_LDRBN(cc,rt,rn,rm)	corrr(cc,ARM_LDRB,rn,rt,rm)
+#define _LDRBN(rt,rn,rm)	_CC_LDRBN(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRBI(cc,rt,rn,im)	corri(cc,ARM_LDRBI|ARM_P,rn,rt,im)
+#define _LDRBI(rt,rn,im)	_CC_LDRBI(ARM_CC_AL,rt,rn,im)
+#define T1_LDRBI(rt,rn,im)	_jit_W(THUMB_LDRBI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRBI(rt,rn,im)	torri8(THUMB2_LDRBI|THUMB2_U,rn,rt,im)
+#define _CC_LDRBIN(cc,rt,rn,im)	corri(cc,ARM_LDRBI,rn,rt,im)
+#define _LDRBIN(rt,rn,im)	_CC_LDRBIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRBIN(rt,rn,im)	torri8(THUMB2_LDRBI,rn,rt,im)
+#define _CC_LDRSH(cc,rt,rn,rm)	corrr(cc,ARM_LDRSH|ARM_P,rn,rt,rm)
+#define _LDRSH(rt,rn,rm)	_CC_LDRSH(ARM_CC_AL,rt,rn,rm)
+#define T1_LDRSH(rt,rn,rm)	_jit_W(THUMB_LDRSH|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRSH(rt,rn,rm)	torrr(THUMB2_LDRSH,rn,rt,rm)
+#define _CC_LDRSHN(cc,rt,rn,rm)	corrr(cc,ARM_LDRSH,rn,rt,rm)
+#define _LDRSHN(rt,rn,rm)	_CC_LDRSHN(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRSHI(cc,rt,rn,im)	corri8(cc,ARM_LDRSHI|ARM_P,rn,rt,im)
+#define _LDRSHI(rt,rn,im)	_CC_LDRSHI(ARM_CC_AL,rt,rn,im)
+#define T2_LDRSHI(rt,rn,im)	torri8(THUMB2_LDRSHI|THUMB2_U,rn,rt,im)
+#define _CC_LDRSHIN(cc,rt,rn,im)	corri8(cc,ARM_LDRSHI,rn,rt,im)
+#define _LDRSHIN(rt,rn,im)	_CC_LDRSHIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRSHIN(rt,rn,im)	torri8(THUMB2_LDRSHI,rn,rt,im)
+#define _CC_LDRH(cc,rt,rn,rm)	corrr(cc,ARM_LDRH|ARM_P,rn,rt,rm)
+#define _LDRH(rt,rn,rm)		_CC_LDRH(ARM_CC_AL,rt,rn,rm)
+#define T1_LDRH(rt,rn,rm)	_jit_W(THUMB_LDRH|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRH(rt,rn,rm)	torrr(THUMB2_LDRH,rn,rt,rm)
+#define _CC_LDRHN(cc,rt,rn,rm)	corrr(cc,ARM_LDRH,rn,rt,rm)
+#define _LDRHN(rt,rn,rm)	CC_LDRHN(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRHI(cc,rt,rn,im)	corri8(cc,ARM_LDRHI|ARM_P,rn,rt,im)
+#define _LDRHI(rt,rn,im)	_CC_LDRHI(ARM_CC_AL,rt,rn,im)
+#define T1_LDRHI(rt,rn,im)	_jit_W(THUMB_LDRHI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDRHI(rt,rn,im)	torri8(THUMB2_LDRHI|THUMB2_U,rn,rt,im)
+#define _CC_LDRHIN(cc,rt,rn,im)	corri8(cc,ARM_LDRHI,rn,rt,im)
+#define _LDRHIN(rt,rn,im)	_CC_LDRHIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRHIN(rt,rn,im)	torri8(THUMB2_LDRHI,rn,rt,im)
+#define _CC_LDR(cc,rt,rn,rm)	corrr(cc,ARM_LDR|ARM_P,rn,rt,rm)
+#define _LDR(rt,rn,rm)		_CC_LDR(ARM_CC_AL,rt,rn,rm)
+#define T1_LDR(rt,rn,rm)	_jit_W(THUMB_LDR|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_LDR(rt,rn,rm)	torrr(THUMB2_LDR,rn,rt,rm)
+#define _CC_LDRN(cc,rt,rn,rm)	corrr(cc,ARM_LDR,rn,rt,rm)
+#define _LDRN(rt,rn,rm)		_CC_LDRN(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRI(cc,rt,rn,im)	corri(cc,ARM_LDRI|ARM_P,rn,rt,im)
+#define _LDRI(rt,rn,im)		_CC_LDRI(ARM_CC_AL,rt,rn,im)
+#define T1_LDRI(rt,rn,im)	_jit_W(THUMB_LDRI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T1_LDRISP(rt,im)	_jit_W(THUMB_LDRISP|(_u3(rt)<<8)|_u8(im))
+#define T2_LDRI(rt,rn,im)	torri8(THUMB2_LDRI|THUMB2_U,rn,rt,im)
+#define _CC_LDRIN(cc,rt,rn,im)	corri(cc,ARM_LDRI,rn,rt,im)
+#define _LDRIN(rt,rn,im)	_CC_LDRIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRIN(rt,rn,im)	torri8(THUMB2_LDRI,rn,rt,im)
+#define _CC_LDRD(cc,rt,rn,rm)	corrr(cc,ARM_LDRD|ARM_P,rn,rt,rm)
+#define _LDRD(rt,rn,rm)		_CC_LDRD(ARM_CC_AL,rt,rn,rm)
+#define _CC_LDRDN(cc,rt,rn,rm)	corrr(cc,ARM_LDRD,rn,rt,rm)
+#define _LDRDN(rd,rn,rm)	_CC_LDRDN(ARM_CC_AL,rn,rt,rm)
+#define _CC_LDRDI(cc,rt,rn,im)	corri8(cc,ARM_LDRDI|ARM_P,rn,rt,im)
+#define _LDRDI(rt,rn,im)	_CC_LDRDI(ARM_CC_AL,rn,rt,im)
+#define _CC_LDRDIN(cc,rt,rn,im)	corri8(cc,ARM_LDRDI,rn,rt,im)
+#define _LDRDIN(rt,rn,im)	_CC_LDRDIN(ARM_CC_AL,rt,rn,im)
+#define _CC_STRB(cc,rt,rn,rm)	corrr(cc,ARM_STRB|ARM_P,rn,rt,rm)
+#define _STRB(rt,rn,rm)		_CC_STRB(ARM_CC_AL,rt,rn,rm)
+#define T1_STRB(rt,rn,rm)	_jit_W(THUMB_STRB|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_STRB(rt,rn,rm)	torrr(THUMB2_STRB,rn,rt,rm)
+#define _CC_STRBN(cc,rt,rn,rm)	corrr(cc,ARM_STRB,rn,rt,rm)
+#define _STRBN(rt,rn,rm)	_CC_STRBN(ARM_CC_AL,rt,rn,rm)
+#define _CC_STRBI(cc,rt,rn,im)	corri(cc,ARM_STRBI|ARM_P,rn,rt,im)
+#define _STRBI(rt,rn,im)	_CC_STRBI(ARM_CC_AL,rt,rn,im)
+#define T1_STRBI(rt,rn,im)	_jit_W(THUMB_STRBI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_STRBI(rt,rn,im)	torri8(THUMB2_STRBI|THUMB2_U,rn,rt,im)
+#define _CC_STRBIN(cc,rt,rn,im)	corri(cc,ARM_STRBI,rn,rt,im)
+#define _STRBIN(rt,rn,im)	_CC_STRBIN(ARM_CC_AL,rt,rn,im)
+#define T2_STRBIN(rt,rn,im)	torri8(THUMB2_STRBI,rn,rt,im)
+#define _CC_STRH(cc,rt,rn,rm)	corrr(cc,ARM_STRH|ARM_P,rn,rt,rm)
+#define _STRH(rt,rn,rm)		_CC_STRH(ARM_CC_AL,rt,rn,rm)
+#define T1_STRH(rt,rn,rm)	_jit_W(THUMB_STRH|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_STRH(rt,rn,rm)	torrr(THUMB2_STRH,rn,rt,rm)
+#define _CC_STRHN(cc,rt,rn,rm)	corrr(cc,ARM_STRH,rn,rt,rm)
+#define _STRHN(rt,rn,rm)	_CC_STRHN(ARM_CC_AL,rt,rn,rm)
+#define _CC_STRHI(cc,rt,rn,im)	corri8(cc,ARM_STRHI|ARM_P,rn,rt,im)
+#define _STRHI(rt,rn,im)	_CC_STRHI(ARM_CC_AL,rt,rn,im)
+#define T1_STRHI(rt,rn,im)	_jit_W(THUMB_STRHI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_STRHI(rt,rn,im)	torri8(THUMB2_STRHI|THUMB2_U,rn,rt,im)
+#define _CC_STRHIN(cc,rt,rn,im)	corri8(cc,ARM_STRHI,rn,rt,im)
+#define _STRHIN(rt,rn,im)	_CC_STRHIN(ARM_CC_AL,rt,rn,im)
+#define T2_STRHIN(rt,rn,im)	torri8(THUMB2_STRHI,rn,rt,im)
+#define _CC_STR(cc,rt,rn,rm)	corrr(cc,ARM_STR|ARM_P,rn,rt,rm)
+#define _STR(rt,rn,rm)		_CC_STR(ARM_CC_AL,rt,rn,rm)
+#define T1_STR(rt,rn,rm)	_jit_W(THUMB_STR|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T2_STR(rt,rn,rm)	torrr(THUMB2_STR,rn,rt,rm)
+#define _CC_STRN(cc,rt,rn,rm)	corrr(cc,ARM_STR,rn,rt,rm)
+#define _STRN(rt,rn,rm)		_CC_STRN(ARM_CC_AL,rt,rn,rm)
+#define _CC_STRI(cc,rt,rn,im)	corri(cc,ARM_STRI|ARM_P,rn,rt,im)
+#define _STRI(rt,rn,im)		_CC_STRI(ARM_CC_AL,rt,rn,im)
+#define T1_STRI(rt,rn,im)	_jit_W(THUMB_STRI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
+#define T1_STRISP(rt,im)	_jit_W(THUMB_STRISP|(_u3(rt)<<8)|(_u8(im)))
+#define T2_STRI(rt,rn,im)	torri8(THUMB2_STRI|THUMB2_U,rn,rt,im)
+#define _CC_STRIN(cc,rt,rn,im)	corri(cc,ARM_STRI,rn,rt,im)
+#define _STRIN(rt,rn,im)	_CC_STRIN(ARM_CC_AL,rt,rn,im)
+#define T2_STRIN(rt,rn,im)	torri8(THUMB2_STRI,rn,rt,im)
+#define _CC_STRD(cc,rt,rn,rm)	corrr(cc,ARM_STRD|ARM_P,rt,rn,rm)
+#define _STRD(rt,rn,rm)		_CC_STRD(ARM_CC_AL,rt,rn,rm)
+#define _CC_STRDN(cc,rt,rn,rm)	corrr(cc,ARM_STRD,rn,rt,rm)
+#define _STRDN(rt,rn,rm)	_CC_STRDN(ARM_CC_AL,rt,rn,rm)
+#define _CC_STRDI(cc,rt,rn,im)	corri8(cc,ARM_STRDI|ARM_P,rn,rt,im)
+#define _STRDI(rt,rn,im)	_CC_STRDI(ARM_CC_AL,rt,rn,im)
+#define T2_STRDI(rt,rt2,rn,im)	torrri(THUMB2_STRDI|ARM_P,rn,rt,rt2,im)
+#define _CC_STRDIN(cc,rt,rn,im)	corri8(cc,ARM_STRDI,rn,rt,im)
+#define _STRDIN(rt,rn,im)	_CC_STRDIN(ARM_CC_AL,rt,rn,im)
+#define T2_STRDIN(rt,rt2,rn,im)	torrri(THUMB2_STRDI,rn,rt,rt2,im)
 
-#define _CC_BX(cc,r0)		arm_cc_bx(cc,ARM_BX,r0)
-#define _BX(i0)			_CC_BX(ARM_CC_AL,r0)
-#define _CC_BLX(cc,r0)		arm_cc_bx(cc,ARM_BLX,r0)
-#define _BLX(r0)		_CC_BLX(ARM_CC_AL,r0)
-#define _CC_B(cc,i0)		arm_cc_b(cc,ARM_B,i0)
-#define _B(i0)			_CC_B(ARM_CC_AL,i0)
-#define _CC_BL(cc,i0)		arm_cc_b(cc,ARM_BL,i0)
-#define _BL(i0)			_CC_BL(ARM_CC_AL,i0)
-
-#define _CC_LDRSB(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRSB|ARM_P,r0,r1,r2)
-#define _LDRSB(r0,r1,r2)	_CC_LDRSB(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRSBN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRSB,r0,r1,r2)
-#define _LDRSBN(r0,r1,r2)	_CC_LDRSBN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRSBI(cc,r0,r1,i0)	 arm_cc_orri8(cc,ARM_LDRSBI|ARM_P,r0,r1,i0)
-#define _LDRSBI(r0,r1,i0)	 _CC_LDRSBI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRSBIN(cc,r0,r1,i0) arm_cc_orri8(cc,ARM_LDRSBI,r0,r1,i0)
-#define _LDRSBIN(r0,r1,i0)	 _CC_LDRSBIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRB(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRB|ARM_P,r0,r1,r2)
-#define _LDRB(r0,r1,r2)		_CC_LDRB(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRBN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRB,r0,r1,r2)
-#define _LDRBN(r0,r1,r2)	_CC_LDRBN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRBI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_LDRBI|ARM_P,r0,r1,i0)
-#define _LDRBI(r0,r1,i0)	_CC_LDRBI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRBIN(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_LDRBI,r0,r1,i0)
-#define _LDRBIN(r0,r1,i0)	_CC_LDRBIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRSH(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRSH|ARM_P,r0,r1,r2)
-#define _LDRSH(r0,r1,r2)	_CC_LDRSH(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRSHN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRSH,r0,r1,r2)
-#define _LDRSHN(r0,r1,r2)	_CC_LDRSHN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRSHI(cc,r0,r1,i0)	 arm_cc_orri8(cc,ARM_LDRSHI|ARM_P,r0,r1,i0)
-#define _LDRSHI(r0,r1,i0)	 _CC_LDRSHI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRSHIN(cc,r0,r1,i0) arm_cc_orri8(cc,ARM_LDRSHI,r0,r1,i0)
-#define _LDRSHIN(r0,r1,i0)	 _CC_LDRSHIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRH(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRH|ARM_P,r0,r1,r2)
-#define _LDRH(r0,r1,r2)		_CC_LDRH(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRHN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRH,r0,r1,r2)
-#define _LDRHN(r0,r1,r2)	_CC_LDRHN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRHI(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_LDRHI|ARM_P,r0,r1,i0)
-#define _LDRHI(r0,r1,i0)	_CC_LDRHI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRHIN(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_LDRHI,r0,r1,i0)
-#define _LDRHIN(r0,r1,i0)	_CC_LDRHIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDR(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDR|ARM_P,r0,r1,r2)
-#define _LDR(r0,r1,r2)		_CC_LDR(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDR,r0,r1,r2)
-#define _LDRN(r0,r1,r2)		_CC_LDRN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_LDRI|ARM_P,r0,r1,i0)
-#define _LDRI(r0,r1,i0)		_CC_LDRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRIN(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_LDRI,r0,r1,i0)
-#define _LDRIN(r0,r1,i0)	_CC_LDRIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRD(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_LDRD|ARM_P,r0,r1,r2)
-#define _LDRD(r0,r1,r2)		_CC_LDRD(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRDN(cc,r0,r1,r2)  arm_cc_orrr(cc,ARM_LDRD,r0,r1,r2)
-#define _LDRDN(r0,r1,r2)	_CC_LDRDN(ARM_CC_AL,r0,r1,r2)
-#define _CC_LDRDI(cc,r0,r1,i0)  arm_cc_orri8(cc,ARM_LDRDI|ARM_P,r0,r1,i0)
-#define _LDRDI(r0,r1,i0)	_CC_LDRDI(ARM_CC_AL,r0,r1,i0)
-#define _CC_LDRDIN(cc,r0,r1,i0) arm_cc_orri8(cc,ARM_LDRDI,r0,r1,i0)
-#define _LDRDIN(r0,r1,i0)	_CC_LDRDIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRB(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRB|ARM_P,r0,r1,r2)
-#define _STRB(r0,r1,r2)		_CC_STRB(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRBN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRB,r0,r1,r2)
-#define _STRBN(r0,r1,r2)	_CC_STRBN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRBI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_STRBI|ARM_P,r0,r1,i0)
-#define _STRBI(r0,r1,i0)	_CC_STRBI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRBIN(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_STRBI,r0,r1,i0)
-#define _STRBIN(r0,r1,i0)	_CC_STRBIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRH(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRH|ARM_P,r0,r1,r2)
-#define _STRH(r0,r1,r2)		_CC_STRH(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRHN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRH,r0,r1,r2)
-#define _STRHN(r0,r1,r2)	_CC_STRHN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRHI(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_STRHI|ARM_P,r0,r1,i0)
-#define _STRHI(r0,r1,i0)	_CC_STRHI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRHIN(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_STRHI,r0,r1,i0)
-#define _STRHIN(r0,r1,i0)	_CC_STRHIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STR(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STR|ARM_P,r0,r1,r2)
-#define _STR(r0,r1,r2)		_CC_STR(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STR,r0,r1,r2)
-#define _STRN(r0,r1,r2)		_CC_STRN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRI(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_STRI|ARM_P,r0,r1,i0)
-#define _STRI(r0,r1,i0)		_CC_STRI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRIN(cc,r0,r1,i0)	arm_cc_orri(cc,ARM_STRI,r0,r1,i0)
-#define _STRIN(r0,r1,i0)	_CC_STRIN(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRD(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRD|ARM_P,r0,r1,r2)
-#define _STRD(r0,r1,r2)		_CC_STRD(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRDN(cc,r0,r1,r2)	arm_cc_orrr(cc,ARM_STRD,r0,r1,r2)
-#define _STRDN(r0,r1,r2)	_CC_STRDN(ARM_CC_AL,r0,r1,r2)
-#define _CC_STRDI(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_STRDI|ARM_P,r0,r1,i0)
-#define _STRDI(r0,r1,i0)	_CC_STRDI(ARM_CC_AL,r0,r1,i0)
-#define _CC_STRDIN(cc,r0,r1,i0)	arm_cc_orri8(cc,ARM_STRDI,r0,r1,i0)
-#define _STRDIN(r0,r1,i0)	_CC_STRDIN(ARM_CC_AL,r0,r1,i0)
-
-#define _CC_LDMIA(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_I,r0,i0)
-#define _LDMIA(r0,i0)		_CC_LDMIA(ARM_CC_AL,r0,i0)
-#define _LDM(r0,i0)		_LDMIA(r0,i0)
-#define _CC_LDMIA_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,r0,i0)
-#define _LDMIA_U(r0,i0)		_CC_LDMIA_U(ARM_CC_AL,r0,i0)
+#define _CC_LDMIA(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_I,rn,im)
+#define _LDMIA(rn,im)		_CC_LDMIA(ARM_CC_AL,rn,im)
+#define _CC_LDM(cc,rn,im)	_CC_LDMIA(cc,rn,im)
+#define _LDM(rn,im)		_LDMIA(rn,im)
+#define T1_LDMIA(rn,im)		_jit_W(THUMB_LDMIA|(_u3(rn)<<8)|im)
+#define T2_LDMIA(rn,im)		torl(THUMB2_LDMIA,rn,im)
+#define _CC_LDMIA_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_U,rn,im)
+#define _LDMIA_U(rn,im)		_CC_LDMIA_U(ARM_CC_AL,rn,im)
 #define _LDM_U(r0,i0)		_LDMIA_U(r0,i0)
-#define _CC_LDMIB(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,r0,i0)
-#define _LDMIB(r0,i0)		_CC_LDMIB(ARM_CC_AL,r0,i0)
-#define _CC_LDMIB_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMIB_U(r0,i0)		_CC_LDMIB_U(ARM_CC_AL,r0,i0)
-#define _CC_LDMDA(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L,r0,i0)
-#define _LDMDA(r0,i0)		_CC_LDMDA(ARM_CC_AL,r0,i0)
-#define _CC_LDMDA_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_U,r0,i0)
-#define _LDMDA_U(r0,i0)		_CC_LDMDA_U(ARM_CC_AL,r0,i0)
-#define _CC_LDMDB(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_B,r0,i0)
-#define _LDMDB(r0,i0)		_CC_LDMDB(ARM_CC_AL,r0,i0)
-#define _CC_LDMDB_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,r0,i0)
-#define _LDMDB_U(r0,i0)		_CC_LDMDB_U(ARM_CC_AL,r0,i0)
-#define _CC_STMIA(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_I,r0,i0)
-#define _STMIA(r0,i0)		_CC_STMIA(ARM_CC_AL,r0,i0)
-#define _STM(r0,i0)		_STMIA(r0,i0)
-#define _CC_STMIA_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_I|ARM_M_U,r0,i0)
-#define _STMIA_U(r0,i0)		_CC_STMIA_U(ARM_CC_AL,r0,i0)
-#define _STM_U(r0,i0)		_STMIA_U(r0,i0)
-#define _CC_STMIB(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_I|ARM_M_B,r0,i0)
-#define _STMIB(r0,i0)		_CC_STMIB(ARM_CC_AL,r0,i0)
-#define _CC_STMIB_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMIB_U(r0,i0)		_CC_STMIB_U(ARM_CC_AL,r0,i0)
-#define _CC_STMDA(cc,r0,i0)	arm_cc_orl(cc,ARM_M,r0,i0)
-#define _STMDA(r0,i0)		_CC_STMDA(ARM_CC_AL,r0,i0)
-#define _CC_STMDA_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_U,r0,i0)
-#define _STMDA_U(r0,i0)		_CC_STMDA_U(ARM_CC_AL,r0,i0)
-#define _CC_STMDB(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_B,r0,i0)
-#define _STMDB(r0,i0)		_CC_STMDB(ARM_CC_AL,r0,i0)
-#define _CC_STMDB_U(cc,r0,i0)	arm_cc_orl(cc,ARM_M|ARM_M_B|ARM_M_U,r0,i0)
-#define _STMDB_U(r0,i0)		_CC_STMDB_U(ARM_CC_AL,r0,i0)
-#define _CC_PUSH(cc,i0)		_CC_STMDB_U(cc,JIT_SP,i0)
-#define _PUSH(i0)		_CC_PUSH(ARM_CC_AL,i0)
-#define _CC_POP(cc,i0)		_CC_LDMIA_U(cc,JIT_SP,i0)
-#define _POP(i0)		_CC_POP(ARM_CC_AL,i0)
+#define _CC_LDMIB(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B,rn,im)
+#define _LDMIB(rn,im)		_CC_LDMIB(ARM_CC_AL,rn,im)
+#define _CC_LDMIB_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_I|ARM_M_B|ARM_M_U,rn,im)
+#define _LDMIB_U(rn,im)		_CC_LDMIB_U(ARM_CC_AL,rn,im)
+#define _CC_LDMDA(cc,rn,im)	corl(cc,ARM_M|ARM_M_L,rn,im)
+#define _LDMDA(rn,im)		_CC_LDMDA(ARM_CC_AL,rn,im)
+#define _CC_LDMDA_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_U,rn,im)
+#define _LDMDA_U(rn,im)		_CC_LDMDA_U(ARM_CC_AL,rn,im)
+#define _CC_LDMDB(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_B,rn,im)
+#define _LDMDB(rn,im)		_CC_LDMDB(ARM_CC_AL,rn,im)
+#  define T2_LDMDB(rn,im)		torl(THUMB2_LDMDB,rn,im)
+
+#define _CC_LDMDB_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_B|ARM_M_U,rn,im)
+#define _LDMDB_U(rn,im)		_CC_LDMDB_U(ARM_CC_AL,rn,im)
+#define _CC_STMIA(cc,rn,im)	corl(cc,ARM_M|ARM_M_I,rn,im)
+#define _STMIA(rn,im)		_CC_STMIA(ARM_CC_AL,rn,im)
+#define _CC_STM(cc,rn,im)	_CC_STMIA(cc,rn,im)
+#define _STM(rn,im)		_STMIA(rn,im)
+#define _CC_STMIA_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_I|ARM_M_U,rn,im)
+#define _STMIA_U(rn,im)		_CC_STMIA_U(ARM_CC_AL,rn,im)
+#define _CC_STM_U(cc,rn,im)	_CC_STMIA_U(cc,rn,im)
+#define _STM_U(rn,im)		_STMIA_U(rn,im)
+#define _CC_STMIB(cc,rn,im)	corl(cc,ARM_M|ARM_M_I|ARM_M_B,rn,im)
+#define _STMIB(rn,im)		_CC_STMIB(ARM_CC_AL,rn,im)
+#define _CC_STMIB_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_I|ARM_M_B|ARM_M_U,rn,im)
+#define _STMIB_U(rn,im)		_CC_STMIB_U(ARM_CC_AL,rn,im)
+#define _CC_STMDA(cc,rn,im)	corl(cc,ARM_M,rn,im)
+#define _STMDA(rn,im)		_CC_STMDA(ARM_CC_AL,rn,im)
+#define _CC_STMDA_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_U,rn,im)
+#define _STMDA_U(rn,im)		_CC_STMDA_U(ARM_CC_AL,rn,im)
+#define _CC_STMDB(cc,rn,im)	corl(cc,ARM_M|ARM_M_B,rn,im)
+#define _STMDB(rn,im)		_CC_STMDB(ARM_CC_AL,rn,im)
+#define _CC_STMDB_U(cc,rn,im)	corl(cc,ARM_M|ARM_M_B|ARM_M_U,rn,im)
+#define _STMDB_U(rn,im)		_CC_STMDB_U(ARM_CC_AL,rn,im)
+#define _CC_PUSH(cc,im)		_CC_STMDB_U(cc,JIT_SP,im)
+#define _PUSH(im)		_STMDB_U(JIT_SP,im)
+#define T1_PUSH(im)		_jit_W(THUMB_PUSH|((im&0x4000)>>6)|(im&0xff))
+#define T2_PUSH(im)		tpp(THUMB2_PUSH,im)
+#define _CC_POP(cc,im)		_LDMIA_U(cc,JIT_SP,im)
+#define _POP(im)		_LDMIA_U(JIT_SP,im)
+#define T1_POP(im)		_jit_W(THUMB_POP|((im&0x8000)>>7)|(im&0xff))
+#define T2_POP(im)		tpp(THUMB2_POP,im)
+
+#define _CC_PKHBTI(cc,rd,rn,rm,im) arm_cc_pkh(cc,ARM_PKH,rn,rd,rm,im)
+#define _CC_PKHTBI(cc,rd,rn,rm,im) arm_cc_pkh(cc,ARM_PKH|ARM_ASR,rn,rd,rm,im)
+#define _PKHBTI(rd,rn,rm,im)	_CC_PKHBTI(ARM_CC_AL,rd,rn,rm,im)
+#define _PKHTBI(rd,rn,rm,im)	_CC_PKHTBI(ARM_CC_AL,rd,rn,rm,im)
+#define _PKHBT(rd,rn,rm)	_CC_PKHBTI(ARM_CC_AL,rd,rn,rm,0)
+#define _PKHTB(rd,rn,rm)	_CC_PKHTBI(ARM_CC_AL,rd,rn,rm,0)
+
+static int
+encode_thumb_immediate(unsigned int v)
+{
+    int			i;
+    unsigned int	m;
+    unsigned int	n;
+    /* 00000000 00000000 00000000 abcdefgh */
+    if ((v & 0xff) == v)
+	return (v);
+    /* 00000000 abcdefgh 00000000 abcdefgh */
+    if ((v & 0xff00ff) == v && ((v & 0xff0000) >> 16) == (v & 0xff))
+	return ((v & 0xff) | (1 << 12));
+    /* abcdefgh 00000000 abcdefgh 00000000 */
+    if (((v & 0xffff0000) >> 16) == (v & 0xffff) && (v & 0xff) == 0)
+	return ((v & 0x000000ff) | (2 << 12));
+    /* abcdefgh abcdefgh abcdefgh abcdefgh */
+    if ( (v &    0xff)        == ((v &     0xff00) >>  8) &&
+	((v &   0xff00) >> 8) == ((v &   0xff0000) >> 16) &&
+	((v & 0xff0000) << 8) ==  (v & 0xff000000))
+	return ((v & 0xff) | (3 << 12));
+    /* 1bcdefgh << 24 ... 1bcdefgh << 1 */
+    for (i = 8, m = 0xff000000, n = 0x80000000;
+	 i < 23; i++, m >>= 1,  n >>= 1) {
+	if ((v & m) == v && (v & n)) {
+	    v >>= 32 - i;
+	    if (!(i & 1))
+		v &= 0x7f;
+	    i >>= 1;
+	    return (((i & 7) << 12) | ((i & 8) << 23) | v);
+	}
+    }
+    return (-1);
+}
+
+static int
+encode_thumb_word_immediate(unsigned int v)
+{
+    if ((v & 0xfffff000) == 0)
+	return (((v & 0x800) << 10) | ((v & 0x700) << 4) | (v & 0xff));
+    return (-1);
+}
+
+static int
+encode_thumb_jump(int v)
+{
+    int		s, i1, i2, j1, j2;
+    if (v >= (int)-0x80000 && v < 0x7ffff) {
+	s  = !!(v & 0x80000);
+	i1 = !!(v & 0x40000);
+	i2 = !!(v & 0x20000);
+	j1 = s ? i1 : !i1;
+	j2 = s ? i2 : !i2;
+	return ((s<<26)|((v&0x1ff800)<<5)|(j1<<13)|(j2<<11)|(v&0x7ff));
+    }
+    return (-1);
+}
+
+static int
+encode_thumb_cc_jump(int v)
+{
+    int		s, j1, j2;
+    if (v >= (int)-0x8000 && v < 0x7fff) {
+	s  = !!(v & 0x8000);
+	j1 = !!(v & 0x2000);
+	j2 = !!(v & 0x4000);
+	return ((s<<26)|((v&0x1f800)<<5)|(j1<<13)|(j2<<11)|(v&0x7ff));
+    }
+    return (-1);
+}
+
+#define thumb2_orri(o,rn,rd,im)		_torri(_jit,o,rn,rd,im)
+#define torri(o,rn,rt,im)		_torri(_jit,o,rn,rt,im)
+__jit_inline void
+_torri(jit_state_t _jit, int o, int rn, int rd, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x0c0f70ff));
+    assert(!(im & 0xfbff8f00));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rd)<<8)|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torri8(o,rn,rt,im)		_torri8(_jit,o,rn,rt,im)
+__jit_inline void
+_torri8(jit_state_t _jit, int o, int rn, int rt, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x000ff0ff));
+    assert(!(im & 0xffffff00));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rt)<<12)|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define toriw(o,rd,im)			_toriw(_jit,o,rd,im)
+__jit_inline void
+_toriw(jit_state_t _jit, int o, int rd, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x40f7fff));
+    assert(!(im & 0xffff0000));
+    thumb.i = o|((im&0xf000)<<4)|((im&0x800)<<15)|((im&0x700)<<4)|(_u4(rd)<<8)|(im&0xff);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torrr(o,rn,rd,rm)		_torrr(_jit,o,rn,rd,rm)
+__jit_inline void
+_torrr(jit_state_t _jit, int o, int rn, int rd, int rm)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0xf0f0f));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rd)<<8)|_u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torrrr(o,rn,rl,rh,rm)		_torrrr(_jit,o,rn,rl,rh,rm)
+__jit_inline void
+_torrrr(jit_state_t _jit, int o, int rn, int rl, int rh, int rm)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x000fff0f));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rl)<<12)|(_u4(rh)<<8)|_u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torrri8(o,rn,rt,rt2,im)		_torrri8(_jit,o,rn,rt,rt2,im)
+__jit_inline void
+_torrri8(jit_state_t _jit, int o, int rn, int rt, int rt2, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x000fffff));
+    assert(!(im & 0xffffff00));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rt)<<12)|(_u4(rt2)<<8)|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define tc8(cc,im)			_tc8(_jit,cc,im)
+__jit_inline void
+_tc8(jit_state_t _jit, int cc, int im)
+{
+    assert(!(cc & 0x0fffffff));
+    assert(cc != ARM_CC_AL && cc != ARM_CC_NV);
+    assert(_s8P(im));
+    _jit_W(THUMB_CC_B|(cc>>20)|(im&0xff));
+}
+
+#define t11(im)				_t11(_jit,im)
+__jit_inline void
+_t11(jit_state_t _jit, int im)
+{
+    assert(!(im & 0xfffff800));
+    _jit_W(THUMB_B|im);
+}
+
+#define tcb(cc,im)			_tcb(_jit,cc,im)
+__jit_inline void
+_tcb(jit_state_t _jit, int cc, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(cc & 0xfffffff));
+    assert(cc != ARM_CC_AL && cc != ARM_CC_NV);
+    cc = ((unsigned)cc) >> 6;
+    assert(!(im & (THUMB2_CC_B|cc)));
+    thumb.i = THUMB2_CC_B|cc|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define blxi(im)				_blxi(_jit,im)
+__jit_inline void
+_blxi(jit_state_t _jit, int im)
+{
+    assert(!(im & 0xfe000000));
+    _jit_I(ARM_BLXI|im);
+}
+
+#define tb(o,im)				_tb(_jit,o,im)
+__jit_inline void
+_tb(jit_state_t _jit, int o, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x07ff2fff));
+    assert(!(o & im));
+    thumb.i = o|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define tshift(o,rd,rm,im)		_tshift(_jit,o,rd,rm,im)
+__jit_inline void
+_tshift(jit_state_t _jit, int o, int rd, int rm, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x7fcf));
+    assert(im >= 0 && im < 32);
+    thumb.i = o|((im&0x1c)<<6)|(_u4(rd)<<8)|((im&3)<<6)|_u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define thumb2_orrr(o,rn,rd,rm)		_thumb2_orrr(_jit,o,rn,rd,rm)
+__jit_inline void
+_thumb2_orrr(jit_state_t _jit, int o, int rn, int rd, int rm)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x000f0f0f));
+    thumb.i = o | (_u4(rn)<<16) | (_u4(rd)<<8) | _u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define thumb2_bfx(o,rn,rd,lsb,width)	_thumb2_bfx(_jit,o,rn,rd,lsb,width)
+__jit_inline void
+_thumb2_bfx(jit_state_t _jit, int o, int rn, int rd, int lsb, int width)
+{
+    int		msb;
+    jit_thumb_t	thumb;
+    assert(!(o & 0x7fdf));
+    assert(lsb >= 0 && lsb < 32 && width >= 0 && width <= 32);
+    msb = lsb + width;
+    if (msb > 31)
+	msb = 31;
+    thumb.i = o | (_u4(rn) << 16) | (_u4(rd) << 8) |
+	      ((msb & 7) << 10) | ((msb & 3) << 5) | msb;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define thumb2_cbxz(o,rn,im)		_thumb2_cbxz(_jit,o,rn,im)
+__jit_inline void
+_thumb2_cbxz(jit_state_t _jit, int o, int rn, int im)
+{
+    assert(!(o & 0x2ff));
+    /* branch forward only */
+    assert(im >= 0 && im < 128 && !(im & 1));
+    im >>= 1;
+    _jit_W(o|((im&0x80)<<5)|((im&0x1f)<<3)|_u3(rn));
+}
+
+#define thumb2_dbg(h,l,im)		_thumb2_dbg(_jit,h,l,im)
+__jit_inline void
+_thumb2_dbg(jit_state_t _jit, int h, int l, int im)
+{
+    assert(!(h & ~0xffff));
+    assert(!(l & 0xffff000f));
+    _jit_WW(h, l | _u4(im));
+}
+
+#define tpp(o,im)			_tpp(_jit,o,im)
+__jit_inline void
+_tpp(jit_state_t _jit, int o, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x0000ffff));
+    assert(!(im & 0xffff2000));
+    if (o == THUMB2_PUSH)
+	assert(!(im & 0x8000));
+    assert(__builtin_popcount(im & 0x1fff) > 1);
+    thumb.i = o|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define THUMB2_IT			0
+#define THUMB2_ITT			1
+#define THUMB2_ITE			2
+#define THUMB2_ITTT			3
+#define THUMB2_ITET			4
+#define THUMB2_ITTE			5
+#define THUMB2_ITEE			6
+#define THUMB2_ITTTT			7
+#define THUMB2_ITETT			8
+#define THUMB2_ITTET			9
+#define THUMB2_ITEET			10
+#define THUMB2_ITTTE			11
+#define THUMB2_ITETE			12
+#define THUMB2_ITTEE			13
+#define THUMB2_ITEEE			14
+#define tcit(tc,it)			_tcit(_jit,tc,it)
+__jit_inline void
+_tcit(jit_state_t _jit, unsigned int tc, int it)
+{
+    int		c;
+    int		m;
+    c = (tc >> 28) & 1;
+    assert(!(tc & 0xfffffff) && tc != ARM_CC_NV);
+    switch (it) {
+	case THUMB2_IT:		m =   1<<3; 			break;
+	case THUMB2_ITT:	m =  (c<<3)| (1<<2);		break;
+	case THUMB2_ITE:	m = (!c<<3)| (1<<2);		break;
+	case THUMB2_ITTT:	m =  (c<<3)| (c<<2)| (1<<1);	break;
+	case THUMB2_ITET:	m = (!c<<3)| (c<<2)| (1<<1);	break;
+	case THUMB2_ITTE:	m =  (c<<3)|(!c<<2)| (1<<1);	break;
+	case THUMB2_ITEE:	m = (!c<<3)|(!c<<2)| (1<<1);	break;
+	case THUMB2_ITTTT:	m =  (c<<3)| (c<<2)| (c<<1)|1;	break;
+	case THUMB2_ITETT:	m = (!c<<3)| (c<<2)| (c<<1)|1;	break;
+	case THUMB2_ITTET:	m =  (c<<3)|(!c<<2)| (c<<1)|1;	break;
+	case THUMB2_ITEET:	m = (!c<<3)|(!c<<2)| (c<<1)|1;	break;
+	case THUMB2_ITTTE:	m =  (c<<3)| (c<<2)|(!c<<1)|1;	break;
+	case THUMB2_ITETE:	m = (!c<<3)| (c<<2)|(!c<<1)|1;	break;
+	case THUMB2_ITTEE:	m =  (c<<3)|(!c<<2)|(!c<<1)|1;	break;
+	case THUMB2_ITEEE:	m = (!c<<3)|(!c<<2)|(!c<<1)|1;	break;
+	default:		assert(!"valid it code!");
+    }
+    assert(m && (tc != ARM_CC_AL || !(m & (m - 1))));
+    _jit_W(0xbf00 | (tc >> 24) | m);
+}
+#define _IT(cc)				tcit(cc,THUMB2_IT)
+#define _ITT(cc)			tcit(cc,THUMB2_ITT)
+#define _ITE(cc)			tcit(cc,THUMB2_ITE)
+#define _ITTT(cc)			tcit(cc,THUMB2_ITTT)
+#define _ITTE(cc)			tcit(cc,THUMB2_ITTE)
+#define _ITET(cc)			tcit(cc,THUMB2_ITET)
+#define _ITEE(cc)			tcit(cc,THUMB2_ITEE)
+#define _ITTTT(cc)			tcit(cc,THUMB2_ITTTT)
+#define _ITETT(cc)			tcit(cc,THUMB2_ITETT)
+#define _ITTET(cc)			tcit(cc,THUMB2_ITTET)
+#define _ITEET(cc)			tcit(cc,THUMB2_ITEET)
+#define _ITTTE(cc)			tcit(cc,THUMB2_ITTTE)
+#define _ITETE(cc)			tcit(cc,THUMB2_ITETE)
+#define _ITTEE(cc)			tcit(cc,THUMB2_ITTEE)
+#define _ITEEE(cc)			tcit(cc,THUMB2_ITEEE)
+
+#define torl(o,rn,im)			_torl(_jit,o,rn,im)
+__jit_inline void
+_torl(jit_state_t _jit, int o, int rn, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0xf1fff));
+    assert(rn != _R15 || !im || ((o & 0xc000) == 0xc000));
+    assert(!(o & THUMB2_LDM_W) || !(im & (1 << rn)));
+    thumb.i = o | (_u4(rn)<<16) | _u13(im);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define thumb2_mrrc(o,t2,t,cc,o1,m)	_thumb2_mrrc(_jit,o,t2,t,cc,o1,m)
+__jit_inline void
+_thumb2_mrrc(jit_state_t _jit, int o, int t2, int t, int cc, int o1, int m)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x03afffff));
+    thumb.i = o|(_u4(t2)<<16)|(_u4(t)<<12)|(_u4(cc)<<8)|(_u4(o1)<<4)|_u4(m);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define thumb2_pkh(o,rn,rd,rm,im)	_thumb2_pkh(_jit,o,rn,rd,rm,im)
+__jit_inline void
+_thumb2_pkh(jit_state_t _jit, int o, int rn, int rd, int rm, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o & 0x7ffcf));
+    thumb.i = o|(_u4(rn)<<16)|((_u5(im)&0x1c)<<10)|
+	      (_u4(rd)<<12)|((im&3)<<6)|_u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+/* v6T2, v7 */
+#define THUMB2_BFX			0xf3600000
+#define T2_BFC(rd,lsb,width)		thumb2_bfx(THUMB2_BFX,_R15,rd,lsb,width)
+#define T2_BFI(rd,rn,lsb,width)		thumb2_bfx(THUMB2_BFX,rn,rd,lsb,width)
+/* not permitted in IT block */
+#define THUMB2_CBZ			0xb100
+#define T2_CBZ(rn,im)			thumb2_cbxz(THUMB2_CBZ,rn,im)
+#define THUMB2_CBNZ			0xb900
+#define T2_CBNZ(rn,im)			thumb2_cbxz(THUMB2_CBNZ,rn,im)
+/* CDP/CDP2 here - same encoding as arm, but can start at "&3 == 2 offset" */
+#define THUMB2_CLZ			0xfab0f080
+#define T2_CLZ(rd,rm)			thumb2_orrr(THUMB2_CLZ,rd,rm,rm)
 
 #endif /* __lightning_asm_h */

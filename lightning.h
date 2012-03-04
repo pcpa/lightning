@@ -193,9 +193,6 @@ struct {
 } jit_cpu;
 #elif defined(__arm__)
 struct jit_local_state {
-    /* hack to only support one misalignment, so that it is not
-     * required to patch arguments being constructed from right
-     * to left */
     int		 reglist;
     int		 framesize;
     int		 nextarg_get;
@@ -205,7 +202,11 @@ struct jit_local_state {
     int		 stack_length;
     int		 stack_offset;
     void	*stack;
-    int		*arguments[256];
+    jit_insn	*thumb;
+    /* hackish mostly to make test cases work; use arm instruction
+     * set in jmpi if did not yet see a prolog */
+    int		 after_prolog;
+    void	*arguments[256];
     int		 types[8];
 #ifdef JIT_NEED_PUSH_POP
     /* minor support for unsupported code but that exists in test cases... */
@@ -216,11 +217,16 @@ struct jit_local_state {
 struct {
     _ui		version		: 4;
     _ui		extend		: 1;
-    _ui		thumb		: 2;
+    /* only generate thumb instructions for thumb2 */
+    _ui		thumb		: 1;
     _ui		vfp		: 3;
     _ui		neon		: 1;
     _ui		abi		: 2;
 } jit_cpu;
+struct {
+    /* prevent using thumb instructions that set flags? */
+    _ui		no_set_flags	: 1;
+} jit_flags;
 #else
 #  error GNU lightning does not support the current target
 #endif

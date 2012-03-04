@@ -81,12 +81,7 @@ vfp_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
     else {
 	if (r0 == JIT_FPRET)
 	    r0 = _D0;
-#if 0
-	if ((code = encode_vfp_single(32, u.i, u.i)) != -1)
-	    _VIMMS(code, r0);
-	else
-#endif
-	    if ((code = encode_vfp_double(1, 0, u.i, u.i)) != -1 ||
+	if ((code = encode_vfp_double(1, 0, u.i, u.i)) != -1 ||
 	    (code = encode_vfp_double(1, 1, ~u.i, ~u.i)) != -1)
 	    _VIMM(code, r0);
 	else {
@@ -113,12 +108,7 @@ vfp_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
     else {
 	if (r0 == JIT_FPRET)
 	    r0 = _D0;
-#if 0
-	if ((code = encode_vfp_single(64, u.i[0], u.i[1])) != -1)
-	    _VIMMS(code, r0);
-	else
-#endif
-	    if ((code = encode_vfp_double(1, 0, u.i[0], u.i[1])) != -1 ||
+	if ((code = encode_vfp_double(1, 0, u.i[0], u.i[1])) != -1 ||
 	    (code = encode_vfp_double(1, 1, ~u.i[0], ~u.i[1])) != -1)
 	    _VIMM(code, r0);
 	else {
@@ -183,14 +173,24 @@ vfp_roundr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 32);
     _VMOV_A_S(JIT_FTMP, r1);
-    if (jit_thumb_p())
-	_TSTI(JIT_FTMP, encode_arm_immediate(0x80000000));
-    else
-	_ANDSI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
-    /* add -0.5 if negative */
-    _CC_MOVI(ARM_CC_NE, JIT_FTMP, encode_arm_immediate(0xbf000000));
-    /* add 0.5 if positive */
-    _CC_MOVI(ARM_CC_EQ, JIT_FTMP, encode_arm_immediate(0x3f000000));
+    if (jit_thumb_p()) {
+	T2_TSTI(JIT_FTMP, encode_thumb_immediate(0x80000000));
+	_ITE(ARM_CC_NE);
+	/* add -0.5 if negative */
+	T2_MOVI(JIT_FTMP, encode_thumb_immediate(0xbf000000));
+	/* add 0.5 if positive */
+	T2_MOVI(JIT_FTMP, encode_thumb_immediate(0x3f000000));
+    }
+    else {
+	if (jit_armv6_p())
+	    _TSTI(JIT_FTMP, encode_arm_immediate(0x80000000));
+	else
+	    _ANDSI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
+	/* add -0.5 if negative */
+	_CC_MOVI(ARM_CC_NE, JIT_FTMP, encode_arm_immediate(0xbf000000));
+	/* add 0.5 if positive */
+	_CC_MOVI(ARM_CC_EQ, JIT_FTMP, encode_arm_immediate(0x3f000000));
+    }
     _VMOV_S_A(tmp, JIT_FTMP);
     _VADD_F32(tmp, r1, tmp);
     /* truncate to zero */
@@ -204,16 +204,29 @@ vfp_roundr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 64);
     _VMOV_AA_D(JIT_TMP, JIT_FTMP, r1);
-    if (jit_thumb_p())
-	_TSTI(JIT_FTMP, encode_arm_immediate(0x80000000));
-    else
-	_ANDSI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
-    _MOVI(JIT_FTMP, encode_arm_immediate(0x0fe00000));
-    /* add -0.5 if negative */
-    _CC_ORRI(ARM_CC_NE, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0xb0000000));
-    /* add 0.5 if positive */
-    _CC_ORRI(ARM_CC_EQ, JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x30000000));
-    _MOVI(JIT_TMP, 0);
+    if (jit_thumb_p()) {
+	T2_TSTI(JIT_FTMP, encode_thumb_immediate(0x80000000));
+	T2_MOVI(JIT_FTMP, encode_thumb_immediate(0x0fe00000));
+	_ITE(ARM_CC_NE);
+	/* add -0.5 if negative */
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(0xb0000000));
+	/* add 0.5 if positive */
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(0x30000000));
+    }
+    else {
+	if (jit_armv6_p())
+	    _TSTI(JIT_FTMP, encode_arm_immediate(0x80000000));
+	else
+	    _ANDSI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
+	_MOVI(JIT_FTMP, encode_arm_immediate(0x0fe00000));
+	/* add -0.5 if negative */
+	_CC_ORRI(ARM_CC_NE, JIT_FTMP, JIT_FTMP,
+		 encode_arm_immediate(0xb0000000));
+	/* add 0.5 if positive */
+	_CC_ORRI(ARM_CC_EQ, JIT_FTMP, JIT_FTMP,
+		 encode_arm_immediate(0x30000000));
+    }
+    jit_movi_i(JIT_TMP, 0);
     _VMOV_D_AA(tmp, JIT_TMP, JIT_FTMP);
     _VADD_F64(tmp, r1, tmp);
     /* truncate to zero */
@@ -230,8 +243,14 @@ vfp_ceilr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 32);
     _VMRS(JIT_TMP);
-    _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    if (jit_thumb_p()) {
+	T2_BICI(JIT_FTMP, JIT_TMP, encode_thumb_immediate(FPSCR_RMASK));
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(FPSCR_RP));
+    }
+    else {
+	_BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
+	_ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    }
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F32(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -244,8 +263,14 @@ vfp_ceilr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 64);
     _VMRS(JIT_TMP);
-    _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    if (jit_thumb_p()) {
+	T2_BICI(JIT_FTMP, JIT_TMP, encode_thumb_immediate(FPSCR_RMASK));
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(FPSCR_RP));
+    }
+    else {
+	_BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
+	_ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RP));
+    }
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F64(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -258,8 +283,14 @@ vfp_floorr_f_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 32);
     _VMRS(JIT_TMP);
-    _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    if (jit_thumb_p()) {
+	T2_BICI(JIT_FTMP, JIT_TMP, encode_thumb_immediate(FPSCR_RMASK));
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(FPSCR_RM));
+    }
+    else {
+	_BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
+	_ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    }
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F32(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -272,8 +303,14 @@ vfp_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
     vfp_get_tmp(r1, 64);
     _VMRS(JIT_TMP);
-    _BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
-    _ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    if (jit_thumb_p()) {
+	T2_BICI(JIT_FTMP, JIT_TMP, encode_thumb_immediate(FPSCR_RMASK));
+	T2_ORRI(JIT_FTMP, JIT_FTMP, encode_thumb_immediate(FPSCR_RM));
+    }
+    else {
+	_BICI(JIT_FTMP, JIT_TMP, encode_arm_immediate(FPSCR_RMASK));
+	_ORRI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(FPSCR_RM));
+    }
     _VMSR(JIT_FTMP);
     _VCVTR_S32_F64(tmp, r1);
     _VMOV_A_S32(r0, tmp);
@@ -297,13 +334,48 @@ vfp_floorr_d_i(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 #define vfp_divr_d(_jit, r0, r1, r2)	_VDIV_F64(r0, r1, r2)
 
 static void
+_vcmp01_x(jit_state_t _jit, int c0, int c1, jit_gpr_t r0)
+{
+    _VMRS(_R15);
+    if (jit_thumb_p()) {
+	if ((c0 ^ c1) >> 28 == 1) {
+	    _ITE(c0);
+	    if (r0 < 8) {
+		T1_MOVI(r0, 0);
+		T1_MOVI(r0, 1);
+	    }
+	    else {
+		T2_MOVI(r0, 0);
+		T2_MOVI(r0, 1);
+	    }
+	}
+	else {
+	    if (r0 < 8) {
+		_IT(c0);
+		T1_MOVI(r0, 0);
+		_IT(c1);
+		T1_MOVI(r0, 1);
+	    }
+	    else {
+		_IT(c0);
+		T2_MOVI(r0, 0);
+		_IT(c1);
+		T2_MOVI(r0, 1);
+	    }
+	}
+    }
+    else {
+	_CC_MOVI(c0, r0, 0);
+	_CC_MOVI(c1, r0, 1);
+    }
+}
+
+static void
 _vcmp01_f(jit_state_t _jit, int c0, int c1,
 	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(c0, r0, 0);
-    _CC_MOVI(c1, r0, 1);
+    _vcmp01_x(_jit, c0, c1, r0);
 }
 
 static void
@@ -311,9 +383,7 @@ _vcmp01_d(jit_state_t _jit, int c0, int c1,
 	  jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(c0, r0, 0);
-    _CC_MOVI(c1, r0, 1);
+    _vcmp01_x(_jit, c0, c1, r0);
 }
 
 #define vfp_ltr_f(_jit,r0,r1,r2)	_vcmp01_f(_jit,ARM_CC_PL,ARM_CC_MI,r0,r1,r2)
@@ -330,21 +400,41 @@ _vcmp01_d(jit_state_t _jit, int c0, int c1,
 #define vfp_ner_d(_jit,r0,r1,r2)	_vcmp01_d(_jit,ARM_CC_EQ,ARM_CC_NE,r0,r1,r2)
 
 static void
+_vcmp10_x(jit_state_t _jit, int cc, jit_gpr_t r0)
+{
+    if (jit_thumb_p()) {
+	if (r0 < 8) {
+	    T1_MOVI(r0, 1);
+	    _VMRS(_R15);
+	    _IT(cc);
+	    T1_MOVI(r0, 0);
+	}
+	else {
+	    T2_MOVI(r0, 1);
+	    _VMRS(_R15);
+	    _IT(cc);
+	    T2_MOVI(r0, 0);
+	}
+    }
+    else {
+	_VMRS(_R15);
+	_MOVI(r0, 1);
+	_CC_MOVI(cc, r0, 0);
+    }
+}
+
+static void
 _vcmp_10_f(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(cc, r0, 0);
+    _vcmp10_x(_jit, cc, r0);
 }
 
 static void
 _vcmp_10_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(cc, r0, 0);
+    _vcmp10_x(_jit, cc, r0);
 }
 
 #define vfp_unltr_f(_jit,r0,r1,r2)	_vcmp_10_f(_jit,ARM_CC_GE,r0,r1,r2)
@@ -352,42 +442,82 @@ _vcmp_10_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 #define vfp_unler_f(_jit,r0,r1,r2)	_vcmp_10_f(_jit,ARM_CC_GT,r0,r1,r2)
 #define vfp_unler_d(_jit,r0,r1,r2)	_vcmp_10_d(_jit,ARM_CC_GT,r0,r1,r2)
 
+static void
+vfp_uneqr_x(jit_state_t _jit, jit_gpr_t r0)
+{
+    _VMRS(_R15);
+    if (jit_thumb_p()) {
+	_ITE(ARM_CC_NE);
+	if (r0 < 8) {
+	    T1_MOVI(r0, 0);
+	    T1_MOVI(r0, 1);
+	    _IT(ARM_CC_VS);
+	    T1_MOVI(r0, 1);
+	}
+	else {
+	    T2_MOVI(r0, 0);
+	    T2_MOVI(r0, 1);
+	    _IT(ARM_CC_VS);
+	    T2_MOVI(r0, 1);
+	}
+    }
+    else {
+	_CC_MOVI(ARM_CC_NE, r0, 0);
+	_CC_MOVI(ARM_CC_EQ, r0, 1);
+	_CC_MOVI(ARM_CC_VS, r0, 1);
+    }
+}
+
 __jit_inline void
 vfp_uneqr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_NE, r0, 0);
-    _CC_MOVI(ARM_CC_EQ, r0, 1);
-    _CC_MOVI(ARM_CC_VS, r0, 1);
+    vfp_uneqr_x(_jit, r0);
 }
 
 __jit_inline void
 vfp_uneqr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_NE, r0, 0);
-    _CC_MOVI(ARM_CC_EQ, r0, 1);
-    _CC_MOVI(ARM_CC_VS, r0, 1);
+    vfp_uneqr_x(_jit, r0);
+}
+
+static void
+_vcmp_01_x(jit_state_t _jit, int cc, jit_gpr_t r0)
+{
+    if (jit_thumb_p()) {
+	if (r0 < 8) {
+	    T1_MOVI(r0, 0);
+	    _VMRS(_R15);
+	    _IT(cc);
+	    T1_MOVI(r0, 1);
+	}
+	else {
+	    T2_MOVI(r0, 0);
+	    _VMRS(_R15);
+	    _IT(cc);
+	    T2_MOVI(r0, 1);
+	}
+    }
+    else {
+	_VMRS(_R15);
+	_MOVI(r0, 0);
+	_CC_MOVI(cc, r0, 1);
+    }
 }
 
 static void
 _vcmp_01_f(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(cc, r0, 1);
+    _vcmp_01_x(_jit, cc, r0);
 }
 
 static void
 _vcmp_01_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(cc, r0, 1);
+    _vcmp_01_x(_jit, cc, r0);
 }
 
 #define vfp_unger_f(_jit,r0,r1,r2)	_vcmp_01_f(_jit,ARM_CC_CS,r0,r1,r2)
@@ -395,88 +525,106 @@ _vcmp_01_d(jit_state_t _jit, int cc, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 #define vfp_ungtr_f(_jit,r0,r1,r2)	_vcmp_01_f(_jit,ARM_CC_HI,r0,r1,r2)
 #define vfp_ungtr_d(_jit,r0,r1,r2)	_vcmp_01_d(_jit,ARM_CC_HI,r0,r1,r2)
 
+static void
+_vfp_ltgtr_x(jit_state_t _jit, jit_gpr_t r0)
+{
+    _VMRS(_R15);
+    if (jit_thumb_p()) {
+	_ITE(ARM_CC_NE);
+	if (r0 < 8) {
+	    T1_MOVI(r0, 1);
+	    T1_MOVI(r0, 0);
+	    _IT(ARM_CC_VS);
+	    T1_MOVI(r0, 0);
+	}
+	else {
+	    T2_MOVI(r0, 1);
+	    T2_MOVI(r0, 0);
+	    _IT(ARM_CC_VS);
+	    T2_MOVI(r0, 0);
+	}
+    }
+    else {
+	_CC_MOVI(ARM_CC_NE, r0, 1);
+	_CC_MOVI(ARM_CC_EQ, r0, 0);
+	_CC_MOVI(ARM_CC_VS, r0, 0);
+    }
+}
+
 __jit_inline void
 vfp_ltgtr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_NE, r0, 1);
-    _CC_MOVI(ARM_CC_EQ, r0, 0);
-    _CC_MOVI(ARM_CC_VS, r0, 0);
+    _vfp_ltgtr_x(_jit, r0);
 }
 
 __jit_inline void
 vfp_ltgtr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _CC_MOVI(ARM_CC_NE, r0, 1);
-    _CC_MOVI(ARM_CC_EQ, r0, 0);
-    _CC_MOVI(ARM_CC_VS, r0, 0);
+    _vfp_ltgtr_x(_jit, r0);
 }
 
 __jit_inline void
 vfp_ordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_VS, r0, 0);
+    _vcmp10_x(_jit, ARM_CC_VS, r0);
 }
 
 __jit_inline void
 vfp_ordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 1);
-    _CC_MOVI(ARM_CC_VS, r0, 0);
+    _vcmp10_x(_jit, ARM_CC_VS, r0);
 }
 
 __jit_inline void
 vfp_unordr_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F32(r1, r2);
-    _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_VS, r0, 1);
+    _vcmp_01_x(_jit, ARM_CC_VS, r0);
 }
 
 __jit_inline void
 vfp_unordr_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     _VCMP_F64(r1, r2);
+    _vcmp_01_x(_jit, ARM_CC_VS, r0);
+}
+
+static jit_insn *
+_vbcmp_x(jit_state_t _jit, int cc, jit_insn *i0)
+{
+    jit_insn	*l;
+    long	 d;
     _VMRS(_R15);
-    _MOVI(r0, 0);
-    _CC_MOVI(ARM_CC_VS, r0, 1);
+    l = _jit->x.pc;
+    if (jit_thumb_p()) {
+	d = (((long)i0 - (long)l) >> 1) - 2;
+	assert(_s20P(d));
+	T2_CC_B(cc, encode_thumb_cc_jump(d));
+    }
+    else {
+	d = (((long)i0 - (long)l) >> 2) - 2;
+	assert(_s24P(d));
+	_CC_B(cc, d & 0x00ffffff);
+    }
+    return (l);
 }
 
 __jit_inline jit_insn *
 _vbcmp_f(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*l;
-    long	 d;
     _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(cc, d & 0x00ffffff);
-    return (l);
+    return (_vbcmp_x(_jit, cc, i0));
 }
 
 __jit_inline jit_insn *
 _vbcmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*l;
-    long	 d;
     _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(cc, d & 0x00ffffff);
-    return (l);
+    return (_vbcmp_x(_jit, cc, i0));
 }
 
 #define vfp_bltr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_MI,i0,r0,r1)
@@ -492,40 +640,44 @@ _vbcmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 #define vfp_bner_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_NE,i0,r0,r1)
 #define vfp_bner_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_NE,i0,r0,r1)
 
-__jit_inline jit_insn *
-_vbncmp_f(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+static jit_insn *
+_vbncmp_x(jit_state_t _jit, int cc, jit_insn *i0)
 {
     jit_insn	*i;
     jit_insn	*l;
     long	 d;
-    _VCMP_F32(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(cc, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
+    if (jit_thumb_p()) {
+	T2_CC_B(cc, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 1) - 2;
+	assert(_s24P(d));
+	T2_B(encode_thumb_jump(d));
+    }
+    else {
+	_CC_B(cc, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 2;
+	assert(_s24P(d));
+	_B(d & 0x00ffffff);
+    }
     jit_patch(i);
     return (l);
 }
 
 __jit_inline jit_insn *
+_vbncmp_f(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+{
+    _VCMP_F32(r0, r1);
+    return (_vbncmp_x(_jit, cc, i0));
+}
+
+__jit_inline jit_insn *
 _vbncmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*i;
-    jit_insn	*l;
-    long	 d;
     _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(cc, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
-    jit_patch(i);
-    return (l);
+    return (_vbncmp_x(_jit, cc, i0));
 }
 
 #define vfp_bunltr_f(_jit,i0,r0,r1)	_vbncmp_f(_jit,ARM_CC_GE,i0,r0,r1)
@@ -533,131 +685,141 @@ _vbncmp_d(jit_state_t _jit, int cc, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 #define vfp_bunler_f(_jit,i0,r0,r1)	_vbncmp_f(_jit,ARM_CC_GT,i0,r0,r1)
 #define vfp_bunler_d(_jit,i0,r0,r1)	_vbncmp_d(_jit,ARM_CC_GT,i0,r0,r1)
 
-__jit_inline jit_insn *
-vfp_buneqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+static jit_insn *
+vfp_buneqr_x(jit_state_t _jit, jit_insn *i0)
 {
     jit_insn	*i;
     jit_insn	*j;
     jit_insn	*l;
     long	 d;
-    _VCMP_F32(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_VS, 0);
-    j = _jit->x.pc;
-    _CC_B(ARM_CC_NE, 0);
-    jit_patch(i);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
+    if (jit_thumb_p()) {
+	T2_CC_B(ARM_CC_VS, 0);
+	j = _jit->x.pc;
+	T2_CC_B(ARM_CC_NE, 0);
+	jit_patch(i);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 1) - 2;
+	assert(_s20P(d));
+	T2_B(encode_thumb_jump(d));
+    }
+    else {
+	_CC_B(ARM_CC_VS, 0);
+	j = _jit->x.pc;
+	_CC_B(ARM_CC_NE, 0);
+	jit_patch(i);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 2;
+	assert(_s24P(d));
+	_B(d & 0x00ffffff);
+    }
     jit_patch(j);
     return (l);
 }
 
 __jit_inline jit_insn *
+vfp_buneqr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+{
+    _VCMP_F32(r0, r1);
+    return (vfp_buneqr_x(_jit, i0));
+}
+
+__jit_inline jit_insn *
 vfp_buneqr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
+    _VCMP_F64(r0, r1);
+    return (vfp_buneqr_x(_jit, i0));
+}
+
+static jit_insn *
+vfp_bunger_x(jit_state_t _jit, jit_insn *i0)
+{
     jit_insn	*i;
-    jit_insn	*j;
     jit_insn	*l;
     long	 d;
-    _VCMP_F64(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_VS, 0);
-    j = _jit->x.pc;
-    _CC_B(ARM_CC_NE, 0);
+    if (jit_thumb_p()) {
+	T2_CC_B(ARM_CC_MI, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 1) - 2;
+	assert(_s20P(d));
+	T2_CC_B(ARM_CC_HS, encode_thumb_cc_jump(d));
+
+    }
+    else {
+	_CC_B(ARM_CC_MI, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 2;
+	assert(_s24P(d));
+	_CC_B(ARM_CC_HS, d & 0x00ffffff);
+    }
     jit_patch(i);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
-    jit_patch(j);
     return (l);
 }
 
 __jit_inline jit_insn *
 vfp_bunger_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*i;
-    jit_insn	*l;
-    long	 d;
     _VCMP_F32(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(ARM_CC_MI, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_HS, d & 0x00ffffff);
-    jit_patch(i);
-    return (l);
+    return (vfp_bunger_x(_jit, i0));
 }
 
 __jit_inline jit_insn *
 vfp_bunger_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*i;
-    jit_insn	*l;
-    long	 d;
     _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(ARM_CC_MI, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _CC_B(ARM_CC_HS, d & 0x00ffffff);
-    jit_patch(i);
-    return (l);
+    return (vfp_bunger_x(_jit, i0));
 }
 
 #define vfp_bungtr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_HI,i0,r0,r1)
 #define vfp_bungtr_d(_jit,i0,r0,r1)	_vbcmp_d(_jit,ARM_CC_HI,i0,r0,r1)
 
-__jit_inline jit_insn *
-vfp_bltgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+static jit_insn *
+vfp_bltgtr_x(jit_state_t _jit, jit_insn *i0)
 {
     jit_insn	*i;
     jit_insn	*j;
     jit_insn	*l;
     long	 d;
-    _VCMP_F32(r0, r1);
     _VMRS(_R15);
     i = _jit->x.pc;
-    _CC_B(ARM_CC_VS, 0);
-    j = _jit->x.pc;
-    _CC_B(ARM_CC_EQ, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
+    if (jit_thumb_p()) {
+	T2_CC_B(ARM_CC_VS, 0);
+	j = _jit->x.pc;
+	T2_CC_B(ARM_CC_EQ, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 1) - 2;
+	assert(_s24P(d));
+	T2_B(encode_thumb_jump(d));
+    }
+    else {
+	_CC_B(ARM_CC_VS, 0);
+	j = _jit->x.pc;
+	_CC_B(ARM_CC_EQ, 0);
+	l = _jit->x.pc;
+	d = (((long)i0 - (long)l) >> 2) - 2;
+	assert(_s24P(d));
+	_B(d & 0x00ffffff);
+    }
     jit_patch(i);
     jit_patch(j);
     return (l);
 }
 
 __jit_inline jit_insn *
+vfp_bltgtr_f(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
+{
+    _VCMP_F32(r0, r1);
+    return (vfp_bltgtr_x(_jit, i0));
+}
+
+__jit_inline jit_insn *
 vfp_bltgtr_d(jit_state_t _jit, jit_insn *i0, jit_fpr_t r0, jit_fpr_t r1)
 {
-    jit_insn	*i;
-    jit_insn	*j;
-    jit_insn	*l;
-    long	 d;
     _VCMP_F64(r0, r1);
-    _VMRS(_R15);
-    i = _jit->x.pc;
-    _CC_B(ARM_CC_VS, 0);
-    j = _jit->x.pc;
-    _CC_B(ARM_CC_EQ, 0);
-    l = _jit->x.pc;
-    d = (((long)i0 - (long)l) >> 2) - 2;
-    assert(_s24P(d));
-    _B(d & 0x00ffffff);
-    jit_patch(i);
-    jit_patch(j);
-    return (l);
+    return (vfp_bltgtr_x(_jit, i0));
 }
 
 #define vfp_bordr_f(_jit,i0,r0,r1)	_vbcmp_f(_jit,ARM_CC_VC,i0,r0,r1)
@@ -684,14 +846,14 @@ vfp_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 __jit_inline void
 vfp_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _ADD(JIT_FTMP, r1, r2);
+    jit_addr_i(JIT_FTMP, r1, r2);
     _VLDR_F32(r0, JIT_FTMP, 0);
 }
 
 __jit_inline void
 vfp_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    _ADD(JIT_FTMP, r1, r2);
+    jit_addr_i(JIT_FTMP, r1, r2);
     _VLDR_F64(r0, JIT_FTMP, 0);
 }
 
@@ -767,14 +929,14 @@ vfp_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 __jit_inline void
 vfp_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
-    _ADD(JIT_FTMP, r0, r1);
+    jit_addr_i(JIT_FTMP, r0, r1);
     _VSTR_F32(r2, JIT_FTMP, 0);
 }
 
 __jit_inline void
 vfp_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
-    _ADD(JIT_FTMP, r0, r1);
+    jit_addr_i(JIT_FTMP, r0, r1);
     _VSTR_F64(r2, JIT_FTMP, 0);
 }
 
