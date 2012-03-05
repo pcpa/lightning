@@ -248,7 +248,7 @@ typedef union _jit_thumb_t {
 #define THUMB_CMPX	    0x4500
 #define THUMB2_CMP	0xebb00000
 #define THUMB_CMPI	    0x2800
-#define THUMB2_CMPI	0xf1b00f00
+#define THUMB2_CMPI	0xf1b00000
 #define ARM_CMN		0x01700000
 #define THUMB_CMN	    0x42c0
 #define THUMB2_CMN	0xeb100000
@@ -1845,7 +1845,7 @@ __jit_inline void
 _torri(jit_state_t _jit, int o, int rn, int rd, int im)
 {
     jit_thumb_t	thumb;
-    assert(!(o  & 0x0c0f70ff));
+    assert(!(o  & 0x0c0f7fff));
     assert(!(im & 0xfbff8f00));
     thumb.i = o|(_u4(rn)<<16)|(_u4(rd)<<8)|im;
     _jit_WW(thumb.s[0], thumb.s[1]);

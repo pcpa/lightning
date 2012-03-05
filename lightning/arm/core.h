@@ -100,7 +100,7 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 	else {
 	    T2_MOVWI(r0, _jit_US(i0));
 	    if ((i0 & 0xffff0000))
-		T2_MOVTI(r0, _jit_US(i0 >> 16));
+		T2_MOVTI(r0, _jit_US((unsigned)i0 >> 16));
 	}
     }
     else {
@@ -113,7 +113,7 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 	else if (jit_armv6_p()) {
 	    _MOVWI(r0, _jit_US(i0));
 	    if ((i0 & 0xffff0000))
-		_MOVTI(r0, _jit_US(i0 >> 16));
+		_MOVTI(r0, _jit_US((unsigned)i0 >> 16));
 	}
 	else {
 	    int     p0, p1, p2, p3, q0, q1, q2, q3;
@@ -174,8 +174,8 @@ arm_movi_p(jit_state_t _jit, jit_gpr_t r0, void *i0)
     }
     else {
 	if (jit_armv6_p()) {
-	    _MOVWI(r0, _jit_US((int)i0));
-	    _MOVTI(r0, _jit_US((int)i0 >> 16));
+	    _MOVWI(r0, _jit_US((unsigned)i0));
+	    _MOVTI(r0, _jit_US((unsigned)i0 >> 16));
 	}
 	else {
 	    q0 = im & 0x000000ff;	q1 = im & 0x0000ff00;
