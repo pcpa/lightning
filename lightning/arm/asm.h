@@ -1807,7 +1807,7 @@ static int
 encode_thumb_word_immediate(unsigned int v)
 {
     if ((v & 0xfffff000) == 0)
-	return (((v & 0x800) << 10) | ((v & 0x700) << 4) | (v & 0xff));
+	return (((v & 0x800) << 15) | ((v & 0x700) << 4) | (v & 0xff));
     return (-1);
 }
 
@@ -1815,10 +1815,10 @@ static int
 encode_thumb_jump(int v)
 {
     int		s, i1, i2, j1, j2;
-    if (v >= (int)-0x80000 && v < 0x7ffff) {
-	s  = !!(v & 0x80000);
-	i1 = !!(v & 0x40000);
-	i2 = !!(v & 0x20000);
+    if (v >= (int)-0x800000 && v <= 0x7fffff) {
+	s  = !!(v & 0x800000);
+	i1 = !!(v & 0x400000);
+	i2 = !!(v & 0x200000);
 	j1 = s ? i1 : !i1;
 	j2 = s ? i2 : !i2;
 	return ((s<<26)|((v&0x1ff800)<<5)|(j1<<13)|(j2<<11)|(v&0x7ff));
@@ -1830,10 +1830,10 @@ static int
 encode_thumb_cc_jump(int v)
 {
     int		s, j1, j2;
-    if (v >= (int)-0x8000 && v < 0x7fff) {
-	s  = !!(v & 0x8000);
-	j1 = !!(v & 0x2000);
-	j2 = !!(v & 0x4000);
+    if (v >= (int)-0x80000 && v <= 0x7ffff) {
+	s  = !!(v & 0x80000);
+	j1 = !!(v & 0x20000);
+	j2 = !!(v & 0x40000);
 	return ((s<<26)|((v&0x1f800)<<5)|(j1<<13)|(j2<<11)|(v&0x7ff));
     }
     return (-1);

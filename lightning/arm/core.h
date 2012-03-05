@@ -1144,7 +1144,7 @@ arm_cci(jit_state_t _jit, int ct, int cf,
     if (jit_thumb_p()) {
 	if (r1 < 7 && !(i0 & 0xffffff00))
 	    T1_CMPI(r1, i0);
-	if ((i = encode_thumb_immediate(i0)) != -1)
+	else if ((i = encode_thumb_immediate(i0)) != -1)
 	    T2_CMPI(r1, i);
 	else if ((i = encode_thumb_immediate(-i0)) != -1)
 	    T2_CMNI(r1, i);
