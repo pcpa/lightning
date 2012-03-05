@@ -385,7 +385,7 @@ arm_addi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_addcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    /* thumb auto set carry if inside IT block */
+    /* thumb auto set carry if not inside IT block */
     if (jit_thumb_p())
 	T2_ADDS(r0, r1, r2);
     else
@@ -524,7 +524,7 @@ arm_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    /* thumb auto set carry if inside IT block */
+    /* thumb auto set carry if not inside IT block */
     if (jit_thumb_p())
 	T2_SUBS(r0, r1, r2);
     else
