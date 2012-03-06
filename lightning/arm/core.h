@@ -385,9 +385,13 @@ arm_addi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_addcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    /* thumb auto set carry if not inside IT block */
-    if (jit_thumb_p())
-	T2_ADDS(r0, r1, r2);
+    if (jit_thumb_p()) {
+	/* thumb auto set carry if not inside IT block */
+	if ((r0|r1|r2) < 8)
+	    T1_ADD(r0, r1, r2);
+	else
+	    T2_ADDS(r0, r1, r2);
+    }
     else
 	_ADDS(r0, r1, r2);
 }
@@ -399,7 +403,15 @@ arm_addci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if (jit_thumb_p()) {
-	if ((i = encode_thumb_immediate(i0)) != -1)
+	if ((r0|r1) < 8 && !(i0 & ~7))
+	    T1_ADDI3(r0, r1, i0);
+	else if ((r0|r1) < 8 && !(-i0 & ~7))
+	    T1_SUBI3(r0, r1, -i0);
+	else if (r0 < 8 && r0 == r1 && !(i0 & ~0xff))
+	    T1_ADDI8(r0, i0);
+	else if (r0 < 8 && r0 == r1 && !(-i0 & ~0xff))
+	    T1_SUBI8(r0, -i0);
+	else if ((i = encode_thumb_immediate(i0)) != -1)
 	    T2_ADDSI(r0, r1, i);
 	else if ((i = encode_thumb_immediate(-i0)) != -1)
 	    T2_SUBSI(r0, r1, i);
@@ -427,8 +439,13 @@ __jit_inline void
 arm_addxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
     /* keep setting carry because don't know last ADC */
-    if (jit_thumb_p())
-	T2_ADCS(r0, r1, r2);
+    if (jit_thumb_p()) {
+	/* thumb auto set carry if not inside IT block */
+	if ((r0|r1|r2) < 8 && (r0 == r1 || r0 == r2))
+	    T1_ADC(r0, r0 == r1 ? r2 : r1);
+	else
+	    T2_ADCS(r0, r1, r2);
+    }
     else
 	_ADCS(r0, r1, r2);
 }
@@ -524,9 +541,13 @@ arm_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_subcr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    /* thumb auto set carry if not inside IT block */
-    if (jit_thumb_p())
-	T2_SUBS(r0, r1, r2);
+    if (jit_thumb_p()) {
+	/* thumb auto set carry if not inside IT block */
+	if ((r0|r1|r2) < 8)
+	    T1_SUB(r0, r1, r2);
+	else
+	    T2_SUBS(r0, r1, r2);
+    }
     else
 	_SUBS(r0, r1, r2);
 }
@@ -538,7 +559,15 @@ arm_subci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
     int		i;
     jit_gpr_t	reg;
     if (jit_thumb_p()) {
-	if ((i = encode_thumb_immediate(i0)) != -1)
+	if ((r0|r1) < 8 && !(i0 & ~7))
+	    T1_SUBI3(r0, r1, i0);
+	else if ((r0|r1) < 8 && !(-i0 & ~7))
+	    T1_ADDI3(r0, r1, -i0);
+	else if (r0 < 8 && r0 == r1 && !(i0 & ~0xff))
+	    T1_SUBI8(r0, i0);
+	else if (r0 < 8 && r0 == r1 && !(-i0 & ~0xff))
+	    T1_ADDI8(r0, -i0);
+	else if ((i = encode_thumb_immediate(i0)) != -1)
 	    T2_SUBSI(r0, r1, i);
 	else if ((i = encode_thumb_immediate(-i0)) != -1)
 	    T2_ADDSI(r0, r1, i);
@@ -565,9 +594,14 @@ arm_subci_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 arm_subxr_ui(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-    /* keep setting carry because don't know last SBC */
-    if (jit_thumb_p())
-	T2_SBCS(r0, r1, r2);
+    /* keep setting carry because don't know last ADC */
+    if (jit_thumb_p()) {
+	/* thumb auto set carry if not inside IT block */
+	if ((r0|r1|r2) < 8 && (r0 == r1 || r0 == r2))
+	    T1_SBC(r0, r0 == r1 ? r2 : r1);
+	else
+	    T2_SBCS(r0, r1, r2);
+    }
     else
 	_SBCS(r0, r1, r2);
 }
@@ -1620,6 +1654,8 @@ arm_ldxi_c(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_LDRSBI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_LDRSBIN(r0, r1, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_LDRSBWI(r0, r1, i0);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1689,6 +1725,8 @@ arm_ldxi_uc(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_LDRBI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_LDRBIN(r0, r1, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_LDRBWI(r0, r1, i0);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1756,6 +1794,8 @@ arm_ldxi_s(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_LDRSHI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_LDRSHIN(r0, r1, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_LDRSHWI(r0, r1, i0);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1825,6 +1865,8 @@ arm_ldxi_us(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_LDRHI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_LDRHIN(r0, r1, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_LDRHWI(r0, r1, i0);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1897,6 +1939,8 @@ arm_ldxi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_LDRI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_LDRIN(r0, r1, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_LDRWI(r0, r1, i0);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1965,6 +2009,8 @@ arm_stxi_c(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 	    T2_STRBI(r1, r0, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_STRBIN(r1, r0, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_STRBWI(r1, r0, i0);
 	else {
 	    jit_movi_i(JIT_TMP, (int)i0);
 	    if ((r0|r1|JIT_TMP) < 8)
@@ -2031,6 +2077,8 @@ arm_stxi_s(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 	    T2_STRHI(r1, r0, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_STRHIN(r1, r0, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_STRHWI(r1, r0, i0);
 	else {
 	    jit_movi_i(JIT_TMP, (int)i0);
 	    if ((r0|r1|JIT_TMP) < 8)
@@ -2100,6 +2148,8 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 	    T2_STRI(r1, r0, i0);
 	else if (i0 < 0 && i0 >= -255)
 	    T2_STRIN(r1, r0, -i0);
+	else if (i0 >= 0 && i0 <= 4095)
+	    T2_STRWI(r1, r0, i0);
 	else {
 	    jit_movi_i(JIT_TMP, (int)i0);
 	    if ((r0|r1|JIT_TMP) < 8)
