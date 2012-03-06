@@ -1934,7 +1934,7 @@ arm_ldxi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T1_LDRI(r0, r1, i0 >> 2);
 	else if (r1 == _R13 && r0 < 8 &&
 		 i0 >= 0 && !(i0 & 3) && (i0 >> 2) <= 255)
-	    T1_LDRISP(r0, i0 >> 2);
+	    T1_LDRISP(r1, i0 >> 2);
 	else if (i0 >= 0 && i0 <= 255)
 	    T2_LDRI(r0, r1, i0);
 	else if (i0 < 0 && i0 >= -255)
@@ -2143,7 +2143,7 @@ arm_stxi_i(jit_state_t _jit, int i0, jit_gpr_t r0, jit_gpr_t r1)
 	    T1_STRI(r1, r0, i0 >> 2);
 	else if (r0 == _R13 && r1 < 8 &&
 		 i0 >= 0 && !(i0 & 3) && (i0 >> 2) <= 255)
-	    T1_STRISP(r0, i0 >> 2);
+	    T1_STRISP(r1, i0 >> 2);
 	else if (i0 >= 0 && i0 <= 255)
 	    T2_STRI(r1, r0, i0);
 	else if (i0 < 0 && i0 >= -255)
