@@ -518,6 +518,8 @@ arm_subi_i(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, int i0)
 	    T2_ADDI(r0, r1, i);
 	else if ((i = encode_thumb_word_immediate(i0)) != -1)
 	    T2_SUBWI(r0, r1, i);
+	else if ((i = encode_thumb_word_immediate(-i0)) != -1)
+	    T2_ADDWI(r0, r1, i);
 	else {
 	    reg = r0 != r1 ? r0 : JIT_TMP;
 	    jit_movi_i(reg, i0);
@@ -1424,7 +1426,7 @@ arm_baddi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
 	else if (r0 < 8 && !(i1 & ~0xff))
 	    T1_ADDI8(r0, i1);
 	else if (r0 < 8 && !(-i1 & ~0xff))
-	    T1_SUBI8(r0, i1);
+	    T1_SUBI8(r0, -i1);
 	else if ((i = encode_thumb_immediate(i1)) != -1)
 	    T2_ADDSI(r0, r0, i);
 	else if ((i = encode_thumb_immediate(-i1)) != -1)
@@ -1498,7 +1500,7 @@ arm_bsubi(jit_state_t _jit, int cc, jit_insn *i0, jit_gpr_t r0, int i1)
 	else if (r0 < 8 && !(i1 & ~0xff))
 	    T1_SUBI8(r0, i1);
 	else if (r0 < 8 && !(-i1 & ~0xff))
-	    T1_ADDI8(r0, i1);
+	    T1_ADDI8(r0, -i1);
 	else if ((i = encode_thumb_immediate(i1)) != -1)
 	    T2_SUBSI(r0, r0, i);
 	else if ((i = encode_thumb_immediate(-i1)) != -1)
