@@ -307,6 +307,7 @@ typedef union _jit_thumb_t {
 #define THUMB_LDRI	    0x6800
 #define THUMB_LDRISP	    0x9800
 #define THUMB2_LDRI	0xf8500c00
+#define THUMB2_LDRWI	0xf8d00000
 #define ARM_LDRD	0x010000d0
 #define ARM_LDRDI	0x014000d0
 #define ARM_STRB	0x07400000
@@ -328,6 +329,7 @@ typedef union _jit_thumb_t {
 #define THUMB_STRI	    0x6000
 #define THUMB_STRISP	    0x9000
 #define THUMB2_STRI	0xf8400c00
+#define THUMB2_STRWI	0xf8c00000
 #define ARM_STRD	0x010000f0
 #define ARM_STRDI	0x014000f0
 #define THUMB2_STRDI	0xe8400000
@@ -1648,6 +1650,7 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define T1_LDRI(rt,rn,im)	_jit_W(THUMB_LDRI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
 #define T1_LDRISP(rt,im)	_jit_W(THUMB_LDRISP|(_u3(rt)<<8)|_u8(im))
 #define T2_LDRI(rt,rn,im)	torri8(THUMB2_LDRI|THUMB2_U,rn,rt,im)
+#define T2_LDRIW(rt,rn,im)	torri12(THUMB2_LDRWI,rn,rt,im)
 #define _CC_LDRIN(cc,rt,rn,im)	corri(cc,ARM_LDRI,rn,rt,im)
 #define _LDRIN(rt,rn,im)	_CC_LDRIN(ARM_CC_AL,rt,rn,im)
 #define T2_LDRIN(rt,rn,im)	torri8(THUMB2_LDRI,rn,rt,im)
@@ -1696,6 +1699,7 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define T1_STRI(rt,rn,im)	_jit_W(THUMB_STRI|(_u5(im)<<6)|(_u3(rn)<<3)|_u3(rt))
 #define T1_STRISP(rt,im)	_jit_W(THUMB_STRISP|(_u3(rt)<<8)|(_u8(im)))
 #define T2_STRI(rt,rn,im)	torri8(THUMB2_STRI|THUMB2_U,rn,rt,im)
+#define T2_STRWI(rt,rn,im)	torri12(THUMB2_STRWI,rn,rt,im)
 #define _CC_STRIN(cc,rt,rn,im)	corri(cc,ARM_STRI,rn,rt,im)
 #define _STRIN(rt,rn,im)	_CC_STRIN(ARM_CC_AL,rt,rn,im)
 #define T2_STRIN(rt,rn,im)	torri8(THUMB2_STRI,rn,rt,im)
@@ -1858,6 +1862,17 @@ _torri8(jit_state_t _jit, int o, int rn, int rt, int im)
     jit_thumb_t	thumb;
     assert(!(o  & 0x000ff0ff));
     assert(!(im & 0xffffff00));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rt)<<12)|im;
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torri12(o,rn,rt,im)		_torri12(_jit,o,rn,rt,im)
+__jit_inline void
+_torri12(jit_state_t _jit, int o, int rn, int rt, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x000fffff));
+    assert(!(im & 0xfffff000));
     thumb.i = o|(_u4(rn)<<16)|(_u4(rt)<<12)|im;
     _jit_WW(thumb.s[0], thumb.s[1]);
 }

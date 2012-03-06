@@ -2450,7 +2450,7 @@ arm_pusharg_i(jit_state_t _jit, jit_gpr_t r0)
     _jitl.types[ofs >> 5] &= ~(1 << (ofs & 31));
     /* force 32 bit instruction due to possibly needing to trasform it */
     if (jit_thumb_p())
-	T2_STRI(r0, JIT_SP, 0);
+	T2_STRWI(r0, JIT_SP, 0);
     else
 	_STRI(r0, JIT_SP, 0);
 }
@@ -2466,9 +2466,9 @@ arm_patch_arguments(jit_state_t _jit)
     jit_thumb_t	 thumb;
     int		 offset;
     union {
-	_ui	*ui;
-	_us	*us;
-    } insn;
+	_ui	*i;
+	_us	*s;
+    } u;
 
     ioff = foff = 0;
     for (index = _jitl.nextarg_put - 1, offset = 0; index >= 0; index--) {
@@ -2476,171 +2476,200 @@ arm_patch_arguments(jit_state_t _jit)
 	    size = sizeof(double);
 	else
 	    size = sizeof(int);
-	insn.ui = _jitl.arguments[index];
-	code2thumb(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-	switch (thumb.i & 0xfff00f00) {
-	    case ARM_CC_AL|ARM_VSTR|ARM_P:
-		/* same encoding in arm and thumb mode */
-		if (jit_hardfp_p()) {
-		    if (foff < 16) {
-			reg = (thumb.i >> 12) & 0xf;
-			thumb.i = (ARM_CC_AL|ARM_VMOV_F |
-				   ((foff >> 1) << 12) | reg);
+	u.i = _jitl.arguments[index];
+	if (jit_thumb_p()) {
+	    code2thumb(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+	    switch (thumb.i & 0xfff00f00) {
+		case ARM_CC_AL|ARM_VSTR|ARM_P:
+		    if (jit_hardfp_p()) {
+			if (foff < 16) {
+			    reg = (thumb.i >> 12) & 0xf;
+			    thumb.i = (ARM_CC_AL|ARM_VMOV_F |
+				       ((foff >> 1) << 12) | reg);
+			    if (foff & 1)
+				thumb.i |= ARM_V_D;
+			    ++foff;
+			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    continue;
+			}
+		    }
+		    else {
+			if (ioff < 4) {
+			    ++ioff;
+			    thumb.i = ((thumb.i & 0xfff0ff00) |
+				       (JIT_FP << 16) | ioff);
+			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    continue;
+			}
+		    }
+		    thumb.i = (thumb.i & 0xffffff00) | (offset >> 2);
+		    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+		    break;
+		case ARM_CC_AL|ARM_VSTR|ARM_V_F64|ARM_P:
+		    if (jit_hardfp_p()) {
 			if (foff & 1)
-			    thumb.i |= ARM_V_D;
-			++foff;
-			thumb2code(thumb.s[0], thumb.s[1],
-				   insn.us[0], insn.us[1]);
-			continue;
+			    ++foff;
+			if (foff < 16) {
+			    reg = (thumb.i >> 12) & 0xf;
+			    thumb.i = (ARM_CC_AL|ARM_VMOV_F|ARM_V_F64 |
+				       ((foff >> 1) << 12) | reg);
+			    foff += 2;
+			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    continue;
+			}
 		    }
-		}
-		else {
-		    if (ioff < 4) {
-			thumb.i = ((thumb.i & 0xfff0ff00) |
-				   (JIT_FP << 16) | ioff);
+		    else {
+			if (ioff & 1)
+			    ++ioff;
+			if (ioff < 4) {
+			    thumb.i = ((thumb.i & 0xfff0ff00) |
+				       (JIT_FP << 16) | ioff);
+			    ioff += 2;
+			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    continue;
+			}
+		    }
+		    if (offset & 7)
+			offset += sizeof(int);
+		    thumb.i = (thumb.i & 0xffffff00) | (offset >> 2);
+		    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+		    break;
+		case THUMB2_STRWI:
+		thumb_stri:
+		    if (size == 8 && (ioff & 1))
 			++ioff;
-			thumb2code(thumb.s[0], thumb.s[1],
-				   insn.us[0], insn.us[1]);
+		    if (ioff < 4) {
+			thumb.i = ((thumb.i & 0xfff0f000) |
+				   (JIT_FP << 16) | (ioff << 2));
+			thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			++ioff;
+#if 1
+			/* todo thumb and soft float */
+			assert(size == 4);
+#else
+			if (size == 8) {
+			    code2thumb(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
+			    thumb.i = ((thumb.i & 0xfff0f000) |
+				       (JIT_FP << 16) | (ioff << 2));
+			    thumb2code(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
+			    ++ioff;
+			}
+#endif
 			continue;
 		    }
-		}
-		thumb.i = (thumb.i & 0xffffff00) | (offset >> 2);
-		thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		break;
-	    case ARM_CC_AL|ARM_VSTR|ARM_V_F64|ARM_P:
-		/* same encoding in arm and thumb mode */
-		if (jit_hardfp_p()) {
-		    if (foff & 1)
-			++foff;
-		    if (foff < 16) {
-			reg = (thumb.i >> 12) & 0xf;
-			thumb.i = (ARM_CC_AL|ARM_VMOV_F|ARM_V_F64 |
-				   ((foff >> 1) << 12) | reg);
-			foff += 2;
-			thumb2code(thumb.s[0], thumb.s[1],
-				   insn.us[0], insn.us[1]);
+		    if (size == 8 && (offset & 7))
+			offset += sizeof(int);
+		    thumb.i = (thumb.i & 0xfffff000) | offset;
+		    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+#if 1
+			/* todo thumb and soft float */
+		    assert(size == 4);
+#else
+		    if (size == 8) {
+			code2thumb(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
+			thumb.i = (thumb.i & 0xfffff000) | (offset + 4);
+			thumb2code(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
+		    }
+#endif
+		    break;
+		default:
+		    /* offset too large */
+		    if ((thumb.i & 0xfff00000) == THUMB2_STRWI)
+			goto thumb_stri;
+		    abort();
+	    }
+	}
+	else {
+	    switch (u.i[0] & 0xfff00f00) {
+		case ARM_CC_AL|ARM_VSTR|ARM_P:
+		    if (jit_hardfp_p()) {
+			if (foff < 16) {
+			    reg = (u.i[0] >> 12) & 0xf;
+			    u.i[0] = (ARM_CC_AL|ARM_VMOV_F |
+				      ((foff >> 1) << 12) | reg);
+			    if (foff & 1)
+				u.i[0] |= ARM_V_D;
+			    ++foff;
+			    continue;
+			}
+		    }
+		    else {
+			if (ioff < 4) {
+			    u.i[0] = ((u.i[0] & 0xfff0ff00) |
+				      (JIT_FP << 16) | ioff);
+			    ++ioff;
+			    continue;
+			}
+		    }
+		    u.i[0] = (u.i[0] & 0xffffff00) | (offset >> 2);
+		    break;
+		case ARM_CC_AL|ARM_VSTR|ARM_V_F64|ARM_P:
+		    if (jit_hardfp_p()) {
+			if (foff & 1)
+			    ++foff;
+			if (foff < 16) {
+			    reg = (u.i[0] >> 12) & 0xf;
+			    u.i[0] = (ARM_CC_AL|ARM_VMOV_F|ARM_V_F64 |
+				      ((foff >> 1) << 12) | reg);
+			    foff += 2;
+			    continue;
+			}
+		    }
+		    else {
+			if (ioff & 1)
+			    ++ioff;
+			if (ioff < 4) {
+			    u.i[0] = ((u.i[0] & 0xfff0ff00) |
+				      (JIT_FP << 16) | ioff);
+			    ioff += 2;
+			    continue;
+			}
+		    }
+		    if (offset & 7)
+			offset += sizeof(int);
+		    u.i[0] = (u.i[0] & 0xffffff00) | (offset >> 2);
+		    break;
+		case ARM_CC_AL|ARM_STRI|ARM_P:
+		arm_stri:
+		    if (size == 8 && (ioff & 1))
+			++ioff;
+		    if (ioff < 4) {
+			u.i[0] = ((u.i[0] & 0xfff0f000) |
+				  (JIT_FP << 16) | (ioff << 2));
+			++ioff;
+			if (size == 8) {
+			    u.i[1] = ((u.i[1] & 0xfff0f000) |
+				      (JIT_FP << 16) | (ioff << 2));
+			    ++ioff;
+			}
 			continue;
 		    }
-		}
-		else {
+		    if (size == 8 && (offset & 7))
+			offset += sizeof(int);
+		    u.i[0] = (u.i[0] & 0xfffff000) | offset;
+		    if (size == 8)
+			u.i[1] = (u.i[1] & 0xfffff000) | (offset + 4);
+			break;
+		case ARM_CC_AL|ARM_STRDI|ARM_P:
 		    if (ioff & 1)
 			++ioff;
 		    if (ioff < 4) {
-			thumb.i = ((thumb.i & 0xfff0ff00) |
-				   (JIT_FP << 16) | ioff);
+			u.i[0] = ((u.i[0] & 0xfff0f0f0) |
+				  (JIT_FP << 16) | (ioff << 2));
 			ioff += 2;
-			thumb2code(thumb.s[0], thumb.s[1],
-				   insn.us[0], insn.us[1]);
 			continue;
 		    }
-		}
-		if (offset & 7)
-		    offset += sizeof(int);
-		thumb.i = (thumb.i & 0xffffff00) | (offset >> 2);
-		thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		break;
-	    case ARM_CC_AL|ARM_STRI|ARM_P:
-	    arm_stri:
-		assert(!jit_thumb_p());
-		if (size == 8 && (ioff & 1))
-		    ++ioff;
-		if (ioff < 4) {
-		    thumb.i = ((thumb.i & 0xfff0f000) |
-			       (JIT_FP << 16) | (ioff << 2));
-		    insn.ui[0] = thumb.i;
-		    ++ioff;
-		    if (size == 8) {
-			insn.ui[1] = ((insn.ui[1] & 0xfff0f000) |
-				      (JIT_FP << 16) | (ioff << 2));
-			++ioff;
-		    }
-		    continue;
-		}
-		if (size == 8 && (offset & 7))
-		    offset += sizeof(int);
-		if (size == 8) {
-		    insn.ui[0] = (insn.ui[0] & 0xfffff000) | offset;
-		    insn.ui[1] = (insn.ui[1] & 0xfffff000) | (offset + 4);
-		}
-		else
-		    insn.ui[0] = (insn.ui[0] & 0xfffff000) | offset;
-		break;
-	    case ARM_CC_AL|ARM_STRDI|ARM_P:
-		assert(!jit_thumb_p());
-		if (ioff & 1)
-		    ++ioff;
-		if (ioff < 4) {
-		    insn.ui[0] = ((insn.ui[0] & 0xfff0f0f0) |
-				  (JIT_FP << 16) | (ioff << 2));
-		    ioff += 2;
-		    continue;
-		}
-		if (offset & 7)
-		    offset += sizeof(int);
-		insn.ui[0] = ((insn.ui[0] & 0xfffff0f0) |
+		    if (offset & 7)
+			offset += sizeof(int);
+		    u.i[0] = ((u.i[0] & 0xfffff0f0) |
 			      ((offset & 0xf0) << 4) | (offset & 0x0f));
-		break;
-	    case THUMB2_STRI|THUMB2_U:
-		assert(jit_thumb_p());
-		if (size == 8 && (ioff & 1))
-		    ++ioff;
-		if (ioff < 4) {
-		    thumb.i = ((thumb.i & 0xfff0ff00) |
-			       (JIT_FP << 16) | (ioff << 2));
-		    thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		    ++ioff;
-		    if (size == 8) {
-			code2thumb(thumb.s[0], thumb.s[1],
-				   insn.us[2], insn.us[3]);
-			thumb.i = ((thumb.i & 0xfff0ff00) |
-				   (JIT_FP << 16) | (ioff << 2));
-			thumb2code(thumb.s[0], thumb.s[1],
-				   insn.us[2], insn.us[3]);
-			++ioff;
-		    }
-		    continue;
-		}
-		if (size == 8 && (offset & 7))
-		    offset += sizeof(int);
-		assert(offset < 128);
-		thumb.i = (thumb.i & 0xffffff00) | offset;
-		thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		if (size == 8) {
-		    assert(offset < 124);
-		    code2thumb(thumb.s[0], thumb.s[1], insn.us[2], insn.us[3]);
-		    thumb.i = (thumb.i & 0xffffff00) | (offset + 4);
-		    thumb2code(thumb.s[0], thumb.s[1], insn.us[2], insn.us[3]);
-		}
-		break;
-	    case THUMB2_STRDI|ARM_P:
-	    thumb_strd:
-		/* FIXME not properly tested code path of armv5te+ with
-		 * thumb but without vfp;
-		 * probably should only generate thumb if vfp present */
-		assert(jit_thumb_p());
-		if (ioff & 1)
-		    ++ioff;
-		if (ioff < 4) {
-		    thumb.i = ((thumb.i & 0xfff0ff00) |
-			       (JIT_FP << 16) | (ioff << 2));
-		    thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		    ioff += 2;
-		    continue;
-		}
-		if (offset & 7)
-		    offset += sizeof(int);
-		assert(offset < 128);
-		thumb.i = (thumb.i & 0xffffff00) | offset;
-		thumb2code(thumb.s[0], thumb.s[1], insn.us[0], insn.us[1]);
-		break;
-	    default:
-		/* offset too large */
-		if ((thumb.i & 0xfff00000) == (ARM_CC_AL|ARM_STRI|ARM_P))
-		    goto arm_stri;
-		/* rt2 not r0 */
-		if ((thumb.i & 0xfff00000) == (THUMB2_STRDI|ARM_P))
-		    goto thumb_strd;
-		abort();
+		    break;
+		default:
+		    /* offset too large */
+		    if ((u.i[0] & 0xfff00000) == (ARM_CC_AL|ARM_STRI|ARM_P))
+			goto arm_stri;
+		    abort();
+	    }
 	}
 	offset += size;
     }

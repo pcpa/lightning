@@ -101,6 +101,9 @@ jit_get_cpu(void)
 	jit_cpu.version = 7;
     jit_cpu.abi = 1;
 #endif
+    /* armv5 todo */
+    if (!jit_cpu.vfp && jit_cpu.thumb)
+	jit_cpu.thumb = 0;
 }
 
 #endif /* __lightning_funcs_h */

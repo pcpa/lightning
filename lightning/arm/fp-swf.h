@@ -71,6 +71,7 @@ extern int	__aeabi_dcmpun(double, double);
 __jit_inline void
 swf_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     if (r0 != r1) {
 	if (r0 == JIT_FPRET)
 	    /* jit_ret() must follow! */
@@ -85,6 +86,7 @@ swf_movr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_movr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     if (r0 != r1) {
 	if (jit_armv5e_p()) {
 	    if (r0 == JIT_FPRET)
@@ -118,6 +120,7 @@ swf_movi_f(jit_state_t _jit, jit_fpr_t r0, float i0)
 	int	i;
 	float	f;
     } u;
+    assert(!jit_thumb_p());
     u.f = i0;
     if (r0 == JIT_FPRET)
 	/* jit_ret() must follow! */
@@ -135,6 +138,7 @@ swf_movi_d(jit_state_t _jit, jit_fpr_t r0, double i0)
 	int	i[2];
 	double	d;
     } u;
+    assert(!jit_thumb_p());
     u.d = i0;
     if (r0 == JIT_FPRET) {
 	/* jit_ret() must follow! */
@@ -153,6 +157,7 @@ __jit_inline void
 swf_extr_i_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     if (r1 != _R0)
 	jit_movr_i(_R0, r1);
@@ -171,6 +176,7 @@ __jit_inline void
 swf_extr_i_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     if (r1 != _R0)
 	jit_movr_i(_R0, r1);
@@ -194,6 +200,7 @@ static void
 swf_extr_d_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     if (jit_armv5e_p())
 	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
@@ -216,6 +223,7 @@ static void
 swf_extr_f_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)__aeabi_f2d - (int)_jit->x.pc) >> 2) - 2;
@@ -244,6 +252,7 @@ swf_if(jit_state_t _jit, float (*i0)(float), jit_gpr_t r0, jit_fpr_t r1)
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
 #endif
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -299,6 +308,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
     jit_insn		*fast_not_nan;
     jit_insn		*slow_not_nan;
 #endif
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -363,6 +373,7 @@ swf_id(jit_state_t _jit, double (*i0)(double), jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _BICI(JIT_FTMP, JIT_FTMP, encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
@@ -371,6 +382,7 @@ swf_absr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
     _BICI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
@@ -383,6 +395,7 @@ swf_absr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
@@ -391,6 +404,7 @@ swf_negr_f(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_negr_d(jit_state_t _jit, jit_fpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 4);
     _EORI(JIT_FTMP, JIT_FTMP,  encode_arm_immediate(0x80000000));
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 4);
@@ -404,6 +418,7 @@ static void
 swf_ff(jit_state_t _jit, float (*i0)(float), jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     d = (((int)i0 - (int)_jit->x.pc) >> 2) - 2;
@@ -421,6 +436,7 @@ static void
 swf_dd(jit_state_t _jit, double (*i0)(double), jit_fpr_t r0, jit_fpr_t r1)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     if (jit_armv5e_p())
 	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
@@ -452,6 +468,7 @@ swf_fff(jit_state_t _jit, float (*i0)(float, float),
 	 jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
     _LDRIN(_R1, JIT_FP, swf_off(r2) + 8);
@@ -471,6 +488,7 @@ swf_ddd(jit_state_t _jit, double (*i0)(double, double),
 	 jit_fpr_t r0, jit_fpr_t r1, jit_fpr_t r2)
 {
     int			d;
+    assert(!jit_thumb_p());
     _PUSH(0xf);
     if (jit_armv5e_p()) {
 	_LDRDIN(_R0, JIT_FP, swf_off(r1) + 8);
@@ -513,6 +531,7 @@ swf_iff(jit_state_t _jit, int (*i0)(float, float),
 {
     int			d;
     int			l;
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -537,6 +556,7 @@ swf_idd(jit_state_t _jit, int (*i0)(double, double),
 {
     int			l;
     int			d;
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -595,6 +615,7 @@ swf_iunff(jit_state_t _jit, int (*i0)(float, float),
     int			 d;
     int			 l;
     jit_insn		*i;
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -634,6 +655,7 @@ swf_iundd(jit_state_t _jit, int (*i0)(double, double),
     int			 d;
     int			 l;
     jit_insn		*i;
+    assert(!jit_thumb_p());
     l = 0xf;
     if ((int)r0 < 4)
 	/* bogus extra push to align at 8 bytes */
@@ -730,6 +752,7 @@ swf_bff(jit_state_t _jit, int (*i0)(float, float), int cc,
 {
     jit_insn		*l;
     int			 d;
+    assert(!jit_thumb_p());
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
@@ -756,6 +779,7 @@ swf_bdd(jit_state_t _jit, int (*i0)(double, double), int cc,
 {
     jit_insn		*l;
     int			 d;
+    assert(!jit_thumb_p());
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5e_p()) {
@@ -809,6 +833,7 @@ swf_bunff(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     jit_insn		*j0;
     jit_insn		*j1;
     int			 i0;
+    assert(!jit_thumb_p());
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     _LDRIN(_R0, JIT_FP, swf_off(r1) + 8);
@@ -863,6 +888,7 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
     jit_insn		*j0;
     jit_insn		*j1;
     int			 i0;
+    assert(!jit_thumb_p());
     assert(r1 != JIT_FPRET && r2 != JIT_FPRET);
     _PUSH(0xf);
     if (jit_armv5e_p()) {
@@ -941,6 +967,7 @@ swf_bundd(jit_state_t _jit, int eq, void *i1, jit_fpr_t r1, jit_fpr_t r2)
 __jit_inline void
 swf_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
+    assert(!jit_thumb_p());
     jit_ldr_i(JIT_FTMP, r1);
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
@@ -948,6 +975,7 @@ swf_ldr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 __jit_inline void
 swf_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, r1, 0);
 	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
@@ -963,6 +991,7 @@ swf_ldr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1)
 __jit_inline void
 swf_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
+    assert(!jit_thumb_p());
     jit_ldi_i(JIT_FTMP, i0);
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
@@ -970,6 +999,7 @@ swf_ldi_f(jit_state_t _jit, jit_fpr_t r0, void *i0)
 __jit_inline void
 swf_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 {
+    assert(!jit_thumb_p());
     jit_movi_i(JIT_TMP, (int)i0);
     if (jit_armv5e_p()) {
 	_LDRDI(JIT_TMP, JIT_TMP, 0);
@@ -986,6 +1016,7 @@ swf_ldi_d(jit_state_t _jit, jit_fpr_t r0, void *i0)
 __jit_inline void
 swf_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
+    assert(!jit_thumb_p());
     _LDR(JIT_TMP, r1, r2);
     _STRIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
 }
@@ -993,6 +1024,7 @@ swf_ldxr_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 swf_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	_LDRD(JIT_TMP, r1, r2);
 	_STRDIN(JIT_TMP, JIT_FP, swf_off(r0) + 8);
@@ -1009,6 +1041,7 @@ swf_ldxr_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 __jit_inline void
 swf_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(!jit_thumb_p());
     jit_ldxi_i(JIT_FTMP, r1, i0);
     _STRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
 }
@@ -1016,6 +1049,7 @@ swf_ldxi_f(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 swf_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255)
 	    _LDRDI(JIT_TMP, r1, i0);
@@ -1052,6 +1086,7 @@ swf_ldxi_d(jit_state_t _jit, jit_fpr_t r0, jit_gpr_t r1, int i0)
 __jit_inline void
 swf_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     _STRI(JIT_FTMP, r0, 0);
 }
@@ -1059,6 +1094,7 @@ swf_str_f(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
 	_STRDI(JIT_TMP, r0, 0);
@@ -1074,6 +1110,7 @@ swf_str_d(jit_state_t _jit, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
+    assert(!jit_thumb_p());
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     _STRI(JIT_FTMP, JIT_TMP, 0);
@@ -1082,6 +1119,7 @@ swf_sti_f(jit_state_t _jit, void *i0, jit_fpr_t r0)
 __jit_inline void
 swf_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 {
+    assert(!jit_thumb_p());
     jit_movi_i(JIT_TMP, (int)i0);
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
     _STRI(JIT_FTMP, JIT_TMP, 0);
@@ -1092,6 +1130,7 @@ swf_sti_d(jit_state_t _jit, void *i0, jit_fpr_t r0)
 __jit_inline void
 swf_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_TMP, JIT_FP, swf_off(r2) + 8);
     _STR(JIT_TMP, r0, r1);
 }
@@ -1099,6 +1138,7 @@ swf_stxr_f(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 __jit_inline void
 swf_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	_LDRDIN(JIT_TMP, JIT_FP, swf_off(r2) + 8);
 	_STRD(JIT_TMP, r0, r1);
@@ -1115,6 +1155,7 @@ swf_stxr_d(jit_state_t _jit, jit_gpr_t r0, jit_gpr_t r1, jit_fpr_t r2)
 __jit_inline void
 swf_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r1) + 8);
     jit_stxi_i(i0, r0, JIT_FTMP);
 }
@@ -1122,6 +1163,7 @@ swf_stxi_f(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p()) {
 	if (i0 >= 0 && i0 <= 255) {
 	    _LDRDIN(JIT_TMP, JIT_FP, swf_off(r1) + 8);
@@ -1151,6 +1193,7 @@ swf_stxi_d(jit_state_t _jit, int i0, jit_gpr_t r0, jit_fpr_t r1)
 __jit_inline void
 swf_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
+    assert(!jit_thumb_p());
     if (i0 < 4)
 	i0 <<= 2;
     jit_ldxi_i(JIT_FTMP, JIT_FP, i0);
@@ -1160,6 +1203,7 @@ swf_getarg_f(jit_state_t _jit, jit_fpr_t r0, int i0)
 __jit_inline void
 swf_getarg_d(jit_state_t _jit, jit_fpr_t r0, int i0)
 {
+    assert(!jit_thumb_p());
     if (i0 < 4)
 	i0 <<= 2;
     if (jit_armv5e_p()) {
@@ -1191,6 +1235,7 @@ __jit_inline void
 swf_pusharg_f(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
+    assert(!jit_thumb_p());
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(float);
     _LDRIN(JIT_FTMP, JIT_FP, swf_off(r0) + 8);
@@ -1203,6 +1248,7 @@ __jit_inline void
 swf_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 {
     int		ofs = _jitl.nextarg_put++;
+    assert(!jit_thumb_p());
     assert(ofs < 256);
     _jitl.stack_offset -= sizeof(double);
     if (jit_armv5e_p())
@@ -1225,6 +1271,7 @@ swf_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
 __jit_inline void
 swf_retval_d(jit_state_t _jit, jit_fpr_t r0)
 {
+    assert(!jit_thumb_p());
     if (jit_armv5e_p())
 	_STRDIN(_R0, JIT_FP, swf_off(r0) + 8);
     else {
