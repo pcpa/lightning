@@ -276,7 +276,10 @@ typedef union _jit_thumb_t {
 #define THUMB2_BLI	0xf000d000
 
 /* ldr/str */
-#define ARM_P		0x00800000	/* positive offset */
+#define ARM_P		0x00800000	/* positive offset
+					 * actually, the errata manual
+					 * calls this to U field and
+					 * 1<<24 the P field */
 #define THUMB2_P	0x00000400
 #define THUMB2_U	0x00000200
 #define THUMB2_W	0x00000100
@@ -316,6 +319,7 @@ typedef union _jit_thumb_t {
 #define THUMB2_LDRWI	0xf8d00000
 #define ARM_LDRD	0x010000d0
 #define ARM_LDRDI	0x014000d0
+#define THUMB2_LDRDI	0xe8500000
 #define ARM_STRB	0x07400000
 #define THUMB_STRB	    0x5400
 #define THUMB2_STRB	0xf8000000
@@ -1674,8 +1678,10 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define _LDRDN(rd,rn,rm)	_CC_LDRDN(ARM_CC_AL,rn,rt,rm)
 #define _CC_LDRDI(cc,rt,rn,im)	corri8(cc,ARM_LDRDI|ARM_P,rn,rt,im)
 #define _LDRDI(rt,rn,im)	_CC_LDRDI(ARM_CC_AL,rn,rt,im)
+#define T2_LDRDI(rt,rt2,rn,im)	torrri8(THUMB2_LDRDI|ARM_P,rn,rt,rt2,im)
 #define _CC_LDRDIN(cc,rt,rn,im)	corri8(cc,ARM_LDRDI,rn,rt,im)
 #define _LDRDIN(rt,rn,im)	_CC_LDRDIN(ARM_CC_AL,rt,rn,im)
+#define T2_LDRDIN(rt,rt2,rn,im)	torrri8(THUMB2_LDRDI,rn,rt,rt2,im)
 #define _CC_STRB(cc,rt,rn,rm)	corrr(cc,ARM_STRB|ARM_P,rn,rt,rm)
 #define _STRB(rt,rn,rm)		_CC_STRB(ARM_CC_AL,rt,rn,rm)
 #define T1_STRB(rt,rn,rm)	_jit_W(THUMB_STRB|(_u3(rm)<<6)|(_u3(rn)<<3)|_u3(rt))
@@ -1725,10 +1731,10 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define _STRDN(rt,rn,rm)	_CC_STRDN(ARM_CC_AL,rt,rn,rm)
 #define _CC_STRDI(cc,rt,rn,im)	corri8(cc,ARM_STRDI|ARM_P,rn,rt,im)
 #define _STRDI(rt,rn,im)	_CC_STRDI(ARM_CC_AL,rt,rn,im)
-#define T2_STRDI(rt,rt2,rn,im)	torrri(THUMB2_STRDI|ARM_P,rn,rt,rt2,im)
+#define T2_STRDI(rt,rt2,rn,im)	torrri8(THUMB2_STRDI|ARM_P,rn,rt,rt2,im)
 #define _CC_STRDIN(cc,rt,rn,im)	corri8(cc,ARM_STRDI,rn,rt,im)
 #define _STRDIN(rt,rn,im)	_CC_STRDIN(ARM_CC_AL,rt,rn,im)
-#define T2_STRDIN(rt,rt2,rn,im)	torrri(THUMB2_STRDI,rn,rt,rt2,im)
+#define T2_STRDIN(rt,rt2,rn,im)	torrri8(THUMB2_STRDI,rn,rt,rt2,im)
 
 #define _CC_LDMIA(cc,rn,im)	corl(cc,ARM_M|ARM_M_L|ARM_M_I,rn,im)
 #define _LDMIA(rn,im)		_CC_LDMIA(ARM_CC_AL,rn,im)

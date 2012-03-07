@@ -2540,17 +2540,17 @@ arm_patch_arguments(jit_state_t _jit)
 				       ((foff >> 1) << 12) | reg);
 			    if (foff & 1)
 				thumb.i |= ARM_V_D;
-			    ++foff;
 			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    ++foff;
 			    continue;
 			}
 		    }
 		    else {
 			if (ioff < 4) {
-			    ++ioff;
 			    thumb.i = ((thumb.i & 0xfff0ff00) |
 				       (JIT_FP << 16) | ioff);
 			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    ++ioff;
 			    continue;
 			}
 		    }
@@ -2565,8 +2565,8 @@ arm_patch_arguments(jit_state_t _jit)
 			    reg = (thumb.i >> 12) & 0xf;
 			    thumb.i = (ARM_CC_AL|ARM_VMOV_F|ARM_V_F64 |
 				       ((foff >> 1) << 12) | reg);
-			    foff += 2;
 			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    foff += 2;
 			    continue;
 			}
 		    }
@@ -2576,8 +2576,8 @@ arm_patch_arguments(jit_state_t _jit)
 			if (ioff < 4) {
 			    thumb.i = ((thumb.i & 0xfff0ff00) |
 				       (JIT_FP << 16) | ioff);
-			    ioff += 2;
 			    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+			    ioff += 2;
 			    continue;
 			}
 		    }
