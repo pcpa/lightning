@@ -169,7 +169,7 @@ typedef union _jit_thumb_t {
 #define THUMB_SUBI3	    0x1e00
 #define THUMB_SUBI8	    0x3800
 #define THUMB2_SUBI	0xf1a00000
-#define THUMB2_SUBWI	0xf2000000
+#define THUMB2_SUBWI	0xf2a00000
 #define ARM_SBC		0x00c00000
 #define THUMB_SBC	    0x4180
 #define THUMB2_SBC	0xeb600000

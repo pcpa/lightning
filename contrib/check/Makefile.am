@@ -99,4 +99,5 @@ EXTRA_DIST = 			\
 	scanf.tst		\
 	self.tst		\
 	stack.tst		\
-	varargs.tst
+	varargs.tst		\
+	regression.tst
