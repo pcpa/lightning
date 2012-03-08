@@ -5,7 +5,7 @@
 .data	32
 regression:
 .c	"%d: regression!\n"
-.code	256
+.code	$(1024 * 1024)
 	prolog 0
 
 #define printf_regression()						\
