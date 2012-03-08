@@ -1259,12 +1259,9 @@ swf_pusharg_d(jit_state_t _jit, jit_fpr_t r0)
     }
     _jitl.arguments[ofs] = (int *)_jit->x.pc;
     _jitl.types[ofs >> 5] |= 1 << (ofs & 31);
-    if (jit_armv5e_p())
-	_STRDI(JIT_TMP, JIT_SP, 0);
-    else {
-	_STRI(JIT_TMP, JIT_SP, 0);
-	_STRI(JIT_FTMP, JIT_SP, 0);
-    }
+    /* large offsets (handled by patch_arguments) cannot be encoded in STRDI */
+    _STRI(JIT_TMP, JIT_SP, 0);
+    _STRI(JIT_FTMP, JIT_SP, 0);
 }
 
 #define swf_retval_f(_jit, r0)		_STRIN(_R0, JIT_FP, swf_off(r0) + 8)

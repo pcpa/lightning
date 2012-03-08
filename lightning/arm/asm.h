@@ -59,6 +59,9 @@ typedef enum {
 #define JIT_TMP		_R8
 #define JIT_FTMP	_R9
 
+/* must use blx to call functions or jit instruction set matches runtime? */
+#define jit_exchange_p()		1
+
 /* _VxxxQ macros mean _Q0=_D0, _Q1=_D2, ... */
 typedef enum {
     _S0, _D0 = _S0, _Q0 = _D0,
@@ -142,6 +145,7 @@ typedef union _jit_thumb_t {
 #define THUMB2_MOVTI	0xf2c00000
 #define ARM_MVN		0x01e00000
 #define THUMB_MVN	    0x43c0
+#define THUMB2_MVN	0xea6f0000
 #define THUMB2_MVNI	0xf0600000
 #define ARM_MRC		0x0e100010
 #define ARM_MRRC	0x0c500000
@@ -315,7 +319,7 @@ typedef union _jit_thumb_t {
 #define ARM_LDRI	0x05100000
 #define THUMB_LDRI	    0x6800
 #define THUMB_LDRISP	    0x9800
-#define THUMB2_LDRI	0xf8500c00
+#define THUMB2_LDRI	0xf8500c00	/* manual says v6t2/v7; does not work */
 #define THUMB2_LDRWI	0xf8d00000
 #define ARM_LDRD	0x010000d0
 #define ARM_LDRDI	0x014000d0
@@ -344,7 +348,7 @@ typedef union _jit_thumb_t {
 #define THUMB2_STRWI	0xf8c00000
 #define ARM_STRD	0x010000f0
 #define ARM_STRDI	0x014000f0
-#define THUMB2_STRDI	0xe8400000
+#define THUMB2_STRDI	0xe8400000	/* manual says v6t2/v7; does not work */
 
 /* ldm/stm */
 #define ARM_M		0x08000000
@@ -1370,7 +1374,7 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define _CC_MVN(cc,rd,rm)	corrr(cc,ARM_MVN,0,rd,rm)
 #define _MVN(rd,rm)		_CC_MVN(ARM_CC_AL,rd,rm)
 #define T1_MVN(rd,rm)		_jit_W(THUMB_MVN|(_u3(rm)<<3)|_u3(rd))
-#define T2_MVN(rd,rm)		T2_ORR(rd,_R15,rm)
+#define T2_MVN(rd,rm)		torrr(THUMB2_MVN,rd,_R15,rm)
 #define _CC_MVNI(cc,rd,im)	corri(cc,ARM_MVN|ARM_I,0,rd,im)
 #define _MVNI(rd,im)		_CC_MVNI(ARM_CC_AL,rd,im)
 #define T2_MVNI(rd,im)		torri(THUMB2_MVNI,_R15,rd,im)

@@ -261,24 +261,39 @@ arm_patch_at(jit_state_t _jit, jit_insn *jump, jit_insn *label)
     jit_thumb_t		 thumb;
     u.v = jump;
     if (jit_thumb_p() && jump >= _jitl.thumb) {
-	code2thumb(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
-	if ((thumb.i & THUMB2_B) == THUMB2_B) {
-	    d = (((long)label - (long)jump) >> 1) - 2;
-	    assert(_s24P(d));
-	    thumb.i = THUMB2_B | encode_thumb_jump(d);
-	    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+#if 0
+	/* this actually matches other patterns, so cannot patch
+	 * automatically short jumps */
+	if ((u.s[0] & THUMB_CC_B) == THUMB_CC_B) {
+	    assert(_s8P(d));
+	    u.s[0] = (u.s[0] & 0xff00) | (d & 0xff);
 	}
-	else if ((thumb.i & THUMB2_B) == THUMB2_CC_B) {
-	    d = (((long)label - (long)jump) >> 1) - 2;
-	    assert(_s20P(d));
-	    thumb.i = THUMB2_CC_B | (thumb.i & 0x3c00000) |
-		      encode_thumb_cc_jump(d);
-	    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+	else if ((u.s[0] & THUMB_B) == THUMB_B) {
+	    assert(_s11P(d));
+	    u.s[0] = (u.s[0] & 0xf800) | (d & 0x7ff);
 	}
-	else if ((thumb.i & 0xfbf08000) == THUMB2_MOVWI)
-	    jit_patch_movi(jump, label);
 	else
-	    assert(!"handled branch opcode");
+#endif
+	{
+	    code2thumb(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+	    if ((thumb.i & THUMB2_B) == THUMB2_B) {
+		d = (((long)label - (long)jump) >> 1) - 2;
+		assert(_s24P(d));
+		thumb.i = THUMB2_B | encode_thumb_jump(d);
+		thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+	    }
+	    else if ((thumb.i & THUMB2_B) == THUMB2_CC_B) {
+		d = (((long)label - (long)jump) >> 1) - 2;
+		assert(_s20P(d));
+		thumb.i = THUMB2_CC_B | (thumb.i & 0x3c00000) |
+			  encode_thumb_cc_jump(d);
+		thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
+	    }
+	    else if ((thumb.i & 0xfbf08000) == THUMB2_MOVWI)
+		jit_patch_movi(jump, label);
+	    else
+		assert(!"handled branch opcode");
+	}
     }
     else {
 	/* 0x0e000000 because 0x01000000 is (branch&) link modifier */
@@ -809,9 +824,7 @@ static void
 arm_divmod(jit_state_t _jit, int div, int sign,
 	   jit_gpr_t r0, jit_gpr_t r1, jit_gpr_t r2)
 {
-#if 0
     int			 d;
-#endif
     int			 l;
     void		*p;
     l = 0xf;
@@ -837,13 +850,22 @@ arm_divmod(jit_state_t _jit, int div, int sign,
     }
     if (sign)		p = __aeabi_idivmod;
     else		p = __aeabi_uidivmod;
-#if 0
-    d = (((int)p - (int)_jit->x.pc) >> 2) - 2;
-    if ((d & 0xff800000) == 0xff800000 || (d & 0xff000000) == 0x00000000)
-	_BL(d & 0x00ffffff);
-    else
-#endif
-    {
+    if (jit_exchange_p()) {
+	if (jit_thumb_p())
+	    d = (((int)p - (int)_jit->x.pc) >> 1) - 2;
+	else
+	    d = (((int)p - (int)_jit->x.pc) >> 2) - 2;
+	if (_s24P(d)) {
+	    if (jit_thumb_p())
+		T2_BLI(encode_thumb_jump(d));
+	    else
+		_BLI(d & 0x00ffffff);
+	}
+	else
+	    goto fallback;
+    }
+    else {
+    fallback:
 	jit_movi_i(JIT_FTMP, (int)p);
 	if (jit_thumb_p())
 	    T1_BLX(JIT_FTMP);
@@ -2318,8 +2340,8 @@ arm_prolog(jit_state_t _jit, int i0)
 	 * or 1 address being called, but no clear distinction
 	 * of what is a pointer to a jit function, or if patching
 	 * a pointer to a jit function) */
-	_ADDI(_R10, _R15, 1);
-	_BX(_R10);
+	_ADDI(_R12, _R15, 1);
+	_BX(_R12);
 	if (!_jitl.after_prolog) {
 	    _jitl.after_prolog = 1;
 	    _jitl.thumb = _jit->x.pc;
@@ -2701,20 +2723,6 @@ arm_patch_arguments(jit_state_t _jit)
 		    u.i[0] = (u.i[0] & 0xfffff000) | offset;
 		    if (size == 8)
 			u.i[1] = (u.i[1] & 0xfffff000) | (offset + 4);
-			break;
-		case ARM_CC_AL|ARM_STRDI|ARM_P:
-		    if (ioff & 1)
-			++ioff;
-		    if (ioff < 4) {
-			u.i[0] = ((u.i[0] & 0xfff0f0f0) |
-				  (JIT_FP << 16) | (ioff << 2));
-			ioff += 2;
-			continue;
-		    }
-		    if (offset & 7)
-			offset += sizeof(int);
-		    u.i[0] = ((u.i[0] & 0xfffff0f0) |
-			      ((offset & 0xf0) << 4) | (offset & 0x0f));
 		    break;
 		default:
 		    /* offset too large */
