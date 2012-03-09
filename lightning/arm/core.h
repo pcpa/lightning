@@ -99,7 +99,7 @@ arm_movi_i(jit_state_t _jit, jit_gpr_t r0, int i0)
 	    T2_MVNI(r0, i);
 	else {
 	    T2_MOVWI(r0, _jit_US(i0));
-	    if ((i0 & 0xffff0000))
+	    if (i0 & 0xffff0000)
 		T2_MOVTI(r0, _jit_US((unsigned)i0 >> 16));
 	}
     }
@@ -850,7 +850,7 @@ arm_divmod(jit_state_t _jit, int div, int sign,
     }
     if (sign)		p = __aeabi_idivmod;
     else		p = __aeabi_uidivmod;
-    if (jit_exchange_p()) {
+    if (!jit_exchange_p()) {
 	if (jit_thumb_p())
 	    d = (((int)p - (int)_jit->x.pc) >> 1) - 2;
 	else
@@ -2617,10 +2617,6 @@ arm_patch_arguments(jit_state_t _jit)
 				   (JIT_FP << 16) | (ioff << 2));
 			thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
 			++ioff;
-#if 1
-			/* todo thumb and soft float */
-			assert(size == 4);
-#else
 			if (size == 8) {
 			    code2thumb(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
 			    thumb.i = ((thumb.i & 0xfff0f000) |
@@ -2628,23 +2624,17 @@ arm_patch_arguments(jit_state_t _jit)
 			    thumb2code(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
 			    ++ioff;
 			}
-#endif
 			continue;
 		    }
 		    if (size == 8 && (offset & 7))
 			offset += sizeof(int);
 		    thumb.i = (thumb.i & 0xfffff000) | offset;
 		    thumb2code(thumb.s[0], thumb.s[1], u.s[0], u.s[1]);
-#if 1
-			/* todo thumb and soft float */
-		    assert(size == 4);
-#else
 		    if (size == 8) {
 			code2thumb(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
 			thumb.i = (thumb.i & 0xfffff000) | (offset + 4);
 			thumb2code(thumb.s[0], thumb.s[1], u.s[2], u.s[3]);
 		    }
-#endif
 		    break;
 		default:
 		    /* offset too large */

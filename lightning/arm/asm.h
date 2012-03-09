@@ -99,6 +99,9 @@ typedef enum {
     JIT_FPRET,	/* for abstraction of returning a float/double result */
 } jit_fpr_t;
 
+/* match vfpv3 result */
+#define NAN_TO_INT_IS_ZERO		1
+
 #define jit_thumb_p()			jit_cpu.thumb
 #define jit_armv6_p()			(jit_cpu.version >= 6)
 typedef union _jit_thumb_t {
@@ -145,7 +148,7 @@ typedef union _jit_thumb_t {
 #define THUMB2_MOVTI	0xf2c00000
 #define ARM_MVN		0x01e00000
 #define THUMB_MVN	    0x43c0
-#define THUMB2_MVN	0xea6f0000
+#define THUMB2_MVN	0xea600000
 #define THUMB2_MVNI	0xf0600000
 #define ARM_MRC		0x0e100010
 #define ARM_MRRC	0x0c500000
@@ -1292,13 +1295,13 @@ _corrrr(jit_state_t _jit, int cc, int o, int rh, int rl, int rm, int rn)
     _jit_I(cc|o|(_u4(rh)<<16)|(_u4(rl)<<12)|(_u4(rm)<<8)|_u4(rn));
 }
 
-#define arm_cc_srrri(cc,o,r0,r1,r2,i0) _arm_cc_srrri(_jit,cc,o,r0,r1,r2,i0)
+#define corrrs(cc,o,rn,rd,rm,im)	_corrrs(_jit,cc,o,rn,rd,rm,im)
 __jit_inline void
-_arm_cc_srrri(jit_state_t _jit, int cc, int o, int r0, int r1, int r2, int i0)
+_corrrs(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 {
     assert(!(cc & 0x0fffffff));
     assert(!(o  & 0xf000ff8f));
-    _jit_I(cc|o|(_u4(r0)<<12)|(_u4(r1)<<16)|(i0<<7)|_u4(r2));
+    _jit_I(cc|o|(_u4(rd)<<12)|(_u4(rn)<<16)|(im<<7)|_u4(rm));
 }
 
 #define cshift(cc,o,rd,rm,rn,im)	_cshift(_jit,cc,o,rd,rm,rn,im)
@@ -1493,9 +1496,9 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define _ORR(rd,rn,rm)		_CC_ORR(ARM_CC_AL,rd,rn,rm)
 #define T1_ORR(rdn,rm)		_jit_W(THUMB_ORR|(_u3(rm)<<3)|_u3(rdn))
 #define T2_ORR(rd,rn,rm)	torrr(THUMB2_ORR,rn,rd,rm)
-#define _CC_ORR_SI(cc,r0,r1,r2,sh,im)					\
-    arm_cc_srrri(cc,ARM_ORR|sh,r0,r1,r2,im)
-#define _ORR_SI(r0,r1,r2,sh,im)	_CC_ORR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
+#define _CC_ORR_SI(cc,rd,rn,rm,sh,im)					\
+    corrrs(cc,ARM_ORR|sh,rn,rd,rm,im)
+#define _ORR_SI(rd,rn,rm,sh,im)	_CC_ORR_SI(ARM_CC_AL,rd,rn,rm,sh,im)
 #define _CC_ORRI(cc,rd,rn,im)	corri(cc,ARM_ORR|ARM_I,rn,rd,im)
 #define _ORRI(rd,rn,im)		_CC_ORRI(ARM_CC_AL,rd,rn,im)
 #define T2_ORRI(rd,rn,im)	torri(THUMB2_ORRI,rn,rd,im)
@@ -1503,9 +1506,9 @@ _arm_cc_pkh(jit_state_t _jit, int cc, int o, int rn, int rd, int rm, int im)
 #define _EOR(rd,rn,rm)		_CC_EOR(ARM_CC_AL,rd,rn,rm)
 #define T1_EOR(rdn,rm)		_jit_W(THUMB_EOR|(_u3(rm)<<3)|_u3(rdn))
 #define T2_EOR(rd,rn,rm)	torrr(THUMB2_EOR,rn,rd,rm)
-#define _CC_EOR_SI(cc,r0,r1,r2,sh,im)					\
-    arm_cc_srrri(cc,ARM_EOR|sh,r0,r1,r2,im)
-#define _EOR_SI(r0,r1,r2,sh,im)	_CC_EOR_SI(ARM_CC_AL,r0,r1,r2,sh,im)
+#define _CC_EOR_SI(cc,rd,rn,rm,sh,im)					\
+    corrrs(cc,ARM_EOR|sh,rn,rd,rm,im)
+#define _EOR_SI(rd,rn,rm,sh,im)	_CC_EOR_SI(ARM_CC_AL,rd,rn,rm,sh,im)
 #define _CC_EORI(cc,rd,rn,im)	corri(cc,ARM_EOR|ARM_I,rn,rd,im)
 #define _EORI(rd,rn,im)		_CC_EORI(ARM_CC_AL,rd,rn,im)
 #define T2_EORI(rd,rn,im)	torri(THUMB2_EORI,rn,rd,im)
@@ -1869,6 +1872,21 @@ encode_thumb_cc_jump(int v)
     return (-1);
 }
 
+#if !NAN_TO_INT_IS_ZERO
+static int
+encode_thumb_shift(int v, int type)
+{
+    switch (type) {
+	case ARM_ASR:
+	case ARM_LSL:
+	case ARM_LSR:		type >>= 1;	break;
+	default:		assert(!"handled shift");
+    }
+    assert(v >= 0 && v <= 31);
+    return (((v & 0x1c) << 10) | ((v & 3) << 6) | type);
+}
+#endif
+
 #define thumb2_orri(o,rn,rd,im)		_torri(_jit,o,rn,rd,im)
 #define torri(o,rn,rt,im)		_torri(_jit,o,rn,rt,im)
 __jit_inline void
@@ -1921,6 +1939,17 @@ _torrr(jit_state_t _jit, int o, int rn, int rd, int rm)
     jit_thumb_t	thumb;
     assert(!(o & 0xf0f0f));
     thumb.i = o|(_u4(rn)<<16)|(_u4(rd)<<8)|_u4(rm);
+    _jit_WW(thumb.s[0], thumb.s[1]);
+}
+
+#define torrrs(o,rn,rd,rm,im)		_torrrs(_jit,o,rn,rd,rm,im)
+__jit_inline void
+_torrrs(jit_state_t _jit, int o, int rn, int rd, int rm, int im)
+{
+    jit_thumb_t	thumb;
+    assert(!(o  & 0x000f0f0f));
+    assert(!(im & 0xffff8f0f));
+    thumb.i = o|(_u4(rn)<<16)|(_u4(rd)<<8)|im|_u4(rm);
     _jit_WW(thumb.s[0], thumb.s[1]);
 }
 
