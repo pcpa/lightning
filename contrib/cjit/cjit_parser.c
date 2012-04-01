@@ -230,6 +230,7 @@ statement(void)
 	    expr = new_expr(tok_stat, top_expr()->lineno, top_expr()->column);
 	    expr->data._unary.expr = top_expr();
 	    top_expr() = expr;
+	    expr = expr->data._unary.expr;
 	    switch (lookahead()) {
 		case tok_comma:
 		    consume();

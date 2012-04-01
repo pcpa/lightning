@@ -227,7 +227,12 @@ primary(void)
 		ungetch(ch);			token = tok_rem;
 	    }
 	    break;
-	case '!':				token = tok_not;	break;
+	case '!':
+	    if ((ch = getch()) == '=')		token = tok_ne;
+	    else {
+		ungetch(ch);			token = tok_not;
+	    }
+	    break;
 	case '~':				token = tok_com;	break;
 	case '?':				token = tok_question;	break;
 	case 'a' ... 'z': case 'A' ... 'Z': case '_':
